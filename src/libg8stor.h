@@ -18,8 +18,8 @@
     } buffer_t;
 
     typedef struct chunk_t {
-        unsigned char *hash;
-        unsigned char *key;
+        unsigned char *id;
+        unsigned char *cipher;
 
     } chunk_t;
 
@@ -29,6 +29,7 @@
 
     // file buffer
     buffer_t *bufferize(char *filename);
+    buffer_t *buffer_writer(char *filename);
     const unsigned char *buffer_next(buffer_t *buffer);
     void buffer_free(buffer_t *buffer);
 
@@ -38,4 +39,5 @@
 
     // uploader
     chunk_t *upload(remote_t *remote, buffer_t *buffer);
+    size_t download(remote_t *remote, chunk_t *chunk, buffer_t *buffer);
 #endif
