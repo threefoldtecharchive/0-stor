@@ -3,7 +3,7 @@ LIBRARY = libg8stor.so
 SRC = libg8stor.c 3rdparty/xxtea-c/xxtea.c
 OBJ = libg8stor.o xxtea.o
 
-CFLAGS  = -pthread -fPIC -W -Wall -O2 -I/usr/include/hiredis -I3rdparty/xxtea-c
+CFLAGS  = -pthread -fPIC -W -Wall -O2 -I/usr/include/hiredis -I3rdparty/xxtea-c -g
 LDFLAGS = -lhiredis -lssl -lcrypto -lsnappy -lz -lm
 
 CC = gcc
