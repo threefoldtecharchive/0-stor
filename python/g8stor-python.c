@@ -6,7 +6,7 @@
 
 remote_t *remotes = NULL;
 
-static PyObject *cstor_connect(PyObject *self, PyObject *args) {
+static PyObject *g8storclient_connect(PyObject *self, PyObject *args) {
     (void) self;
     remote_t *remote;
     const char *host;
@@ -24,7 +24,7 @@ static PyObject *cstor_connect(PyObject *self, PyObject *args) {
     return PyCapsule_New(remote, "RemoteClient", NULL);
 }
 
-static PyObject *cstor_upload(PyObject *self, PyObject *args) {
+static PyObject *g8storclient_upload(PyObject *self, PyObject *args) {
     (void) self;
     remote_t *remote;
     buffer_t *buffer;
@@ -40,13 +40,11 @@ static PyObject *cstor_upload(PyObject *self, PyObject *args) {
         return NULL;
 
     // initialize buffer
-    if(!(buffer = bufferize(file))) {
-        PyObject *hashs = PyList_New(0);
-        return hashs;
-    }
+    if(!(buffer = bufferize(file)))
+        return Py_None;
 
     // chunks
-    PyObject *hashs = PyList_New(buffer->chunks);
+    PyObject *hashes = PyList_New(buffer->chunks);
 
     printf("[+] uploading %d chunks\n", buffer->chunks);
     for(int i = 0; i < buffer->chunks; i++) {
@@ -55,9 +53,9 @@ static PyObject *cstor_upload(PyObject *self, PyObject *args) {
 
         // inserting hash to the list
         PyObject *pychunk = PyDict_New();
-        PyDict_SetItemString(pychunk, "hash", Py_BuildValue("s", chunk->hash));
-        PyDict_SetItemString(pychunk, "key", Py_BuildValue("s", chunk->key));
-        PyList_SetItem(hashs, i, pychunk);
+        PyDict_SetItemString(pychunk, "hash", Py_BuildValue("s", chunk->id));
+        PyDict_SetItemString(pychunk, "key", Py_BuildValue("s", chunk->cipher));
+        PyList_SetItem(hashes, i, pychunk);
 
         chunk_free(chunk);
     }
@@ -67,23 +65,77 @@ static PyObject *cstor_upload(PyObject *self, PyObject *args) {
     // cleaning
     buffer_free(buffer);
 
-    return hashs;
+    return hashes;
 }
 
-static PyMethodDef CstorMethods[] = {
-    {"connect",  cstor_connect, METH_VARARGS, "Initialize"},
-    {"upload",   cstor_upload,  METH_VARARGS, "Upload"},
+static PyObject *g8storclient_download(PyObject *self, PyObject *args) {
+    (void) self;
+    remote_t *remote;
+    buffer_t *buffer;
+    PyObject *capsule;
+    PyObject *hashes;
+    char *file;
+
+    if(!PyArg_ParseTuple(args, "OOs", &capsule, &hashes, &file))
+        return NULL;
+
+    // extracting the capsule from the first argument
+    // this will gives us the redis client
+    if(!(remote = PyCapsule_GetPointer(capsule, "RemoteClient")))
+        return NULL;
+
+    // initialize buffer
+    if(!(buffer = buffer_writer(file)))
+        return Py_None;
+
+    // parsing dictionnary
+    int chunks = (int) PyList_Size(hashes);
+
+    // chunks
+    printf("[+] downloading %d chunks\n", chunks);
+    for(int i = 0; i < chunks; i++) {
+        size_t chunksize;
+        unsigned char *id, *cipher;
+
+        PyObject *item = PyList_GetItem(hashes, i);
+
+        PyArg_Parse(PyDict_GetItemString(item, "hash"), "s", &id);
+        PyArg_Parse(PyDict_GetItemString(item, "key"), "s", &cipher);
+
+        chunk_t *chunk = chunk_new(strdup(id), strdup(cipher));
+
+        // downloading chunk
+        if(!(chunksize = download(remote, chunk, buffer)))
+            fprintf(stderr, "[-] download failed\n");
+
+        printf("-> chunk restored: %lu bytes\n", chunksize);
+        chunk_free(chunk);
+    }
+
+    size_t finalsize = buffer->finalsize;
+    printf("[+] finalsize: %lu bytes\n", finalsize);
+
+    // cleaning
+    buffer_free(buffer);
+
+    return PyLong_FromLong(finalsize);
+}
+
+static PyMethodDef g8storclient_cm[] = {
+    {"connect",  g8storclient_connect,  METH_VARARGS, "Initialize client"},
+    {"upload",   g8storclient_upload,   METH_VARARGS, "Upload a file"},
+    {"download", g8storclient_download, METH_VARARGS, "Download a file"},
     {NULL, NULL, 0, NULL}
 };
 
-static struct PyModuleDef cstormodule = {
+static struct PyModuleDef g8storclientmodule = {
     PyModuleDef_HEAD_INIT,
-    "cstor",      // name of module
-    NULL,         // module documentation, may be NULL
-    -1,           // -1 if the module keeps state in global variables.
-    CstorMethods
+    "g8storclient", // name of module
+    NULL,           // module documentation, may be NULL
+    -1,             // -1 if the module keeps state in global variables.
+    g8storclient_cm
 };
 
 PyMODINIT_FUNC PyInit_g8storclient(void) {
-    return PyModule_Create(&cstormodule);
+    return PyModule_Create(&g8storclientmodule);
 }
