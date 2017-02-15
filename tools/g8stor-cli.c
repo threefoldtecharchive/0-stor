@@ -77,12 +77,11 @@ int main(int argc, char *argv[]) {
     for(int i = 0; i < chunks_length; i++) {
         size_t chunksize;
 
-        // uploading chunk
+        // downloading chunk
         if(!(chunksize = download(remote, chunks[i], buffer)))
             fprintf(stderr, "[-] download failed\n");
 
         printf("-> chunk restored: %lu bytes\n", chunksize);
-        // chunk_free(chunk);
     }
 
     printf("[+] finalsize: %lu bytes read in %d chunks\n", buffer->finalsize, buffer->chunks);
