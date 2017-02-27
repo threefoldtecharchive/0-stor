@@ -99,8 +99,8 @@ buffer_t *bufferize(char *filename) {
         return NULL;
     }
 
-    size_t hchunksize = buffer->chunksize / 2;
-    buffer->chunks = (int)((buffer->length + hchunksize) / buffer->chunksize);
+    double hchunksize = buffer->chunksize / 2.0;
+    buffer->chunks = ceil((buffer->length + hchunksize) / buffer->chunksize);
 
     // if the file is smaller than a chunks, hardcoding 1 chunk.
     if(buffer->length < buffer->chunksize)
