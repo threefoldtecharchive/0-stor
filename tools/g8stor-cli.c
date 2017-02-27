@@ -27,7 +27,7 @@ int main(int argc, char *argv[]) {
     //
     // connect to redis (ardb)
     //
-    if(!(remote = remote_connect("172.17.0.2", 16379)))
+    if(!(remote = remote_connect("127.0.0.1", 16379)))
         exit(EXIT_FAILURE);
 
     //
