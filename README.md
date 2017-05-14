@@ -1,0 +1,2 @@
+# SDSTOR
+single device store
