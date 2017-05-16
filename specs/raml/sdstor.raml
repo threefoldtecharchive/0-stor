@@ -16,7 +16,8 @@ resourceTypes:
 
 types:
   ACLEntry:
-    description: ACL entry for a reservation
+    description: |
+      ACL entry for a reservation
     properties:
       read: boolean
       write: boolean
@@ -24,7 +25,8 @@ types:
       admin: boolean
 
   ACL:
-    description: Mapping between a user ID and an ACLEntry
+    description: |
+      Mapping between a user ID or group ID and an ACLEntry
     properties:
       id:
         type: string
@@ -171,7 +173,7 @@ types:
                 the dataAccessToken
               properties:
                 dataAccessToken: string
-    /reserve:
+    /reservation:
       description: |
         Management of the reservation for this namespace
       type: reservation.reservableCollection
