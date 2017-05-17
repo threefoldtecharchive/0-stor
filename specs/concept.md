@@ -8,7 +8,7 @@
 Structure used:
 ```
 - 1 byte : Number of references stored, 0 means is deleted, 255 means permanent
-- 160 * 16 bytes (2,56KB):
+- 160 * 16 bytes (2,56KB): **FIXME: why need this if we have the refernce counter already ? **
     list of consumers
     each consumer is represented with a 16 bytes id
 - 4 bytes: CRC of payload behind
@@ -23,8 +23,24 @@ Structure used:
 ### principles
 
 - rest based network server (using go-raml to generate)
-- backend sophia db & rocksdb (rocksdb for ssd, sophiadb for HD, will start with rocksdb)
+- backend is ardb with selected data store. **Still need to make some perf test to see which one will give more thoughput.**
+ We will start with forestdb
 - when HD then there is maximum one NOS per HD, on SSD preferably as well but can change
+
+#### Data Format send from the client:
+Before sending any data to the client, the data need to be process using the follow flow:
+
+1. Split data into blocks of `blocksize` (configurable)
+2. for each block:
+ - create hash of the block (h1)
+ - compress the block using snappy
+ - symetric encryption of block using h1 as key
+ - hash compressed/encrypted block (h2)
+ - create crc of the compressed/encrypted block
+3. Uploads all the blocks:
+    - h1 is the key of the block
+    - compressed/encrypted block+crc is the playload
+
 
 ### 3 types of secrets
 
@@ -56,4 +72,3 @@ Per reservation track:
 - We use ItsYou.online IDs to identify consumers.
 - Data structure contains MD5 hashes of ItsYou.online IDs.
 - On put if we put new data content with the same key, data gets rewrited but consumer list remains the same.
-- For now we pass data as base64 encoded strings to the API.
