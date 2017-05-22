@@ -147,7 +147,7 @@ pip install -r requirements.pip
 
 - Run
 ```
-python benchmark.py
+python benchmarker.py
 ```
 
 - Now find the (result.png) image in the current directory
