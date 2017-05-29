@@ -5,7 +5,7 @@ version: 0.0.1
 mediaType: application/json
 
 uses:
-  reservation: ../../../../gig-cockpit/raml-definitions/librairies/reservation.raml
+  reservation: https://raw.githubusercontent.com/gig-cockpit/raml-definitions/master/librairies/reservation.raml
 
 securitySchemes:
   itsyouonline: !include https://raw.githubusercontent.com/gig-cockpit/raml-definitions/master/securityScheme/iyo.raml
@@ -118,6 +118,10 @@ types:
       tags:
         required: false
         type: Tag[]
+
+  # Needed to fullfill collection resourceTypes interface
+  ObjectCreate:
+    type: Object
 
   ObjectUpdate:
     properties:
