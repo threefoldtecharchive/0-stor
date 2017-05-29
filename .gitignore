@@ -43,3 +43,5 @@ _testmain.go
 
 # Jetbrains
 .idea
+
+store/store
