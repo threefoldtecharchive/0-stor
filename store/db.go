@@ -24,15 +24,28 @@ type Badger struct {
 func (b *Badger) Init(){
 	configFile, err := os.Open("config.json")
 	defer configFile.Close()
+
 	if err != nil{
 		fmt.Println(err.Error())
 		os.Exit(1)
 	}
 
-	jsonParser := json.NewDecoder(configFile)
-	jsonParser.Decode(&settings)
-	os.MkdirAll(settings.Dirs.Meta, 0774)
-	os.MkdirAll(settings.Dirs.Data, 0774)
+	if err :=json.NewDecoder(configFile).Decode(&settings);err != nil{
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
+
+	err = os.MkdirAll(settings.Dirs.Meta, 0774)
+	if err != nil{
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
+
+	err = os.MkdirAll(settings.Dirs.Data, 0774)
+	if err != nil{
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
 }
 /* Constructor */
 func (b *Badger) New() *Badger{
