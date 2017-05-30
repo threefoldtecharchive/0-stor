@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 pushd store
-    echo "Build store"
+    echo "Run tests"
     go get ./...
     bash codecov.sh
 popd
