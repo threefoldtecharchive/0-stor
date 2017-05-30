@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/Zero-OS/0-stor/store/librairies/reservation"
+	"github.com/zero-os/0-stor/store/librairies/reservation"
 	"net/http"
 )
 

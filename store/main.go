@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/Zero-OS/0-stor/store/goraml"
+	"github.com/zero-os/0-stor/store/goraml"
 
 	"github.com/gorilla/mux"
 	"gopkg.in/validator.v2"
