@@ -3,7 +3,7 @@ set -e
 pushd store
     echo "Build store"
     go get ./...
-    go test ./...
+    bash codecov.sh
 popd
 echo "Generate docs"
 pushd specs/raml
