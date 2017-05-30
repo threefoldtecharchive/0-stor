@@ -22,42 +22,42 @@ type NamespacesInterface interface { // nsidaclPost is the handler for POST /nam
 	// UpdateObject is the handler for PUT /namespaces/{nsid}/objects/{id}
 	// Update oject
 	UpdateObject(http.ResponseWriter, *http.Request)
-	// nsidobjectsGet is the handler for GET /namespaces/{nsid}/objects
+	// Listobjects is the handler for GET /namespaces/{nsid}/objects
 	// List keys of the namespaces
-	nsidobjectsGet(http.ResponseWriter, *http.Request)
-	// nsidobjectsPost is the handler for POST /namespaces/{nsid}/objects
+	Listobjects(http.ResponseWriter, *http.Request)
+	// Createobject is the handler for POST /namespaces/{nsid}/objects
 	// Set an object into the namespace
-	nsidobjectsPost(http.ResponseWriter, *http.Request)
+	Createobject(http.ResponseWriter, *http.Request)
 	// nsidreservationidGet is the handler for GET /namespaces/{nsid}/reservation/{id}
 	// Return information about a reservation
 	nsidreservationidGet(http.ResponseWriter, *http.Request)
-	// nsidreservationidPut is the handler for PUT /namespaces/{nsid}/reservation/{id}
+	// UpdateReservation is the handler for PUT /namespaces/{nsid}/reservation/{id}
 	// Renew an existing reservation
-	nsidreservationidPut(http.ResponseWriter, *http.Request)
-	// nsidreservationGet is the handler for GET /namespaces/{nsid}/reservation
+	UpdateReservation(http.ResponseWriter, *http.Request)
+	// ListReservations is the handler for GET /namespaces/{nsid}/reservation
 	// Return a list of all the existing reservation for the give resource
-	nsidreservationGet(http.ResponseWriter, *http.Request)
-	// nsidreservationPost is the handler for POST /namespaces/{nsid}/reservation
+	ListReservations(http.ResponseWriter, *http.Request)
+	// CreateReservation is the handler for POST /namespaces/{nsid}/reservation
 	// Create a reservation for the given resource.
-	nsidreservationPost(http.ResponseWriter, *http.Request)
+	CreateReservation(http.ResponseWriter, *http.Request)
 	// StatsNamespace is the handler for GET /namespaces/{nsid}/stats
 	// Return usage statistics about this namespace
 	StatsNamespace(http.ResponseWriter, *http.Request)
-	// nsidDelete is the handler for DELETE /namespaces/{nsid}
+	// Deletensid is the handler for DELETE /namespaces/{nsid}
 	// Delete nsid
-	nsidDelete(http.ResponseWriter, *http.Request)
-	// nsidGet is the handler for GET /namespaces/{nsid}
+	Deletensid(http.ResponseWriter, *http.Request)
+	// Getnsid is the handler for GET /namespaces/{nsid}
 	// Get detail view about nsid
-	nsidGet(http.ResponseWriter, *http.Request)
-	// nsidPut is the handler for PUT /namespaces/{nsid}
+	Getnsid(http.ResponseWriter, *http.Request)
+	// Updatensid is the handler for PUT /namespaces/{nsid}
 	// Update nsid
-	nsidPut(http.ResponseWriter, *http.Request)
-	// Get is the handler for GET /namespaces
+	Updatensid(http.ResponseWriter, *http.Request)
+	// Listnamespaces is the handler for GET /namespaces
 	// List all namespaces
-	Get(http.ResponseWriter, *http.Request)
-	// Post is the handler for POST /namespaces
+	Listnamespaces(http.ResponseWriter, *http.Request)
+	// Createnamespace is the handler for POST /namespaces
 	// Create a new namespace
-	Post(http.ResponseWriter, *http.Request)
+	Createnamespace(http.ResponseWriter, *http.Request)
 }
 
 // NamespacesInterfaceRoutes is routing for /namespaces root endpoint
@@ -66,16 +66,16 @@ func NamespacesInterfaceRoutes(r *mux.Router, i NamespacesInterface) {
 	r.HandleFunc("/namespaces/{nsid}/objects/{id}", i.DeleteObject).Methods("DELETE")
 	r.HandleFunc("/namespaces/{nsid}/objects/{id}", i.GetObject).Methods("GET")
 	r.HandleFunc("/namespaces/{nsid}/objects/{id}", i.UpdateObject).Methods("PUT")
-	r.HandleFunc("/namespaces/{nsid}/objects", i.nsidobjectsGet).Methods("GET")
-	r.HandleFunc("/namespaces/{nsid}/objects", i.nsidobjectsPost).Methods("POST")
+	r.HandleFunc("/namespaces/{nsid}/objects", i.Listobjects).Methods("GET")
+	r.HandleFunc("/namespaces/{nsid}/objects", i.Createobject).Methods("POST")
 	r.HandleFunc("/namespaces/{nsid}/reservation/{id}", i.nsidreservationidGet).Methods("GET")
-	r.HandleFunc("/namespaces/{nsid}/reservation/{id}", i.nsidreservationidPut).Methods("PUT")
-	r.HandleFunc("/namespaces/{nsid}/reservation", i.nsidreservationGet).Methods("GET")
-	r.HandleFunc("/namespaces/{nsid}/reservation", i.nsidreservationPost).Methods("POST")
+	r.HandleFunc("/namespaces/{nsid}/reservation/{id}", i.UpdateReservation).Methods("PUT")
+	r.HandleFunc("/namespaces/{nsid}/reservation", i.ListReservations).Methods("GET")
+	r.HandleFunc("/namespaces/{nsid}/reservation", i.CreateReservation).Methods("POST")
 	r.HandleFunc("/namespaces/{nsid}/stats", i.StatsNamespace).Methods("GET")
-	r.HandleFunc("/namespaces/{nsid}", i.nsidDelete).Methods("DELETE")
-	r.HandleFunc("/namespaces/{nsid}", i.nsidGet).Methods("GET")
-	r.HandleFunc("/namespaces/{nsid}", i.nsidPut).Methods("PUT")
-	r.Handle("/namespaces", alice.New(NewOauth2itsyouonlineMiddleware([]string{"user:name"}).Handler).Then(http.HandlerFunc(i.Get))).Methods("GET")
-	r.Handle("/namespaces", alice.New(NewOauth2itsyouonlineMiddleware([]string{"user:name"}).Handler).Then(http.HandlerFunc(i.Post))).Methods("POST")
+	r.HandleFunc("/namespaces/{nsid}", i.Deletensid).Methods("DELETE")
+	r.HandleFunc("/namespaces/{nsid}", i.Getnsid).Methods("GET")
+	r.HandleFunc("/namespaces/{nsid}", i.Updatensid).Methods("PUT")
+	r.Handle("/namespaces", alice.New(NewOauth2itsyouonlineMiddleware([]string{"user:name"}).Handler).Then(http.HandlerFunc(i.Listnamespaces))).Methods("GET")
+	r.Handle("/namespaces", alice.New(NewOauth2itsyouonlineMiddleware([]string{"user:name"}).Handler).Then(http.HandlerFunc(i.Createnamespace))).Methods("POST")
 }

@@ -1,204 +1,108 @@
 #%RAML 1.0
-title: "ObjectStore"
-description: "Object Store service API"
+title: "0-Stor"
+description: "0-Stor REST API"
 version: 0.0.1
 mediaType: application/json
 
+uses:
+  reservation: https://raw.githubusercontent.com/Jumpscale-Cockpit/raml-definitions/master/librairies/reservation.raml
+
 securitySchemes:
-  dataAccessToken:
-      type: Pass Through
-      description: |
-        In order to access a resource that has been reserved, we need to fist create a reservation.
-        The access data token return by the reservation request need then to be passed in the following requests
-        that access reserved ressources
-      describedBy:
-        headers:
-          DataAccessToken:
-            type: string
-            required: true
-        responses:
-          401:
-            description: |
-                None, bad or expired token. To fix, request a new reservation token
-          402:
-            description: |
-              The requests you are trying to do is too big compare to the quota left in your reservation.
-              Create a new reservation to increase your allocated storage quota
-          403:
-            description: |
-                Forbiden, you don't have the right to perform this action.
-  reservationToken:
-      type: Pass Through
-      description: |
-        In order to managed a reservation you need to pass the reservation token in the header.
-        The reservation token is generation during the creation of the reservation and it's linked to the user that created the reservation
-        This give the management right of a reservation only to its creater
-      describedBy:
-        headers:
-          ReservationToken:
-            type: string
-            required: true
-        responses:
-          401:
-            description: |
-                None, bad or expired token. To fix, request a new reservation token
-          402:
-            description: |
-              The requests you are trying to do is too big compare to the quota left in your reservation.
-              Create a new reservation to increase your allocated storage quota
-          403:
-            description: |
-                Forbiden, you don't have the right to perform this action.
-  itsyouonline:
-    description: |
-      OAuth2 is a protocol that lets external apps request authorization to private
-      details in a user's account without getting their password.
-    type: OAuth 2.0
-    describedBy:
-      headers:
-        Authorization:
-          description: |
-            Used to send a valid OAuth 2 access token. Do not use together with
-            the "access_token" query string parameter.
-      queryParameters:
-        access_token:
-          description: |
-            Used to send a valid OAuth 2 access token. Do not use together with
-            the "Authorization" header
-      responses:
-        404:
-          description: Unauthorized
-    settings:
-      authorizationUri: https://itsyou.online/v1/oauth/authorize
-      accessTokenUri: https://itsyou.online/v1/oauth/access_token?response_type=id_token
-      authorizationGrants: [ authorization_code, client_credentials ]
-      scopes:
-        - "user:admin"
-        - "user:info"
-        - "user:name"
-        - "user:email"
-        - "user:phone"
-        - "organization:owner"
-        - "organization:member"
-        - "organization:info"
-        - "organization:contracts:read"
-        - "company:admin"
-        - "company:read"
-        - "company:info"
-        - "company:contracts:read"
-        - "contract:read"
-        - "contract:participant"
-        - "user:memberof:org"
+  itsyouonline: 
+                description: |
+                  OAuth2 is a protocol that lets external apps request authorization to private
+                  details in a user's account without getting their password.
+                type: OAuth 2.0
+                describedBy:
+                  headers:
+                    Authorization:
+                      description: |
+                        Used to send a valid OAuth 2 access token. Do not use together with
+                        the "access_token" query string parameter.
+                  queryParameters:
+                    access_token:
+                      description: |
+                        Used to send a valid OAuth 2 access token. Do not use together with
+                        the "Authorization" header
+                  responses:
+                    404:
+                      description: Unauthorized
+                settings:
+                  authorizationUri: https://itsyou.online/v1/oauth/authorize
+                  accessTokenUri: https://itsyou.online/v1/oauth/access_token?response_type=id_token
+                  authorizationGrants: [ authorization_code, client_credentials ]
+                  scopes:
+                    - "user:admin"
+                    - "user:info"
+                    - "user:name"
+                    - "user:email"
+                    - "user:phone"
+                    - "organization:owner"
+                    - "organization:member"
+                    - "organization:info"
+                    - "organization:contracts:read"
+                    - "company:admin"
+                    - "company:read"
+                    - "company:info"
+                    - "company:contracts:read"
+                    - "contract:read"
+                    - "contract:participant"
+                    - "user:memberof:org"
 
 resourceTypes:
-  collection:
-    usage: This resourceType should be used for any collection of items
-    get:
-      displayName: List<<resourcePathName>>
-      description: List all <<resourcePathName>>
-      responses:
-        200:
-          body:
-            type: <<resourcePathName | !singularize | !uppercamelcase>>[]
-    post:
-      displayName: Create<<resourcePathName | !singularize>>
-      description: Create a new <<resourcePathName | !singularize>>
-      body:
-        type: <<resourcePathName | !singularize | !uppercamelcase>>Create
-      responses:
-        201:
-          description: <<resourcePathName | !singularize>> created
-          body:
-            type: <<resourcePathName | !singularize | !uppercamelcase>>
-        409:
-          description: conflict, a <<resourcePathName | !singularize>> with this id already exists
-
-  member:
-    usage: This resourceType should be used for any collection member
-    get:
-      displayName: Get<<resourcePathName | !singularize>>
-      description: Get detail view about <<resourcePathName | !singularize>>
-      responses:
-        200:
-          body:
-            type: <<resourcePathName | !singularize | !uppercamelcase>>
-        404:
-          description: <<resourcePathName | !singularize>> not found
-    put:
-      displayName: Update<<resourcePathName | !singularize>>
-      description: Update <<resourcePathName | !singularize>>
-      responses:
-        200:
-          body:
-            type: <<resourcePathName | !singularize | !uppercamelcase>>
-        404:
-          description: <<resourcePathName | !singularize>> not found
-    delete:
-      displayName: Delete<<resourcePathName | !singularize>>
-      description: Delete <<resourcePathName | !singularize>>
-      responses:
-        204:
-          description: <<resourcePathName | !singularize>> deleted successfully
-        404:
-          description: <<resourcePathName | !singularize>> not found
-
-  reservableCollection:
-      usage: This resourceType should be used for any collection of items that can be reserved
-      get:
-        securedBy: [ itsyouonline : { scopes: ["user:name"] } ]
-        displayName: ListReservations
-        description: |
-          Return a list of all the existing reservation for the give resource
-      post:
-        securedBy: [ itsyouonline : { scopes: ["user:name"] } ]
-        displayName: CreateReservation
-        description: |
-          Create a reservation for the given resource.
-        body:
-          application/json:
-            type: ReservationRequest
-        responses:
-          200:
-            description: |
-              Reservation created. The response contains two tokens.
-              reservationToken, used to managed this reservation.
-              dataAccessToken, used to perform action on the data in this reservation
-            body:
-              application/json:
-                properties:
-                  reservation:
-                    type: Reservation
-                  reservationToken:
-                    type: string
-                  dataAccessToken:
-                    type: string
-          403:
-            description: |
-              The reservation has not been created. Possible reason, not enough space left on the server, ...
-              Inpsect error message for more detail
-            body:
-              application/json:
-                type: Error
-
-  reservableMember:
-      get:
-        securedBy: [ reservationToken ]
-        description: |
-          Return information about a reservation
-        body:
-          application/json:
-            type: Reservation
-      put:
-        displayName: UpdateReservation
-        securedBy: [ reservationToken ]
-        description: |
-          Renew an existing reservation
-        body:
-          application/json:
-            type: ReservationRequest
+  collection: 
+              #%RAML 1.0 ResourceType
+              usage: This resourceType should be used for any collection of items
+              get:
+                displayName: List<<resourcePathName>>
+                description: List all <<resourcePathName>>
+                responses:
+                  200:
+                    body:
+                      type: <<resourcePathName | !singularize | !uppercamelcase>>[]
+              post:
+                displayName: Create<<resourcePathName | !singularize>>
+                description: Create a new <<resourcePathName | !singularize>>
+                body:
+                  type: <<resourcePathName | !singularize | !uppercamelcase>>Create
+                responses:
+                  201:
+                    description: <<resourcePathName | !singularize>> created
+                    body:
+                      type: <<resourcePathName | !singularize | !uppercamelcase>>
+                  409:
+                    description: conflict, a <<resourcePathName | !singularize>> with this id already exists
+  member: 
+          #%RAML 1.0 ResourceType
+          usage: This resourceType should be used for any collection member
+          get:
+            displayName: Get<<resourcePathName | !singularize>>
+            description: Get detail view about <<resourcePathName | !singularize>>
+            responses:
+              200:
+                body:
+                  type: <<resourcePathName | !singularize | !uppercamelcase>>
+              404:
+                description: <<resourcePathName | !singularize>> not found
+          put:
+            displayName: Update<<resourcePathName | !singularize>>
+            description: Update <<resourcePathName | !singularize>>
+            responses:
+              200:
+                body:
+                  type: <<resourcePathName | !singularize | !uppercamelcase>>
+              404:
+                description: <<resourcePathName | !singularize>> not found
+          delete:
+            displayName: Delete<<resourcePathName | !singularize>>
+            description: Delete <<resourcePathName | !singularize>>
+            responses:
+              204:
+                description: <<resourcePathName | !singularize>> deleted successfully
+              404:
+                description: <<resourcePathName | !singularize>> not found
 
 types:
-
   ACLEntry:
     description: |
       ACL entry for a reservation
@@ -303,6 +207,10 @@ types:
         required: false
         type: Tag[]
 
+  # Needed to fullfill collection resourceTypes interface
+  ObjectCreate:
+    type: Object
+
   ObjectUpdate:
     properties:
       data:
@@ -320,62 +228,6 @@ types:
         type: string
         required: true
 
-  ReservationRequest:
-      properties:
-        size:
-          description: |
-            Storage size you want to reserve in MiB
-          required: true
-          type: integer
-          format: int64
-          minimum: 1
-        period: # TODO: do we use period, or exact epoch ?
-          description: |
-            Number of days the reservation is valid
-          required: true
-          type: integer
-          format: int64
-          minimum: 1
-      examples:
-        properties:
-          size: 128
-          period: 30
-
-  Reservation:
-      properties:
-        id:
-          type: string
-          pattern: ^\w+$
-        adminId:
-          type: string
-          description: ItYou.Online ID of the user that has right to administrate this reservation
-          pattern: ^\w+$
-        created:
-          type: integer
-          format: int64
-        updated:
-          type: integer
-          format: int64
-        sizeReserved:
-          description: |
-            Storage size of the reservation in MiB
-          required: true
-          type: number
-          format: float
-          minimum: 1
-          multipleOf: 1
-        sizeUsed:
-          description: |
-            Storage size of the reservation already used
-          required: true
-          type: number
-          format: float
-          minimum: 1
-        expireAt:
-          description: |
-            Expiration date
-          type: datetime
-
 /namespaces:
   securedBy: [ itsyouonline : { scopes: ["user:name"] } ]
   type: collection
@@ -383,10 +235,10 @@ types:
     body:
       type: NamespaceCreate
   /{nsid}:
-    securedBy: [ reservationToken ]
+    securedBy: [ reservation.reservationToken ]
     type: member
     /stats:
-      securedBy: [ reservationToken ]
+      securedBy: [ reservation.reservationToken ]
       get:
         displayName: StatsNamespace
         description: |
@@ -399,7 +251,7 @@ types:
             description: |
               No namespace with this id found
     /acl:
-      securedBy: [ reservationToken ]
+      securedBy: [ reservation.reservationToken ]
       post:
         description: |
           Create an dataAccessToken for a user. This token gives this user access to the data in this namespace
@@ -416,13 +268,13 @@ types:
     /reservation:
       description: |
         Management of the reservation for this namespace
-      type: reservableCollection
+      type: reservation.reservableCollection
       /{id}:
-        type: reservableMember
+        type: reservation.reservableMember
 
     /objects:
       type: collection
-      securedBy: [ dataAccessToken ]
+      securedBy: [ reservation.dataAccessToken ]
       post:
         description: |
           Set an object into the namespace
@@ -430,7 +282,7 @@ types:
         description: |
           List keys of the namespaces
       /{id}:
-        securedBy: [ dataAccessToken ]
+        securedBy: [ reservation.dataAccessToken ]
         head:
           displayName: ExistObject
           description: |

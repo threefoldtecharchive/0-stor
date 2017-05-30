@@ -1,0 +1,17 @@
+language: go
+sudo: true
+dist: trusty
+
+go:
+  - 1.8
+
+before_install:
+  - sudo apt-get -qq update
+  - sudo apt-get install -y nodejs
+  - sudo npm install -g raml2html
+
+install:
+  - go get github.com/Jumpscale/go-raml
+
+script:
+  - bash test.sh
