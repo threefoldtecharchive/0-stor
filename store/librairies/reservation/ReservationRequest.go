@@ -1,4 +1,4 @@
-package main
+package reservation
 
 import (
 	"gopkg.in/validator.v2"

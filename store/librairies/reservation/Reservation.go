@@ -1,4 +1,4 @@
-package main
+package reservation
 
 import (
 	"github.com/Zero-OS/0-stor/store/goraml"
