@@ -45,3 +45,6 @@ _testmain.go
 .idea
 
 store/store
+
+coverage.txt
+
