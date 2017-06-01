@@ -6,6 +6,7 @@ import (
 	"github.com/gorilla/mux"
 	"fmt"
 	"log"
+	"io/ioutil"
 )
 
 // UpdateObject is the handler for PUT /namespaces/{nsid}/objects/{id}
@@ -13,10 +14,15 @@ import (
 func (api NamespacesAPI) UpdateObject(w http.ResponseWriter, r *http.Request) {
 	var reqBody ObjectUpdate
 
+	value, err := ioutil.ReadAll(r.Body)
+
+	if err != nil{
+		http.Error(w, "Bad request", http.StatusBadRequest)
+	}
+
 	// decode request
 	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
-		w.WriteHeader(400)
-		return
+		http.Error(w, "Bad request", http.StatusBadRequest)
 	}
 
 	namespace := mux.Vars(r)["nsid"]
@@ -36,9 +42,6 @@ func (api NamespacesAPI) UpdateObject(w http.ResponseWriter, r *http.Request) {
 	if oldValue == nil{
 		http.Error(w, "Object doesn't exist", http.StatusNotFound)
 	}
-
-	// No need to handle error. reqBody was decoded successfully earlier
-	value, _ := json.Marshal(reqBody)
 
 	// Prepend the same value of the first byte of old data
 	newValue := make([]byte, len(value) + 1)

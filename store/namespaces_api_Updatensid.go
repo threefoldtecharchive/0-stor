@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"github.com/gorilla/mux"
 	"log"
+	"io/ioutil"
 )
 
 // Updatensid is the handler for PUT /namespaces/{nsid}
@@ -12,14 +13,16 @@ import (
 func (api NamespacesAPI) Updatensid(w http.ResponseWriter, r *http.Request) {
 	var reqBody NamespaceCreate
 
-	// decode request
-	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
-		w.WriteHeader(400)
-		return
+	value, err := ioutil.ReadAll(r.Body)
+
+	if err != nil{
+		http.Error(w, "Bad request", http.StatusBadRequest)
 	}
 
-	// No need to handle error. JSON is assumed to be correct at this point
-	value, _ := json.Marshal(reqBody)
+	// decode request
+	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+	}
 
 	key := mux.Vars(r)["nsid"]
 

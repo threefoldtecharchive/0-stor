@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"log"
+	"io/ioutil"
 )
 
 // Createnamespace is the handler for POST /namespaces
@@ -12,13 +13,16 @@ func (api NamespacesAPI) Createnamespace(w http.ResponseWriter, r *http.Request)
 
 	var reqBody NamespaceCreate
 
+	value, err := ioutil.ReadAll(r.Body)
+
+	if err != nil{
+		http.Error(w, "Bad request", http.StatusBadRequest)
+	}
+
 	// decode request
 	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 	}
-
-	// No need to handle error. reqBody was decoded successfully earlier
-	value, _ := json.Marshal(reqBody)
 
 	key := reqBody.Label
 
