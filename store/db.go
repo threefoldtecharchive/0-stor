@@ -2,76 +2,79 @@ package main
 
 import (
 	"github.com/zaibon/badger/badger"
-	"encoding/json"
-	"fmt"
 	"os"
+	"log"
 )
 
-type Settings struct {
-	Dirs struct {
-		Meta string `json:"meta"`
-		Data string `json:"data"`
-	}`json:"dirs"`
-}
-
-
-var settings Settings
 
 type Badger struct {
 	store *badger.KV
 }
 
-func (b *Badger) Init(){
-	configFile, err := os.Open("config.json")
-	defer configFile.Close()
+/* Initialize */
+func (b *Badger) Init(metaDir, dataDir string){
 
-	if err != nil{
-		fmt.Println(err.Error())
-		os.Exit(1)
+	log.Println("Initializing db directories")
+
+	if err := os.MkdirAll(metaDir, 0774); err != nil{
+		log.Fatal(err.Error())
 	}
 
-	if err :=json.NewDecoder(configFile).Decode(&settings);err != nil{
-		fmt.Println(err.Error())
-		os.Exit(1)
+	log.Printf("\t\tMeta dir: %v", metaDir)
+
+	if err := os.MkdirAll(dataDir, 0774); err != nil{
+		log.Fatal(err.Error())
 	}
 
-	err = os.MkdirAll(settings.Dirs.Meta, 0774)
-	if err != nil{
-		fmt.Println(err.Error())
-		os.Exit(1)
-	}
-
-	err = os.MkdirAll(settings.Dirs.Data, 0774)
-	if err != nil{
-		fmt.Println(err.Error())
-		os.Exit(1)
-	}
+	log.Printf("\t\tData dir: %v", dataDir)
 }
+
 /* Constructor */
-func (b *Badger) New() *Badger{
+func (b *Badger) New(metaDir, dataDir string) *Badger{
 	opts := badger.DefaultOptions
-	opts.Dir = settings.Dirs.Meta
-	opts.ValueDir = settings.Dirs.Data
+	opts.Dir = metaDir
+	opts.ValueDir = dataDir
+
+	kv, err:= badger.NewKV(&opts)
+
+	if err != nil{
+		log.Fatal(err.Error())
+	}
+
+	log.Println("Successfully loaded db")
 
 	return &Badger{
-		store:badger.NewKV(&opts),
+		store:kv,
 	}
 }
 
 /* Close connection */
 func (b *Badger) Close(){
-	b.store.Close()
+	if err := b.store.Close(); err != nil{
+		log.Fatal(err.Error())
+	}
 }
 
 /* Get */
-func (b *Badger) Get(key []byte) []byte{
-	v, _ := b.store.Get(key)
-	return v
+func (b *Badger) Get(key string) []byte{
+	var item badger.KVItem
+	if err := b.store.Get([]byte(key), &item); err != nil{
+		log.Fatal(err.Error())
+	}
+	return item.Value()
 }
 
 /* Set */
+func (b *Badger) Set(key string, val []byte){
+	if err := b.store.Set([]byte(key), val); err != nil{
+		log.Fatal(err.Error())
+	}
+}
 
-func (b *Badger) Set(key, val []byte){
-	b.store.Set(key, val)
+/* Delete */
+func (b *Badger) Delete(key string){
+	if err := b.store.Delete([]byte(key)); err != nil{
+		log.Fatal(err.Error())
+	}
 }
 

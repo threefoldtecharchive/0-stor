@@ -1,6 +1,6 @@
 {
     "dirs":{
-        "meta":  "/tmp/sdstor/meta/",
-        "data":  "/tmp/sdstor/data/"
+        "meta":  "/tmp/0-stor/meta/",
+        "data":  "/tmp/0-stor/data/"
     }
 }
