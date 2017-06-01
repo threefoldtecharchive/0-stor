@@ -61,18 +61,23 @@ func main() {
 	r.PathPrefix("/apidocs/").Handler(http.StripPrefix("/apidocs/", http.FileServer(http.Dir("./apidocs/"))))
 
 	store := &Badger{}
-	store.Init(settings.Dirs.Meta, settings.Dirs.Data)
 
-	db := store.New(settings.Dirs.Meta, settings.Dirs.Data)
+	if err := store.Init(settings.Dirs.Meta, settings.Dirs.Data); err != nil{
+		log.Fatal( err.Error())
+	}
+
+	db, err := store.New(settings.Dirs.Meta, settings.Dirs.Data)
+
+	if err != nil{
+		log.Fatal( err.Error())
+	}
 
 	NamespacesInterfaceRoutes(r, &NamespacesAPI{db: db})
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGINT)
 
-	defer func() {
-		gracefulShutdown(db)
-	}()
+	defer gracefulShutdown(db)
 
 	go func() {
 		<-c

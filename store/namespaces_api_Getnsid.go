@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"github.com/gorilla/mux"
+	"log"
 )
 
 // Getnsid is the handler for GET /namespaces/{nsid}
@@ -12,12 +13,18 @@ func (api NamespacesAPI) Getnsid(w http.ResponseWriter, r *http.Request) {
 	var namespace NamespaceCreate
 
 	key := mux.Vars(r)["nsid"]
-	value := api.db.Get(key)
+
+	value, err := api.db.Get(key)
+
+	// Database Error
+	if err != nil{
+		log.Println(err.Error())
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
 
 	// NOT FOUND
 	if value == nil{
-		w.WriteHeader(404)
-		return
+		http.Error(w, "Namespace doesn't exist", http.StatusNotFound)
 	}
 
 	// No need to handle errors, we assume data is saved correctly

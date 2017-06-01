@@ -3,6 +3,9 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"github.com/gorilla/mux"
+	"fmt"
+	"log"
 )
 
 // UpdateObject is the handler for PUT /namespaces/{nsid}/objects/{id}
@@ -16,4 +19,38 @@ func (api NamespacesAPI) UpdateObject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	namespace := mux.Vars(r)["nsid"]
+	id := mux.Vars(r)["id"]
+
+	key := fmt.Sprint("%s:%s", namespace, id)
+
+	oldValue, err := api.db.Get(key)
+
+	// Database Error
+	if err != nil{
+		log.Println(err.Error())
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+
+	// KEY NOT FOUND
+	if oldValue == nil{
+		http.Error(w, "Object doesn't exist", http.StatusNotFound)
+	}
+
+	// No need to handle error. reqBody was decoded successfully earlier
+	value, _ := json.Marshal(reqBody)
+
+	// Prepend the same value of the first byte of old data
+	newValue := make([]byte, len(value) + 1)
+	newValue[0] = oldValue[0]
+	copy(newValue[1:], value)
+
+	// Add object
+	if err = api.db.Set(key, newValue); err != nil{
+		log.Println(err.Error())
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+
+	w.WriteHeader(200)
+	json.NewEncoder(w).Encode(&reqBody)
 }

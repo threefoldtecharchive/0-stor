@@ -12,69 +12,64 @@ type Badger struct {
 }
 
 /* Initialize */
-func (b *Badger) Init(metaDir, dataDir string){
+func (b *Badger) Init(metaDir, dataDir string) error{
 
 	log.Println("Initializing db directories")
 
 	if err := os.MkdirAll(metaDir, 0774); err != nil{
-		log.Fatal(err.Error())
+		log.Printf("\t\tMeta dir: %v [ERROR]", metaDir)
+		return err
 	}
 
-	log.Printf("\t\tMeta dir: %v", metaDir)
+	log.Printf("\t\tMeta dir: %v [SUCCESS]", metaDir)
 
 	if err := os.MkdirAll(dataDir, 0774); err != nil{
-		log.Fatal(err.Error())
+		log.Printf("\t\tData dir: %v [ERROR]", dataDir)
+		return err
 	}
 
-	log.Printf("\t\tData dir: %v", dataDir)
+	log.Printf("\t\tData dir: %v [SUCCESS]", dataDir)
+
+	return nil
 }
 
 /* Constructor */
-func (b *Badger) New(metaDir, dataDir string) *Badger{
+func (b *Badger) New(metaDir, dataDir string) (*Badger, error){
 	opts := badger.DefaultOptions
 	opts.Dir = metaDir
 	opts.ValueDir = dataDir
 
 	kv, err:= badger.NewKV(&opts)
 
-	if err != nil{
-		log.Fatal(err.Error())
+	if err == nil{
+		log.Println("Loading db [SUCCESS]")
+	}else{
+		log.Println("Loading db [ERROR]")
 	}
-
-	log.Println("Successfully loaded db")
 
 	return &Badger{
 		store:kv,
-	}
+	}, err
 }
 
 /* Close connection */
-func (b *Badger) Close(){
-	if err := b.store.Close(); err != nil{
-		log.Fatal(err.Error())
-	}
+func (b *Badger) Close() error{
+	return b.store.Close()
 }
 
 /* Get */
-func (b *Badger) Get(key string) []byte{
+func (b *Badger) Get(key string) ([]byte, error){
 	var item badger.KVItem
-	if err := b.store.Get([]byte(key), &item); err != nil{
-		log.Fatal(err.Error())
-	}
-	return item.Value()
+	err := b.store.Get([]byte(key), &item)
+	return item.Value(), err
 }
 
 /* Set */
-func (b *Badger) Set(key string, val []byte){
-	if err := b.store.Set([]byte(key), val); err != nil{
-		log.Fatal(err.Error())
-	}
+func (b *Badger) Set(key string, val []byte) error{
+	return b.store.Set([]byte(key), val)
 }
 
 /* Delete */
-func (b *Badger) Delete(key string){
-	if err := b.store.Delete([]byte(key)); err != nil{
-		log.Fatal(err.Error())
-	}
+func (b *Badger) Delete(key string) error{
+	return b.store.Delete([]byte(key))
 }
-

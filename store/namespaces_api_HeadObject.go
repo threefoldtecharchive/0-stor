@@ -4,16 +4,12 @@ import (
 	"net/http"
 	"github.com/gorilla/mux"
 	"fmt"
-	"encoding/json"
 	"log"
 )
 
-// GetObject is the handler for GET /namespaces/{nsid}/objects/{id}
-// Retrieve object from the store
-func (api NamespacesAPI) GetObject(w http.ResponseWriter, r *http.Request) {
-
-	var object Object
-
+// HeadObject is the handler for HEAD /namespaces/{nsid}/objects/{id}
+// Tests object exists in the store
+func (api NamespacesAPI) HeadObject(w http.ResponseWriter, r *http.Request) {
 	namespace := mux.Vars(r)["nsid"]
 	id := mux.Vars(r)["id"]
 
@@ -31,7 +27,4 @@ func (api NamespacesAPI) GetObject(w http.ResponseWriter, r *http.Request) {
 	if value == nil{
 		http.Error(w, "Object doesn't exist", http.StatusNotFound)
 	}
-
-	json.Unmarshal(value[1:], &object)
-	json.NewEncoder(w).Encode(&object)
 }
