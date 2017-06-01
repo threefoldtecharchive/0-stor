@@ -20,11 +20,13 @@ func (api NamespacesAPI) Getnsid(w http.ResponseWriter, r *http.Request) {
 	if err != nil{
 		log.Println(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
 	}
 
 	// NOT FOUND
 	if value == nil{
 		http.Error(w, "Namespace doesn't exist", http.StatusNotFound)
+		return
 	}
 
 	// No need to handle errors, we assume data is saved correctly

@@ -16,12 +16,16 @@ func (api NamespacesAPI) Updatensid(w http.ResponseWriter, r *http.Request) {
 	value, err := ioutil.ReadAll(r.Body)
 
 	if err != nil{
+		log.Println(err.Error())
 		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
 	}
 
 	// decode request
-	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
+	if err := json.Unmarshal(value, &reqBody); err != nil {
+		log.Println(err.Error())
 		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
 	}
 
 	key := mux.Vars(r)["nsid"]
@@ -32,17 +36,20 @@ func (api NamespacesAPI) Updatensid(w http.ResponseWriter, r *http.Request) {
 	if err != nil{
 		log.Println(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
 	}
 
 
 	// NOT FOUND
 	if old_value == nil{
 		http.Error(w, "Namespace doesn't exist", http.StatusNotFound)
+		return
 	}
 
 	if err := api.db.Set(key, value); err != nil{
 		log.Println(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
 	}
 
 	respBody:= &Namespace{

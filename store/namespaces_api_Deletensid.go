@@ -16,11 +16,13 @@ func (api NamespacesAPI) Deletensid(w http.ResponseWriter, r *http.Request) {
 	//if err != nil{
 	//	log.Println(err.Error())
 	//	http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	//	return
 	//}
 	//
 	//// NOT FOUND
 	//if v == nil{
 	//	http.Error(w, "Namespace doesn't exist", http.StatusNotFound)
+	//	return
 	//}
 
 	err2 := api.db.Delete(key)
@@ -28,6 +30,7 @@ func (api NamespacesAPI) Deletensid(w http.ResponseWriter, r *http.Request) {
 	if err2 != nil{
 		log.Println(err2.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
 	}
 
 	w.WriteHeader(204)

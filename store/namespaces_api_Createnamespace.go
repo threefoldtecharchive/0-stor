@@ -16,12 +16,16 @@ func (api NamespacesAPI) Createnamespace(w http.ResponseWriter, r *http.Request)
 	value, err := ioutil.ReadAll(r.Body)
 
 	if err != nil{
+		log.Println(err.Error())
 		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
 	}
 
 	// decode request
-	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
+	if err := json.Unmarshal(value, &reqBody); err != nil {
+		log.Println(err.Error())
 		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
 	}
 
 	key := reqBody.Label
@@ -33,17 +37,20 @@ func (api NamespacesAPI) Createnamespace(w http.ResponseWriter, r *http.Request)
 	if err != nil{
 		log.Println(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
 	}
 
 	// 409 Conflict if name space already exists
 	if v != nil{
 		http.Error(w, "Namespace already exists", http.StatusConflict)
+		return
 	}
 
 	// Add new name space
 	if err := api.db.Set(key, value); err != nil{
 		log.Println(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
 	}
 
 	respBody:= &Namespace{

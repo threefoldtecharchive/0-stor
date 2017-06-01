@@ -6,6 +6,7 @@ import (
 	"github.com/gorilla/mux"
 	"fmt"
 	"log"
+	"io/ioutil"
 )
 
 // Createobject is the handler for POST /namespaces/{nsid}/objects
@@ -21,16 +22,29 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 	if err != nil{
 		log.Println(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
 	}
 
 	// NOT FOUND
 	if v == nil{
 		http.Error(w, "Namespace doesn't exist", http.StatusNotFound)
+		return
+	}
+
+
+	value, err := ioutil.ReadAll(r.Body)
+
+	if err != nil{
+		log.Println(err.Error())
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
 	}
 
 	// decode request
-	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
+	if err := json.Unmarshal(value, &reqBody); err != nil {
+		log.Println(err.Error())
 		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
 	}
 
 	key := fmt.Sprint("%s:%s", namespace, reqBody.Id)
@@ -41,16 +55,15 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 	if err != nil{
 		log.Println(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
 	}
 
 	// 409 Conflict if object already exists
 	if v != nil{
 		http.Error(w, "Object already exists", http.StatusConflict)
+		return
 	}
 
-
-	// No need to handle error. reqBody was decoded successfully earlier
-	value, _ := json.Marshal(reqBody)
 
 	// Prepend a byte with value (1) to the data
 	newValue := make([]byte, len(value) + 1)
@@ -61,6 +74,7 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 	if err = api.db.Set(key, newValue); err != nil{
 		log.Println(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
 	}
 
 	w.WriteHeader(201)

@@ -17,12 +17,16 @@ func (api NamespacesAPI) UpdateObject(w http.ResponseWriter, r *http.Request) {
 	value, err := ioutil.ReadAll(r.Body)
 
 	if err != nil{
+		log.Println(err.Error())
 		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
 	}
 
 	// decode request
-	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
+	if err := json.Unmarshal(value, &reqBody); err != nil {
+		log.Println(err.Error())
 		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
 	}
 
 	namespace := mux.Vars(r)["nsid"]
@@ -36,11 +40,13 @@ func (api NamespacesAPI) UpdateObject(w http.ResponseWriter, r *http.Request) {
 	if err != nil{
 		log.Println(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
 	}
 
 	// KEY NOT FOUND
 	if oldValue == nil{
 		http.Error(w, "Object doesn't exist", http.StatusNotFound)
+		return
 	}
 
 	// Prepend the same value of the first byte of old data
@@ -55,5 +61,9 @@ func (api NamespacesAPI) UpdateObject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(200)
-	json.NewEncoder(w).Encode(&reqBody)
+	json.NewEncoder(w).Encode(&Object{
+		Id: id,
+		Data: reqBody.Data,
+		Tags: reqBody.Tags,
+	})
 }
