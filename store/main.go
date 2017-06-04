@@ -72,7 +72,7 @@ func main() {
 		log.Fatal( err.Error())
 	}
 
-	NamespacesInterfaceRoutes(r, &NamespacesAPI{db: db})
+	NamespacesInterfaceRoutes(r, &NamespacesAPI{db: db, config: &settings})
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGINT)
