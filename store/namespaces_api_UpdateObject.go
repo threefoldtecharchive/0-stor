@@ -16,6 +16,8 @@ func (api NamespacesAPI) UpdateObject(w http.ResponseWriter, r *http.Request) {
 
 	value, err := ioutil.ReadAll(r.Body)
 
+	defer r.Body.Close()
+
 	if err != nil{
 		log.Println(err.Error())
 		http.Error(w, "Bad request", http.StatusBadRequest)

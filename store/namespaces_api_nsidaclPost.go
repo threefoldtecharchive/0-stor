@@ -30,6 +30,8 @@ func (api NamespacesAPI) nsidaclPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// decode request
+	defer r.Body.Close()
+
 	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
 		log.Println(err.Error())
 		http.Error(w, "Bad request", http.StatusBadRequest)
