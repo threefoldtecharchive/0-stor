@@ -15,19 +15,19 @@ func (api NamespacesAPI) DeleteObject(w http.ResponseWriter, r *http.Request) {
 
 	key := fmt.Sprintf("%s:%s", namespace, id)
 
-	//v, err :=  api.db.Get(key)
-	//
-	//if err != nil{
-	//	log.Println(err.Error())
-	//	http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-	//	return
-	//}
-	//
-	//// NOT FOUND
-	//if v == nil{
-	//	http.Error(w, "Namespace doesn't exist", http.StatusNotFound)
-	//	return
-	//}
+	v, err :=  api.db.Get(key)
+
+	if err != nil{
+		log.Println(err.Error())
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	// NOT FOUND
+	if v == nil{
+		http.Error(w, "Namespace or object doesn't exist", http.StatusNotFound)
+		return
+	}
 
 	err2 := api.db.Delete(key)
 
