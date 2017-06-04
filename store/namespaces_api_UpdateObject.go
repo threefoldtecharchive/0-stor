@@ -34,7 +34,7 @@ func (api NamespacesAPI) UpdateObject(w http.ResponseWriter, r *http.Request) {
 	namespace := mux.Vars(r)["nsid"]
 	id := mux.Vars(r)["id"]
 
-	key := fmt.Sprint("%s:%s", namespace, id)
+	key := fmt.Sprintf("%s:%s", namespace, id)
 
 	oldValue, err := api.db.Get(key)
 

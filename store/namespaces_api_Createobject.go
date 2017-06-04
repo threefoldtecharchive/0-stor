@@ -47,7 +47,7 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	key := fmt.Sprint("%s:%s", namespace, reqBody.Id)
+	key := fmt.Sprintf("%s:%s", namespace, reqBody.Id)
 
 	v, err =  api.db.Get(key)
 
