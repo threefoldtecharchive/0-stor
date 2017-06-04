@@ -6,5 +6,9 @@
     "iterator":{
         "fetch_size": 20,
         "fetch_values": true
+    },
+
+    "Pagination": {
+        "page_size": 20
     }
 }

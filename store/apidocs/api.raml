@@ -54,14 +54,14 @@ resourceTypes:
               #%RAML 1.0 ResourceType
               usage: This resourceType should be used for any collection of items
               get:
-                displayName: List<<resourcePathName>>
+                displayName: List<<resourcePathName | !uppercamelcase>>
                 description: List all <<resourcePathName>>
                 responses:
                   200:
                     body:
                       type: <<resourcePathName | !singularize | !uppercamelcase>>[]
               post:
-                displayName: Create<<resourcePathName | !singularize>>
+                displayName: Create<<resourcePathName | !singularize | !uppercamelcase>>
                 description: Create a new <<resourcePathName | !singularize>>
                 body:
                   type: <<resourcePathName | !singularize | !uppercamelcase>>Create
@@ -76,7 +76,7 @@ resourceTypes:
           #%RAML 1.0 ResourceType
           usage: This resourceType should be used for any collection member
           get:
-            displayName: Get<<resourcePathName | !singularize>>
+            displayName: Get<<resourcePathName | !singularize | !uppercamelcase>>
             description: Get detail view about <<resourcePathName | !singularize>>
             responses:
               200:
@@ -85,7 +85,7 @@ resourceTypes:
               404:
                 description: <<resourcePathName | !singularize>> not found
           put:
-            displayName: Update<<resourcePathName | !singularize>>
+            displayName: Update<<resourcePathName | !singularize | !uppercamelcase>>
             description: Update <<resourcePathName | !singularize>>
             responses:
               200:
@@ -94,13 +94,57 @@ resourceTypes:
               404:
                 description: <<resourcePathName | !singularize>> not found
           delete:
-            displayName: Delete<<resourcePathName | !singularize>>
+            displayName: Delete<<resourcePathName | !singularize | !uppercamelcase>>
             description: Delete <<resourcePathName | !singularize>>
             responses:
               204:
                 description: <<resourcePathName | !singularize>> deleted successfully
               404:
                 description: <<resourcePathName | !singularize>> not found
+  listing: 
+           #%RAML 1.0 ResourceType
+           usage: This resourceType should be used for any collection of items that only supports listing
+           get:
+             displayName: List<<resourcePathName | !uppercamelcase>>
+             description: List all <<resourcePathName>>
+             responses:
+               200:
+                 body:
+                   type: <<resourcePathName | !singularize | !uppercamelcase>>[]
+
+traits:
+  paginated: 
+             #%RAML 1.0 traits
+             usage: Apply on ressources that supports pagination
+             
+             queryParameters:
+               page:
+                 type: integer
+                 description: number of the page to return
+                 required: false
+               per_page:
+                 type: integer
+                 description: Specify how many item you want to receive in the response.
+                 maximum: 100
+                 minimum: 1
+                 default: 30
+                 multipleOf: 1
+                 required: false
+             responses:
+               200:
+                 headers:
+                   page-first:
+                     type: string
+                     description: Link to the first page of this ressource.
+                   page-last:
+                     type: string
+                     description: Link to the last page of this ressource.
+                   page-prev:
+                     type: string
+                     description: Link to the previous page of this ressource. Null when the request is already the first page
+                   page-next:
+                     type: string
+                     description: Link to the next page of this ressource. Null when the request is already the last page
 
 types:
   ACLEntry:
@@ -231,6 +275,8 @@ types:
 /namespaces:
   securedBy: [ itsyouonline : { scopes: ["user:name"] } ]
   type: collection
+  get:
+    is: [ paginated ]
   post:
     body:
       type: NamespaceCreate
@@ -279,6 +325,7 @@ types:
         description: |
           Set an object into the namespace
       get:
+        is: [paginated]
         description: |
           List keys of the namespaces
       /{id}:

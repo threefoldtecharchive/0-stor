@@ -24,6 +24,10 @@ type Settings struct {
 		FetchSize int `json:"fetch_size"`
 		FetchValues bool `json:"fetch_values"`
 	}`json:iterator`
+
+	Pagination struct {
+		PageSize int `json:"page_size"`
+	}
 }
 
 func loadSettings() Settings{

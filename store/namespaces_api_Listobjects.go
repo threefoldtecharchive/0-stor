@@ -8,13 +8,40 @@ import (
 	"log"
 	"github.com/gorilla/mux"
 	"fmt"
+	"strconv"
 )
 
 // Listobjects is the handler for GET /namespaces/{nsid}/objects
 // List keys of the namespaces
-func (api NamespacesAPI) Listobjects(w http.ResponseWriter, r *http.Request) {
+func (api NamespacesAPI) Listobjects(w http.ResponseWriter, r *http.Request) { // page := req.FormValue("page")// per_page := req.FormValue("per_page")
 	var respBody []Object
 	var object Object
+
+	// Pagination
+	pageParam := r.FormValue("page")
+	per_pageParam := r.FormValue("per_page")
+
+	if pageParam == "" {
+		pageParam = "1"
+	}
+
+	if per_pageParam == "" {
+		per_pageParam = strconv.Itoa(api.config.Pagination.PageSize)
+	}
+
+	page, err := strconv.Atoi(pageParam)
+
+	if err != nil{
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+
+	per_page, err := strconv.Atoi(per_pageParam)
+
+	if err != nil{
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
 
 	nsid := mux.Vars(r)["nsid"]
 
@@ -43,9 +70,9 @@ func (api NamespacesAPI) Listobjects(w http.ResponseWriter, r *http.Request) {
 	it := api.db.store.NewIterator(opt)
 	defer it.Close()
 
-	startingIndex := 0
+	startingIndex := (page - 1) * per_page + 1
 	counter := 0 // Number of objects encountered
-	resultsCount := 20
+	resultsCount := per_page
 
 	for it.Rewind(); it.Valid(); it.Next(){
 		item := it.Item()
@@ -73,7 +100,6 @@ func (api NamespacesAPI) Listobjects(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
-
 
 		// No need to handle errors, we assume data is saved correctly
 		json.Unmarshal(value[1:], &object)

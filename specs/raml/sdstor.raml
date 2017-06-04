@@ -13,6 +13,10 @@ securitySchemes:
 resourceTypes:
   collection: !include https://raw.githubusercontent.com/Jumpscale-Cockpit/raml-definitions/master/resourceTypes/collection.raml
   member: !include https://raw.githubusercontent.com/Jumpscale-Cockpit/raml-definitions/master/resourceTypes/member.raml
+  listing: !include https://raw.githubusercontent.com/Jumpscale-Cockpit/raml-definitions/master/resourceTypes/listing.raml
+
+traits:
+  paginated: !include https://raw.githubusercontent.com/Jumpscale-Cockpit/raml-definitions/master/traits/pagination.raml
 
 types:
   ACLEntry:
@@ -143,6 +147,8 @@ types:
 /namespaces:
   securedBy: [ itsyouonline : { scopes: ["user:name"] } ]
   type: collection
+  get:
+    is: [ paginated ]
   post:
     body:
       type: NamespaceCreate
@@ -191,6 +197,7 @@ types:
         description: |
           Set an object into the namespace
       get:
+        is: [paginated]
         description: |
           List keys of the namespaces
       /{id}:
