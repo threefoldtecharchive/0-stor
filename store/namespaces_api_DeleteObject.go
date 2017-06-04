@@ -37,5 +37,5 @@ func (api NamespacesAPI) DeleteObject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(204)
+	http.Error(w, "", http.StatusNoContent)
 }
