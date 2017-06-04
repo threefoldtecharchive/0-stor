@@ -2,5 +2,9 @@
     "dirs":{
         "meta":  "/tmp/0-stor/meta/",
         "data":  "/tmp/0-stor/data/"
+    },
+    "iterator":{
+        "fetch_size": 20,
+        "fetch_values": true
     }
 }

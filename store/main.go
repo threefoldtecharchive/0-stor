@@ -19,6 +19,11 @@ type Settings struct {
 		Meta string `json:"meta"`
 		Data string `json:"data"`
 	}`json:"dirs"`
+
+	Iterator struct {
+		FetchSize int `json:"fetch_size"`
+		FetchValues bool `json:"fetch_values"`
+	}`json:iterator`
 }
 
 func loadSettings() Settings{
