@@ -58,23 +58,33 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 409 Conflict if object already exists
+	var newValue []byte
+	var addObject bool = false
+
+	// object already exists
 	if v != nil{
-		http.Error(w, "Object already exists", http.StatusConflict)
-		return
+		newValue = v
+		counter := int(newValue[0])
+		if counter < 255 {
+			counter++
+			newValue[0] = byte(counter)
+			addObject = true
+		}
+	}else{
+		// Prepend a byte with value (1) to the data
+		newValue = make([]byte, len(value) + 1)
+		newValue[0] = byte(1)
+		copy(newValue[1:], value)
+		addObject = true
 	}
 
-
-	// Prepend a byte with value (1) to the data
-	newValue := make([]byte, len(value) + 1)
-	newValue[0] = byte(1)
-	copy(newValue[1:], value)
-
 	// Add object
-	if err = api.db.Set(key, newValue); err != nil{
-		log.Println(err.Error())
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
+	if addObject{
+		if err = api.db.Set(key, newValue); err != nil{
+			log.Println(err.Error())
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
 	}
 
 	w.WriteHeader(201)
