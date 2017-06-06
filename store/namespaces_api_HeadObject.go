@@ -29,4 +29,7 @@ func (api NamespacesAPI) HeadObject(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Object doesn't exist", http.StatusNotFound)
 		return
 	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 }

@@ -62,7 +62,9 @@ func (api NamespacesAPI) UpdateObject(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 
-	w.WriteHeader(200)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
 	json.NewEncoder(w).Encode(&Object{
 		Id: id,
 		Data: reqBody.Data,
