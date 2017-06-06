@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"github.com/gorilla/mux"
 	"fmt"
-	"log"
+	"github.com/zaibon/badger/badger"
 )
 
 // HeadObject is the handler for HEAD /namespaces/{nsid}/objects/{id}
@@ -15,21 +15,23 @@ func (api NamespacesAPI) HeadObject(w http.ResponseWriter, r *http.Request) {
 
 	key := fmt.Sprintf("%s:%s", namespace, id)
 
-	value, err := api.db.Get(key)
+	opt := badger.DefaultIteratorOptions
+	opt.FetchValues = false
+	opt.PrefetchSize = api.config.Iterator.PreFetchSize
 
-	// Database Error
-	if err != nil{
-		log.Println(err.Error())
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
+
+	it := api.db.store.NewIterator(opt)
+	defer it.Close()
+
+	for it.Rewind(); it.Valid(); it.Next() {
+		item := it.Item()
+		k := string(item.Key()[:])
+
+		if key == k {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+		}
 	}
 
-	// KEY NOT FOUND
-	if value == nil{
-		http.Error(w, "Object doesn't exist", http.StatusNotFound)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
+	http.Error(w, "Object doesn't exist", http.StatusNotFound)
 }
