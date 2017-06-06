@@ -70,15 +70,7 @@ func (api NamespacesAPI) Listnamespaces(w http.ResponseWriter, r *http.Request) 
 			continue
 		}
 
-		value, err := api.db.Get(key)
-
-		// Database Error
-		if err != nil{
-			log.Println(err.Error())
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-
+		value := item.Value()
 
 		if err := json.Unmarshal(value, &namespace); err != nil{
 			log.Println("Invalid namespace format")
