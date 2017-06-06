@@ -61,5 +61,6 @@ func (api NamespacesAPI) Deletensid(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
+	// 204 has no body
 	http.Error(w, "", http.StatusNoContent)
 }

@@ -37,5 +37,6 @@ func (api NamespacesAPI) DeleteObject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 204 has no bddy
 	http.Error(w, "", http.StatusNoContent)
 }
