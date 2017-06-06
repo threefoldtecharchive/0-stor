@@ -37,7 +37,6 @@ func (api NamespacesAPI) GetObject(w http.ResponseWriter, r *http.Request) {
 	json.Unmarshal(value[1:], &object)
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
 
 	json.NewEncoder(w).Encode(&object)
 }

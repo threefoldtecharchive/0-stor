@@ -29,9 +29,10 @@ func (api NamespacesAPI) HeadObject(w http.ResponseWriter, r *http.Request) {
 
 		if key == k {
 			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
+			return
 		}
 	}
 
-	http.Error(w, "Object doesn't exist", http.StatusNotFound)
+	// head has no body
+	http.Error(w, "", http.StatusNotFound)
 }
