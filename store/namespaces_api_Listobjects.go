@@ -13,7 +13,7 @@ import (
 
 // Listobjects is the handler for GET /namespaces/{nsid}/objects
 // List keys of the namespaces
-func (api NamespacesAPI) Listobjects(w http.ResponseWriter, r *http.Request) { // page := req.FormValue("page")// per_page := req.FormValue("per_page")
+func (api NamespacesAPI) Listobjects(w http.ResponseWriter, r *http.Request) {
 	var respBody []Object
 	var object Object
 
@@ -101,8 +101,12 @@ func (api NamespacesAPI) Listobjects(w http.ResponseWriter, r *http.Request) { /
 			return
 		}
 
-		// No need to handle errors, we assume data is saved correctly
-		json.Unmarshal(value[1:], &object)
+		if err := json.Unmarshal(value[1:], &object); err != nil{
+			log.Println("Invalid file format")
+			log.Println(err.Error())
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
 
 		respBody = append(respBody, object)
 
@@ -115,6 +119,9 @@ func (api NamespacesAPI) Listobjects(w http.ResponseWriter, r *http.Request) { /
 	if len(respBody) == 0{
 		respBody = []Object{}
 	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 
 	json.NewEncoder(w).Encode(&respBody)
 }

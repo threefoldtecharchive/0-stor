@@ -11,7 +11,7 @@ import (
 
 // Listnamespaces is the handler for GET /namespaces
 // List all namespaces
-func (api NamespacesAPI) Listnamespaces(w http.ResponseWriter, r *http.Request) { // page := req.FormValue("page")// per_page := req.FormValue("per_page")
+func (api NamespacesAPI) Listnamespaces(w http.ResponseWriter, r *http.Request) {
 	var respBody []Namespace
 	var namespace NamespaceCreate
 
@@ -82,8 +82,12 @@ func (api NamespacesAPI) Listnamespaces(w http.ResponseWriter, r *http.Request) 
 		}
 
 
-		// No need to handle errors, we assume data is saved correctly
-		json.Unmarshal(value, &namespace)
+		if err := json.Unmarshal(value, &namespace); err != nil{
+			log.Println("Invalid namespace format")
+			log.Println(err.Error())
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
 
 		respBody = append(respBody, Namespace{
 			NamespaceCreate: namespace,
@@ -98,6 +102,9 @@ func (api NamespacesAPI) Listnamespaces(w http.ResponseWriter, r *http.Request) 
 	if len(respBody) == 0{
 		respBody = []Namespace{}
 	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 
 	json.NewEncoder(w).Encode(&respBody)
 }
