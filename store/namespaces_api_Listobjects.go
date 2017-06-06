@@ -62,10 +62,8 @@ func (api NamespacesAPI) Listobjects(w http.ResponseWriter, r *http.Request) {
 
 	prefix := fmt.Sprintf("%s:", nsid)
 
-	opt := badger.IteratorOptions{}
-	opt.FetchValues = api.config.Iterator.FetchValues
-	opt.PrefetchSize = api.config.Iterator.FetchSize
-	opt.Reverse = false
+	opt := badger.DefaultIteratorOptions
+	opt.PrefetchSize = api.config.Iterator.PreFetchSize
 
 	it := api.db.store.NewIterator(opt)
 	defer it.Close()

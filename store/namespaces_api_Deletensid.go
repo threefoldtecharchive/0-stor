@@ -38,10 +38,9 @@ func (api NamespacesAPI) Deletensid(w http.ResponseWriter, r *http.Request) {
 
 	// Delete objects in a namespace
 	defer func(){
-		opt := badger.IteratorOptions{}
-		opt.FetchValues = api.config.Iterator.FetchValues
-		opt.PrefetchSize = api.config.Iterator.FetchSize
-		opt.Reverse = false
+		opt := badger.DefaultIteratorOptions
+		opt.FetchValues = false
+		opt.PrefetchSize = api.config.Iterator.PreFetchSize
 
 		prefix := fmt.Sprintf("%s:", nsid)
 

@@ -21,8 +21,7 @@ type Settings struct {
 	}`json:"dirs"`
 
 	Iterator struct {
-		FetchSize int `json:"fetch_size"`
-		FetchValues bool `json:"fetch_values"`
+		PreFetchSize int `json:"pre_fetch_size"`
 	}`json:iterator`
 
 	Pagination struct {

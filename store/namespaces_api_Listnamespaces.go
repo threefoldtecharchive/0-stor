@@ -41,10 +41,8 @@ func (api NamespacesAPI) Listnamespaces(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	opt := badger.IteratorOptions{}
-	opt.FetchValues = api.config.Iterator.FetchValues
-	opt.PrefetchSize = api.config.Iterator.FetchSize
-	opt.Reverse = false
+	opt := badger.DefaultIteratorOptions
+	opt.PrefetchSize = api.config.Iterator.PreFetchSize
 
 	it := api.db.store.NewIterator(opt)
 	defer it.Close()

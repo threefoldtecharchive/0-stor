@@ -4,8 +4,7 @@
         "data":  "/tmp/0-stor/data/"
     },
     "iterator":{
-        "fetch_size": 20,
-        "fetch_values": true
+        "pre_fetch_size": 100
     },
 
     "Pagination": {
