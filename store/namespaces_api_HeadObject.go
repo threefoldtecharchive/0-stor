@@ -29,6 +29,7 @@ func (api NamespacesAPI) HeadObject(w http.ResponseWriter, r *http.Request) {
 
 		if key == k {
 			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
 			return
 		}
 	}
