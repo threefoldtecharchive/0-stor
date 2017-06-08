@@ -12,7 +12,7 @@ import (
 // Retrieve object from the store
 func (api NamespacesAPI) GetObject(w http.ResponseWriter, r *http.Request) {
 
-	var object Object
+	var file = &File{}
 
 	namespace := mux.Vars(r)["nsid"]
 	id := mux.Vars(r)["id"]
@@ -34,9 +34,7 @@ func (api NamespacesAPI) GetObject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.Unmarshal(value[1:], &object)
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(&object)
+	json.NewEncoder(w).Encode(file.ToObject(value, id))
 }

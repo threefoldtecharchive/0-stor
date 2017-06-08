@@ -64,6 +64,27 @@ func (b *Badger) Get(key string) ([]byte, error){
 	return item.Value(), err
 }
 
+/* Get File */
+func (b *Badger) GetFile(key string) (*File, error){
+	bytes, err := b.Get(key)
+
+	if err != nil{
+		return nil, err
+	}
+
+	if bytes == nil{
+		return nil, nil
+	}
+
+	file := &File{}
+	err = file.FromBytes(bytes)
+	if err != nil{
+		return nil, err
+	}
+	return file, nil
+}
+
+
 /* Set */
 func (b *Badger) Set(key string, val []byte) error{
 	return b.store.Set([]byte(key), val)
@@ -72,4 +93,27 @@ func (b *Badger) Set(key string, val []byte) error{
 /* Delete */
 func (b *Badger) Delete(key string) error{
 	return b.store.Delete([]byte(key))
+}
+
+/* Exists */
+func (b *Badger) Exists(key string) bool{
+	config := loadSettings()
+
+	opt := badger.DefaultIteratorOptions
+	opt.FetchValues = false
+	opt.PrefetchSize = config.Iterator.PreFetchSize
+
+
+	it := b.store.NewIterator(opt)
+	defer it.Close()
+
+	for it.Rewind(); it.Valid(); it.Next() {
+		item := it.Item()
+		k := string(item.Key()[:])
+
+		if key == k {
+			return true
+		}
+	}
+	return false
 }

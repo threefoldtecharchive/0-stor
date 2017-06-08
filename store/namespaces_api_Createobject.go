@@ -6,7 +6,6 @@ import (
 	"github.com/gorilla/mux"
 	"fmt"
 	"log"
-	"io/ioutil"
 )
 
 // Createobject is the handler for POST /namespaces/{nsid}/objects
@@ -32,7 +31,16 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 	}
 
 
-	value, err := ioutil.ReadAll(r.Body)
+	// decode request
+	defer r.Body.Close()
+	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
+		log.Println(err.Error())
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+
+	// Make sure file contents are valid
+	file, err := reqBody.ToFile(true)
 
 	if err != nil{
 		log.Println(err.Error())
@@ -40,16 +48,9 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// decode request
-	if err := json.Unmarshal(value, &reqBody); err != nil {
-		log.Println(err.Error())
-		http.Error(w, "Bad request", http.StatusBadRequest)
-		return
-	}
-
 	key := fmt.Sprintf("%s:%s", namespace, reqBody.Id)
 
-	v, err =  api.db.Get(key)
+	oldFile, err :=  api.db.GetFile(key)
 
 	// Database Error
 	if err != nil{
@@ -58,29 +59,23 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var newValue []byte
-	var addObject bool = false
+	var addObject bool = true
 
 	// object already exists
-	if v != nil{
-		newValue = v
-		counter := int(newValue[0])
-		if counter < 255 {
-			counter++
-			newValue[0] = byte(counter)
-			addObject = true
+	if oldFile != nil {
+		if oldFile.Reference < 255 {
+			file.Reference = oldFile.Reference + 1
+			log.Println(file.Reference)
+
+		}else{
+			addObject = false
 		}
-	}else{
-		// Prepend a byte with value (1) to the data
-		newValue = make([]byte, len(value) + 1)
-		newValue[0] = byte(1)
-		copy(newValue[1:], value)
-		addObject = true
 	}
 
-	// Add object
+	// Add or update object
 	if addObject{
-		if err = api.db.Set(key, newValue); err != nil{
+
+		if err = api.db.Set(key, file.ToBytes()); err != nil{
 			log.Println(err.Error())
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return

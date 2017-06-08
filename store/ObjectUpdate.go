@@ -13,3 +13,13 @@ func (s ObjectUpdate) Validate() error {
 
 	return validator.Validate(s)
 }
+
+func (o *ObjectUpdate) ToFile(addReferenceByte bool) (*File, error){
+	obj := &Object{
+		Data: o.Data,
+		Tags: o.Tags,
+
+	}
+	return obj.ToFile(true)
+
+}

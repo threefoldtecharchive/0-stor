@@ -6,7 +6,6 @@ import (
 	"github.com/gorilla/mux"
 	"fmt"
 	"log"
-	"io/ioutil"
 )
 
 // UpdateObject is the handler for PUT /namespaces/{nsid}/objects/{id}
@@ -14,9 +13,16 @@ import (
 func (api NamespacesAPI) UpdateObject(w http.ResponseWriter, r *http.Request) {
 	var reqBody ObjectUpdate
 
-	value, err := ioutil.ReadAll(r.Body)
-
+	// decode request
 	defer r.Body.Close()
+	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
+		log.Println(err.Error())
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+
+	// Make sure file contents are valid
+	file, err := reqBody.ToFile(true)
 
 	if err != nil{
 		log.Println(err.Error())
@@ -24,19 +30,13 @@ func (api NamespacesAPI) UpdateObject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// decode request
-	if err := json.Unmarshal(value, &reqBody); err != nil {
-		log.Println(err.Error())
-		http.Error(w, "Bad request", http.StatusBadRequest)
-		return
-	}
 
 	namespace := mux.Vars(r)["nsid"]
 	id := mux.Vars(r)["id"]
 
 	key := fmt.Sprintf("%s:%s", namespace, id)
 
-	oldValue, err := api.db.Get(key)
+	oldFile, err :=  api.db.GetFile(key)
 
 	// Database Error
 	if err != nil{
@@ -46,18 +46,16 @@ func (api NamespacesAPI) UpdateObject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// KEY NOT FOUND
-	if oldValue == nil{
+	if oldFile == nil{
 		http.Error(w, "Object doesn't exist", http.StatusNotFound)
 		return
 	}
 
 	// Prepend the same value of the first byte of old data
-	newValue := make([]byte, len(value) + 1)
-	newValue[0] = oldValue[0]
-	copy(newValue[1:], value)
+	file.Reference = oldFile.Reference
 
 	// Add object
-	if err = api.db.Set(key, newValue); err != nil{
+	if err = api.db.Set(key, file.ToBytes()); err != nil{
 		log.Println(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}

@@ -15,7 +15,6 @@ import (
 // List keys of the namespaces
 func (api NamespacesAPI) Listobjects(w http.ResponseWriter, r *http.Request) {
 	var respBody []Object
-	var object Object
 
 	// Pagination
 	pageParam := r.FormValue("page")
@@ -92,14 +91,10 @@ func (api NamespacesAPI) Listobjects(w http.ResponseWriter, r *http.Request) {
 
 		value := item.Value()
 
-		if err := json.Unmarshal(value[1:], &object); err != nil{
-			log.Println("Invalid file format")
-			log.Println(err.Error())
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
+		var file = &File{}
+		object := file.ToObject(value, key)
 
-		respBody = append(respBody, object)
+		respBody = append(respBody, *object)
 
 		if len(respBody) == resultsCount{
 			break
