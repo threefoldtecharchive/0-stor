@@ -3,11 +3,13 @@ package main
 import (
 	"fmt"
 	"net/http"
+
+	"github.com/dgraph-io/badger/badger"
+	"github.com/gorilla/mux"
+
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/dgraph-io/badger/badger"
-	"github.com/gorilla/mux"
 )
 
 // Deletensid is the handler for DELETE /namespaces/{nsid}

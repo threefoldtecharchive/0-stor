@@ -7,8 +7,9 @@ import (
 	"strconv"
 	"strings"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/dgraph-io/badger/badger"
+
+	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
 )
 
