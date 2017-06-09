@@ -3,7 +3,7 @@ package main
 import (
 	"net/http"
 	"github.com/gorilla/mux"
-	"github.com/zaibon/badger/badger"
+	"github.com/dgraph-io/badger/badger"
 	"log"
 	"strings"
 	"fmt"

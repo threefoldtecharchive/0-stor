@@ -12,6 +12,7 @@ before_install:
 
 install:
   - go get github.com/Jumpscale/go-raml
+  - go get -v github.com/stretchr/testify/...
 
 script:
   - bash test.sh

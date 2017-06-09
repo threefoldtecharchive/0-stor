@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"net/http"
-	"github.com/zaibon/badger/badger"
+	"github.com/dgraph-io/badger/badger"
 	"strings"
 	"log"
 	"github.com/gorilla/mux"
