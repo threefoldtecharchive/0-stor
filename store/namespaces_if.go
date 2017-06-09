@@ -16,6 +16,9 @@ type NamespacesInterface interface { // nsidaclPost is the handler for POST /nam
 	// DeleteObject is the handler for DELETE /namespaces/{nsid}/objects/{id}
 	// Delete object from the store
 	DeleteObject(http.ResponseWriter, *http.Request)
+	// HeadObject is the handler for HEAD /namespaces/{nsid}/objects/{id}
+	// Test object exists in the store
+	HeadObject(http.ResponseWriter, *http.Request)
 	// GetObject is the handler for GET /namespaces/{nsid}/objects/{id}
 	// Retrieve object from the store
 	GetObject(http.ResponseWriter, *http.Request)
@@ -64,6 +67,7 @@ type NamespacesInterface interface { // nsidaclPost is the handler for POST /nam
 func NamespacesInterfaceRoutes(r *mux.Router, i NamespacesInterface) {
 	r.HandleFunc("/namespaces/{nsid}/acl", i.nsidaclPost).Methods("POST")
 	r.HandleFunc("/namespaces/{nsid}/objects/{id}", i.DeleteObject).Methods("DELETE")
+	r.HandleFunc("/namespaces/{nsid}/objects/{id}", i.HeadObject).Methods("HEAD")
 	r.HandleFunc("/namespaces/{nsid}/objects/{id}", i.GetObject).Methods("GET")
 	r.HandleFunc("/namespaces/{nsid}/objects/{id}", i.UpdateObject).Methods("PUT")
 	r.HandleFunc("/namespaces/{nsid}/objects", i.Listobjects).Methods("GET")

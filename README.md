@@ -8,7 +8,7 @@ Single device object store
 # Installation
 
 ```
-go get -u Zero-OS/0-stor/store
+go get -u github.com/zero-os/0-stor/store
 ```
 
 # Documentation
