@@ -4,6 +4,7 @@
 #include <hiredis.h>
 #include "libg8stor.h"
 
+/*
 remote_t *remotes = NULL;
 
 static PyObject *g8storclient_connect(PyObject *self, PyObject *args) {
@@ -23,20 +24,14 @@ static PyObject *g8storclient_connect(PyObject *self, PyObject *args) {
     // the redis client object
     return PyCapsule_New(remote, "RemoteClient", NULL);
 }
+*/
 
-static PyObject *g8storclient_upload(PyObject *self, PyObject *args) {
+static PyObject *g8storclient_encrypt(PyObject *self, PyObject *args) {
     (void) self;
-    remote_t *remote;
     buffer_t *buffer;
-    PyObject *capsule;
     char *file;
 
-    if(!PyArg_ParseTuple(args, "Os", &capsule, &file))
-        return NULL;
-
-    // extracting the capsule from the first argument
-    // this will gives us the redis client
-    if(!(remote = PyCapsule_GetPointer(capsule, "RemoteClient")))
+    if(!PyArg_ParseTuple(args, "s", &file))
         return NULL;
 
     // initialize buffer
@@ -46,15 +41,16 @@ static PyObject *g8storclient_upload(PyObject *self, PyObject *args) {
     // chunks
     PyObject *hashes = PyList_New(buffer->chunks);
 
-    printf("[+] uploading %d chunks\n", buffer->chunks);
+    printf("[+] encrypting %d chunks\n", buffer->chunks);
     for(int i = 0; i < buffer->chunks; i++) {
         // uploading chunk
-        chunk_t *chunk = upload(remote, buffer);
+        chunk_t *chunk = encrypt_chunk(buffer);
 
         // inserting hash to the list
         PyObject *pychunk = PyDict_New();
         PyDict_SetItemString(pychunk, "hash", Py_BuildValue("s", chunk->id));
         PyDict_SetItemString(pychunk, "key", Py_BuildValue("s", chunk->cipher));
+        PyDict_SetItemString(pychunk, "data", Py_BuildValue("y#", chunk->data, chunk->length));
         PyList_SetItem(hashes, i, pychunk);
 
         chunk_free(chunk);
@@ -68,20 +64,13 @@ static PyObject *g8storclient_upload(PyObject *self, PyObject *args) {
     return hashes;
 }
 
-static PyObject *g8storclient_download(PyObject *self, PyObject *args) {
+static PyObject *g8storclient_decrypt(PyObject *self, PyObject *args) {
     (void) self;
-    remote_t *remote;
     buffer_t *buffer;
-    PyObject *capsule;
     PyObject *hashes;
     char *file;
 
-    if(!PyArg_ParseTuple(args, "OOs", &capsule, &hashes, &file))
-        return NULL;
-
-    // extracting the capsule from the first argument
-    // this will gives us the redis client
-    if(!(remote = PyCapsule_GetPointer(capsule, "RemoteClient")))
+    if(!PyArg_ParseTuple(args, "Os", &hashes, &file))
         return NULL;
 
     // initialize buffer
@@ -92,21 +81,31 @@ static PyObject *g8storclient_download(PyObject *self, PyObject *args) {
     int chunks = (int) PyList_Size(hashes);
 
     // chunks
-    printf("[+] downloading %d chunks\n", chunks);
+    printf("[+] decrypting %d chunks\n", chunks);
     for(int i = 0; i < chunks; i++) {
         size_t chunksize;
-        unsigned char *id, *cipher;
+        char *id, *cipher;
+        unsigned char **data, *datadup;
+        unsigned int length;
 
         PyObject *item = PyList_GetItem(hashes, i);
 
         PyArg_Parse(PyDict_GetItemString(item, "hash"), "s", &id);
         PyArg_Parse(PyDict_GetItemString(item, "key"), "s", &cipher);
+        PyArg_Parse(PyDict_GetItemString(item, "data"), "y#", &data, &length);
 
-        chunk_t *chunk = chunk_new(strdup(id), strdup(cipher));
+        if(!(datadup = (unsigned char *) malloc(sizeof(char) * length))) {
+            perror("malloc");
+            return Py_None;
+        }
+
+        memcpy(datadup, data, length);
+
+        chunk_t *chunk = chunk_new(strdup(id), strdup(cipher), datadup, length);
 
         // downloading chunk
-        if(!(chunksize = download(remote, chunk, buffer)))
-            fprintf(stderr, "[-] download failed\n");
+        if(!(chunksize = decrypt_chunk(chunk, buffer)))
+            fprintf(stderr, "[-] decrypt failed\n");
 
         printf("-> chunk restored: %lu bytes\n", chunksize);
         chunk_free(chunk);
@@ -122,9 +121,9 @@ static PyObject *g8storclient_download(PyObject *self, PyObject *args) {
 }
 
 static PyMethodDef g8storclient_cm[] = {
-    {"connect",  g8storclient_connect,  METH_VARARGS, "Initialize client"},
-    {"upload",   g8storclient_upload,   METH_VARARGS, "Upload a file"},
-    {"download", g8storclient_download, METH_VARARGS, "Download a file"},
+    // {"connect",  g8storclient_connect,  METH_VARARGS, "Initialize client"},
+    {"encrypt", g8storclient_encrypt, METH_VARARGS, "Encrypt a file"},
+    {"decrypt", g8storclient_decrypt, METH_VARARGS, "Decrypt a file"},
     {NULL, NULL, 0, NULL}
 };
 
