@@ -14,7 +14,7 @@ int main(int argc, char *argv[]) {
     // arguments checker
     //
     if(argc < 3) {
-        fprintf(stderr, "[-] usage: %s [input-filename] [output-filename]\n", argv[0]);
+        fprintf(stderr, "[-] usage: %s input-filename output-filename [ardb-addr]\n", argv[0]);
         exit(EXIT_FAILURE);
     }
 
