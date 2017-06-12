@@ -2,13 +2,14 @@ package main
 
 import (
 	"encoding/json"
-	"net/http"
-	"github.com/dgraph-io/badger/badger"
-	"strings"
-	"log"
-	"github.com/gorilla/mux"
 	"fmt"
+	"net/http"
 	"strconv"
+	"strings"
+
+	log "github.com/Sirupsen/logrus"
+	"github.com/dgraph-io/badger/badger"
+	"github.com/gorilla/mux"
 )
 
 // Listobjects is the handler for GET /namespaces/{nsid}/objects
@@ -30,14 +31,14 @@ func (api NamespacesAPI) Listobjects(w http.ResponseWriter, r *http.Request) {
 
 	page, err := strconv.Atoi(pageParam)
 
-	if err != nil{
+	if err != nil {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
 
 	per_page, err := strconv.Atoi(per_pageParam)
 
-	if err != nil{
+	if err != nil {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
@@ -47,14 +48,14 @@ func (api NamespacesAPI) Listobjects(w http.ResponseWriter, r *http.Request) {
 	value, err := api.db.Get(nsid)
 
 	// Database Error
-	if err != nil{
-		log.Println(err.Error())
+	if err != nil {
+		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
 	// NOT FOUND
-	if value == nil{
+	if value == nil {
 		http.Error(w, "Namespace doesn't exist", http.StatusNotFound)
 		return
 	}
@@ -67,17 +68,17 @@ func (api NamespacesAPI) Listobjects(w http.ResponseWriter, r *http.Request) {
 	it := api.db.store.NewIterator(opt)
 	defer it.Close()
 
-	startingIndex := (page - 1) * per_page + 1
+	startingIndex := (page-1)*per_page + 1
 	counter := 0 // Number of objects encountered
 	resultsCount := per_page
 
-	for it.Rewind(); it.Valid(); it.Next(){
+	for it.Rewind(); it.Valid(); it.Next() {
 		item := it.Item()
 		key := string(item.Key()[:])
 		/* Skip namespaces and objects not belonging to intended
 		   namespace
-		 */
-		if !strings.Contains(key, prefix){
+		*/
+		if !strings.Contains(key, prefix) {
 			continue
 		}
 
@@ -85,7 +86,7 @@ func (api NamespacesAPI) Listobjects(w http.ResponseWriter, r *http.Request) {
 		counter++
 
 		// Skip this object if its index < intended startingIndex
-		if counter < startingIndex{
+		if counter < startingIndex {
 			continue
 		}
 
@@ -96,13 +97,13 @@ func (api NamespacesAPI) Listobjects(w http.ResponseWriter, r *http.Request) {
 
 		respBody = append(respBody, *object)
 
-		if len(respBody) == resultsCount{
+		if len(respBody) == resultsCount {
 			break
 		}
 	}
 
 	// return empty list if no results
-	if len(respBody) == 0{
+	if len(respBody) == 0 {
 		respBody = []Object{}
 	}
 

@@ -1,12 +1,13 @@
 package main
 
 import (
-	"net/http"
-	"github.com/gorilla/mux"
-	"github.com/dgraph-io/badger/badger"
-	"log"
-	"strings"
 	"fmt"
+	"net/http"
+	"strings"
+
+	log "github.com/Sirupsen/logrus"
+	"github.com/dgraph-io/badger/badger"
+	"github.com/gorilla/mux"
 )
 
 // Deletensid is the handler for DELETE /namespaces/{nsid}
@@ -14,30 +15,30 @@ import (
 func (api NamespacesAPI) Deletensid(w http.ResponseWriter, r *http.Request) {
 	nsid := mux.Vars(r)["nsid"]
 
-	v, err :=  api.db.Get(nsid)
+	v, err := api.db.Get(nsid)
 
-	if err != nil{
-		log.Println(err.Error())
+	if err != nil {
+		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
 	// NOT FOUND
-	if v == nil{
+	if v == nil {
 		http.Error(w, "Namespace doesn't exist", http.StatusNotFound)
 		return
 	}
 
-	err2 := api.db.Delete(nsid)
+	err = api.db.Delete(nsid)
 
-	if err2 != nil{
-		log.Println(err2.Error())
+	if err != nil {
+		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
 	// Delete objects in a namespace
-	defer func(){
+	defer func() {
 		opt := badger.DefaultIteratorOptions
 		opt.FetchValues = false
 		opt.PrefetchSize = api.config.Iterator.PreFetchSize
@@ -50,12 +51,12 @@ func (api NamespacesAPI) Deletensid(w http.ResponseWriter, r *http.Request) {
 		for it.Rewind(); it.Valid(); it.Next() {
 			item := it.Item()
 			key := string(item.Key()[:])
-			if !strings.Contains(key, prefix){
+			if !strings.Contains(key, prefix) {
 				continue
 			}
 
-			if err := api.db.Delete(key); err != nil{
-				log.Println(err.Error())
+			if err := api.db.Delete(key); err != nil {
+				log.Errorln(err.Error())
 
 			}
 		}

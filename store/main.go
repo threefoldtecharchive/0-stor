@@ -157,9 +157,9 @@ func main() {
 			gracefulShutdown(db)
 		}()
 
-		log.Infoln("starting server")
+		log.Infof("Server listening on %s\n", settings.BindAddress)
 
-		if err := http.ListenAndServe(":5000", r); err != nil {
+		if err := http.ListenAndServe(settings.BindAddress, r); err != nil {
 			log.Fatal(err.Error())
 
 		}

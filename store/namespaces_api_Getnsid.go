@@ -3,8 +3,9 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+
+	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
-	"log"
 )
 
 // Getnsid is the handler for GET /namespaces/{nsid}
@@ -17,14 +18,14 @@ func (api NamespacesAPI) Getnsid(w http.ResponseWriter, r *http.Request) {
 	value, err := api.db.Get(key)
 
 	// Database Error
-	if err != nil{
-		log.Println(err.Error())
+	if err != nil {
+		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
 	// NOT FOUND
-	if value == nil{
+	if value == nil {
 		http.Error(w, "Namespace doesn't exist", http.StatusNotFound)
 		return
 	}

@@ -2,9 +2,10 @@ package main
 
 import (
 	"encoding/json"
-	"net/http"
-	"log"
 	"io/ioutil"
+	"net/http"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 // Createnamespace is the handler for POST /namespaces
@@ -17,45 +18,44 @@ func (api NamespacesAPI) Createnamespace(w http.ResponseWriter, r *http.Request)
 
 	defer r.Body.Close()
 
-	if err != nil{
-		log.Println(err.Error())
+	if err != nil {
+		log.Errorln(err.Error())
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
 
 	// decode request
 	if err := json.Unmarshal(value, &reqBody); err != nil {
-		log.Println(err.Error())
+		log.Errorln(err.Error())
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
 
 	key := reqBody.Label
 
-
 	v, err := api.db.Get(key)
 
 	// Database Error
-	if err != nil{
-		log.Println(err.Error())
+	if err != nil {
+		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
 	// 409 Conflict if name space already exists
-	if v != nil{
+	if v != nil {
 		http.Error(w, "Namespace already exists", http.StatusConflict)
 		return
 	}
 
 	// Add new name space
-	if err := api.db.Set(key, value); err != nil{
-		log.Println(err.Error())
+	if err := api.db.Set(key, value); err != nil {
+		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	respBody:= &Namespace{
+	respBody := &Namespace{
 		NamespaceCreate: reqBody,
 	}
 
