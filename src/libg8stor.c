@@ -144,8 +144,8 @@ void buffer_free(buffer_t *buffer) {
 //
 // hashing
 //
-static unsigned char *sha256hex(unsigned char *hash) {
-    unsigned char *buffer = calloc((SHA256_DIGEST_LENGTH * 2) + 1, sizeof(char));
+static char *sha256hex(unsigned char *hash) {
+    char *buffer = calloc((SHA256_DIGEST_LENGTH * 2) + 1, sizeof(char));
 
     for(int i = 0; i < SHA256_DIGEST_LENGTH; i++)
         sprintf((char *) buffer + (i * 2), "%02x", hash[i]);
@@ -153,7 +153,7 @@ static unsigned char *sha256hex(unsigned char *hash) {
     return buffer;
 }
 
-static unsigned char *sha256(const unsigned char *buffer, size_t length) {
+static char *sha256(const unsigned char *buffer, size_t length) {
     unsigned char hash[SHA256_DIGEST_LENGTH];
     SHA256_CTX sha256;
 
@@ -167,7 +167,7 @@ static unsigned char *sha256(const unsigned char *buffer, size_t length) {
 //
 // chunks manager
 //
-chunk_t *chunk_new(unsigned char *id, unsigned char *cipher) {
+chunk_t *chunk_new(char *id, char *cipher, unsigned char *data, size_t length) {
     chunk_t *chunk;
 
     if(!(chunk = malloc(sizeof(chunk_t))))
@@ -176,24 +176,27 @@ chunk_t *chunk_new(unsigned char *id, unsigned char *cipher) {
     chunk->id = id;
     chunk->cipher = cipher;
 
+    chunk->data = data;
+    chunk->length = length;
+
     return chunk;
 }
 
 void chunk_free(chunk_t *chunk) {
     free(chunk->id);
     free(chunk->cipher);
+    free(chunk->data);
     free(chunk);
 }
 
 //
-// workflow
+// encryption and decryption
 //
-chunk_t *upload(remote_t *remote, buffer_t *buffer) {
-    redisReply *reply;
+chunk_t *encrypt_chunk(buffer_t *buffer) {
     const unsigned char *data = buffer_next(buffer);
 
     // hashing this chunk
-    unsigned char *hashkey = sha256(data, buffer->chunksize);
+    char *hashkey = sha256(data, buffer->chunksize);
     printf("[+] chunk hash: %s\n", (char *) hashkey);
 
     //
@@ -214,7 +217,7 @@ chunk_t *upload(remote_t *remote, buffer_t *buffer) {
     size_t encrypt_length;
     unsigned char *encrypt_data = xxtea_encrypt(compressed, output_length, hashkey, &encrypt_length);
 
-    unsigned char *hashcrypt = sha256(encrypt_data, encrypt_length);
+    char *hashcrypt = sha256(encrypt_data, encrypt_length);
     printf("[+] encrypted hash: %s\n", (char *) hashcrypt);
 
     //
@@ -228,16 +231,9 @@ chunk_t *upload(remote_t *remote, buffer_t *buffer) {
     // final encapsulation (header, crc)
     //
     size_t final_length = encrypt_length + 8 + 8;
-    char *final = malloc(sizeof(char) * final_length); // data + crc + prefix
-    sprintf(final, "10000000%02lx", ucrc);
+    unsigned char *final = malloc(sizeof(char) * final_length); // data + crc + prefix
+    sprintf((char *) final, "10000000%02lx", ucrc);
     memcpy(final + 16, encrypt_data, encrypt_length);
-
-    //
-    // add to backend
-    //
-    reply = redisCommand(remote->redis, "SET %b %b", hashcrypt, SHA256LEN, final, final_length);
-    printf("[+] uploading: %s: %s\n", hashkey, reply->str);
-    freeReplyObject(reply);
 
     //
     // stats
@@ -247,35 +243,19 @@ chunk_t *upload(remote_t *remote, buffer_t *buffer) {
     // cleaning
     free(compressed);
     free(encrypt_data);
-    free(final);
 
-    return chunk_new(hashcrypt, hashkey);
+    return chunk_new(hashcrypt, hashkey, final, final_length);
 }
 
-size_t download(remote_t *remote, chunk_t *chunk, buffer_t *buffer) {
-    redisReply *reply;
-
-    //
-    // reading from backend
-    //
-    reply = redisCommand(remote->redis, "GET %b", chunk->id, SHA256LEN);
-    if(!reply->str) {
-        fprintf(stderr, "[-] object not found on the backend\n");
-        freeReplyObject(reply);
-        return 0;
-    }
-
-    printf("[+] downloaded: %s: %d\n", chunk->id, reply->len);
-
+size_t decrypt_chunk(chunk_t *chunk, buffer_t *buffer) {
     //
     // uncrypt payload
     //
     size_t plain_length;
     // printf("[+] cipher: %s\n", chunk->cipher);
-    char *plain_data = xxtea_decrypt(reply->str + 16, reply->len - 16, chunk->cipher, &plain_length);
+    char *plain_data = xxtea_decrypt(chunk->data + 16, chunk->length - 16, chunk->cipher, &plain_length);
     if(!plain_data) {
         fprintf(stderr, "[-] cannot decrypt data, invalid key or payload\n");
-        freeReplyObject(reply);
         return 0;
     }
 
@@ -293,10 +273,10 @@ size_t download(remote_t *remote, chunk_t *chunk, buffer_t *buffer) {
     //
     // testing integrity
     //
-    unsigned char *integrity = sha256((unsigned char *) uncompress, uncompressed_length);
+    char *integrity = sha256((unsigned char *) uncompress, uncompressed_length);
     // printf("[+] integrity: %s\n", integrity);
 
-    if(strcmp((const char *) integrity, (const char *) chunk->cipher)) {
+    if(strcmp(integrity, chunk->cipher)) {
         fprintf(stderr, "[-] integrity check failed: hash mismatch\n");
         fprintf(stderr, "[-] %s <> %s\n", integrity, chunk->cipher);
         // FIXME: free
@@ -315,9 +295,66 @@ size_t download(remote_t *remote, chunk_t *chunk, buffer_t *buffer) {
     buffer->finalsize += uncompressed_length;
 
     // cleaning
-    freeReplyObject(reply);
     free(plain_data);
     free(uncompress);
 
     return uncompressed_length;
+}
+
+//
+// uploader and downloader
+//
+chunk_t *upload_chunk(remote_t *remote, chunk_t *chunk) {
+    redisReply *reply;
+
+    //
+    // add to backend
+    //
+    reply = redisCommand(remote->redis, "SET %b %b", chunk->id, SHA256LEN, chunk->data, chunk->length);
+    printf("[+] uploading: %s: %s\n", chunk->id, reply->str);
+    freeReplyObject(reply);
+
+    return chunk;
+}
+
+chunk_t *download_chunk(remote_t *remote, chunk_t *chunk) {
+    redisReply *reply;
+
+    //
+    // reading from backend
+    //
+    reply = redisCommand(remote->redis, "GET %b", chunk->id, SHA256LEN);
+    if(!reply->str) {
+        fprintf(stderr, "[-] object not found on the backend\n");
+        freeReplyObject(reply);
+        return 0;
+    }
+
+    printf("[+] downloaded: %s: %d\n", chunk->id, reply->len);
+
+    chunk->length = reply->len;
+    chunk->data = (unsigned char *) malloc(sizeof(char) * reply->len);
+    memcpy(chunk->data, reply->str, reply->len);
+
+    return chunk;
+}
+
+//
+// deprecated
+//
+chunk_t *upload(remote_t *remote, buffer_t *buffer) {
+    (void) remote;
+    (void) buffer;
+
+    printf("[-] upload: deprecated, not implemented anymore\n");
+    return NULL;
+}
+
+size_t download(remote_t *remote, chunk_t *chunk, buffer_t *buffer) {
+    (void) remote;
+    (void) chunk;
+    (void) buffer;
+
+    printf("[-] download: deprecated, not implemented anymore\n");
+    return 0;
 }

@@ -5,7 +5,7 @@
 
 int main(int argc, char *argv[]) {
     char *input, *output;
-    remote_t *remote;
+    remote_t *remote = NULL;
     buffer_t *buffer;
     chunk_t **chunks;
     int chunks_length;
@@ -27,8 +27,11 @@ int main(int argc, char *argv[]) {
     //
     // connect to redis (ardb)
     //
-    if(!(remote = remote_connect("127.0.0.1", 16379)))
-        exit(EXIT_FAILURE);
+    if(argc == 4) {
+        printf("[+] connecting to remote target: %s\n", argv[3]);
+        if(!(remote = remote_connect(argv[3], 16379)))
+            exit(EXIT_FAILURE);
+    }
 
     //
     // initialize buffer and chunks
@@ -45,28 +48,39 @@ int main(int argc, char *argv[]) {
     }
 
     //
-    // uploading chunks
+    // encrypting chunks
     //
     printf("[+] =============================\n");
-    printf("[+] uploading %d chunks\n", buffer->chunks);
+    printf("[+] encrypting %d chunks\n", buffer->chunks);
     printf("[+] =============================\n");
 
     for(int i = 0; i < buffer->chunks; i++) {
-        // uploading chunk
-        chunk_t *chunk = upload(remote, buffer);
+        // encrypting chunk
+        chunk_t *chunk = encrypt_chunk(buffer);
 
-        printf("-> %s [%s]\n", chunk->id, chunk->cipher);
+        printf("[+] %s [%s]: %lu bytes\n", chunk->id, chunk->cipher, chunk->length);
         chunks[i] = chunk;
     }
 
     printf("[+] finalsize: %lu bytes\n", buffer->finalsize);
+
+    //
+    // uploading if remote is set
+    //
+    if(remote) {
+        for(int i = 0; i < buffer->chunks; i++) {
+            if(!upload_chunk(remote, chunks[i]))
+                exit(EXIT_FAILURE);
+        }
+    }
+
     buffer_free(buffer);
 
     //
-    // downloading chunks
+    // decrypting chunks
     //
     printf("[+] =============================\n");
-    printf("[+] downloading %d chunks\n", chunks_length);
+    printf("[+] decrypting %d chunks\n", chunks_length);
     printf("[+] =============================\n");
 
     if(!(buffer = buffer_writer(output))) {
@@ -77,11 +91,11 @@ int main(int argc, char *argv[]) {
     for(int i = 0; i < chunks_length; i++) {
         size_t chunksize;
 
-        // downloading chunk
-        if(!(chunksize = download(remote, chunks[i], buffer)))
+        // decrypting chunk
+        if(!(chunksize = decrypt_chunk(chunks[i], buffer)))
             fprintf(stderr, "[-] download failed\n");
 
-        printf("-> chunk restored: %lu bytes\n", chunksize);
+        printf("[+] chunk restored: %lu bytes\n", chunksize);
     }
 
     printf("[+] finalsize: %lu bytes read in %d chunks\n", buffer->finalsize, buffer->chunks);
@@ -94,7 +108,11 @@ int main(int argc, char *argv[]) {
         chunk_free(chunks[i]);
 
     free(chunks);
-    remote_free(remote);
+
+    if(remote)
+        remote_free(remote);
+
+    printf("[+] all done\n");
 
     return 0;
 }

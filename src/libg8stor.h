@@ -18,8 +18,10 @@
     } buffer_t;
 
     typedef struct chunk_t {
-        unsigned char *id;
-        unsigned char *cipher;
+        char *id;
+        char *cipher;
+        unsigned char *data;
+        size_t length;
 
     } chunk_t;
 
@@ -34,10 +36,18 @@
     void buffer_free(buffer_t *buffer);
 
     // chunk
-    chunk_t *chunk_new(unsigned char *hash, unsigned char *key);
+    chunk_t *chunk_new(char *hash, char *key, unsigned char *data, size_t length);
     void chunk_free(chunk_t *chunk);
 
-    // uploader
+    // encryption
+    chunk_t *encrypt_chunk(buffer_t *buffer);
+    size_t decrypt_chunk(chunk_t *chunk, buffer_t *buffer);
+
+    // networking
+    chunk_t *upload_chunk(remote_t *remote, chunk_t *chunk);
+    chunk_t *download_chunk(remote_t *remote, chunk_t *chunk);
+
+    // deprecated
     chunk_t *upload(remote_t *remote, buffer_t *buffer);
     size_t download(remote_t *remote, chunk_t *chunk, buffer_t *buffer);
 #endif
