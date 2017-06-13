@@ -1,10 +1,11 @@
 package main
 
 import (
-	"net/http"
-	"github.com/gorilla/mux"
 	"fmt"
-	"log"
+	"net/http"
+
+	log "github.com/Sirupsen/logrus"
+	"github.com/gorilla/mux"
 )
 
 // DeleteObject is the handler for DELETE /namespaces/{nsid}/objects/{id}
@@ -15,24 +16,24 @@ func (api NamespacesAPI) DeleteObject(w http.ResponseWriter, r *http.Request) {
 
 	key := fmt.Sprintf("%s:%s", namespace, id)
 
-	v, err :=  api.db.Get(key)
+	v, err := api.db.Get(key)
 
-	if err != nil{
-		log.Println(err.Error())
+	if err != nil {
+		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
 	// NOT FOUND
-	if v == nil{
+	if v == nil {
 		http.Error(w, "Namespace or object doesn't exist", http.StatusNotFound)
 		return
 	}
 
-	err2 := api.db.Delete(key)
+	err = api.db.Delete(key)
 
-	if err2 != nil{
-		log.Println(err2.Error())
+	if err != nil {
+		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}

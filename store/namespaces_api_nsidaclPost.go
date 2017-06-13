@@ -3,8 +3,9 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+
+	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
-	"log"
 )
 
 // nsidaclPost is the handler for POST /namespaces/{nsid}/acl
@@ -17,14 +18,14 @@ func (api NamespacesAPI) nsidaclPost(w http.ResponseWriter, r *http.Request) {
 	value, err := api.db.Get(key)
 
 	// Database Error
-	if err != nil{
-		log.Println(err.Error())
+	if err != nil {
+		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
 	// NOT FOUND
-	if value == nil{
+	if value == nil {
 		http.Error(w, "Namespace doesn't exist", http.StatusNotFound)
 		return
 	}
@@ -33,14 +34,14 @@ func (api NamespacesAPI) nsidaclPost(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
-		log.Println(err.Error())
+		log.Errorln(err.Error())
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
 
 	// If data was not saved correctly for any reason fail
-	if err := json.Unmarshal(value, &namespace); err != nil{
-		log.Println(err.Error())
+	if err := json.Unmarshal(value, &namespace); err != nil {
+		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -48,8 +49,8 @@ func (api NamespacesAPI) nsidaclPost(w http.ResponseWriter, r *http.Request) {
 	aclIndex := -1 // -1 means ACL for that user does not exist
 
 	// Find if ACL for that user already exists
-	for i, item := range namespace.Acl{
-		if item.Id == reqBody.Id{
+	for i, item := range namespace.Acl {
+		if item.Id == reqBody.Id {
 			aclIndex = i
 			break
 		}
@@ -58,21 +59,21 @@ func (api NamespacesAPI) nsidaclPost(w http.ResponseWriter, r *http.Request) {
 	// Update User ACL
 	if aclIndex != -1 {
 		namespace.Acl[aclIndex] = reqBody
-	}else { // Insert new ACL
+	} else { // Insert new ACL
 		namespace.Acl = append(namespace.Acl, reqBody)
 	}
 
 	newACL, err := json.Marshal(namespace)
 
-	if err != nil{
-		log.Println(err.Error())
+	if err != nil {
+		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
 	// Update name space
-	if err := api.db.Set(key, newACL); err != nil{
-		log.Println(err.Error())
+	if err := api.db.Set(key, newACL); err != nil {
+		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}

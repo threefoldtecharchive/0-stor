@@ -2,10 +2,11 @@ package main
 
 import (
 	"encoding/json"
-	"net/http"
-	"github.com/gorilla/mux"
-	"log"
 	"io/ioutil"
+	"net/http"
+
+	log "github.com/Sirupsen/logrus"
+	"github.com/gorilla/mux"
 )
 
 // Updatensid is the handler for PUT /namespaces/{nsid}
@@ -17,15 +18,15 @@ func (api NamespacesAPI) Updatensid(w http.ResponseWriter, r *http.Request) {
 
 	defer r.Body.Close()
 
-	if err != nil{
-		log.Println(err.Error())
+	if err != nil {
+		log.Errorln(err.Error())
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
 
 	// decode request
 	if err := json.Unmarshal(value, &reqBody); err != nil {
-		log.Println(err.Error())
+		log.Errorln(err.Error())
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
@@ -35,26 +36,25 @@ func (api NamespacesAPI) Updatensid(w http.ResponseWriter, r *http.Request) {
 	old_value, err := api.db.Get(key)
 
 	// Database Error
-	if err != nil{
-		log.Println(err.Error())
+	if err != nil {
+		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-
 	// NOT FOUND
-	if old_value == nil{
+	if old_value == nil {
 		http.Error(w, "Namespace doesn't exist", http.StatusNotFound)
 		return
 	}
 
-	if err := api.db.Set(key, value); err != nil{
-		log.Println(err.Error())
+	if err := api.db.Set(key, value); err != nil {
+		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	respBody:= &Namespace{
+	respBody := &Namespace{
 		NamespaceCreate: reqBody,
 	}
 

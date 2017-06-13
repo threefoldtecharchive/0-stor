@@ -1,11 +1,12 @@
 package main
 
 import (
-	"net/http"
-	"github.com/gorilla/mux"
-	"fmt"
 	"encoding/json"
-	"log"
+	"fmt"
+	"net/http"
+
+	log "github.com/Sirupsen/logrus"
+	"github.com/gorilla/mux"
 )
 
 // GetObject is the handler for GET /namespaces/{nsid}/objects/{id}
@@ -22,14 +23,14 @@ func (api NamespacesAPI) GetObject(w http.ResponseWriter, r *http.Request) {
 	value, err := api.db.Get(key)
 
 	// Database Error
-	if err != nil{
-		log.Println(err.Error())
+	if err != nil {
+		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
 	// KEY NOT FOUND
-	if value == nil{
+	if value == nil {
 		http.Error(w, "Object doesn't exist", http.StatusNotFound)
 		return
 	}

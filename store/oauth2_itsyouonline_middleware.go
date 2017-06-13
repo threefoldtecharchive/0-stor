@@ -3,9 +3,10 @@ package main
 import (
 	"crypto/ecdsa"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
+
+	log "github.com/Sirupsen/logrus"
 
 	"github.com/dgrijalva/jwt-go"
 )
@@ -20,7 +21,11 @@ type Oauth2itsyouonlineMiddleware struct {
 var JWTPublicKey *ecdsa.PublicKey
 
 const (
-	oauth2ServerPublicKey = `` // fill it with oauth2 server public key
+	oauth2ServerPublicKey = `-----BEGIN PUBLIC KEY-----
+MHYwEAYHKoZIzj0CAQYFK4EEACIDYgAES5X8XrfKdx9gYayFITc89wad4usrk0n2
+7MjiGYvqalizeSWTHEpnd7oea9IQ8T5oJjMVH5cc0H5tFSKilFFeh//wngxIyny6
+6+Vq5t5B0V0Ehy01+2ceEon2Y0XDkIKv
+-----END PUBLIC KEY-----`
 )
 
 func init() {
@@ -73,8 +78,14 @@ func (om *Oauth2itsyouonlineMiddleware) Handler(next http.Handler) http.Handler 
 		// access token checking
 		if om.describedBy == "queryParameters" {
 			accessToken = r.URL.Query().Get(om.field)
+			if accessToken == "" {
+				accessToken = r.URL.Query().Get(strings.ToLower(om.field))
+			}
 		} else if om.describedBy == "headers" {
 			accessToken = r.Header.Get(om.field)
+			if accessToken == "" {
+				accessToken = r.Header.Get(strings.ToLower(om.field))
+			}
 		}
 		if accessToken == "" {
 			w.WriteHeader(401)
@@ -92,6 +103,7 @@ func (om *Oauth2itsyouonlineMiddleware) Handler(next http.Handler) http.Handler 
 
 		// check scopes
 		if !om.CheckScopes(scopes) {
+			log.Debug("no required scopes")
 			w.WriteHeader(403)
 			return
 		}
