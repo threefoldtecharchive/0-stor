@@ -55,8 +55,11 @@ int main(int argc, char *argv[]) {
     printf("[+] =============================\n");
 
     for(int i = 0; i < buffer->chunks; i++) {
+        const unsigned char *data = buffer_next(buffer);
+
         // encrypting chunk
-        chunk_t *chunk = encrypt_chunk(buffer);
+        chunk_t *chunk = encrypt_chunk(data, buffer->chunksize);
+        buffer->finalsize += chunk->length;
 
         printf("[+] %s [%s]: %lu bytes\n", chunk->id, chunk->cipher, chunk->length);
         chunks[i] = chunk;
@@ -89,13 +92,22 @@ int main(int argc, char *argv[]) {
     }
 
     for(int i = 0; i < chunks_length; i++) {
-        size_t chunksize;
+        chunk_t *output = NULL;
 
         // decrypting chunk
-        if(!(chunksize = decrypt_chunk(chunks[i], buffer)))
+        if(!(output = decrypt_chunk(chunks[i])))
             fprintf(stderr, "[-] download failed\n");
 
-        printf("[+] chunk restored: %lu bytes\n", chunksize);
+        if(fwrite(output->data, output->length, 1, buffer->fp) != 1) {
+            perror("[-] fwrite");
+            return 0;
+        }
+
+        buffer->chunks += 1;
+        buffer->finalsize += output->length;
+        printf("[+] chunk restored: %lu bytes\n", output->length);
+
+        chunk_free(output);
     }
 
     printf("[+] finalsize: %lu bytes read in %d chunks\n", buffer->finalsize, buffer->chunks);

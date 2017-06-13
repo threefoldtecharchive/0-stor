@@ -192,19 +192,19 @@ void chunk_free(chunk_t *chunk) {
 //
 // encryption and decryption
 //
-chunk_t *encrypt_chunk(buffer_t *buffer) {
-    const unsigned char *data = buffer_next(buffer);
-
+// encrypt a buffer
+// returns a chunk with key, cipher, data and it's length
+chunk_t *encrypt_chunk(const char *chunk, size_t chunksize) {
     // hashing this chunk
-    char *hashkey = sha256(data, buffer->chunksize);
+    char *hashkey = sha256(chunk, chunksize);
     printf("[+] chunk hash: %s\n", (char *) hashkey);
 
     //
     // compress
     //
-    size_t output_length = snappy_max_compressed_length(buffer->chunksize);
+    size_t output_length = snappy_max_compressed_length(chunksize);
     char *compressed = (char *) malloc(output_length);
-    if(snappy_compress((char *) data, buffer->chunksize, compressed, &output_length) != SNAPPY_OK) {
+    if(snappy_compress((char *) chunk, chunksize, compressed, &output_length) != SNAPPY_OK) {
         fprintf(stderr, "[-] snappy compression error\n");
         exit(EXIT_FAILURE);
     }
@@ -235,11 +235,6 @@ chunk_t *encrypt_chunk(buffer_t *buffer) {
     sprintf((char *) final, "10000000%02lx", ucrc);
     memcpy(final + 16, encrypt_data, encrypt_length);
 
-    //
-    // stats
-    //
-    buffer->finalsize += output_length;
-
     // cleaning
     free(compressed);
     free(encrypt_data);
@@ -247,7 +242,10 @@ chunk_t *encrypt_chunk(buffer_t *buffer) {
     return chunk_new(hashcrypt, hashkey, final, final_length);
 }
 
-size_t decrypt_chunk(chunk_t *chunk, buffer_t *buffer) {
+// uncrypt a chunk
+// it takes a chunk as parameter
+// returns a chunk (without key and cipher) with payload data and length
+chunk_t *decrypt_chunk(chunk_t *chunk) {
     //
     // uncrypt payload
     //
@@ -270,6 +268,8 @@ size_t decrypt_chunk(chunk_t *chunk, buffer_t *buffer) {
         exit(EXIT_FAILURE);
     }
 
+    chunk_t *output = chunk_new(NULL, NULL, uncompress, uncompressed_length);
+
     //
     // testing integrity
     //
@@ -285,20 +285,10 @@ size_t decrypt_chunk(chunk_t *chunk, buffer_t *buffer) {
 
     free(integrity);
 
-    if(fwrite(uncompress, uncompressed_length, 1, buffer->fp) != 1) {
-        perror("[-] fwrite");
-        // FIXME: free
-        return 0;
-    }
-
-    buffer->chunks += 1;
-    buffer->finalsize += uncompressed_length;
-
     // cleaning
     free(plain_data);
-    free(uncompress);
 
-    return uncompressed_length;
+    return output;
 }
 
 //
