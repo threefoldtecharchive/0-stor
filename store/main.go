@@ -14,6 +14,8 @@ import (
 
 	"github.com/gorilla/mux"
 	"gopkg.in/validator.v2"
+	"strings"
+	"github.com/pkg/errors"
 )
 
 type settings struct {
@@ -31,6 +33,10 @@ type settings struct {
 
 	Pagination struct {
 		PageSize int `json:"page_size"`
+	}
+
+	Stats struct{
+		CollectionName string `json:"collection_name"`
 	}
 }
 
@@ -110,6 +116,13 @@ func main() {
 			Value:       100,
 			Destination: &settings.Iterator.PreFetchSize,
 		},
+
+		cli.StringFlag{
+			Name: "stats-collection, s",
+			Usage: "Set global store stats colection name",
+			Value: "@stats",
+			Destination: &settings.Stats.CollectionName,
+		},
 	}
 
 	app.Before = func(c *cli.Context) error {
@@ -123,6 +136,11 @@ func main() {
 		}
 		// input validator
 		validator.SetValidationFunc("multipleOf", goraml.MultipleOf)
+
+		// global stats name must start with @
+		if strings.Index(settings.Stats.CollectionName, "@") != 0{
+			return errors.New("Global stats collection name must starts with @")
+		}
 
 		return nil
 	}
@@ -144,6 +162,8 @@ func main() {
 		if err != nil {
 			log.Fatal(err.Error())
 		}
+
+		log.Printf("Global Stats collection: %v", settings.Stats.CollectionName)
 
 		NamespacesInterfaceRoutes(r, &NamespacesAPI{db: db, config: &settings})
 

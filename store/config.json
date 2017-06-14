@@ -9,5 +9,9 @@
 
     "Pagination": {
         "page_size": 20
+    },
+
+    "Stats" :{
+        "collection_name": "@stats"
     }
 }

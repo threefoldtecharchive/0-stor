@@ -47,7 +47,7 @@ types:
         required: true
         minLength: 5
         maxLength: 128
-        pattern: ^[a-zA-Z0-9]+$
+        pattern: ^\w+$
       acl:
         type: ACL[]
     examples:
@@ -96,6 +96,19 @@ types:
         type: integer
         format: int64
 
+  StoreStat:
+      properties:
+        size:
+          description: |
+            Total available size (MBs) of the Store. Total reservations size can't exceed that value
+          required: true
+          type: integer
+          format: int64
+          minimum: 1
+      examples:
+        properties:
+          size: 128
+
   Tag:
     properties:
       key:
@@ -113,7 +126,7 @@ types:
         type: string
         minLength: 5
         maxLength: 128
-        pattern: ^[a-zA-Z0-9]+$
+        pattern: ^\w+$
       data:
         required: true
         type: file
@@ -152,6 +165,35 @@ types:
   post:
     body:
       type: NamespaceCreate
+
+  /stats:
+     securedBy: [ itsyouonline : { scopes: ["user:name"] } ]
+     post:
+      displayName: UpdateStoreStats
+      description: |
+        Update Global Store statistics and available space
+      body:
+        type: StoreStat
+      responses:
+        200:
+          description: Store statistics updated successfully
+          body:
+            description: |
+              New Store statistics
+            type:
+              StoreStat
+        400:
+          description: |
+            Bad request
+     get:
+      displayName: GetStoreStats
+      description: |
+        Return usage statistics about the whole store
+      responses:
+        200:
+          body:
+            type: StoreStat
+
   /{nsid}:
     securedBy: [ reservation.reservationToken ]
     type: member

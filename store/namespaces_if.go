@@ -63,6 +63,13 @@ type NamespacesInterface interface { // nsidaclPost is the handler for POST /nam
 	// Create a new namespace
 	Createnamespace(http.ResponseWriter, *http.Request)
 
+	// GetStoreStats is the handler for GET /namespaces/stats
+	// Return usage statistics about the whole store
+	GetStoreStats(http.ResponseWriter, *http.Request)
+	// UpdateStoreStats is the handler for POST /namespaces/stats
+	// Update Global Store statistics and available space
+	UpdateStoreStats(http.ResponseWriter, *http.Request)
+
 	// Get db object
 	DB() *Badger
 
@@ -142,6 +149,18 @@ func NamespacesInterfaceRoutes(r *mux.Router, i NamespacesInterface) {
 			NewNamespaceExistsMiddleware(i.DB()).Handler,
 			NewNamespaceStatMiddleware(i.DB()).Handler).
 		Then(http.HandlerFunc(i.StatsNamespace))).Methods("GET")
+
+	/* namespaces/stats Must come before /namespaces/{nsid}
+	   Otherwise it won't match!
+	 */
+
+	r.Handle("/namespaces/stats",
+		alice.New(NewOauth2itsyouonlineMiddleware([]string{"user:name"}).Handler).
+			Then(http.HandlerFunc(i.UpdateStoreStats))).Methods("POST")
+
+	r.Handle("/namespaces/stats",
+		alice.New(NewOauth2itsyouonlineMiddleware([]string{"user:name"}).Handler).
+			Then(http.HandlerFunc(i.GetStoreStats))).Methods("GET")
 
 	r.Handle("/namespaces/{nsid}",
 		alice.New(
