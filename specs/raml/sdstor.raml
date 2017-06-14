@@ -47,7 +47,7 @@ types:
         required: true
         minLength: 5
         maxLength: 128
-        pattern: ^\w+$
+        pattern: ^[a-zA-Z0-9]+$
       acl:
         type: ACL[]
     examples:
@@ -113,7 +113,7 @@ types:
         type: string
         minLength: 5
         maxLength: 128
-        pattern: ^\w+$
+        pattern: ^[a-zA-Z0-9]+$
       data:
         required: true
         type: file
