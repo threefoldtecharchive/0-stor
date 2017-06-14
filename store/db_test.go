@@ -40,17 +40,17 @@ func TestExists(t *testing.T) {
 	defer kv.Close()
 
 	tt := []struct {
-		key     []byte
+		key     string
 		exists  bool
 		message string
 	}{
 		{
-			key:     []byte("foo"),
+			key:     "foo",
 			exists:  true,
 			message: "Should exists",
 		},
 		{
-			key:     []byte("noexists"),
+			key:     "noexists",
 			exists:  false,
 			message: "Should not exists",
 		},

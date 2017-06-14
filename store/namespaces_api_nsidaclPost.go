@@ -14,21 +14,8 @@ func (api NamespacesAPI) nsidaclPost(w http.ResponseWriter, r *http.Request) {
 	var reqBody ACL
 	var namespace NamespaceCreate
 
-	key := mux.Vars(r)["nsid"]
-	value, err := api.db.Get(key)
-
-	// Database Error
-	if err != nil {
-		log.Errorln(err.Error())
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
-	// NOT FOUND
-	if value == nil {
-		http.Error(w, "Namespace doesn't exist", http.StatusNotFound)
-		return
-	}
+	nsid := mux.Vars(r)["nsid"]
+	namespaceObj :=r.Context().Value("namespace").([]byte)
 
 	// decode request
 	defer r.Body.Close()
@@ -40,7 +27,7 @@ func (api NamespacesAPI) nsidaclPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// If data was not saved correctly for any reason fail
-	if err := json.Unmarshal(value, &namespace); err != nil {
+	if err := json.Unmarshal(namespaceObj, &namespace); err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
@@ -72,7 +59,7 @@ func (api NamespacesAPI) nsidaclPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Update name space
-	if err := api.db.Set(key, newACL); err != nil {
+	if err := api.db.Set(nsid, newACL); err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return

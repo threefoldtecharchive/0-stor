@@ -17,21 +17,7 @@ import (
 func (api NamespacesAPI) Deletensid(w http.ResponseWriter, r *http.Request) {
 	nsid := mux.Vars(r)["nsid"]
 
-	v, err := api.db.Get(nsid)
-
-	if err != nil {
-		log.Errorln(err.Error())
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
-	// NOT FOUND
-	if v == nil {
-		http.Error(w, "Namespace doesn't exist", http.StatusNotFound)
-		return
-	}
-
-	err = api.db.Delete(nsid)
+	err := api.db.Delete(nsid)
 
 	if err != nil {
 		log.Errorln(err.Error())

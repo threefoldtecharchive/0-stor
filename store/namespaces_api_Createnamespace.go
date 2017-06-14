@@ -6,6 +6,8 @@ import (
 	"net/http"
 
 	log "github.com/Sirupsen/logrus"
+	"fmt"
+	"time"
 )
 
 // Createnamespace is the handler for POST /namespaces
@@ -26,6 +28,12 @@ func (api NamespacesAPI) Createnamespace(w http.ResponseWriter, r *http.Request)
 
 	// decode request
 	if err := json.Unmarshal(value, &reqBody); err != nil {
+		log.Errorln(err.Error())
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+
+	if err := reqBody.Validate(); err != nil{
 		log.Errorln(err.Error())
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
@@ -55,7 +63,26 @@ func (api NamespacesAPI) Createnamespace(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	respBody := &Namespace{
+	// Add stats
+	// We assume namespaces and object names can't contain (_)
+	statsKey := fmt.Sprintf("%s_%s", key, "stats")
+
+	stats := Stat{
+		creationDate: time.Now(),
+		NamespaceStat: NamespaceStat{
+			NrObjects: 0,
+			RequestPerHour: 0,
+		},
+	}
+
+	if err := api.db.Set(statsKey, stats.toBytes()); err != nil{
+		api.db.Delete(key)
+		log.Errorln(err.Error())
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	respBody:= &Namespace{
 		NamespaceCreate: reqBody,
 	}
 

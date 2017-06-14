@@ -57,10 +57,10 @@ func (api NamespacesAPI) Listnamespaces(w http.ResponseWriter, r *http.Request) 
 		item := it.Item()
 		key := string(item.Key()[:])
 
-		/* Skip keys representing objects
-		   namespaces keys can't contain (:)
-		*/
-		if strings.Contains(key, ":") {
+		/* Skip keys representing objects and stats
+		   namespaces keys can't contain (:), nor (_)
+		 */
+		if strings.Contains(key, ":") || strings.Contains(key, "_"){
 			continue
 		}
 

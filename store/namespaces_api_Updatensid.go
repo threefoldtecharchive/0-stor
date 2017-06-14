@@ -31,24 +31,15 @@ func (api NamespacesAPI) Updatensid(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	key := mux.Vars(r)["nsid"]
-
-	old_value, err := api.db.Get(key)
-
-	// Database Error
-	if err != nil {
+	if err := reqBody.Validate(); err != nil{
 		log.Errorln(err.Error())
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
 
-	// NOT FOUND
-	if old_value == nil {
-		http.Error(w, "Namespace doesn't exist", http.StatusNotFound)
-		return
-	}
+	nsid := mux.Vars(r)["nsid"]
 
-	if err := api.db.Set(key, value); err != nil {
+	if err := api.db.Set(nsid, value); err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return

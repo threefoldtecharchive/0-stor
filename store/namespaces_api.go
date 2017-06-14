@@ -5,3 +5,11 @@ type NamespacesAPI struct {
 	db     *Badger
 	config *settings
 }
+
+func (api NamespacesAPI) DB() *Badger{
+	return api.db
+}
+
+func (api NamespacesAPI) Config() *settings{
+	return api.config
+}

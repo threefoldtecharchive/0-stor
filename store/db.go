@@ -90,7 +90,7 @@ func (b *Badger) Delete(key string) error {
 }
 
 /* Exists */
-func (b *Badger) Exists(key []byte) (bool, error) {
+func (b *Badger) Exists(key string) (bool, error) {
 	var item badger.KVItem
 	err := b.store.Get([]byte(key), &item)
 	if err != nil {

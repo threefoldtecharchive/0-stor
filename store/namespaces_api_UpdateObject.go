@@ -22,6 +22,12 @@ func (api NamespacesAPI) UpdateObject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := reqBody.Validate(); err != nil{
+		log.Errorln(err.Error())
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+
 	// Make sure file contents are valid
 	file, err := reqBody.ToFile(true)
 

@@ -8,8 +8,6 @@ import (
 	"strings"
 
 	"github.com/dgraph-io/badger/badger"
-
-	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
 )
 
@@ -45,21 +43,6 @@ func (api NamespacesAPI) Listobjects(w http.ResponseWriter, r *http.Request) {
 	}
 
 	nsid := mux.Vars(r)["nsid"]
-
-	value, err := api.db.Get(nsid)
-
-	// Database Error
-	if err != nil {
-		log.Errorln(err.Error())
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
-	// NOT FOUND
-	if value == nil {
-		http.Error(w, "Namespace doesn't exist", http.StatusNotFound)
-		return
-	}
 
 	prefix := fmt.Sprintf("%s:", nsid)
 

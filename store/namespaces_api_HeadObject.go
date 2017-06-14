@@ -10,12 +10,12 @@ import (
 // HeadObject is the handler for HEAD /namespaces/{nsid}/objects/{id}
 // Tests object exists in the store
 func (api NamespacesAPI) HeadObject(w http.ResponseWriter, r *http.Request) {
-	namespace := mux.Vars(r)["nsid"]
+	nsid := mux.Vars(r)["nsid"]
 	id := mux.Vars(r)["id"]
 
-	key := fmt.Sprintf("%s:%s", namespace, id)
+	key := fmt.Sprintf("%s:%s", nsid, id)
 
-	exists, err := api.db.Exists([]byte(key))
+	exists, err := api.db.Exists(key)
 	if err != nil {
 		http.Error(w, "", http.StatusInternalServerError)
 		return

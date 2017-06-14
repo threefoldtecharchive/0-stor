@@ -14,26 +14,17 @@ import (
 func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 	var reqBody Object
 
-	namespace := mux.Vars(r)["nsid"]
-
-	v, err := api.db.Get(namespace)
-
-	// Database Error
-	if err != nil {
-		log.Errorln(err.Error())
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
-	// NOT FOUND
-	if v == nil {
-		http.Error(w, "Namespace doesn't exist", http.StatusNotFound)
-		return
-	}
+	nsid := mux.Vars(r)["nsid"]
 
 	// decode request
 	defer r.Body.Close()
 	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
+		log.Errorln(err.Error())
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+
+	if err := reqBody.Validate(); err != nil{
 		log.Errorln(err.Error())
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
@@ -48,7 +39,7 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	key := fmt.Sprintf("%s:%s", namespace, reqBody.Id)
+	key := fmt.Sprintf("%s:%s", nsid, reqBody.Id)
 
 	oldFile, err := api.db.GetFile(key)
 
