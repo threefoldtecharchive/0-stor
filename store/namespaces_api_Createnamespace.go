@@ -7,7 +7,6 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"fmt"
-	"time"
 )
 
 // Createnamespace is the handler for POST /namespaces
@@ -67,13 +66,7 @@ func (api NamespacesAPI) Createnamespace(w http.ResponseWriter, r *http.Request)
 	// We assume namespaces and object names can't contain (_)
 	statsKey := fmt.Sprintf("%s_%s", key, "stats")
 
-	stats := Stat{
-		creationDate: time.Now(),
-		NamespaceStat: NamespaceStat{
-			NrObjects: 0,
-			RequestPerHour: 0,
-		},
-	}
+	stats := NewStat()
 
 	if err := api.db.Set(statsKey, stats.toBytes()); err != nil{
 		api.db.Delete(key)
