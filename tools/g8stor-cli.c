@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <hiredis.h>
-#include <libg8stor.h>
+#include <lib0stor.h>
 
 int main(int argc, char *argv[]) {
     char *input, *output;

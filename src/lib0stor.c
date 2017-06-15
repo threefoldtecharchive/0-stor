@@ -8,7 +8,7 @@
 #include <time.h>
 #include "openssl/sha.h"
 #include "xxtea.h"
-#include "libg8stor.h"
+#include "lib0stor.h"
 
 #define CHUNK_SIZE    1024 * 512    // 512 KB
 #define SHA256LEN     (size_t) SHA256_DIGEST_LENGTH * 2
