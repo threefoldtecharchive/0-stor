@@ -60,9 +60,10 @@ func (api NamespacesAPI) Listnamespaces(w http.ResponseWriter, r *http.Request) 
 		/* Skip keys representing objects and stats
 		   namespaces keys can't contain (:), nor (_)
 		 */
-		if strings.Contains(key, ":") ||
-			strings.Contains(key, "_")||
-			strings.Contains(key, "@"){
+		if strings.Contains(key, ":") ||     // Objects
+			strings.Contains(key, "_")|| // _stats
+			strings.Contains(key, "@")|| // @stat Global stat
+			strings.Contains(key, "$"){ // reservations
 			continue
 		}
 

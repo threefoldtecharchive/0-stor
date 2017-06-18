@@ -48,6 +48,13 @@ func NewStat() *Stat{
 	}
 }
 
+func (s *Stat) updateReservation(r reservation.Reservation){
+	s.Updated = r.Updated
+	s.ExpireAt = r.ExpireAt
+	s.SizeReserved = s.SizeReserved + r.SizeReserved
+}
+
+
 func (s *Stat) toBytes() []byte{
 	/*
 	-----------------------------------------------------------------
