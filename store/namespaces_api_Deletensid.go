@@ -48,6 +48,37 @@ func (api NamespacesAPI) Deletensid(w http.ResponseWriter, r *http.Request) {
 
 			}
 		}
+
+		// claim namespaxe size to global stat & delete reservation
+
+		reservationKey := r.Context().Value("reservationKey").(string)
+		if err := api.db.Delete(reservationKey); err != nil {
+			log.Errorln(err.Error())
+
+		}
+
+		statsBytes := r.Context().Value("stats").([]byte)
+		namespaceStats := Stat{}
+		namespaceStats.fromBytes(statsBytes)
+		size := namespaceStats.SizeReserved
+
+		globalStatBytes, err := api.db.Get(api.config.Stats.CollectionName)
+		if err != nil{
+			log.Errorln(err.Error())
+		}
+
+		globalStats := StoreStat{}
+		globalStats.fromBytes(globalStatBytes)
+		globalStats.Size += size
+
+		if err:= api.db.Set(api.config.Stats.CollectionName, globalStats.toBytes()); err != nil{
+			log.Errorln(err.Error())
+		}
+
+		namespaceStatsKey := r.Context().Value("statsKey").(string)
+		if err:= api.db.Delete(namespaceStatsKey); err != nil{
+			log.Errorln(err.Error())
+		}
 	}()
 
 	// 204 has no body

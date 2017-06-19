@@ -7,6 +7,8 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
+	"github.com/zero-os/0-stor/store/librairies/reservation"
+
 )
 
 // UpdateObject is the handler for PUT /namespaces/{nsid}/objects/{id}
@@ -64,6 +66,33 @@ func (api NamespacesAPI) UpdateObject(w http.ResponseWriter, r *http.Request) {
 	if err = api.db.Set(key, file.ToBytes()); err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+
+	statsBytes := r.Context().Value("stats").([]byte)
+	stats := Stat{}
+	stats.fromBytes(statsBytes)
+	statsKey := r.Context().Value("statsKey").(string)
+
+	reservationBytes := r.Context().Value("reservation").([]byte)
+	res := reservation.Reservation{}
+	res.FromBytes(reservationBytes)
+	reservationKey := r.Context().Value("reservationKey").(string)
+
+	diff := oldFile.Size() - file.Size()
+	// may be size used, size reserved need to be floats
+	stats.SizeUsed += int64(diff)
+	res.SizeUsed += int64(diff)
+
+	if err:= api.db.Set(statsKey, stats.toBytes()); err != nil{
+		log.Errorln(err.Error())
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	if err:= api.db.Set(reservationKey, res.ToBytes()); err != nil{
+		log.Errorln(err.Error())
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")

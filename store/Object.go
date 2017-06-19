@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"gopkg.in/validator.v2"
+	"math"
 )
 
 const (
@@ -43,6 +44,11 @@ func (f *File) ToBytes() []byte {
 
 	return result
 }
+
+func(f *File) Size() float64{
+	return math.Ceil((float64(len(f.Payload)) / (1024.0*1024.0)))
+}
+
 
 func (f *File) FromBytes(data []byte) error {
 	if len(data) > FileSize+CRCSize {

@@ -54,6 +54,9 @@ func (s *Stat) updateReservation(r reservation.Reservation){
 	s.SizeReserved = s.SizeReserved + r.SizeReserved
 }
 
+func(s *Stat) SizeRemaining() float64{
+	return float64(s.SizeReserved - s.SizeUsed)
+}
 
 func (s *Stat) toBytes() []byte{
 	/*
