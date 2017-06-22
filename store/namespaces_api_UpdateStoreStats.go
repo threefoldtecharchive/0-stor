@@ -24,9 +24,7 @@ func (api NamespacesAPI) UpdateStoreStats(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	key := api.config.Stats.CollectionName
-
-	if err := api.db.Set(key, reqBody.toBytes()); err != nil{
+	if err := reqBody.Save(api.db, api.config); err != nil{
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return

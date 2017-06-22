@@ -11,22 +11,11 @@ import (
 func (api NamespacesAPI) GetStoreStats(w http.ResponseWriter, r *http.Request) {
 	var respBody StoreStat
 
-	key := api.config.Stats.CollectionName
-
-	value, err := api.db.Get(key)
-
-	if err != nil{
+	if err := respBody.Get(api.db, api.config); err != nil{
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-
-	if err = respBody.fromBytes(value); err != nil{
-		log.Errorln(err.Error())
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 

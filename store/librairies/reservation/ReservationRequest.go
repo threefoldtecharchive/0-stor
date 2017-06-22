@@ -6,20 +6,22 @@ import (
 )
 
 type ReservationRequest struct {
-	Id     string `json:"id" validate:"regexp=^[a-zA-Z0-9]+$,nonzero"`
 	Period int64 `json:"period" validate:"min=1,nonzero"`
 	Size   int64 `json:"size" validate:"min=1,nonzero"`
 }
 
-func (s ReservationRequest) Validate(availableFreeSpace int64) error {
+func (s ReservationRequest) Validate() error {
 
 	if err := validator.Validate(s); err != nil {
 		return err
 	}
 
-	if s.Size > availableFreeSpace{
-		return errors.New("Data size exceeds limits")
-	}
+	return nil
+}
 
+func (s ReservationRequest) ValidateFreeSpace(sizeAvailable float64) error{
+	if float64(s.Size) > sizeAvailable{
+		return errors.New("Requested reservation size exceeds allowed limits")
+	}
 	return nil
 }

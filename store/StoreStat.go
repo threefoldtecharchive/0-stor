@@ -2,11 +2,10 @@ package main
 
 import (
 	"gopkg.in/validator.v2"
-	"encoding/binary"
 )
 
 type StoreStat struct {
-	Size int64 `json:"size" validate:"min=1,nonzero"`
+	SizeAvailable float64 `json:"size_available" validate:"min=1,nonzero"`
 }
 
 func (s StoreStat) Validate() error {
@@ -14,13 +13,30 @@ func (s StoreStat) Validate() error {
 	return validator.Validate(s)
 }
 
-func (s *StoreStat) toBytes() []byte{
-	result := make([]byte, 8)
-	binary.LittleEndian.PutUint64(result[0:8], uint64(s.Size))
-	return result
+func (s *StoreStat) ToBytes() []byte{
+	return Float64bytes(s.SizeAvailable)
 }
 
-func (s *StoreStat) fromBytes(data []byte) error{
-	s.Size = int64(binary.LittleEndian.Uint64(data[0:8]))
+func (s *StoreStat) FromBytes(data []byte) error{
+	s.SizeAvailable = Float64frombytes(data[0:8])
+	return nil
+}
+
+func (s StoreStat) Save(db *Badger, config *settings) error{
+	key := config.Stats.Store.Collection
+	return db.Set(key, s.ToBytes())
+}
+
+func (s StoreStat) Exists(db *Badger, config *settings) (bool, error){
+	return db.Exists(config.Stats.Store.Collection)
+}
+
+func (s *StoreStat) Get(db *Badger, config *settings) error{
+	key := config.Stats.Store.Collection
+	v, err :=  db.Get(key)
+	if err != nil{
+		return err
+	}
+	s.FromBytes(v)
 	return nil
 }

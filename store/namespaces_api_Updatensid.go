@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
 
 	log "github.com/Sirupsen/logrus"
@@ -14,18 +13,11 @@ import (
 func (api NamespacesAPI) Updatensid(w http.ResponseWriter, r *http.Request) {
 	var reqBody NamespaceCreate
 
-	value, err := ioutil.ReadAll(r.Body)
-
 	defer r.Body.Close()
 
-	if err != nil {
-		log.Errorln(err.Error())
-		http.Error(w, "Bad request", http.StatusBadRequest)
-		return
-	}
-
 	// decode request
-	if err := json.Unmarshal(value, &reqBody); err != nil {
+	defer r.Body.Close()
+	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
@@ -39,7 +31,7 @@ func (api NamespacesAPI) Updatensid(w http.ResponseWriter, r *http.Request) {
 
 	nsid := mux.Vars(r)["nsid"]
 
-	if err := api.db.Set(nsid, value); err != nil {
+	if err := api.db.Set(nsid, reqBody.ToBytes()); err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return

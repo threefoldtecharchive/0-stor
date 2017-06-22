@@ -2,11 +2,10 @@ package main
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
 
 	log "github.com/Sirupsen/logrus"
-	"fmt"
+
 )
 
 // Createnamespace is the handler for POST /namespaces
@@ -15,18 +14,11 @@ func (api NamespacesAPI) Createnamespace(w http.ResponseWriter, r *http.Request)
 
 	var reqBody NamespaceCreate
 
-	value, err := ioutil.ReadAll(r.Body)
-
 	defer r.Body.Close()
 
-	if err != nil {
-		log.Errorln(err.Error())
-		http.Error(w, "Bad request", http.StatusBadRequest)
-		return
-	}
-
 	// decode request
-	if err := json.Unmarshal(value, &reqBody); err != nil {
+	defer r.Body.Close()
+	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
@@ -38,9 +30,9 @@ func (api NamespacesAPI) Createnamespace(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	key := reqBody.Label
+	nsid := reqBody.Label
 
-	v, err := api.db.Get(key)
+	exists, err := reqBody.Exists(api.db, api.config)
 
 	// Database Error
 	if err != nil {
@@ -50,26 +42,22 @@ func (api NamespacesAPI) Createnamespace(w http.ResponseWriter, r *http.Request)
 	}
 
 	// 409 Conflict if name space already exists
-	if v != nil {
+	if exists {
 		http.Error(w, "Namespace already exists", http.StatusConflict)
 		return
 	}
 
 	// Add new name space
-	if err := api.db.Set(key, value); err != nil {
+	if err := reqBody.Save(api.db, api.config); err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
 	// Add stats
-	// We assume namespaces and object names can't contain (_)
-	statsKey := fmt.Sprintf("%s_%s", key, "stats")
+	stats := NewNamespaceStats(nsid)
 
-	stats := NewStat()
-
-	if err := api.db.Set(statsKey, stats.toBytes()); err != nil{
-		api.db.Delete(key)
+	if err := stats.Save(api.db, api.config); err != nil{
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return

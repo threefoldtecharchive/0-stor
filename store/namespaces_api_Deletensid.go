@@ -49,35 +49,58 @@ func (api NamespacesAPI) Deletensid(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		// claim namespaxe size to global stat & delete reservation
-
-		reservationKey := r.Context().Value("reservationKey").(string)
-		if err := api.db.Delete(reservationKey); err != nil {
+		storeStat := StoreStat{}
+		if err := storeStat.Get(api.db, api.config); err != nil{
 			log.Errorln(err.Error())
-
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
 		}
 
-		statsBytes := r.Context().Value("stats").([]byte)
-		namespaceStats := Stat{}
-		namespaceStats.fromBytes(statsBytes)
-		size := namespaceStats.SizeReserved
+		namespaceStats := r.Context().Value("namespaceStats").(NamespaceStats)
 
-		globalStatBytes, err := api.db.Get(api.config.Stats.CollectionName)
-		if err != nil{
+		storeStat.SizeAvailable += namespaceStats.TotalSizeReserved
+
+		// delete namespacestats
+		if err := namespaceStats.Delete(api.db, api.config); err != nil{
 			log.Errorln(err.Error())
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
 		}
 
-		globalStats := StoreStat{}
-		globalStats.fromBytes(globalStatBytes)
-		globalStats.Size += size
-
-		if err:= api.db.Set(api.config.Stats.CollectionName, globalStats.toBytes()); err != nil{
+		// Save Updated global stats
+		if err := storeStat.Save(api.db, api.config); err != nil{
 			log.Errorln(err.Error())
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
 		}
 
-		namespaceStatsKey := r.Context().Value("statsKey").(string)
-		if err:= api.db.Delete(namespaceStatsKey); err != nil{
+		// Delete namespace itself
+		if err:= api.db.Delete(nsid); err != nil {
 			log.Errorln(err.Error())
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+
+		// Delete reservations
+		prefix = fmt.Sprintf("%s%s", api.config.Reservations.Namespaces.Prefix, nsid)
+		it2 := api.db.store.NewIterator(opt)
+		defer it2.Close()
+
+		for it2.Rewind(); it2.Valid(); it2.Next() {
+			item := it2.Item()
+			key := string(item.Key()[:])
+			if key > "1@"{
+				break
+			}
+
+			if !strings.Contains(key, prefix) {
+				continue
+			}
+
+			if err := api.db.Delete(key); err != nil {
+				log.Errorln(err.Error())
+
+			}
 		}
 	}()
 

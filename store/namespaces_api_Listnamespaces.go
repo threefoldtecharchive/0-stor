@@ -5,9 +5,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-
-	log "github.com/Sirupsen/logrus"
-
 	"github.com/dgraph-io/badger/badger"
 )
 
@@ -77,12 +74,7 @@ func (api NamespacesAPI) Listnamespaces(w http.ResponseWriter, r *http.Request) 
 
 		value := item.Value()
 
-		if err := json.Unmarshal(value, &namespace); err != nil {
-			log.Errorln("Invalid namespace format")
-			log.Errorln(err.Error())
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
+		namespace.FromBytes(value)
 
 		respBody = append(respBody, Namespace{
 			NamespaceCreate: namespace,

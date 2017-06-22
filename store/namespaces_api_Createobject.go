@@ -7,7 +7,6 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
-	"github.com/zero-os/0-stor/store/librairies/reservation"
 )
 
 // Createobject is the handler for POST /namespaces/{nsid}/objects
@@ -16,15 +15,15 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 	var reqBody Object
 
 	nsid := mux.Vars(r)["nsid"]
-	statsBytes := r.Context().Value("stats").([]byte)
-	stats := Stat{}
-	stats.fromBytes(statsBytes)
-	statsKey := r.Context().Value("statsKey").(string)
 
-	reservationBytes := r.Context().Value("reservation").([]byte)
-	res := reservation.Reservation{}
-	res.FromBytes(reservationBytes)
-	reservationKey := r.Context().Value("reservationKey").(string)
+	storeStat := StoreStat{}
+	if err := storeStat.Get(api.db, api.config); err != nil{
+		log.Errorln(err.Error())
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	reservation := r.Context().Value("reservation").(Reservation)
 
 	// decode request
 	defer r.Body.Close()
@@ -75,8 +74,8 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 	// Add or update object
 	if addObject {
 
-		if stats.SizeRemaining() < file.Size(){
-			http.Error(w, "File Size exceeds the remaining free space in namespace", http.StatusForbidden)
+		if reservation.SizeRemaining() < file.Size(){
+			http.Error(w, "File SizeAvailable exceeds the remaining free space in namespace", http.StatusForbidden)
 			return
 		}
 
@@ -86,17 +85,10 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// may be sizeused, sizeresrved need to be floats
-		stats.SizeUsed += int64(file.Size())
-		res.SizeUsed += int64(file.Size())
+		reservation.SizeUsed += file.Size()
 
-		if err:= api.db.Set(statsKey, stats.toBytes()); err != nil{
-			log.Errorln(err.Error())
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
 
-		if err:= api.db.Set(reservationKey, res.ToBytes()); err != nil{
+		if err:= reservation.Save(api.db, api.config); err != nil{
 			log.Errorln(err.Error())
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return

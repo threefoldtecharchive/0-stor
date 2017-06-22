@@ -5,25 +5,22 @@ import (
 	"github.com/gorilla/mux"
 	"context"
 	log "github.com/Sirupsen/logrus"
-	"fmt"
-	"time"
-	"github.com/zero-os/0-stor/store/librairies/reservation"
 )
 
 type NamespaceExistsMiddleware struct {
 	db *Badger
+	config *settings
 }
 
-func NewNamespaceExistsMiddleware(db *Badger) *NamespaceExistsMiddleware {
+func NewNamespaceExistsMiddleware(db *Badger, config *settings) *NamespaceExistsMiddleware {
 	return &NamespaceExistsMiddleware{
 		db: db,
+		config: config,
 	}
 }
 
 func (nm *NamespaceExistsMiddleware) Handler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
-		now:= time.Now()
 
 		nsid := mux.Vars(r)["nsid"]
 
@@ -41,31 +38,10 @@ func (nm *NamespaceExistsMiddleware) Handler(next http.Handler) http.Handler {
 			return
 		}
 
-		statsKey := fmt.Sprintf("%s_%s", nsid, "stats")
+		ns := NamespaceCreate{}
+		ns.FromBytes(v)
 
-		statsBytes, err := nm.db.Get(statsKey)
-
-		if err != nil{
-			log.Errorln(err.Error())
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-
-		stats := Stat{}
-
-		if err := stats.fromBytes(statsBytes); err != nil{
-			log.Errorln(err.Error())
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-
-		if now.After(time.Time(stats.ExpireAt)) {
-			http.Error(w, "Reservation expired", http.StatusForbidden)
-		}
-
-		resKey := stats.Id
-
-		resBytes, err := nm.db.Get(resKey)
+		stats, err := ns.GetStatsForNamespace(nm.db, nm.config)
 
 		if err != nil{
 			log.Errorln(err.Error())
@@ -73,19 +49,8 @@ func (nm *NamespaceExistsMiddleware) Handler(next http.Handler) http.Handler {
 			return
 		}
 
-		res := reservation.Reservation{}
-
-		if err := res.FromBytes(resBytes); err != nil{
-			log.Errorln(err.Error())
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-
-		ctx := context.WithValue(r.Context(), "namespace", v)
-		ctx = context.WithValue(ctx, "stats", stats)
-		ctx = context.WithValue(ctx, "reservation", res)
-		ctx = context.WithValue(ctx, "statsKey", statsKey)
-		ctx = context.WithValue(ctx, "reservationKey", resKey)
+		ctx := context.WithValue(r.Context(), "namespace", ns)
+		ctx = context.WithValue(ctx, "namespaceStats", stats)
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

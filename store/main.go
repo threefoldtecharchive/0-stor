@@ -36,8 +36,23 @@ type settings struct {
 	}
 
 	Stats struct{
-		CollectionName string `json:"collection_name"`
-	}
+		Store struct {
+			Collection string `json:"collection"`
+		}`json:"store"`
+
+		Namespaces struct {
+			Prefix string `json:"prefix"`
+		}`json:"namespaces"`
+	}`json:"stats"`
+
+	Reservations struct{
+		Namespaces struct {
+			Prefix string `json:"prefix"`
+		}`json:"namespaces"`
+	}`json:"reservations"`
+
+
+
 }
 
 func loadSettings(path string) settings {
@@ -118,11 +133,26 @@ func main() {
 		},
 
 		cli.StringFlag{
-			Name: "stats-collection, s",
-			Usage: "Set global store stats colection name",
-			Value: "@stats",
-			Destination: &settings.Stats.CollectionName,
+			Name: "store-stats-collection, s",
+			Usage: "Set global store stats collection name",
+			Value: "0@stats",
+			Destination: &settings.Stats.Store.Collection,
 		},
+
+		cli.StringFlag{
+			Name: "namespace-stats-prefix, ns",
+			Usage: "Set namespaces stats collections prefixes",
+			Value: "0@stats_",
+			Destination: &settings.Stats.Namespaces.Prefix,
+		},
+
+		cli.StringFlag{
+			Name: "namespace-reservations-prefix, nr",
+			Usage: "Set namespaces reservations prefixes",
+			Value: "1@res_",
+			Destination: &settings.Reservations.Namespaces.Prefix,
+		},
+
 	}
 
 	app.Before = func(c *cli.Context) error {
@@ -137,10 +167,20 @@ func main() {
 		// input validator
 		validator.SetValidationFunc("multipleOf", goraml.MultipleOf)
 
-		// global stats name must start with @
-		if strings.Index(settings.Stats.CollectionName, "@") != 0{
-			return errors.New("Global stats collection name must starts with @")
+		// global stats name must start with 0@
+		if strings.Index(settings.Stats.Store.Collection, "0@stats") != 0{
+			return errors.New("Global stats collection name must starts with 0@stats")
 		}
+
+		// namespaces stats must startwit 0@stats_
+		if strings.Index(settings.Stats.Namespaces.Prefix, "0@stats_") != 0{
+			return errors.New("Namespaces stats collection names must starts with 0@stats_")
+		}
+
+		if strings.Index(settings.Reservations.Namespaces.Prefix, "1@res_") != 0{
+			return errors.New("Namespaces reservations collection names must starts with 1@res_")
+		}
+
 
 		return nil
 	}
@@ -163,7 +203,23 @@ func main() {
 			log.Fatal(err.Error())
 		}
 
-		log.Printf("Global Stats collection: %v", settings.Stats.CollectionName)
+		st := StoreStat{}
+		exists, err := st.Exists(db, &settings)
+		if err != nil{
+			log.Errorln("Database Error")
+			log.Errorln(err.Error())
+			return
+		}
+
+		state := "[USING CURRENT]"
+
+		if !exists{
+			s := StoreStat{}
+			s.Save(db, &settings)
+			state = "[CREATED]"
+		}
+
+		log.Printf("Global Stats collection: %v\t%s", settings.Stats.Store.Collection, state)
 
 		NamespacesInterfaceRoutes(r, &NamespacesAPI{db: db, config: &settings})
 

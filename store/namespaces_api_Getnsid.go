@@ -10,10 +10,7 @@ import (
 func (api NamespacesAPI) Getnsid(w http.ResponseWriter, r *http.Request) {
 	var namespace NamespaceCreate
 
-	namespaceObj := r.Context().Value("namespace").([]byte)
-
-	// No need to handle errors, we assume data is saved correctly
-	json.Unmarshal(namespaceObj, &namespace)
+	namespace = r.Context().Value("namespace").(NamespaceCreate)
 
 	respBody := &Namespace{
 		NamespaceCreate: namespace,

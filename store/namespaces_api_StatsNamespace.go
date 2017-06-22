@@ -34,9 +34,9 @@ func (api NamespacesAPI) StatsNamespace(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	stat := Stat{}
+	stat := NamespaceStats{}
 
-	if err := stat.fromBytes(value); err != nil{
+	if err := stat.FromBytes(value); err != nil{
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return

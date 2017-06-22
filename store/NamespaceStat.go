@@ -5,8 +5,8 @@ import (
 	"encoding/binary"
 	"time"
 	"math"
-	"github.com/zero-os/0-stor/store/librairies/reservation"
-	"github.com/zero-os/0-stor/store/goraml"
+	"fmt"
+	"github.com/pkg/errors"
 )
 
 type NamespaceStat struct {
@@ -15,152 +15,90 @@ type NamespaceStat struct {
 }
 
 func (s NamespaceStat) Validate() error {
-
 	return validator.Validate(s)
 }
 
-type Stat struct{
+
+type NamespaceStats struct{
 	NamespaceStat
-	reservation.Reservation
-	NrRequests int64
+	Namespace         string
+	NrRequests        int64
+	TotalSizeReserved float64
+	Created           time.Time
 }
 
-func NewStat() *Stat{
-	/*
-		Newly created namespaces has 0 MBs size and expired - so it's not accessible
-	 */
-	now:= time.Now()
-
-	return &Stat{
-		NamespaceStat: NamespaceStat{
+func NewNamespaceStats(namespace string) *NamespaceStats{
+	return &NamespaceStats{
+		Namespace: namespace,
+		Created: time.Now(),
+		NrRequests: 0,
+		NamespaceStat : NamespaceStat{
 			NrObjects: 0,
-			RequestPerHour: 0,
 		},
-		Reservation: reservation.Reservation{
-			Created: goraml.DateTime(now),
-			Updated: goraml.DateTime(now),
-			ExpireAt: goraml.DateTime(now),
-			SizeReserved: 0,
-			SizeUsed: 0,
-			AdminId: "",
-		},
-
 	}
 }
 
-func (s *Stat) updateReservation(r reservation.Reservation){
-	s.Updated = r.Updated
-	s.ExpireAt = r.ExpireAt
-	s.SizeReserved = s.SizeReserved + r.SizeReserved
-}
-
-func(s *Stat) SizeRemaining() float64{
-	return float64(s.SizeReserved - s.SizeUsed)
-}
-
-func (s *Stat) toBytes() []byte{
+func (s *NamespaceStats) ToBytes() []byte{
 	/*
-	-----------------------------------------------------------------
-	NrObjects|NrRwquests|SizeReserved| SizeUsed |Size of CreationDate
-	   8     |   8      |  8         |   8      |  2
-	-----------------------------------------------------------------
-
-	--------------------------------------------------------------
-	Size of UpdateDate     |Size of ExpirationDate |  CreationDate
-	    2                  |         2             |
-	--------------------------------------------------------------
-
-	----------------------------------------------
-	UpdateDate | ExpirationDate | AdminId
-	----------------------------------------------
+	------------------------------------
+	NrObjects|NrRwquests|SizeUSed|Created
+	   8     |   8      | 8bytes
+	-------------------------------------
 
 	*/
-	adminId := s.Reservation.AdminId
 
-	created := []byte(time.Time(s.Reservation.Created).Format(time.RFC3339))
-	updated := []byte(time.Time(s.Reservation.Updated).Format(time.RFC3339))
-	expiration := []byte(time.Time(s.Reservation.ExpireAt).Format(time.RFC3339))
-
-	cSize := int16(len(created))
-	uSize := int16(len(updated))
-	eSize := int16(len(expiration))
-
-	result := make([]byte, 38 + cSize + uSize + eSize)
-
+	created := []byte(time.Time(s.Created).Format(time.RFC3339))
+	result := make([]byte, 24+len(created))
 	binary.LittleEndian.PutUint64(result[0:8], uint64(s.NrObjects))
 	binary.LittleEndian.PutUint64(result[8:16], uint64(s.NrRequests))
-	binary.LittleEndian.PutUint64(result[16:24], uint64(s.Reservation.SizeReserved))
-	binary.LittleEndian.PutUint64(result[24:32], uint64(s.Reservation.SizeUsed))
-	binary.LittleEndian.PutUint16(result[32:34], uint16(cSize))
-	binary.LittleEndian.PutUint16(result[34:36], uint16(uSize))
-	binary.LittleEndian.PutUint16(result[36:38], uint16(eSize))
 
+	copy(result[16:24], Float64bytes(s.TotalSizeReserved))
 
-	//Creation Date size and date
-	start := 38
-	end := 38 + cSize
-	copy(result[start:end], created)
-
-	//update Date
-	start2 := end
-	end2 := end + uSize
-	copy(result[start2:end2], updated)
-
-	//ExpirationDate
-	start3 := end2
-	end3 := start3 + eSize
-	copy(result[start3:end3], expiration)
-
-	//AdminId (variable string too)
-	copy(result[end3:], []byte(adminId))
-
+	copy(result[24:], created)
 	return result
 }
 
-func (s *Stat) fromBytes(data []byte) error{
+func (s *NamespaceStats) FromBytes(data []byte) error{
 	s.NrObjects = int64(binary.LittleEndian.Uint64(data[0:8]))
 	s.NrRequests = int64(binary.LittleEndian.Uint64(data[8:16]))
-	s.Reservation.SizeReserved = int64(binary.LittleEndian.Uint64(data[16:24]))
-	s.Reservation.SizeUsed = int64(binary.LittleEndian.Uint64(data[24:32]))
-
-	cSize := int16(binary.LittleEndian.Uint16(data[32:34]))
-	uSize := int16(binary.LittleEndian.Uint16(data[34:36]))
-	eSsize := int16(binary.LittleEndian.Uint16(data[36:38]))
-
-
-	start := 38
-	end := 38 + cSize
-
-	cTime, err := time.Parse(time.RFC3339, string(data[start:end]))
+	s.TotalSizeReserved = Float64frombytes(data[16:24])
+	cTime, err := time.Parse(time.RFC3339, string(data[24:]))
 
 	if err != nil{
 		return err
 	}
 
-	start2 := end
-	end2 := end + uSize
-
-	uTime, err := time.Parse(time.RFC3339, string(data[start2:end2]))
-
-	if err != nil{
-		return err
-	}
-
-	start3 := end2
-	end3 := end2 + eSsize
-
-	eTime, err := time.Parse(time.RFC3339, string(data[start3:end3]))
-
-	if err != nil{
-		return err
-	}
-
-	s.Reservation.Created = goraml.DateTime(cTime)
-	s.Reservation.Updated = goraml.DateTime(uTime)
-	s.Reservation.ExpireAt = goraml.DateTime(eTime)
-
+	s.Created = cTime
 	s.RequestPerHour = int64(float64(s.NrRequests) / math.Ceil(time.Since(cTime).Hours()))
-	s.Reservation.AdminId = string(data[end3:])
-
 	return nil
+}
+
+func (s NamespaceStats) GetKeyForNameSpace(config *settings) string{
+	return fmt.Sprintf("%s%s", config.Stats.Namespaces.Prefix, s.Namespace)
+}
+
+func (s NamespaceStats) Save(db *Badger, config *settings) error{
+	key := s.GetKeyForNameSpace(config)
+	return db.Set(key, s.ToBytes())
+}
+
+func (s NamespaceStats) Delete(db *Badger, config *settings) error{
+	key := s.GetKeyForNameSpace(config)
+	return db.Delete(key)
+}
+
+func (s *NamespaceStats) Get(db *Badger, config *settings) (*NamespaceStats, error){
+	key := s.GetKeyForNameSpace(config)
+	v, err := db.Get(key)
+
+	if err != nil{
+		return nil, err
+	}
+
+	if v == nil{
+		return nil, errors.New("Namespace stats not found")
+	}
+
+	s.FromBytes(v)
+	return s, nil
 }

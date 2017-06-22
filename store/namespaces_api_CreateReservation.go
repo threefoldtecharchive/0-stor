@@ -7,9 +7,6 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
-	"fmt"
-	"time"
-	"github.com/zero-os/0-stor/store/goraml"
 )
 
 // CreateReservation is the handler for POST /namespaces/{nsid}/reservation
@@ -19,19 +16,9 @@ func (api NamespacesAPI) CreateReservation(w http.ResponseWriter, r *http.Reques
 	var respBody NamespacesNsidReservationPostRespBody
 
 	nsid := mux.Vars(r)["nsid"]
-
-	exists, err := api.db.Exists(nsid)
-
-	if err != nil{
-		log.Errorln(err.Error())
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
-	if !exists{
-		http.Error(w, "Namespace doesn't exist", http.StatusNotFound)
-		return
-	}
+	user := r.Context().Value("user").(string)
+	namespace := r.Context().Value("namespace").(NamespaceCreate)
+	namespaceStats := r.Context().Value("namespaceStats").(NamespaceStats)
 
 	// decode request
 	defer r.Body.Close()
@@ -41,47 +28,29 @@ func (api NamespacesAPI) CreateReservation(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// Check reservation ID does not exist
-	resKey := fmt.Sprintf("%s$%s", nsid, reqBody.Id)
-
-	exists, err = api.db.Exists(resKey)
-
-	if err != nil{
-		log.Errorln(err.Error())
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
-	// Conflict, reservation ID exists
-	if exists {
-		http.Error(w, "Reservation ID already exists", http.StatusConflict)
-		return
-	}
-
-	// Get available space on system
-	storeStatsKey := api.config.Stats.CollectionName
-
-	storeStatsBytes, err := api.db.Get(storeStatsKey)
-	if err != nil{
-		log.Errorln(err.Error())
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
 	storeStat := StoreStat{}
-	storeStat.fromBytes(storeStatsBytes)
-
-
-	if err := reqBody.Validate(storeStat.Size); err != nil{
+	if err := storeStat.Get(api.db, api.config); err != nil{
 		log.Errorln(err.Error())
-		http.Error(w, "No enough Disk space", http.StatusForbidden)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	// Get namespace stats
-	namespaceStats := NewStat()
-	namespaceStatsKey := fmt.Sprintf("%s_%s", nsid, "stats")
-	namespaceStatsBytes, err := api.db.Get(namespaceStatsKey)
+	// Validate reservation is applicable
+	if err := reqBody.Validate(); err != nil{
+		log.Errorln(err.Error())
+		http.Error(w, "Validation Error", http.StatusForbidden)
+		return
+	}
+
+	// Validate available disk space
+
+	if err:= reqBody.ValidateFreeSpace(storeStat.SizeAvailable); err != nil{
+		log.Errorln(err.Error())
+		http.Error(w, "Not Enough Disk Space", http.StatusForbidden)
+		return
+	}
+
+	reservation, err := NewReservation(nsid, user, float64(reqBody.Size), int(reqBody.Period))
 
 	if err != nil{
 		log.Errorln(err.Error())
@@ -89,55 +58,69 @@ func (api NamespacesAPI) CreateReservation(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// Create Reservation object
-	creationDate := time.Now()
 
-	expirationDate := creationDate.AddDate(0, 0, int(reqBody.Period))
-
-	namespaceStats.fromBytes(namespaceStatsBytes)
-
-	reservationKey := fmt.Sprintf("%s$%s", nsid, reqBody.Id)
-
-	res := reservation.Reservation{
-		AdminId: "", //@TODO: AdminId: r.Context().Value("user").(string)
-		SizeReserved: reqBody.Size,
-		SizeUsed: 0,
-		ExpireAt: goraml.DateTime(expirationDate),
-		Created: goraml.DateTime(creationDate),
-		Updated: goraml.DateTime(creationDate),
-		Id: reqBody.Id,
+	resToken, err := reservation.GenerateTokenForReservation(api.db, nsid)
+	if err != nil{
+		log.Errorln(err.Error())
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
 	}
 
-	// update namespace stats
-	namespaceStats.updateReservation(res)
+	adminACL := ACLEntry{
+		Admin: true,
+		Read: true,
+		Write: true,
+		Delete: true,
+	}
+
+	dataToken, err := reservation.GenerateDataAccessTokenForUser(user, nsid, adminACL)
+
+	if err != nil{
+		log.Errorln(err.Error())
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+
 	// global stat decrease amount
-	storeStat.Size -= res.SizeReserved
+	storeStat.SizeAvailable -= reservation.SizeReserved
+
+	// Ad reserved size to namespace stats
+	namespaceStats.TotalSizeReserved += reservation.SizeReserved
 
 	// Save Updated global stats
-	if err := api.db.Set(storeStatsKey, storeStat.toBytes()); err != nil{{
+	if err := storeStat.Save(api.db, api.config); err != nil{
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
-	}}
+	}
 
-	// Save Updated namespace stats
-	if err := api.db.Set(namespaceStatsKey, namespaceStats.toBytes()); err != nil{
+	// Save namespacestats
+	if err := namespaceStats.Save(api.db, api.config); err != nil{
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
 	// Save reservation
-	if err := api.db.Set(reservationKey, res.ToBytes()); err != nil{
+	if err := reservation.Save(api.db, api.config); err != nil{
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
+	// Update namespace with Admin ACL
+	acl := ACL{
+		Id: user,
+		Acl: adminACL,
+	}
+
+	namespace.UpdateACL(api.db, api.config, acl)
+
 	respBody = NamespacesNsidReservationPostRespBody{
-		Reservation: res,
-		DataAccessToken: "",
-		ReservationToken: "",
+		Reservation: reservation.Reservation,
+		DataAccessToken: dataToken,
+		ReservationToken: resToken,
 	}
 
 	json.NewEncoder(w).Encode(&respBody)

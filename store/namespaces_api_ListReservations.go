@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"strconv"
 	"github.com/dgraph-io/badger/badger"
-	"github.com/zero-os/0-stor/store/librairies/reservation"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -16,7 +15,7 @@ import (
 // ListReservations is the handler for GET /namespaces/{nsid}/reservation
 // Return a list of all the existing reservation for the give resource
 func (api NamespacesAPI) ListReservations(w http.ResponseWriter, r *http.Request) {
-	var respBody []reservation.Reservation
+	var respBody []Reservation
 	// Pagination
 	pageParam := r.FormValue("page")
 	per_pageParam := r.FormValue("per_page")
@@ -45,7 +44,7 @@ func (api NamespacesAPI) ListReservations(w http.ResponseWriter, r *http.Request
 
 	nsid := mux.Vars(r)["nsid"]
 
-	prefix := fmt.Sprintf("%s$", nsid)
+	prefix := fmt.Sprintf("%s%s", api.config.Reservations.Namespaces.Prefix, nsid)
 
 	opt := badger.DefaultIteratorOptions
 	opt.PrefetchSize = api.config.Iterator.PreFetchSize
@@ -76,7 +75,7 @@ func (api NamespacesAPI) ListReservations(w http.ResponseWriter, r *http.Request
 
 		value := item.Value()
 
-		var res = reservation.Reservation{}
+		var res = Reservation{}
 
 		if err := res.FromBytes(value); err != nil{
 			log.Errorln(err.Error())
@@ -93,7 +92,7 @@ func (api NamespacesAPI) ListReservations(w http.ResponseWriter, r *http.Request
 
 	// return empty list if no results
 	if len(respBody) == 0 {
-		respBody = []reservation.Reservation{}
+		respBody = []Reservation{}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
