@@ -14,7 +14,7 @@ func (api NamespacesAPI) nsidreservationidGet(w http.ResponseWriter, r *http.Req
 	var respBody Reservation
 
 	nsid := mux.Vars(r)["nsid"]
-	id := mux.Vars(r)["nsid"]
+	id := mux.Vars(r)["id"]
 
 	key := fmt.Sprintf("%s%s_%s", api.config.Reservations.Namespaces.Prefix, nsid, id)
 

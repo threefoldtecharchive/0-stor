@@ -65,9 +65,11 @@ func (api NamespacesAPI) Createnamespace(w http.ResponseWriter, r *http.Request)
 
 	respBody:= &Namespace{
 		NamespaceCreate: reqBody,
+		SpaceAvailable: 0,
+		SpaceUsed: 0,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(&respBody)
 }

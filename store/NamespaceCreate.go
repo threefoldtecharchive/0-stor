@@ -3,7 +3,6 @@ package main
 import (
 	"gopkg.in/validator.v2"
 	"encoding/binary"
-	"fmt"
 )
 
 type NamespaceCreate struct {
@@ -79,26 +78,6 @@ func (s *NamespaceCreate) FromBytes(data []byte){
 	}
 }
 
-func (s NamespaceCreate) GetNamespaceStatsKey(config *settings) string{
-	return fmt.Sprintf("%s%s", config.Stats.Namespaces.Prefix ,s.Label)
-}
-
-func (s NamespaceCreate) GetStatsForNamespace(db *Badger, config *settings) (*NamespaceStats, error){
-	statsBytes, err := db.Get(s.GetNamespaceStatsKey(config))
-
-	if err != nil{
-		return nil, err
-	}
-
-	stats := NamespaceStats{}
-
-	if err := stats.FromBytes(statsBytes); err != nil{
-		return nil, err
-	}
-
-	return &stats, nil
-}
-
 func (s NamespaceCreate) UpdateACL(db *Badger, config *settings, acl ACL) error{
 	aclIndex := -1 // -1 means ACL for that user does not exist
 
@@ -128,3 +107,32 @@ func (s NamespaceCreate) Exists(db *Badger, config *settings) (bool, error){
 func (s NamespaceCreate) Save(db *Badger, config *settings) error{
 	return db.Set(s.Label, s.ToBytes())
 }
+
+func (s *NamespaceCreate) Get(db *Badger, config *settings) (*NamespaceCreate, error){
+	v, err := db.Get(s.Label)
+	if err != nil{
+		return nil, err
+	}
+
+	if len(v) == 0{
+		return nil, nil
+	}
+	s.FromBytes(v)
+	return s, nil
+}
+
+func (s *NamespaceCreate) GetStats(db *Badger, config *settings) (*NamespaceStats, error){
+	stats := NamespaceStats{
+		Namespace:s.Label,
+	}
+	return stats.Get(db, config)
+}
+
+func (s *NamespaceCreate) GetKeyForReservations(config *settings) string{
+	r := Reservation{
+		Namespace: s.Label,
+	}
+	return r.GetKey(config)
+}
+
+

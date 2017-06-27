@@ -4,21 +4,29 @@ import (
 	"gopkg.in/validator.v2"
 )
 
-type StoreStat struct {
+type StoreStatRequest struct{
 	SizeAvailable float64 `json:"size_available" validate:"min=1,nonzero"`
 }
 
-func (s StoreStat) Validate() error {
+type StoreStat struct {
+	StoreStatRequest
+	SizeUsed float64 `json:"size_used" validate:"min=1,nonzero"`
+}
 
+func (s StoreStatRequest) Validate() error {
 	return validator.Validate(s)
 }
 
 func (s *StoreStat) ToBytes() []byte{
-	return Float64bytes(s.SizeAvailable)
+	bytes := make([]byte, 16)
+	copy(bytes[0:8], Float64bytes(s.SizeAvailable))
+	copy(bytes[8:16], Float64bytes(s.SizeUsed))
+	return bytes
 }
 
 func (s *StoreStat) FromBytes(data []byte) error{
 	s.SizeAvailable = Float64frombytes(data[0:8])
+	s.SizeUsed = Float64frombytes(data[8:16])
 	return nil
 }
 

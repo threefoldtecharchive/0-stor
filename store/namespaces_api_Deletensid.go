@@ -56,9 +56,9 @@ func (api NamespacesAPI) Deletensid(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		namespaceStats := r.Context().Value("namespaceStats").(NamespaceStats)
-
+		namespaceStats := r.Context().Value("namespaceStats").(*NamespaceStats)
 		storeStat.SizeAvailable += namespaceStats.TotalSizeReserved
+		storeStat.SizeUsed -= namespaceStats.TotalSizeReserved
 
 		// delete namespacestats
 		if err := namespaceStats.Delete(api.db, api.config); err != nil{
@@ -69,31 +69,26 @@ func (api NamespacesAPI) Deletensid(w http.ResponseWriter, r *http.Request) {
 
 		// Save Updated global stats
 		if err := storeStat.Save(api.db, api.config); err != nil{
-			log.Errorln(err.Error())
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-
-		// Delete namespace itself
-		if err:= api.db.Delete(nsid); err != nil {
+			log.Println("save")
 			log.Errorln(err.Error())
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
 
 		// Delete reservations
-		prefix = fmt.Sprintf("%s%s", api.config.Reservations.Namespaces.Prefix, nsid)
+		namespace := r.Context().Value("namespace").(NamespaceCreate)
+		prefix = namespace.GetKeyForReservations(api.config)
 		it2 := api.db.store.NewIterator(opt)
 		defer it2.Close()
 
 		for it2.Rewind(); it2.Valid(); it2.Next() {
 			item := it2.Item()
 			key := string(item.Key()[:])
-			if key > "1@"{
-				break
-			}
 
 			if !strings.Contains(key, prefix) {
+				if key > "1@"{
+					break
+				}
 				continue
 			}
 

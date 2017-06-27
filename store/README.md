@@ -35,9 +35,9 @@ Internal Objects Formats
 **StoreStat**
 - Holds The availableSize of the whole store
 
-| AvailableSize|
-|--------------|
-| 8 bytes      |
+| SizeAvailable|SizeUsed |
+|--------------|---------|
+| 8 bytes      | 8 bytes |
 
 **NamespaceStats**
 
@@ -94,9 +94,16 @@ Naming conventions
 **Namespaces Stats**
 - Fixed prefix :: ```0@stats_{namespace_id}```
 
+
 **Namespace Reservations**
 - Fixed prefix ``` 1@res_{namespace_id}_{reservation_id}```
 
 **Namespaces**
 - Alphanumeric only
+
+**Objects**
+- Prefix :: {namespace_id}:{Object_id}
+
+
+
 

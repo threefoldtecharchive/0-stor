@@ -141,7 +141,7 @@ func (s Reservation) ToBytes() []byte {
 	copy(result[start4:end4], []byte(id))
 
 	// Admin ID
-	start5 := end3
+	start5 := end4
 	end5 := start5 + aSize
 	copy(result[start5:end5], []byte(adminId))
 	return result
@@ -280,4 +280,38 @@ func (s Reservation) GenerateDataAccessTokenForUser(user string, namespaceID str
 	}
 
 	return token, nil
+}
+
+func (s *Reservation) ValidateReservationToken(token, namespaceID string) (string, error){
+	bytes := []byte(token)
+
+	if len(bytes) < 63{
+		return "", errors.New("Reservation token is invalid")
+	}
+
+	namespaceSize := int16(binary.LittleEndian.Uint16(bytes[59:61]))
+	reseIdSize := int16(binary.LittleEndian.Uint16(bytes[61:63]))
+
+	if len(bytes) < 63 + int(namespaceSize) + int(reseIdSize){
+		return "", errors.New("Reservation token is invalid")
+	}
+
+	now := time.Now()
+	expiration := time.Unix(int64(binary.LittleEndian.Uint64(bytes[51:59])), 0)
+
+	if now.After(expiration){
+		return "", errors.New("Reservation token expired")
+	}
+
+	start := 63
+	end := 63 + namespaceSize
+	namespace := string(bytes[start:end])
+
+	if namespace != namespaceID{
+		return "", errors.New("Reservation token is invalid")
+	}
+
+	reservation := string(bytes[end:end+reseIdSize])
+
+	return reservation, nil
 }

@@ -12,6 +12,7 @@ import (
 func (api NamespacesAPI) nsidaclPost(w http.ResponseWriter, r *http.Request) {
 	var reqBody ACL
 	namespace :=r.Context().Value("namespace").(NamespaceCreate)
+	reservation :=r.Context().Value("reservation").(*Reservation)
 
 	// decode request
 	defer r.Body.Close()
@@ -29,8 +30,16 @@ func (api NamespacesAPI) nsidaclPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	dataToken, err := reservation.GenerateDataAccessTokenForUser(reqBody.Id, namespace.Label, reqBody.Acl)
+
+	if err != nil{
+		log.Errorln(err.Error())
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	//@TODO: return proper Access token
-	json.NewEncoder(w).Encode("Access-Token")
+
+	json.NewEncoder(w).Encode(dataToken)
 }

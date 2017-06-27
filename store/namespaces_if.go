@@ -83,65 +83,76 @@ func NamespacesInterfaceRoutes(r *mux.Router, i NamespacesInterface) {
 	r.Handle("/namespaces/{nsid}/acl",
 		alice.New(
 			NewNamespaceExistsMiddleware(i.DB(), i.Config()).Handler,
+			NewReservationExistsMiddleware(i.DB(), i.Config()).Handler,
 			NewNamespaceStatMiddleware(i.DB(), i.Config()).Handler).
 		Then(http.HandlerFunc(i.nsidaclPost))).Methods("POST")
 
 	r.Handle("/namespaces/{nsid}/objects/{id}",
 		alice.New(
 			NewNamespaceExistsMiddleware(i.DB(), i.Config()).Handler,
+			NewReservationExistsMiddleware(i.DB(), i.Config()).Handler,
 			NewNamespaceStatMiddleware(i.DB(), i.Config()).Handler).
 		Then(http.HandlerFunc(i.DeleteObject))).Methods("DELETE")
 
 	r.Handle("/namespaces/{nsid}/objects/{id}",
 		alice.New(
 			NewNamespaceExistsMiddleware(i.DB(), i.Config()).Handler,
+			NewReservationExistsMiddleware(i.DB(), i.Config()).Handler,
 			NewNamespaceStatMiddleware(i.DB(), i.Config()).Handler).
 		Then(http.HandlerFunc(i.HeadObject))).Methods("HEAD")
 
 	r.Handle("/namespaces/{nsid}/objects/{id}",
 		alice.New(
 			NewNamespaceExistsMiddleware(i.DB(), i.Config()).Handler,
+			NewReservationExistsMiddleware(i.DB(), i.Config()).Handler,
 			NewNamespaceStatMiddleware(i.DB(), i.Config()).Handler).
 		Then(http.HandlerFunc(i.GetObject))).Methods("GET")
 
 	r.Handle("/namespaces/{nsid}/objects/{id}",
 		alice.New(
 			NewNamespaceExistsMiddleware(i.DB(), i.Config()).Handler,
+			NewReservationExistsMiddleware(i.DB(), i.Config()).Handler,
 			NewNamespaceStatMiddleware(i.DB(), i.Config()).Handler).
 		Then(http.HandlerFunc(i.UpdateObject))).Methods("PUT")
 
 	r.Handle("/namespaces/{nsid}/objects",
 		alice.New(
 			NewNamespaceExistsMiddleware(i.DB(), i.Config()).Handler,
+			NewReservationExistsMiddleware(i.DB(), i.Config()).Handler,
 			NewNamespaceStatMiddleware(i.DB(), i.Config()).Handler).
 		Then(http.HandlerFunc(i.Listobjects))).Methods("GET")
 
 	r.Handle("/namespaces/{nsid}/objects",
 		alice.New(
 			NewNamespaceExistsMiddleware(i.DB(), i.Config()).Handler,
+			NewReservationExistsMiddleware(i.DB(), i.Config()).Handler,
 			NewNamespaceStatMiddleware(i.DB(), i.Config()).Handler).
 		Then(http.HandlerFunc(i.Createobject))).Methods("POST")
 
 	r.Handle("/namespaces/{nsid}/reservation/{id}",
 		alice.New(
+			NewOauth2itsyouonlineMiddleware([]string{"user:name"}).Handler,
 			NewNamespaceExistsMiddleware(i.DB(), i.Config()).Handler,
 			NewNamespaceStatMiddleware(i.DB(), i.Config()).Handler).
 		Then(http.HandlerFunc(i.nsidreservationidGet))).Methods("GET")
 
 	r.Handle("/namespaces/{nsid}/reservation/{id}",
 		alice.New(
+			NewOauth2itsyouonlineMiddleware([]string{"user:name"}).Handler,
 			NewNamespaceExistsMiddleware(i.DB(), i.Config()).Handler,
 			NewNamespaceStatMiddleware(i.DB(), i.Config()).Handler).
 		Then(http.HandlerFunc(i.UpdateReservation))).Methods("PUT")
 
 	r.Handle("/namespaces/{nsid}/reservation",
 		alice.New(
+			NewOauth2itsyouonlineMiddleware([]string{"user:name"}).Handler,
 			NewNamespaceExistsMiddleware(i.DB(), i.Config()).Handler,
 			NewNamespaceStatMiddleware(i.DB(), i.Config()).Handler).
 			Then(http.HandlerFunc(i.ListReservations))).Methods("GET")
 
 	r.Handle("/namespaces/{nsid}/reservation",
 		alice.New(
+			NewOauth2itsyouonlineMiddleware([]string{"user:name"}).Handler,
 			NewNamespaceExistsMiddleware(i.DB(), i.Config()).Handler,
 			NewNamespaceStatMiddleware(i.DB(), i.Config()).Handler).
 		Then(http.HandlerFunc(i.CreateReservation))).Methods("POST")

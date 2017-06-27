@@ -23,8 +23,11 @@ func (nm *NamespaceExistsMiddleware) Handler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		nsid := mux.Vars(r)["nsid"]
+		ns := NamespaceCreate{
+			Label: nsid,
+		}
 
-		v, err :=  nm.db.Get(nsid)
+		v, err :=  ns.Get(nm.db, nm.config)
 
 		if err != nil{
 			log.Errorln(err.Error())
@@ -38,10 +41,8 @@ func (nm *NamespaceExistsMiddleware) Handler(next http.Handler) http.Handler {
 			return
 		}
 
-		ns := NamespaceCreate{}
-		ns.FromBytes(v)
-
-		stats, err := ns.GetStatsForNamespace(nm.db, nm.config)
+		// Database Error
+		stats, err := ns.GetStats(nm.db, nm.config)
 
 		if err != nil{
 			log.Errorln(err.Error())

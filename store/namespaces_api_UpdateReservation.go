@@ -17,7 +17,7 @@ func (api NamespacesAPI) UpdateReservation(w http.ResponseWriter, r *http.Reques
 	var reqBody reservation.ReservationRequest
 	var respBody NamespacesNsidReservationPostRespBody
 	user := r.Context().Value("user").(string)
-	namespaceStats := r.Context().Value("namespaceStats").(NamespaceStats)
+	namespaceStats := r.Context().Value("namespaceStats").(*NamespaceStats)
 
 	nsid := mux.Vars(r)["nsid"]
 	rid := mux.Vars(r)["id"]

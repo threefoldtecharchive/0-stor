@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"net/http"
 	log "github.com/Sirupsen/logrus"
+	"fmt"
 )
 
 // statsPost is the handler for POST /namespaces/stats
 // Update Global Store statistics and available space
 func (api NamespacesAPI) UpdateStoreStats(w http.ResponseWriter, r *http.Request) {
-	var reqBody StoreStat
+	var reqBody StoreStatRequest
 
 	// decode request
 	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
@@ -24,7 +25,22 @@ func (api NamespacesAPI) UpdateStoreStats(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if err := reqBody.Save(api.db, api.config); err != nil{
+	storeStat := StoreStat{}
+	if err := storeStat.Get(api.db, api.config); err != nil{
+		log.Errorln(err.Error())
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	if reqBody.SizeAvailable < storeStat.SizeUsed{
+		err := fmt.Sprintf("Store stats available size must be greater than used size (%v)",  storeStat.SizeUsed)
+		http.Error(w, err, http.StatusForbidden)
+		return
+	}
+
+	storeStat.SizeAvailable = reqBody.SizeAvailable
+
+	if err := storeStat.Save(api.db, api.config); err != nil{
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return

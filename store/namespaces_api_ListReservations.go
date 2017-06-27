@@ -10,12 +10,13 @@ import (
 	"github.com/dgraph-io/badger/badger"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/zero-os/0-stor/store/librairies/reservation"
 )
 
 // ListReservations is the handler for GET /namespaces/{nsid}/reservation
 // Return a list of all the existing reservation for the give resource
 func (api NamespacesAPI) ListReservations(w http.ResponseWriter, r *http.Request) {
-	var respBody []Reservation
+	var respBody []reservation.Reservation
 	// Pagination
 	pageParam := r.FormValue("page")
 	per_pageParam := r.FormValue("per_page")
@@ -83,7 +84,7 @@ func (api NamespacesAPI) ListReservations(w http.ResponseWriter, r *http.Request
 			return
 		}
 
-		respBody = append(respBody, res)
+		respBody = append(respBody, res.Reservation)
 
 		if len(respBody) == resultsCount {
 			break
@@ -92,7 +93,7 @@ func (api NamespacesAPI) ListReservations(w http.ResponseWriter, r *http.Request
 
 	// return empty list if no results
 	if len(respBody) == 0 {
-		respBody = []Reservation{}
+		respBody = []reservation.Reservation{}
 	}
 
 	w.Header().Set("Content-Type", "application/json")

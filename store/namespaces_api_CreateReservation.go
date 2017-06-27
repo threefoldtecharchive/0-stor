@@ -16,9 +16,9 @@ func (api NamespacesAPI) CreateReservation(w http.ResponseWriter, r *http.Reques
 	var respBody NamespacesNsidReservationPostRespBody
 
 	nsid := mux.Vars(r)["nsid"]
-	user := r.Context().Value("user").(string)
+	user := "admin" // we make sure to add admin user to namsepace ACL, return its data token
 	namespace := r.Context().Value("namespace").(NamespaceCreate)
-	namespaceStats := r.Context().Value("namespaceStats").(NamespaceStats)
+	namespaceStats := r.Context().Value("namespaceStats").(*NamespaceStats)
 
 	// decode request
 	defer r.Body.Close()
@@ -84,6 +84,7 @@ func (api NamespacesAPI) CreateReservation(w http.ResponseWriter, r *http.Reques
 
 	// global stat decrease amount
 	storeStat.SizeAvailable -= reservation.SizeReserved
+	storeStat.SizeUsed += reservation.SizeReserved
 
 	// Ad reserved size to namespace stats
 	namespaceStats.TotalSizeReserved += reservation.SizeReserved
@@ -115,7 +116,11 @@ func (api NamespacesAPI) CreateReservation(w http.ResponseWriter, r *http.Reques
 		Acl: adminACL,
 	}
 
-	namespace.UpdateACL(api.db, api.config, acl)
+	if err := namespace.UpdateACL(api.db, api.config, acl); err != nil{
+		log.Errorln(err.Error())
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 
 	respBody = NamespacesNsidReservationPostRespBody{
 		Reservation: reservation.Reservation,
