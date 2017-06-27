@@ -8,22 +8,22 @@ import (
 	"context"
 )
 
-type ReservationExistsMiddleware struct {
+type ReservationValidMiddleware struct {
 	db *Badger
 	config *settings
 }
 
-func NewReservationExistsMiddleware(db *Badger, config *settings) *ReservationExistsMiddleware{
-	return &ReservationExistsMiddleware{
+func NewReservationValidMiddleware(db *Badger, config *settings) *ReservationValidMiddleware {
+	return &ReservationValidMiddleware{
 		db: db,
 		config: config,
 	}
 }
 
-func (re *ReservationExistsMiddleware) Handler(next http.Handler) http.Handler {
+func (re *ReservationValidMiddleware) Handler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		token := r.Header.Get("reservation")
+		token := r.Header.Get("reservation-token")
 		if token == ""{
 			http.Error(w, "Reservation token is missing", http.StatusUnauthorized)
 			return
@@ -51,6 +51,11 @@ func (re *ReservationExistsMiddleware) Handler(next http.Handler) http.Handler {
 		if err != nil{
 			log.Errorln(err.Error())
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		if v == nil{
+			http.Error(w, "Reservation token is invalid", http.StatusUnauthorized)
 			return
 		}
 

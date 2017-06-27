@@ -68,7 +68,7 @@ func (r *Reservation) Get(db *Badger, config *settings) (*Reservation, error){
 	}
 
 	if v == nil{
-		return nil, errors.New("Namespace stats not found")
+		return nil, nil
 	}
 
 	r.FromBytes(v)
@@ -314,4 +314,38 @@ func (s *Reservation) ValidateReservationToken(token, namespaceID string) (strin
 	reservation := string(bytes[end:end+reseIdSize])
 
 	return reservation, nil
+}
+
+func (s Reservation) ValidateDataAccessToken(acl ACLEntry, token, user string) error{
+	bytes := []byte(token)
+	if len(bytes) <= 63{
+		return errors.New("Data access token is invalid")
+	}
+
+	now := time.Now()
+	expiration := time.Unix(int64(binary.LittleEndian.Uint64(bytes[51:59])), 0)
+
+	if now.After(expiration){
+		return errors.New("Data access token expired")
+	}
+
+	tokenACL := ACLEntry{}
+	tokenACL.FromBytes(bytes[59:63])
+
+	if tokenACL.Admin != acl.Admin ||
+		tokenACL.Read != acl.Read ||
+		tokenACL.Write != acl.Write ||
+		tokenACL.Delete != acl.Delete{
+
+			return errors.New("Permission denied")
+	}
+
+	tokenUser := string(bytes[63:])
+
+	if user != tokenUser{
+		return errors.New("Invalid token for user")
+	}
+
+	return nil
+
 }
