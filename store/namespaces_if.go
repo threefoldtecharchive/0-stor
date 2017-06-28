@@ -89,6 +89,12 @@ func NamespacesInterfaceRoutes(r *mux.Router, i NamespacesInterface) {
 
 	r.Handle("/namespaces/{nsid}/objects/{id}",
 		alice.New(
+			NewDataTokenValidMiddleware(ACLEntry{ // At least user should have Delete permissions
+				Read: false,
+				Write:false,
+				Delete:true,
+				Admin: false,
+			}).Handler,
 			NewNamespaceExistsMiddleware(i.DB(), i.Config()).Handler,
 			NewReservationValidMiddleware(i.DB(), i.Config()).Handler,
 			NewNamespaceStatMiddleware(i.DB(), i.Config()).Handler).
@@ -96,6 +102,12 @@ func NamespacesInterfaceRoutes(r *mux.Router, i NamespacesInterface) {
 
 	r.Handle("/namespaces/{nsid}/objects/{id}",
 		alice.New(
+			NewDataTokenValidMiddleware(ACLEntry{ // At least user should have  Read permissions
+				Read: true,
+				Write:false,
+				Delete:false,
+				Admin: false,
+			}).Handler,
 			NewNamespaceExistsMiddleware(i.DB(), i.Config()).Handler,
 			NewReservationValidMiddleware(i.DB(), i.Config()).Handler,
 			NewNamespaceStatMiddleware(i.DB(), i.Config()).Handler).
@@ -103,6 +115,12 @@ func NamespacesInterfaceRoutes(r *mux.Router, i NamespacesInterface) {
 
 	r.Handle("/namespaces/{nsid}/objects/{id}",
 		alice.New(
+			NewDataTokenValidMiddleware(ACLEntry{ // At least user should have  Read permissions
+				Read: true,
+				Write:false,
+				Delete:false,
+				Admin: false,
+			}).Handler,
 			NewNamespaceExistsMiddleware(i.DB(), i.Config()).Handler,
 			NewReservationValidMiddleware(i.DB(), i.Config()).Handler,
 			NewNamespaceStatMiddleware(i.DB(), i.Config()).Handler).
@@ -110,6 +128,13 @@ func NamespacesInterfaceRoutes(r *mux.Router, i NamespacesInterface) {
 
 	r.Handle("/namespaces/{nsid}/objects/{id}",
 		alice.New(
+			NewDataTokenValidMiddleware(ACLEntry{ //At least write permissions
+				Read: false,
+				Write:true,
+				Delete:false,
+				Admin: false,
+			}).Handler,
+
 			NewNamespaceExistsMiddleware(i.DB(), i.Config()).Handler,
 			NewReservationValidMiddleware(i.DB(), i.Config()).Handler,
 			NewNamespaceStatMiddleware(i.DB(), i.Config()).Handler).
@@ -117,6 +142,12 @@ func NamespacesInterfaceRoutes(r *mux.Router, i NamespacesInterface) {
 
 	r.Handle("/namespaces/{nsid}/objects",
 		alice.New(
+			NewDataTokenValidMiddleware(ACLEntry{ // At least user should have  Read permissions
+				Read: true,
+				Write:false,
+				Delete:false,
+				Admin: false,
+			}).Handler,
 			NewNamespaceExistsMiddleware(i.DB(), i.Config()).Handler,
 			NewReservationValidMiddleware(i.DB(), i.Config()).Handler,
 			NewNamespaceStatMiddleware(i.DB(), i.Config()).Handler).
@@ -124,6 +155,12 @@ func NamespacesInterfaceRoutes(r *mux.Router, i NamespacesInterface) {
 
 	r.Handle("/namespaces/{nsid}/objects",
 		alice.New(
+			NewDataTokenValidMiddleware(ACLEntry{ // At least user should have  write permissions
+				Read: false,
+				Write:true,
+				Delete:false,
+				Admin: false,
+			}).Handler,
 			NewNamespaceExistsMiddleware(i.DB(), i.Config()).Handler,
 			NewReservationValidMiddleware(i.DB(), i.Config()).Handler,
 			NewNamespaceStatMiddleware(i.DB(), i.Config()).Handler).
@@ -159,6 +196,12 @@ func NamespacesInterfaceRoutes(r *mux.Router, i NamespacesInterface) {
 
 	r.Handle("/namespaces/{nsid}/stats",
 		alice.New(
+			NewDataTokenValidMiddleware(ACLEntry{ // Admin permissions
+				Read: true,
+				Write:true,
+				Delete:true,
+				Admin: true,
+			}).Handler,
 			NewNamespaceExistsMiddleware(i.DB(), i.Config()).Handler,
 			NewNamespaceStatMiddleware(i.DB(), i.Config()).Handler).
 		Then(http.HandlerFunc(i.StatsNamespace))).Methods("GET")

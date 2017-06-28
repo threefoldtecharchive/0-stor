@@ -1,6 +1,8 @@
 package main
 
-import "net/http"
+import (
+	"net/http"
+)
 
 type DataTokenValidMiddleware struct{
 	acl ACLEntry
@@ -20,11 +22,9 @@ func (dt *DataTokenValidMiddleware) Handler(next http.Handler) http.Handler {
 			return
 		}
 
-		user := r.Context().Value("user").(string)
-
 		res := Reservation{}
 
-		if err := res.ValidateDataAccessToken(dt.acl, token, user); err != nil{
+		if err := res.ValidateDataAccessToken(dt.acl, token); err != nil{
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}

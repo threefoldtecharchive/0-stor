@@ -42,7 +42,7 @@ func (api NamespacesAPI) DeleteObject(w http.ResponseWriter, r *http.Request) {
 	f.FromBytes(v)
 
 
-	res := r.Context().Value("reservation").(Reservation)
+	res := r.Context().Value("reservation").(*Reservation)
 	res.SizeUsed -= f.Size()
 
 	if err:= res.Save(api.db, api.config); err != nil{

@@ -242,7 +242,7 @@ func (s Reservation) GenerateTokenForReservation(db *Badger, namespaceID string)
 	end = start + rSize
 	copy(b[start:end], rID)
 
-	token, err := base64.URLEncoding.EncodeToString(b), err
+	token, err := base64.StdEncoding.EncodeToString(b), err
 
 	if err != nil{
 		return "", err
@@ -269,11 +269,9 @@ func (s Reservation) GenerateDataAccessTokenForUser(user string, namespaceID str
 	copy(b[0:51], r)
 	epoch := time.Time(s.ExpireAt).Unix()
 	binary.LittleEndian.PutUint64(b[51:59], uint64(epoch))
-
 	copy(b[59:63], acl.ToBytes())
 	copy(b[63:], []byte(user))
-
-	token, err := base64.URLEncoding.EncodeToString(b), err
+	token, err := base64.StdEncoding.EncodeToString(b), err
 
 	if err != nil{
 		return "", err
@@ -283,7 +281,12 @@ func (s Reservation) GenerateDataAccessTokenForUser(user string, namespaceID str
 }
 
 func (s *Reservation) ValidateReservationToken(token, namespaceID string) (string, error){
-	bytes := []byte(token)
+	bytes, err := base64.StdEncoding.DecodeString(token)
+
+	if err != nil{
+		return "", err
+	}
+
 
 	if len(bytes) < 63{
 		return "", errors.New("Reservation token is invalid")
@@ -316,12 +319,15 @@ func (s *Reservation) ValidateReservationToken(token, namespaceID string) (strin
 	return reservation, nil
 }
 
-func (s Reservation) ValidateDataAccessToken(acl ACLEntry, token, user string) error{
-	bytes := []byte(token)
+func (s Reservation) ValidateDataAccessToken(acl ACLEntry, token string) error{
+	bytes, err :=  base64.StdEncoding.DecodeString(token)
+
+	if err != nil{
+		return err
+	}
 	if len(bytes) <= 63{
 		return errors.New("Data access token is invalid")
 	}
-
 	now := time.Now()
 	expiration := time.Unix(int64(binary.LittleEndian.Uint64(bytes[51:59])), 0)
 
@@ -332,19 +338,24 @@ func (s Reservation) ValidateDataAccessToken(acl ACLEntry, token, user string) e
 	tokenACL := ACLEntry{}
 	tokenACL.FromBytes(bytes[59:63])
 
-	if tokenACL.Admin != acl.Admin ||
-		tokenACL.Read != acl.Read ||
-		tokenACL.Write != acl.Write ||
-		tokenACL.Delete != acl.Delete{
+	// IS Admin
+	if tokenACL.Admin{
+		return nil
+	}
 
+	// HTTP action ACL requires missing permission granted for that user
+	if (acl.Admin && !tokenACL.Admin) ||
+		(acl.Read && !tokenACL.Read) ||
+		(acl.Write && !tokenACL.Write) ||
+		(acl.Delete && !tokenACL.Delete){
 			return errors.New("Permission denied")
 	}
 
-	tokenUser := string(bytes[63:])
+	//tokenUser := string(bytes[63:])
 
-	if user != tokenUser{
-		return errors.New("Invalid token for user")
-	}
+	//if user != tokenUser{
+	//	return errors.New("Invalid token for user")
+	//}
 
 	return nil
 

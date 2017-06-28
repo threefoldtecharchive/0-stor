@@ -23,7 +23,7 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	reservation := r.Context().Value("reservation").(Reservation)
+	reservation := r.Context().Value("reservation").(*Reservation)
 
 	// decode request
 	defer r.Body.Close()
