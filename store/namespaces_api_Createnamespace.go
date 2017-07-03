@@ -14,8 +14,6 @@ func (api NamespacesAPI) Createnamespace(w http.ResponseWriter, r *http.Request)
 
 	var reqBody NamespaceCreate
 
-	defer r.Body.Close()
-
 	// decode request
 	defer r.Body.Close()
 	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {

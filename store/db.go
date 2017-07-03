@@ -5,7 +5,7 @@ import (
 
 	"log"
 
-	"github.com/dgraph-io/badger/badger"
+	"github.com/dgraph-io/badger"
 )
 
 type Badger struct {

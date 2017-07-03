@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
-
-	"github.com/dgraph-io/badger/badger"
+	"github.com/dgraph-io/badger"
 	"github.com/gorilla/mux"
 )
 
@@ -44,7 +42,7 @@ func (api NamespacesAPI) Listobjects(w http.ResponseWriter, r *http.Request) {
 
 	nsid := mux.Vars(r)["nsid"]
 
-	prefix := fmt.Sprintf("%s:", nsid)
+	prefix := []byte(fmt.Sprintf("%s:", nsid))
 
 	opt := badger.DefaultIteratorOptions
 	opt.PrefetchSize = api.config.Iterator.PreFetchSize
@@ -56,15 +54,9 @@ func (api NamespacesAPI) Listobjects(w http.ResponseWriter, r *http.Request) {
 	counter := 0 // Number of objects encountered
 	resultsCount := per_page
 
-	for it.Rewind(); it.Valid(); it.Next() {
+	for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
 		item := it.Item()
 		key := string(item.Key()[:])
-		/* Skip namespaces and objects not belonging to intended
-		   namespace
-		*/
-		if !strings.Contains(key, prefix) {
-			continue
-		}
 
 		// Found a namespace
 		counter++

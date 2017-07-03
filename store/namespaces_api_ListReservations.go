@@ -4,10 +4,9 @@ import (
 	"net/http"
 	"github.com/gorilla/mux"
 	"fmt"
-	"strings"
 	"encoding/json"
 	"strconv"
-	"github.com/dgraph-io/badger/badger"
+	"github.com/dgraph-io/badger"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/zero-os/0-stor/store/librairies/reservation"
@@ -45,7 +44,7 @@ func (api NamespacesAPI) ListReservations(w http.ResponseWriter, r *http.Request
 
 	nsid := mux.Vars(r)["nsid"]
 
-	prefix := fmt.Sprintf("%s%s", api.config.Reservations.Namespaces.Prefix, nsid)
+	prefix := []byte(fmt.Sprintf("%s%s", api.config.Reservations.Namespaces.Prefix, nsid))
 
 	opt := badger.DefaultIteratorOptions
 	opt.PrefetchSize = api.config.Iterator.PreFetchSize
@@ -57,15 +56,8 @@ func (api NamespacesAPI) ListReservations(w http.ResponseWriter, r *http.Request
 	counter := 0 // Number of objects encountered
 	resultsCount := per_page
 
-	for it.Rewind(); it.Valid(); it.Next() {
+	for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
 		item := it.Item()
-		key := string(item.Key()[:])
-		/* Skip non intended records
-		*/
-		if !strings.Contains(key, prefix) {
-			continue
-		}
-
 		// Found a namespace
 		counter++
 

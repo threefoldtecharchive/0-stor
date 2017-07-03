@@ -4,10 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/dgraph-io/badger/badger"
+	"github.com/dgraph-io/badger"
 	"github.com/gorilla/mux"
-
-	"strings"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -31,17 +29,14 @@ func (api NamespacesAPI) Deletensid(w http.ResponseWriter, r *http.Request) {
 		opt.FetchValues = false
 		opt.PrefetchSize = api.config.Iterator.PreFetchSize
 
-		prefix := fmt.Sprintf("%s:", nsid)
+		prefix := []byte(fmt.Sprintf("%s:", nsid))
 
 		it := api.db.store.NewIterator(opt)
 		defer it.Close()
 
-		for it.Rewind(); it.Valid(); it.Next() {
+		for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
 			item := it.Item()
 			key := string(item.Key()[:])
-			if !strings.Contains(key, prefix) {
-				continue
-			}
 
 			if err := api.db.Delete(key); err != nil {
 				log.Errorln(err.Error())
@@ -77,21 +72,13 @@ func (api NamespacesAPI) Deletensid(w http.ResponseWriter, r *http.Request) {
 
 		// Delete reservations
 		namespace := r.Context().Value("namespace").(NamespaceCreate)
-		prefix = namespace.GetKeyForReservations(api.config)
+		prefix = []byte(namespace.GetKeyForReservations(api.config))
 		it2 := api.db.store.NewIterator(opt)
 		defer it2.Close()
 
-		for it2.Rewind(); it2.Valid(); it2.Next() {
+		for it2.Seek(prefix); it2.ValidForPrefix(prefix); it2.Next() {
 			item := it2.Item()
 			key := string(item.Key()[:])
-
-			if !strings.Contains(key, prefix) {
-				if key > "1@"{
-					break
-				}
-				continue
-			}
-
 			if err := api.db.Delete(key); err != nil {
 				log.Errorln(err.Error())
 

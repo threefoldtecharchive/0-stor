@@ -157,16 +157,7 @@ types:
         type: string
         required: true
 
-/namespaces:
-  securedBy: [ itsyouonline : { scopes: ["user:name"] } ]
-  type: collection
-  get:
-    is: [ paginated ]
-  post:
-    body:
-      type: NamespaceCreate
-
-  /stats:
+/stats:
      securedBy: [ itsyouonline : { scopes: ["user:name"] } ]
      post:
       displayName: UpdateStoreStats
@@ -193,6 +184,15 @@ types:
         200:
           body:
             type: StoreStat
+
+/namespaces:
+  securedBy: [ itsyouonline : { scopes: ["user:name"] } ]
+  type: collection
+  get:
+    is: [ paginated ]
+  post:
+    body:
+      type: NamespaceCreate
 
   /{nsid}:
     securedBy: [ reservation.reservationToken ]

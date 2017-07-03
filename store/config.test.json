@@ -1,7 +1,7 @@
 {
     "dirs":{
-        "meta":  "db/meta/",
-        "data":  "db/data/"
+        "meta":  "/tmp/meta/",
+        "data":  "/tmp/data/"
     },
     "iterator":{
         "pre_fetch_size": 100

@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"github.com/dgraph-io/badger/badger"
+	"github.com/dgraph-io/badger"
 )
 
 // Listnamespaces is the handler for GET /namespaces
@@ -58,9 +58,7 @@ func (api NamespacesAPI) Listnamespaces(w http.ResponseWriter, r *http.Request) 
 		   namespaces keys can't contain (:), nor (_)
 		 */
 		if strings.Contains(key, ":") ||     // Objects
-			strings.Contains(key, "_")|| // _stats
-			strings.Contains(key, "@")|| // @stat Global stat
-			strings.Contains(key, "$"){ // reservations
+			strings.Contains(key, "@"){
 			continue
 		}
 
