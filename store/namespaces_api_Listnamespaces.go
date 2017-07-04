@@ -12,7 +12,7 @@ import (
 // List all namespaces
 func (api NamespacesAPI) Listnamespaces(w http.ResponseWriter, r *http.Request) {
 	var respBody []Namespace
-	var namespace NamespaceCreate
+
 
 	// Pagination
 	pageParam := r.FormValue("page")
@@ -71,7 +71,7 @@ func (api NamespacesAPI) Listnamespaces(w http.ResponseWriter, r *http.Request) 
 		}
 
 		value := item.Value()
-
+		var namespace NamespaceCreate
 		namespace.FromBytes(value)
 
 		respBody = append(respBody, Namespace{

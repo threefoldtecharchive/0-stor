@@ -38,10 +38,11 @@ func (api NamespacesAPI) UpdateObject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	namespace := mux.Vars(r)["nsid"]
+	nsid := mux.Vars(r)["nsid"]
+
 	id := mux.Vars(r)["id"]
 
-	key := fmt.Sprintf("%s:%s", namespace, id)
+	key := fmt.Sprintf("%s:%s", nsid, id)
 
 	oldFile, err := api.db.GetFile(key)
 

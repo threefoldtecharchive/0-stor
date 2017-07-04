@@ -11,10 +11,24 @@ import (
 // DeleteObject is the handler for DELETE /namespaces/{nsid}/objects/{id}
 // Delete object from the store
 func (api NamespacesAPI) DeleteObject(w http.ResponseWriter, r *http.Request) {
-	namespace := mux.Vars(r)["nsid"]
+	nsid := mux.Vars(r)["nsid"]
+
+	exists, err := api.db.Exists(nsid)
+
+	if err != nil{
+		log.Errorln(err.Error())
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	if !exists{
+		http.Error(w, "Namespace doesn't exist", http.StatusNotFound)
+		return
+	}
+
 	id := mux.Vars(r)["id"]
 
-	key := fmt.Sprintf("%s:%s", namespace, id)
+	key := fmt.Sprintf("%s:%s", nsid, id)
 
 	v, err := api.db.Get(key)
 

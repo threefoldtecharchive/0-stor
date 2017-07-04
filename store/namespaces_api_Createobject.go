@@ -16,6 +16,19 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 
 	nsid := mux.Vars(r)["nsid"]
 
+	exists, err := api.db.Exists(nsid)
+
+	if err != nil{
+		log.Errorln(err.Error())
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	if !exists{
+		http.Error(w, "Namespace doesn't exist", http.StatusNotFound)
+		return
+	}
+
 	storeStat := StoreStat{}
 	if err := storeStat.Get(api.db, api.config); err != nil{
 		log.Errorln(err.Error())

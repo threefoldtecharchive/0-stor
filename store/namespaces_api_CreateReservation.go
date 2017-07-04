@@ -17,8 +17,33 @@ func (api NamespacesAPI) CreateReservation(w http.ResponseWriter, r *http.Reques
 
 	nsid := mux.Vars(r)["nsid"]
 	user := "admin" // we make sure to add admin user to namsepace ACL, return its data token
-	namespace := r.Context().Value("namespace").(NamespaceCreate)
-	namespaceStats := r.Context().Value("namespaceStats").(*NamespaceStats)
+
+	namespace := NamespaceCreate{
+		Label: nsid,
+	}
+
+	v, err :=  namespace.Get(api.db, api.config)
+
+	if err != nil{
+		log.Errorln(err.Error())
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	// NOT FOUND
+	if v == nil{
+		http.Error(w, "Namespace doesn't exist", http.StatusNotFound)
+		return
+	}
+
+	namespaceStats, err := namespace.GetStats(api.db, api.config)
+
+	if err != nil{
+		log.Errorln(err.Error())
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
 
 	// decode request
 	defer r.Body.Close()

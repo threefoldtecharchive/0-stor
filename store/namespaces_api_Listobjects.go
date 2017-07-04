@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"github.com/dgraph-io/badger"
 	"github.com/gorilla/mux"
+	log "github.com/Sirupsen/logrus"
 )
 
 // Listobjects is the handler for GET /namespaces/{nsid}/objects
@@ -41,6 +42,19 @@ func (api NamespacesAPI) Listobjects(w http.ResponseWriter, r *http.Request) {
 	}
 
 	nsid := mux.Vars(r)["nsid"]
+
+	exists, err := api.db.Exists(nsid)
+
+	if err != nil{
+		log.Errorln(err.Error())
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	if !exists{
+		http.Error(w, "Namespace doesn't exist", http.StatusNotFound)
+		return
+	}
 
 	prefix := []byte(fmt.Sprintf("%s:", nsid))
 

@@ -15,7 +15,20 @@ import (
 func (api NamespacesAPI) Deletensid(w http.ResponseWriter, r *http.Request) {
 	nsid := mux.Vars(r)["nsid"]
 
-	err := api.db.Delete(nsid)
+	exists, err := api.db.Exists(nsid)
+
+	if err != nil{
+		log.Errorln(err.Error())
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	if !exists{
+		http.Error(w, "Namespace doesn't exist", http.StatusNotFound)
+		return
+	}
+
+	err = api.db.Delete(nsid)
 
 	if err != nil {
 		log.Errorln(err.Error())
@@ -51,7 +64,19 @@ func (api NamespacesAPI) Deletensid(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		namespaceStats := r.Context().Value("namespaceStats").(*NamespaceStats)
+		ns := NamespaceCreate{
+			Label: nsid,
+		}
+
+		stats, err := ns.GetStats(api.db, api.config)
+
+		if err != nil{
+			log.Errorln(err.Error())
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+
+		namespaceStats := stats
 		storeStat.SizeAvailable += namespaceStats.TotalSizeReserved
 		storeStat.SizeUsed -= namespaceStats.TotalSizeReserved
 
@@ -71,8 +96,10 @@ func (api NamespacesAPI) Deletensid(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Delete reservations
-		namespace := r.Context().Value("namespace").(NamespaceCreate)
-		prefix = []byte(namespace.GetKeyForReservations(api.config))
+		r := Reservation{
+			Namespace: nsid,
+		}
+		prefix = []byte(r.GetKey(api.config))
 		it2 := api.db.store.NewIterator(opt)
 		defer it2.Close()
 

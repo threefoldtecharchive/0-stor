@@ -17,9 +17,33 @@ func (api NamespacesAPI) UpdateReservation(w http.ResponseWriter, r *http.Reques
 	var reqBody reservation.ReservationRequest
 	var respBody NamespacesNsidReservationPostRespBody
 	user := r.Context().Value("user").(string)
-	namespaceStats := r.Context().Value("namespaceStats").(*NamespaceStats)
 
 	nsid := mux.Vars(r)["nsid"]
+	exists, err := api.db.Exists(nsid)
+
+	if err != nil{
+		log.Errorln(err.Error())
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	if !exists{
+		http.Error(w, "Namespace doesn't exist", http.StatusNotFound)
+		return
+	}
+
+	ns := NamespaceCreate{
+		Label: nsid,
+	}
+
+	namespaceStats , err := ns.GetStats(api.db, api.config)
+
+	if err != nil{
+		log.Errorln(err.Error())
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
 	rid := mux.Vars(r)["id"]
 
 	// decode request
@@ -42,7 +66,7 @@ func (api NamespacesAPI) UpdateReservation(w http.ResponseWriter, r *http.Reques
 		},
 	}
 
-	_, err := reservation.Get(api.db, api.config)
+	_, err = reservation.Get(api.db, api.config)
 	if err != nil{
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)

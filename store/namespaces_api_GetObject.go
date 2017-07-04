@@ -15,10 +15,24 @@ func (api NamespacesAPI) GetObject(w http.ResponseWriter, r *http.Request) {
 
 	var file = &File{}
 
-	namespace := mux.Vars(r)["nsid"]
+	nsid := mux.Vars(r)["nsid"]
+
+	exists, err := api.db.Exists(nsid)
+
+	if err != nil{
+		log.Errorln(err.Error())
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	if !exists{
+		http.Error(w, "Namespace doesn't exist", http.StatusNotFound)
+		return
+	}
+
 	id := mux.Vars(r)["id"]
 
-	key := fmt.Sprintf("%s:%s", namespace, id)
+	key := fmt.Sprintf("%s:%s", nsid, id)
 
 	value, err := api.db.Get(key)
 

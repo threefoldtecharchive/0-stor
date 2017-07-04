@@ -30,12 +30,36 @@ func (api NamespacesAPI) Updatensid(w http.ResponseWriter, r *http.Request) {
 	}
 
 	nsid := mux.Vars(r)["nsid"]
+	exists, err := api.db.Exists(nsid)
 
-	if err := api.db.Set(nsid, reqBody.ToBytes()); err != nil {
+	if err != nil{
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
+
+	if !exists{
+		http.Error(w, "Namespace doesn't exist", http.StatusNotFound)
+		return
+	}
+
+	if err := reqBody.Save(api.db, api.config); err != nil {
+		log.Errorln(err.Error())
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	// @TODO:
+	if nsid != reqBody.Label{
+		defer func(){
+			// update namespacestats with new prefix
+			// update reservations with new prefix
+			// delete old namespace
+			// delete old namespace stats
+			// delete old namsepace reservations
+		}()
+	}
+
 
 	respBody := &Namespace{
 		NamespaceCreate: reqBody,

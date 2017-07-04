@@ -44,6 +44,19 @@ func (api NamespacesAPI) ListReservations(w http.ResponseWriter, r *http.Request
 
 	nsid := mux.Vars(r)["nsid"]
 
+	exists, err := api.db.Exists(nsid)
+
+	if err != nil{
+		log.Errorln(err.Error())
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	if !exists{
+		http.Error(w, "Namespace doesn't exist", http.StatusNotFound)
+		return
+	}
+
 	prefix := []byte(fmt.Sprintf("%s%s", api.config.Reservations.Namespaces.Prefix, nsid))
 
 	opt := badger.DefaultIteratorOptions

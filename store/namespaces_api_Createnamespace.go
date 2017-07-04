@@ -45,6 +45,7 @@ func (api NamespacesAPI) Createnamespace(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+
 	// Add new name space
 	if err := reqBody.Save(api.db, api.config); err != nil {
 		log.Errorln(err.Error())
@@ -53,13 +54,12 @@ func (api NamespacesAPI) Createnamespace(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Add stats
-	stats := NewNamespaceStats(nsid)
-
-	if err := stats.Save(api.db, api.config); err != nil{
-		log.Errorln(err.Error())
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
+	defer func(){
+		stats := NewNamespaceStats(nsid)
+		if err := stats.Save(api.db, api.config); err != nil{
+			log.Errorln(err.Error())
+		}
+	}()
 
 	respBody:= &Namespace{
 		NamespaceCreate: reqBody,

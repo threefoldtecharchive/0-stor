@@ -48,6 +48,10 @@ type settings struct {
 			Prefix string `json:"prefix"`
 		}`json:"namespaces"`
 	}`json:"reservations"`
+
+	Namespace struct {
+		prefix string `json:"prefix"`
+	}`json:namespace`
 }
 
 func loadSettings(path string) settings {
@@ -132,6 +136,12 @@ func main() {
 	app.Before = func(c *cli.Context) error {
 		if configPath != "" {
 			settings = loadSettings(configPath)
+		}else {
+			settings.Stats.Store.Collection = "0@stats"
+			settings.Stats.Namespaces.Prefix = "0@stats_"
+			settings.Reservations.Namespaces.Prefix = "1@res_"
+			settings.Reservations.Namespaces.Prefix = "1@res_"
+			settings.Namespace.prefix = "2@_"
 		}
 
 		if settings.DebugLog {
