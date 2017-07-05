@@ -3,8 +3,8 @@ package main
 import (
 	"os"
 
-	"github.com/dgraph-io/badger"
 	log "github.com/Sirupsen/logrus"
+	"github.com/dgraph-io/badger"
 )
 
 type Badger struct {
