@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/dgraph-io/badger/badger"
+	"github.com/dgraph-io/badger"
 	"github.com/gorilla/mux"
 
 	"strings"

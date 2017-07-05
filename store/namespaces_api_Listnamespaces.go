@@ -8,7 +8,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 
-	"github.com/dgraph-io/badger/badger"
+	"github.com/dgraph-io/badger"
 )
 
 // Listnamespaces is the handler for GET /namespaces
