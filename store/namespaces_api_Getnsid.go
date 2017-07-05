@@ -5,20 +5,20 @@ import (
 	"net/http"
 	log "github.com/Sirupsen/logrus"
 	"strings"
+	"github.com/gorilla/mux"
 )
 
 // Getnsid is the handler for GET /namespaces/{nsid}
 // Get detail view about nsid
 func (api NamespacesAPI) Getnsid(w http.ResponseWriter, r *http.Request) {
 
-	nsid := api.GetNamespaceID(r)
+	nsid := mux.Vars(r)["nsid"]
 
 	namespace := NamespaceCreate{
 		Label: nsid,
 	}
 
 	v, err :=  namespace.Get(api.db, api.config)
-
 
 	if err != nil{
 		log.Errorln(err.Error())
@@ -35,9 +35,9 @@ func (api NamespacesAPI) Getnsid(w http.ResponseWriter, r *http.Request) {
 	// Update namespace stats
 	defer api.UpdateNamespaceStats(nsid)
 
-	namespace.Label = strings.Replace(namespace.Label, api.config.Namespace.prefix, "", 1)
-	respBody := &Namespace{
-		NamespaceCreate: namespace,
+	v.Label = strings.Replace(namespace.Label, api.config.Namespace.prefix, "", 1)
+	respBody := Namespace{
+		NamespaceCreate: *v,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
