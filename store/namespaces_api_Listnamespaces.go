@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"github.com/dgraph-io/badger"
 	"strings"
+	log "github.com/Sirupsen/logrus"
 )
 
 // Listnamespaces is the handler for GET /namespaces
