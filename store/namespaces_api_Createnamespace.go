@@ -6,6 +6,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 
+	"fmt"
 )
 
 // Createnamespace is the handler for POST /namespaces
@@ -28,7 +29,9 @@ func (api NamespacesAPI) Createnamespace(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	nsid := reqBody.Label
+	originalLabel := reqBody.Label
+	nsid := fmt.Sprintf("%s%s", api.config.Namespace.prefix, reqBody.Label)
+	reqBody.Label = nsid
 
 	exists, err := reqBody.Exists(api.db, api.config)
 
@@ -54,8 +57,9 @@ func (api NamespacesAPI) Createnamespace(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Add stats
+	// stats are saved prefixed with its own prefix + (non prefixed namespace)
 	defer func(){
-		stats := NewNamespaceStats(nsid)
+		stats := NewNamespaceStats(originalLabel)
 		if err := stats.Save(api.db, api.config); err != nil{
 			log.Errorln(err.Error())
 		}
@@ -66,6 +70,8 @@ func (api NamespacesAPI) Createnamespace(w http.ResponseWriter, r *http.Request)
 		SpaceAvailable: 0,
 		SpaceUsed: 0,
 	}
+
+	respBody.Label = originalLabel
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)

@@ -40,6 +40,9 @@ func (api NamespacesAPI) UpdateObject(w http.ResponseWriter, r *http.Request) {
 
 	nsid := mux.Vars(r)["nsid"]
 
+	// Update namespace stats
+	defer api.UpdateNamespaceStats(nsid)
+
 	id := mux.Vars(r)["id"]
 
 	key := fmt.Sprintf("%s:%s", nsid, id)

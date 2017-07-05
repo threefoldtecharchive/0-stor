@@ -8,6 +8,7 @@ import (
 	"github.com/dgraph-io/badger"
 	"github.com/gorilla/mux"
 	log "github.com/Sirupsen/logrus"
+	"strings"
 )
 
 // Listobjects is the handler for GET /namespaces/{nsid}/objects
@@ -43,7 +44,11 @@ func (api NamespacesAPI) Listobjects(w http.ResponseWriter, r *http.Request) {
 
 	nsid := mux.Vars(r)["nsid"]
 
-	exists, err := api.db.Exists(nsid)
+	// Update namespace stats
+	defer api.UpdateNamespaceStats(nsid)
+
+	prefixedNsid := fmt.Sprintf("%s%s", api.config.Namespace.prefix, nsid)
+	exists, err := api.db.Exists(prefixedNsid)
 
 	if err != nil{
 		log.Errorln(err.Error())
@@ -56,7 +61,8 @@ func (api NamespacesAPI) Listobjects(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	prefix := []byte(fmt.Sprintf("%s:", nsid))
+	prefixStr := fmt.Sprintf("%s:", nsid)
+	prefix := []byte(prefixStr)
 
 	opt := badger.DefaultIteratorOptions
 	opt.PrefetchSize = api.config.Iterator.PreFetchSize
@@ -85,6 +91,8 @@ func (api NamespacesAPI) Listobjects(w http.ResponseWriter, r *http.Request) {
 		var file = &File{}
 		object := file.ToObject(value, key)
 
+		// remove prefix from file name
+		object.Id = strings.Replace(object.Id, prefixStr, "", 1)
 		respBody = append(respBody, *object)
 
 		if len(respBody) == resultsCount {

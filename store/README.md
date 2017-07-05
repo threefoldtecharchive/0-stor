@@ -88,21 +88,25 @@ Token formats
 Naming conventions
 ==================
 
+**Namespaces**
+-  Alphanumeric only
+- saved internally prefixed with 2@_
+- prefixing help listing them efficiently
+
 **Store stats**
 - Fixed name :: ```0@stats```
 
 **Namespaces Stats**
 - Fixed prefix :: ```0@stats_{namespace_id}```
-
+- namespace_id is the namespace label provided by user (not prefixed)
 
 **Namespace Reservations**
 - Fixed prefix ``` 1@res_{namespace_id}_{reservation_id}```
-
-**Namespaces**
-- Alphanumeric only
+- namespace_id is the namespace label provided by user (not prefixed)
 
 **Objects**
 - Prefix :: {namespace_id}:{Object_id}
+-  namespace_id is the namespace label provided by user (not prefixed)
 
 
 

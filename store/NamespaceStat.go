@@ -7,6 +7,7 @@ import (
 	"math"
 	"fmt"
 	"github.com/pkg/errors"
+	"strings"
 )
 
 type NamespaceStat struct {
@@ -74,7 +75,11 @@ func (s *NamespaceStats) FromBytes(data []byte) error{
 }
 
 func (s NamespaceStats) GetKeyForNameSpace(config *settings) string{
-	return fmt.Sprintf("%s%s", config.Stats.Namespaces.Prefix, s.Namespace)
+	label := s.Namespace
+	if strings.Index(s.Namespace, config.Namespace.prefix) != -1{
+		label = strings.Replace(s.Namespace, config.Namespace.prefix, "", 1)
+	}
+	return fmt.Sprintf("%s%s", config.Stats.Namespaces.Prefix, label)
 }
 
 func (s NamespaceStats) Save(db *Badger, config *settings) error{
@@ -90,7 +95,6 @@ func (s NamespaceStats) Delete(db *Badger, config *settings) error{
 func (s *NamespaceStats) Get(db *Badger, config *settings) (*NamespaceStats, error){
 	key := s.GetKeyForNameSpace(config)
 	v, err := db.Get(key)
-
 	if err != nil{
 		return nil, err
 	}

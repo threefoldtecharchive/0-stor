@@ -3,16 +3,16 @@ package main
 import (
 	"encoding/json"
 	"net/http"
-	"github.com/gorilla/mux"
 	log "github.com/Sirupsen/logrus"
+	"strings"
 )
 
 // Getnsid is the handler for GET /namespaces/{nsid}
 // Get detail view about nsid
 func (api NamespacesAPI) Getnsid(w http.ResponseWriter, r *http.Request) {
 
+	nsid := api.GetNamespaceID(r)
 
-	nsid := mux.Vars(r)["nsid"]
 	namespace := NamespaceCreate{
 		Label: nsid,
 	}
@@ -32,6 +32,10 @@ func (api NamespacesAPI) Getnsid(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Update namespace stats
+	defer api.UpdateNamespaceStats(nsid)
+
+	namespace.Label = strings.Replace(namespace.Label, api.config.Namespace.prefix, "", 1)
 	respBody := &Namespace{
 		NamespaceCreate: namespace,
 	}

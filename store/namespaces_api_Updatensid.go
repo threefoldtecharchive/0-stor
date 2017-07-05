@@ -6,6 +6,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
+	"fmt"
 )
 
 // Updatensid is the handler for PUT /namespaces/{nsid}
@@ -29,7 +30,13 @@ func (api NamespacesAPI) Updatensid(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	nsid := mux.Vars(r)["nsid"]
+	nsid := fmt.Sprintf("%s%s", api.config.Namespace.prefix, mux.Vars(r)["nsid"])
+
+	// Update namespace stats
+	defer api.UpdateNamespaceStats(nsid)
+
+	reqBody.Label = nsid
+
 	exists, err := api.db.Exists(nsid)
 
 	if err != nil{

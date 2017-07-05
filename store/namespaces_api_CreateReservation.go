@@ -16,6 +16,10 @@ func (api NamespacesAPI) CreateReservation(w http.ResponseWriter, r *http.Reques
 	var respBody NamespacesNsidReservationPostRespBody
 
 	nsid := mux.Vars(r)["nsid"]
+
+	// Update namespace stats
+	defer api.UpdateNamespaceStats(nsid)
+
 	user := "admin" // we make sure to add admin user to namsepace ACL, return its data token
 
 	namespace := NamespaceCreate{
@@ -153,5 +157,7 @@ func (api NamespacesAPI) CreateReservation(w http.ResponseWriter, r *http.Reques
 		ReservationToken: resToken,
 	}
 
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(&respBody)
 }

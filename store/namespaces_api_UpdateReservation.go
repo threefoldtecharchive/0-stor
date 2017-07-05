@@ -19,6 +19,10 @@ func (api NamespacesAPI) UpdateReservation(w http.ResponseWriter, r *http.Reques
 	user := r.Context().Value("user").(string)
 
 	nsid := mux.Vars(r)["nsid"]
+
+	// Update namespace stats
+	defer api.UpdateNamespaceStats(nsid)
+
 	exists, err := api.db.Exists(nsid)
 
 	if err != nil{

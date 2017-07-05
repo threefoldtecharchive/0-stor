@@ -82,8 +82,7 @@ func NamespacesInterfaceRoutes(r *mux.Router, i NamespacesInterface) {
 
 	r.Handle("/namespaces/{nsid}/acl",
 		alice.New(
-			NewReservationValidMiddleware(i.DB(), i.Config()).Handler,
-			NewNamespaceStatMiddleware(i.DB(), i.Config()).Handler).
+			NewReservationValidMiddleware(i.DB(), i.Config()).Handler).
 		Then(http.HandlerFunc(i.nsidaclPost))).Methods("POST")
 
 	r.Handle("/namespaces/{nsid}/objects/{id}",
@@ -94,8 +93,7 @@ func NamespacesInterfaceRoutes(r *mux.Router, i NamespacesInterface) {
 				Delete:true,
 				Admin: false,
 			}).Handler,
-			NewReservationValidMiddleware(i.DB(), i.Config()).Handler,
-			NewNamespaceStatMiddleware(i.DB(), i.Config()).Handler).
+			NewReservationValidMiddleware(i.DB(), i.Config()).Handler).
 		Then(http.HandlerFunc(i.DeleteObject))).Methods("DELETE")
 
 	r.Handle("/namespaces/{nsid}/objects/{id}",
@@ -106,8 +104,7 @@ func NamespacesInterfaceRoutes(r *mux.Router, i NamespacesInterface) {
 				Delete:false,
 				Admin: false,
 			}).Handler,
-			NewReservationValidMiddleware(i.DB(), i.Config()).Handler,
-			NewNamespaceStatMiddleware(i.DB(), i.Config()).Handler).
+			NewReservationValidMiddleware(i.DB(), i.Config()).Handler).
 		Then(http.HandlerFunc(i.HeadObject))).Methods("HEAD")
 
 	r.Handle("/namespaces/{nsid}/objects/{id}",
@@ -118,8 +115,7 @@ func NamespacesInterfaceRoutes(r *mux.Router, i NamespacesInterface) {
 				Delete:false,
 				Admin: false,
 			}).Handler,
-			NewReservationValidMiddleware(i.DB(), i.Config()).Handler,
-			NewNamespaceStatMiddleware(i.DB(), i.Config()).Handler).
+			NewReservationValidMiddleware(i.DB(), i.Config()).Handler).
 		Then(http.HandlerFunc(i.GetObject))).Methods("GET")
 
 	r.Handle("/namespaces/{nsid}/objects/{id}",
@@ -131,8 +127,7 @@ func NamespacesInterfaceRoutes(r *mux.Router, i NamespacesInterface) {
 				Admin: false,
 			}).Handler,
 
-			NewReservationValidMiddleware(i.DB(), i.Config()).Handler,
-			NewNamespaceStatMiddleware(i.DB(), i.Config()).Handler).
+			NewReservationValidMiddleware(i.DB(), i.Config()).Handler).
 		Then(http.HandlerFunc(i.UpdateObject))).Methods("PUT")
 
 	r.Handle("/namespaces/{nsid}/objects",
@@ -143,8 +138,7 @@ func NamespacesInterfaceRoutes(r *mux.Router, i NamespacesInterface) {
 				Delete:false,
 				Admin: false,
 			}).Handler,
-			NewReservationValidMiddleware(i.DB(), i.Config()).Handler,
-			NewNamespaceStatMiddleware(i.DB(), i.Config()).Handler).
+			NewReservationValidMiddleware(i.DB(), i.Config()).Handler).
 		Then(http.HandlerFunc(i.Listobjects))).Methods("GET")
 
 	r.Handle("/namespaces/{nsid}/objects",
@@ -155,33 +149,27 @@ func NamespacesInterfaceRoutes(r *mux.Router, i NamespacesInterface) {
 				Delete:false,
 				Admin: false,
 			}).Handler,
-			NewReservationValidMiddleware(i.DB(), i.Config()).Handler,
-			NewNamespaceStatMiddleware(i.DB(), i.Config()).Handler).
+			NewReservationValidMiddleware(i.DB(), i.Config()).Handler).
 		Then(http.HandlerFunc(i.Createobject))).Methods("POST")
 
 	r.Handle("/namespaces/{nsid}/reservation/{id}",
 		alice.New(
-			NewOauth2itsyouonlineMiddleware([]string{"user:name"}).Handler,
-			NewNamespaceStatMiddleware(i.DB(), i.Config()).Handler).
+			NewOauth2itsyouonlineMiddleware([]string{"user:name"}).Handler).
 		Then(http.HandlerFunc(i.nsidreservationidGet))).Methods("GET")
 
 	r.Handle("/namespaces/{nsid}/reservation/{id}",
 		alice.New(
-			NewOauth2itsyouonlineMiddleware([]string{"user:name"}).Handler,
-			NewNamespaceExistsMiddleware(i.DB(), i.Config()).Handler,
-			NewNamespaceStatMiddleware(i.DB(), i.Config()).Handler).
+			NewOauth2itsyouonlineMiddleware([]string{"user:name"}).Handler).
 		Then(http.HandlerFunc(i.UpdateReservation))).Methods("PUT")
 
 	r.Handle("/namespaces/{nsid}/reservation",
 		alice.New(
-			NewOauth2itsyouonlineMiddleware([]string{"user:name"}).Handler,
-			NewNamespaceStatMiddleware(i.DB(), i.Config()).Handler).
+			NewOauth2itsyouonlineMiddleware([]string{"user:name"}).Handler).
 			Then(http.HandlerFunc(i.ListReservations))).Methods("GET")
 
 	r.Handle("/namespaces/{nsid}/reservation",
 		alice.New(
-			NewOauth2itsyouonlineMiddleware([]string{"user:name"}).Handler,
-			NewNamespaceStatMiddleware(i.DB(), i.Config()).Handler).
+			NewOauth2itsyouonlineMiddleware([]string{"user:name"}).Handler).
 		Then(http.HandlerFunc(i.CreateReservation))).Methods("POST")
 
 	r.Handle("/namespaces/{nsid}/stats",
@@ -191,8 +179,7 @@ func NamespacesInterfaceRoutes(r *mux.Router, i NamespacesInterface) {
 				Write:true,
 				Delete:true,
 				Admin: true,
-			}).Handler,
-			NewNamespaceStatMiddleware(i.DB(), i.Config()).Handler).
+			}).Handler).
 		Then(http.HandlerFunc(i.StatsNamespace))).Methods("GET")
 
 	/* namespaces/stats Must come before /namespaces/{nsid}
@@ -208,19 +195,13 @@ func NamespacesInterfaceRoutes(r *mux.Router, i NamespacesInterface) {
 			Then(http.HandlerFunc(i.GetStoreStats))).Methods("GET")
 
 	r.Handle("/namespaces/{nsid}",
-		alice.New(
-			NewNamespaceStatMiddleware(i.DB(), i.Config()).Handler).
-		Then(http.HandlerFunc(i.Deletensid))).Methods("DELETE")
+		http.HandlerFunc(i.Deletensid)).Methods("DELETE")
 
 	r.Handle("/namespaces/{nsid}",
-		alice.New(
-			NewNamespaceStatMiddleware(i.DB(), i.Config()).Handler).
-		Then(http.HandlerFunc(i.Getnsid))).Methods("GET")
+		http.HandlerFunc(i.Getnsid)).Methods("GET")
 
 	r.Handle("/namespaces/{nsid}",
-		alice.New(
-			NewNamespaceStatMiddleware(i.DB(), i.Config()).Handler).
-		Then(http.HandlerFunc(i.Updatensid))).Methods("PUT")
+		http.HandlerFunc(i.Updatensid)).Methods("PUT")
 
 	r.Handle("/namespaces",
 		alice.New(NewOauth2itsyouonlineMiddleware([]string{"user:name"}).Handler).

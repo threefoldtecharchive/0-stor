@@ -14,6 +14,10 @@ func (api NamespacesAPI) nsidaclPost(w http.ResponseWriter, r *http.Request) {
 	var reqBody ACL
 
 	nsid := mux.Vars(r)["nsid"]
+
+	// Update namespace stats
+	defer api.UpdateNamespaceStats(nsid)
+
 	namespace := NamespaceCreate{
 		Label: nsid,
 	}

@@ -16,7 +16,11 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 
 	nsid := mux.Vars(r)["nsid"]
 
-	exists, err := api.db.Exists(nsid)
+	// Update namespace stats
+	defer api.UpdateNamespaceStats(nsid)
+
+	prefixedNamespaceID := fmt.Sprintf("%s%s", api.config.Namespace.prefix, nsid)
+	exists, err := api.db.Exists(prefixedNamespaceID)
 
 	if err != nil{
 		log.Errorln(err.Error())
@@ -28,15 +32,6 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Namespace doesn't exist", http.StatusNotFound)
 		return
 	}
-
-	storeStat := StoreStat{}
-	if err := storeStat.Get(api.db, api.config); err != nil{
-		log.Errorln(err.Error())
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
-	reservation := r.Context().Value("reservation").(*Reservation)
 
 	// decode request
 	defer r.Body.Close()
@@ -61,6 +56,8 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	reservation := r.Context().Value("reservation").(*Reservation)
+
 	key := fmt.Sprintf("%s:%s", nsid, reqBody.Id)
 
 	oldFile, err := api.db.GetFile(key)
@@ -72,21 +69,20 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var addObject bool = true
-
 	// object already exists
 	if oldFile != nil {
+		// Only update reference -- we don't update content here
 		if oldFile.Reference < 255 {
-			file.Reference = oldFile.Reference + 1
+			oldFile.Reference = oldFile.Reference + 1
 			log.Debugln(file.Reference)
-		} else {
-			addObject = false
+			if err = api.db.Set(key, oldFile.ToBytes()); err != nil {
+				log.Errorln(err.Error())
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				return
+			}
 		}
-	}
-
-	// Add or update object
-	if addObject {
-
+	}else{
+		// New file created
 		if reservation.SizeRemaining() < file.Size(){
 			http.Error(w, "File SizeAvailable exceeds the remaining free space in namespace", http.StatusForbidden)
 			return
@@ -99,7 +95,6 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 		}
 
 		reservation.SizeUsed += file.Size()
-
 
 		if err:= reservation.Save(api.db, api.config); err != nil{
 			log.Errorln(err.Error())

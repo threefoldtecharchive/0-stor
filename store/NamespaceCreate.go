@@ -3,6 +3,7 @@ package main
 import (
 	"gopkg.in/validator.v2"
 	"encoding/binary"
+	"fmt"
 )
 
 type NamespaceCreate struct {
@@ -108,8 +109,14 @@ func (s NamespaceCreate) Save(db *Badger, config *settings) error{
 	return db.Set(s.Label, s.ToBytes())
 }
 
+func (NamespaceCreate) GetKeyForNamespace(label string, config *settings) string{
+	return fmt.Sprintf("%s%s", config.Namespace.prefix, label)
+}
+
+
 func (s *NamespaceCreate) Get(db *Badger, config *settings) (*NamespaceCreate, error){
-	v, err := db.Get(s.Label)
+	key := s.GetKeyForNamespace(s.Label, config)
+	v, err := db.Get(key)
 	if err != nil{
 		return nil, err
 	}

@@ -13,7 +13,10 @@ import (
 // Deletensid is the handler for DELETE /namespaces/{nsid}
 // Delete nsid
 func (api NamespacesAPI) Deletensid(w http.ResponseWriter, r *http.Request) {
-	nsid := mux.Vars(r)["nsid"]
+	nsid := fmt.Sprintf("%s%s", api.config.Namespace.prefix, mux.Vars(r)["nsid"])
+
+	// Update namespace stats
+	defer api.UpdateNamespaceStats(mux.Vars(r)["nsid"])
 
 	exists, err := api.db.Exists(nsid)
 

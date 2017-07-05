@@ -15,7 +15,12 @@ func (api NamespacesAPI) GetObject(w http.ResponseWriter, r *http.Request) {
 
 	var file = &File{}
 
-	nsid := mux.Vars(r)["nsid"]
+	oldLabel := mux.Vars(r)["nsid"]
+
+	// Update namespace stats
+	defer api.UpdateNamespaceStats(oldLabel)
+
+	nsid := fmt.Sprintf("%s%s", api.config.Namespace.prefix, oldLabel)
 
 	exists, err := api.db.Exists(nsid)
 
@@ -32,7 +37,7 @@ func (api NamespacesAPI) GetObject(w http.ResponseWriter, r *http.Request) {
 
 	id := mux.Vars(r)["id"]
 
-	key := fmt.Sprintf("%s:%s", nsid, id)
+	key := fmt.Sprintf("%s:%s", oldLabel, id)
 
 	value, err := api.db.Get(key)
 

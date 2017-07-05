@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
-	"strings"
 	"github.com/dgraph-io/badger"
+	"strings"
 )
 
 // Listnamespaces is the handler for GET /namespaces
@@ -50,17 +50,10 @@ func (api NamespacesAPI) Listnamespaces(w http.ResponseWriter, r *http.Request) 
 	counter := 0 // Number of namespaces encountered
 	resultsCount := perPage
 
-	for it.Rewind(); it.Valid(); it.Next() {
-		item := it.Item()
-		key := string(item.Key()[:])
+	prefix := []byte(api.config.Namespace.prefix)
 
-		/* Skip keys representing objects and stats
-		   namespaces keys can't contain (:), nor (_)
-		 */
-		if strings.Contains(key, ":") ||     // Objects
-			strings.Contains(key, "@"){
-			continue
-		}
+	for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
+		item := it.Item()
 
 		// Found a namespace
 		counter++
@@ -73,7 +66,7 @@ func (api NamespacesAPI) Listnamespaces(w http.ResponseWriter, r *http.Request) 
 		value := item.Value()
 		var namespace NamespaceCreate
 		namespace.FromBytes(value)
-
+		namespace.Label = strings.Replace(namespace.Label, api.config.Namespace.prefix, "", 1)
 		respBody = append(respBody, Namespace{
 			NamespaceCreate: namespace,
 		})

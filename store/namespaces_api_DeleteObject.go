@@ -13,7 +13,11 @@ import (
 func (api NamespacesAPI) DeleteObject(w http.ResponseWriter, r *http.Request) {
 	nsid := mux.Vars(r)["nsid"]
 
-	exists, err := api.db.Exists(nsid)
+	// Update namespace stats
+	defer api.UpdateNamespaceStats(nsid)
+
+	prefixedNamespaceID := fmt.Sprintf("%s%s", api.config.Namespace.prefix, nsid)
+	exists, err := api.db.Exists(prefixedNamespaceID)
 
 	if err != nil{
 		log.Errorln(err.Error())
