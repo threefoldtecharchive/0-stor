@@ -138,7 +138,7 @@ func TestCreateAndGetNamespace(t *testing.T) {
 
 	// success
 
-	payload = []byte(`{
+	payloadJson := `{
 	  "label": "namespace1",
 	  "acl": [
 	    {
@@ -160,7 +160,8 @@ func TestCreateAndGetNamespace(t *testing.T) {
 	      }
 	    }
 	  ]
-	}`)
+	}`
+	payload = []byte(payloadJson)
 
 	req, err = http.NewRequest("POST", "/namespaces/", bytes.NewBuffer(payload))
 	if err != nil {
@@ -171,30 +172,7 @@ func TestCreateAndGetNamespace(t *testing.T) {
 	router.ServeHTTP(rr, req)
 	assert.Equal(t, rr.Code, 201)
 
-	// conflict if namespace exists
-	payload = []byte(`{
-	  "label": "namespace1",
-	  "acl": [
-	    {
-	      "id": "normalUser",
-	      "acl": {
-		"read": true,
-		"write": true,
-		"delete": false,
-		"admin": false
-	      }
-	    },
-	    {
-	      "id": "admin",
-	      "acl": {
-		"read": true,
-		"write": true,
-		"delete": true,
-		"admin": true
-	      }
-	    }
-	  ]
-	}`)
+	// conflict if namespace exists (using old payload)
 
 	req, err = http.NewRequest("POST", "/namespaces/", bytes.NewBuffer(payload))
 	if err != nil {
@@ -213,6 +191,7 @@ func TestCreateAndGetNamespace(t *testing.T) {
 	router.ServeHTTP(rr2, req2)
 
 	assert.Equal(t, rr2.Code, 200)
+	assert.Equal(t, rr2.Body.String(), payloadJson)
 }
 
 func TestMain(m *testing.M) {
