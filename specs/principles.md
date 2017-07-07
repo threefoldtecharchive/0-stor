@@ -17,8 +17,6 @@
 
 policy=j.clients.0-stor.getPolicy()
 policy.setShard(["http://192.168.66.10:3000/bpath/",...]) #21 locations (always at least 1 more than distr nr + redundancy)
-policy.reservation_dataAccessToken="somethingdddddd" 
-policy.namespace="mynamespace" #namespace name as used on 0-stor
 policy.etcd_cluster=["192.168.66.10","192.168.66.11","192.168.66.13"]
 policy.blocksize=1024 #expressed in kb
 policy.replication_maxsize=1024 #expressed in kb, if small than this then will be X way replication
@@ -27,6 +25,9 @@ policy.distribution_nr = 16 #means will cut into 16 EC pieces
 policy.distribution_redundancy = 4# means will store 4 addiotional on top of 16
 policy.compression = True
 policy.encryption=True
+
+policy.reservation_dataAccessToken="somethingdddddd" 
+policy.namespace="mynamespace" #namespace name as used on 0-stor
 
 #we support no authentication for etcd for now, just open communication
 
@@ -94,6 +95,42 @@ cl.repair(start="keyOfPreviousEtcdEntry",fromEpoch=234234,toEpoch=342344,verify=
 
 ```
 
+## minimal example to restore info
+
+```python
+
+# with ETCD
+
+policy=j.clients.0-stor.getPolicy()
+policy.etcd_cluster=["192.168.66.10","192.168.66.11","192.168.66.13"]
+policy.reservation_dataAccessToken="somethingdddddd" 
+policy.namespace="mynamespace" #namespace name as used on 0-stor
+
+cl=j.clients.0-stor.get(policy)
+
+cl.get(key,path)
+
+#the metadata now comes out of the etcd cluster
+
+```
+
+```python
+
+# without ETCD
+
+mdata = ... comes from other metadata store e.g. ardb ...
+
+policy=j.clients.0-stor.getPolicy()
+policy.reservation_dataAccessToken="somethingdddddd" 
+policy.namespace="mynamespace" #namespace name as used on 0-stor
+
+cl=j.clients.0-stor.get(policy)
+
+cl.get(metadata=mdata,path=...)
+
+#the metadata now comes out of the etcd cluster
+
+```
 
 ## suggestions
 
