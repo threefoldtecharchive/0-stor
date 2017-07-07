@@ -79,10 +79,18 @@ for item in cl.walk(start="keyOfPreviousEtcdEntry",fromEpoch=234234,toEpoch=3423
 for item in cl.walkBack(start="keyOfPreviousEtcdEntry",fromEpoch=234234,toEpoch=342344):
     #same as before but now walk from last one to first one following the criteria
 
+other functionality to be completed
+
 ```
 
 
-## suggestions (start july 17)
+## suggestions
 
-- implement in golang as main language (also commandline to this lib)
-    - lets do a test how much slower golang is compared to C implemente dusing ISA (intel)
+- implement in golang as main language
+- would do other languages by means of grpc to client which runs as daemon
+    - e.g. zeroStorClient --daemon
+    - then grpc allows setting of params (see above) and then set, get, walk, ...
+    - https://husobee.github.io/golang/rest/grpc/2016/05/28/golang-rest-v-grpc.html
+
+## todo
+- lets do a test how much slower golang is compared to C implemente dusing ISA (intel)
