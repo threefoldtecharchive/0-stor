@@ -33,7 +33,7 @@ policy.namespace="mynamespace" #namespace name as used on 0-stor
 
 cl=j.clients.0-stor.get(policy)
 
-result,errors=cl.put(path=...)
+result,errors=cl.put(path=...,consumerid=...)
 #when smaller than policy.replication_maxsize will choose random 3 (X) locations out of first shard untill success
 #when bigger than replication: will use erasure coding over 20 from in this case 21 specified (random !)
 
@@ -68,7 +68,7 @@ Out[8]:
 assert errors==[]
 #errors is list of 0-stor servers which were down, if errors !=[] then a repair is needed to fix the store
 
-result=cl.put(path=...,etcd=True,previous="keyOfPreviousEtcdEntry", description="something" ) #will store the metadata in etcd
+result=cl.put(path=...,etcd=True,previous="keyOfPreviousEtcdEntry", description="something",consumerid=... ) #will store the metadata in etcd
 
 #when using ETCD the metadata is stored in etcd as capnp info with 3 additional fields: previous, next & description
 #when previous=... specified then the previous one is fetched, the next pointed to the new one, the release bumped (to make sure etcd does paxos well), and the new one is pointed back to the previous one, this creates a double linked list. 
@@ -131,6 +131,13 @@ cl.get(metadata=mdata,path=...)
 #the metadata now comes out of the etcd cluster
 
 ```
+
+## remark about consumer id
+
+- the client std does dedupe 
+- when uploading to 0-stor an exist needs to be done first, if it exists then only the consumerid is added
+- when deleting then only the consumerid is removed !!!
+- consumer id is a 16 byte key could be e.g. hash of path in NAS (multiple paths can point to same file)
 
 ## suggestions
 
