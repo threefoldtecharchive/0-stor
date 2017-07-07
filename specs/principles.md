@@ -32,7 +32,7 @@ policy.encryption=True
 
 cl=j.clients.0-stor.get(policy)
 
-result=cl.put(path=...)
+result,errors=cl.put(path=...)
 #when smaller than policy.replication_maxsize will choose random 3 (X) locations out of first shard untill success
 #when bigger than replication: will use erasure coding over 20 from in this case 21 specified (random !)
 
@@ -64,6 +64,9 @@ Out[8]:
  'epoch': 234234,
 }
 
+assert errors==[]
+#errors is list of 0-stor servers which were down, if errors !=[] then a repair is needed to fix the store
+
 result=cl.put(path=...,etcd=True,previous="keyOfPreviousEtcdEntry", description="something" ) #will store the metadata in etcd
 
 #when using ETCD the metadata is stored in etcd as capnp info with 3 additional fields: previous, next & description
@@ -80,6 +83,14 @@ for item in cl.walkBack(start="keyOfPreviousEtcdEntry",fromEpoch=234234,toEpoch=
     #same as before but now walk from last one to first one following the criteria
 
 other functionality to be completed
+
+cl.check(...)#will let us know if all parts of the erasure coded or replicated items are there
+
+cl.repair(start="keyOfPreviousEtcdEntry",fromEpoch=234234,toEpoch=342344,verify=True)
+# will walk over the linked list and check if all items are there, basically do cl.check of each item
+# if issue found then will re-encode and fix the missing part(s) and rewrite the metadata (release nr up)
+
+
 
 ```
 
