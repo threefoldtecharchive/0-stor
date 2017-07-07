@@ -7,7 +7,9 @@
 - each part encrypted using ??? hash of content 
 - input for uploading
    - see psuedo language
-- etcd can optionally be used for storing the metadata (even as a double linked list, very handy for e.g. storing tlogs)
+- etcd can optionally be used for storing the metadata 
+    - even as a double linked list, very handy for e.g. storing tlogs)
+    - ETCD is optional !!!
    
 ## pseudo language to use lib (example in python)
 
