@@ -1,0 +1,86 @@
+
+# 0-stor-lib
+
+## process for uploading large file
+
+- cut into parts (configurable size)
+- each part encrypted using ??? hash of content 
+- input for uploading
+   - see psuedo language
+- etcd can optionally be used for storing the metadata (even as a double linked list, very handy for e.g. storing tlogs)
+   
+## pseudo language to use lib (example in python)
+
+```python
+
+policy=j.clients.0-stor.getPolicy()
+policy.setShard(["http://192.168.66.10:3000/bpath/",...]) #21 locations (always at least 1 more than distr nr + redundancy)
+policy.reservation_dataAccessToken="somethingdddddd" 
+policy.namespace="mynamespace" #namespace name as used on 0-stor
+policy.etcd_cluster=["192.168.66.10","192.168.66.11","192.168.66.13"]
+policy.blocksize=1024 #expressed in kb
+policy.replication_maxsize=1024 #expressed in kb, if small than this then will be X way replication
+policy.replication_nr = 3 #e.g. 3 way replication
+policy.distribution_nr = 16 #means will cut into 16 EC pieces
+policy.distribution_redundancy = 4# means will store 4 addiotional on top of 16
+policy.compression = True
+policy.encryption=True
+
+#we support no authentication for etcd for now, just open communication
+
+cl=j.clients.0-stor.get(policy)
+
+result=cl.put(path=...)
+#when smaller than policy.replication_maxsize will choose random 3 (X) locations out of first shard untill success
+#when bigger than replication: will use erasure coding over 20 from in this case 21 specified (random !)
+
+print(result)
+Out[8]:
+{'encrkey': 'aabbccddeeffgghh',
+ 'key': 'bbccddeeffgghh',
+ 'shard': ['http://192.168.66.0:3000/bpath/',
+  'http://192.168.66.1:3000/bpath/',
+  'http://192.168.66.2:3000/bpath/',
+  'http://192.168.66.3:3000/bpath/',
+  'http://192.168.66.4:3000/bpath/',
+  'http://192.168.66.5:3000/bpath/',
+  'http://192.168.66.6:3000/bpath/',
+  'http://192.168.66.7:3000/bpath/',
+  'http://192.168.66.8:3000/bpath/',
+  'http://192.168.66.9:3000/bpath/',
+  'http://192.168.66.10:3000/bpath/',
+  'http://192.168.66.11:3000/bpath/',
+  'http://192.168.66.12:3000/bpath/',
+  'http://192.168.66.13:3000/bpath/',
+  'http://192.168.66.14:3000/bpath/',
+  'http://192.168.66.15:3000/bpath/',
+  'http://192.168.66.16:3000/bpath/',
+  'http://192.168.66.17:3000/bpath/',
+  'http://192.168.66.18:3000/bpath/',
+  'http://192.168.66.19:3000/bpath/'],
+ 'size': 34324242,
+ 'epoch': 234234,
+}
+
+result=cl.put(path=...,etcd=True,previous="keyOfPreviousEtcdEntry", description="something" ) #will store the metadata in etcd
+
+#when using ETCD the metadata is stored in etcd as capnp info with 3 additional fields: previous, next & description
+#when previous=... specified then the previous one is fetched, the next pointed to the new one, the release bumped (to make sure etcd does paxos well), and the new one is pointed back to the previous one, this creates a double linked list. 
+
+cl.get(metadata=result,path=...)
+
+for item in cl.walk(start="keyOfPreviousEtcdEntry",fromEpoch=234234,toEpoch=342344):
+    print (item["description"])
+    #description could be anything e.g. json encoded structural message which can be used to walk over history
+    
+
+for item in cl.walkBack(start="keyOfPreviousEtcdEntry",fromEpoch=234234,toEpoch=342344):
+    #same as before but now walk from last one to first one following the criteria
+
+```
+
+
+## suggestions (start july 17)
+
+- implement in golang as main language (also commandline to this lib)
+    - lets do a test how much slower golang is compared to C implemente dusing ISA (intel)
