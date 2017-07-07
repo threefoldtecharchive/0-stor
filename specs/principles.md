@@ -4,13 +4,13 @@
 ## process for uploading large file
 
 - cut into parts (configurable size)
-- each part encrypted using ??? hash of content 
+- each part encrypted using ??? hash of content
 - input for uploading
    - see psuedo language
-- etcd can optionally be used for storing the metadata 
+- etcd can optionally be used for storing the metadata
     - even as a double linked list, very handy for e.g. storing tlogs)
     - ETCD is optional !!!
-   
+
 ## pseudo language to use lib (example in python)
 
 ```python
@@ -26,7 +26,7 @@ policy.distribution_redundancy = 4# means will store 4 addiotional on top of 16
 policy.compression = True
 policy.encryption=True
 
-policy.reservation_dataAccessToken="somethingdddddd" 
+policy.reservation_dataAccessToken="somethingdddddd"
 policy.namespace="mynamespace" #namespace name as used on 0-stor
 
 #we support no authentication for etcd for now, just open communication
@@ -71,14 +71,14 @@ assert errors==[]
 result=cl.put(path=...,etcd=True,previous="keyOfPreviousEtcdEntry", description="something",consumerid=... ) #will store the metadata in etcd
 
 #when using ETCD the metadata is stored in etcd as capnp info with 3 additional fields: previous, next & description
-#when previous=... specified then the previous one is fetched, the next pointed to the new one, the release bumped (to make sure etcd does paxos well), and the new one is pointed back to the previous one, this creates a double linked list. 
+#when previous=... specified then the previous one is fetched, the next pointed to the new one, the release bumped (to make sure etcd does paxos well), and the new one is pointed back to the previous one, this creates a double linked list.
 
 cl.get(metadata=result,path=...)
 
 for item in cl.walk(start="keyOfPreviousEtcdEntry",fromEpoch=234234,toEpoch=342344):
     print (item["description"])
     #description could be anything e.g. json encoded structural message which can be used to walk over history
-    
+
 
 for item in cl.walkBack(start="keyOfPreviousEtcdEntry",fromEpoch=234234,toEpoch=342344):
     #same as before but now walk from last one to first one following the criteria
@@ -103,7 +103,7 @@ cl.repair(start="keyOfPreviousEtcdEntry",fromEpoch=234234,toEpoch=342344,verify=
 
 policy=j.clients.0-stor.getPolicy()
 policy.etcd_cluster=["192.168.66.10","192.168.66.11","192.168.66.13"]
-policy.reservation_dataAccessToken="somethingdddddd" 
+policy.reservation_dataAccessToken="somethingdddddd"
 policy.namespace="mynamespace" #namespace name as used on 0-stor
 
 cl=j.clients.0-stor.get(policy)
@@ -121,20 +121,17 @@ cl.get(key,path)
 mdata = ... comes from other metadata store e.g. ardb ...
 
 policy=j.clients.0-stor.getPolicy()
-policy.reservation_dataAccessToken="somethingdddddd" 
+policy.reservation_dataAccessToken="somethingdddddd"
 policy.namespace="mynamespace" #namespace name as used on 0-stor
 
 cl=j.clients.0-stor.get(policy)
 
 cl.get(metadata=mdata,path=...)
-
-#the metadata now comes out of the etcd cluster
-
 ```
 
 ## remark about consumer id
 
-- the client std does dedupe 
+- the client std does dedupe
 - when uploading to 0-stor an exist needs to be done first, if it exists then only the consumerid is added
 - when deleting then only the consumerid is removed !!!
 - consumer id is a 16 byte key could be e.g. hash of path in NAS (multiple paths can point to same file)
