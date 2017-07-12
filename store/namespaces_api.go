@@ -11,16 +11,30 @@ import (
 
 // NamespacesAPI is API implementation of /namespaces root endpoint
 type NamespacesAPI struct {
-	db     *Badger
-	config *settings
+	apiManager     *APIManager
+	config *Settings
+	db DB
 }
 
-func (api NamespacesAPI) DB() *Badger{
+func NewNamespacesAPI(db DB, conf *Settings, apiMan *APIManager) *NamespacesAPI{
+	return &NamespacesAPI{
+		apiManager: apiMan,
+		db: db,
+		config: conf,
+	}
+
+}
+
+func (api NamespacesAPI) DB() DB{
 	return api.db
 }
 
-func (api NamespacesAPI) Config() *settings{
+func (api NamespacesAPI) Config() *Settings{
 	return api.config
+}
+
+func (api NamespacesAPI) APIManager() *APIManager{
+	return api.apiManager
 }
 
 func (api NamespacesAPI) UpdateNamespaceStats(nsid string) error {
@@ -42,5 +56,5 @@ func (api NamespacesAPI) UpdateNamespaceStats(nsid string) error {
 }
 
 func (api NamespacesAPI) GetNamespaceID(r *http.Request) string{
-	return fmt.Sprintf("%s%s", api.config.Namespace.prefix , mux.Vars(r)["nsid"])
+	return fmt.Sprintf("%s%s", api.config.Namespace.Prefix , mux.Vars(r)["nsid"])
 }

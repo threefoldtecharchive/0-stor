@@ -1,12 +1,11 @@
 package main
 
 import (
-	"encoding/json"
 	"net/http"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
-	"github.com/zero-os/0-stor/store/goraml"
+	"github.com/zero-os/0-stor/store/core/goraml"
 
 	"os"
 	"os/signal"
@@ -15,59 +14,6 @@ import (
 	"github.com/gorilla/mux"
 	"gopkg.in/validator.v2"
 )
-
-type settings struct {
-	BindAddress string `json:"bind"`
-	DebugLog    bool   `json:"debug"`
-
-	Dirs struct {
-		Meta string `json:"meta"`
-		Data string `json:"data"`
-	} `json:"dirs"`
-
-	Iterator struct {
-		PreFetchSize int `json:"pre_fetch_size"`
-	} `json:"iterator"`
-
-	Pagination struct {
-		PageSize int `json:"page_size"`
-	}
-
-	Stats struct{
-		Store struct {
-			Collection string `json:"collection"`
-		}`json:"store"`
-
-		Namespaces struct {
-			Prefix string `json:"prefix"`
-		}`json:"namespaces"`
-	}`json:"stats"`
-
-	Reservations struct{
-		Namespaces struct {
-			Prefix string `json:"prefix"`
-		}`json:"namespaces"`
-	}`json:"reservations"`
-
-	Namespace struct {
-		prefix string `json:"prefix"`
-	}`json:namespace`
-}
-
-func loadSettings(path string) settings {
-	var settings settings
-	configFile, err := os.Open(path)
-	defer configFile.Close()
-
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-
-	if err := json.NewDecoder(configFile).Decode(&settings); err != nil {
-		log.Fatal(err.Error())
-	}
-	return settings
-}
 
 func gracefulShutdown(db *Badger) {
 	log.Println("Gracefully closing 0-stor")
@@ -85,7 +31,7 @@ func main() {
 
 	log.SetFormatter(&log.TextFormatter{FullTimestamp: true})
 	log.SetOutput(os.Stdout)
-	settings := settings{}
+	settings := new(Settings)
 
 	var configPath string
 	// settings := loadSettings()
@@ -111,37 +57,33 @@ func main() {
 			Name:        "data",
 			Usage:       "Data directory",
 			Value:       "db/data",
-			Destination: &settings.Dirs.Data,
+			Destination: &settings.DB.Dirs.Data,
 		},
 		cli.StringFlag{
 			Name:        "meta",
 			Usage:       "Metadata directory",
 			Value:       "db/meta",
-			Destination: &settings.Dirs.Meta,
+			Destination: &settings.DB.Dirs.Meta,
 		},
 		cli.IntFlag{
 			Name:        "pagination",
 			Usage:       "Default pagination page size",
 			Value:       100,
-			Destination: &settings.Pagination.PageSize,
+			Destination: &settings.DB.Pagination.PageSize,
 		},
 		cli.IntFlag{
 			Name:        "prefetch",
 			Usage:       "Set pre-fetch size",
 			Value:       100,
-			Destination: &settings.Iterator.PreFetchSize,
+			Destination: &settings.DB.Iterator.PreFetchSize,
 		},
 	}
 
 	app.Before = func(c *cli.Context) error {
 		if configPath != "" {
-			settings = loadSettings(configPath)
+			settings.Load(configPath)
 		}else {
-			settings.Stats.Store.Collection = "0@stats"
-			settings.Stats.Namespaces.Prefix = "0@stats_"
-			settings.Reservations.Namespaces.Prefix = "1@res_"
-			settings.Reservations.Namespaces.Prefix = "1@res_"
-			settings.Namespace.prefix = "2@_"
+			settings.LoadDefaults()
 		}
 
 		if settings.DebugLog {
@@ -167,13 +109,13 @@ func main() {
 		// apidocs
 		r.PathPrefix("/apidocs/").Handler(http.StripPrefix("/apidocs/", http.FileServer(http.Dir("./apidocs/"))))
 
-		db, err := NewBadger(settings.Dirs.Meta, settings.Dirs.Data)
+		db, err := NewBadger(settings)
 		if err != nil {
 			log.Fatal(err.Error())
 		}
 
 		st := StoreStat{}
-		exists, err := st.Exists(db, &settings)
+		exists, err := st.Exists(db, settings)
 		if err != nil{
 			log.Errorln("Database Error")
 			log.Errorln(err.Error())
@@ -184,13 +126,17 @@ func main() {
 
 		if !exists{
 			s := StoreStat{}
-			s.Save(db, &settings)
+			s.Save(db, settings)
 			state = "[CREATED]"
 		}
 
-		log.Printf("Global Stats collection: %v\t%s", settings.Stats.Store.Collection, state)
+		log.Printf("Global Stats collection: %v\t%s", settings.Store.Stats.Collection, state)
 
-		NamespacesInterfaceRoutes(r, &NamespacesAPI{db: db, config: &settings})
+		apiMan := NewAPIManager(db, settings)
+		api := NewNamespacesAPI(db, settings, apiMan)
+
+		NamespacesInterfaceRoutes(r, api)
+
 
 		sigChan := make(chan os.Signal, 1)
 		signal.Notify(sigChan, syscall.SIGINT)

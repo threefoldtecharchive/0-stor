@@ -1,7 +1,7 @@
 package reservation
 
 import (
-	"github.com/zero-os/0-stor/store/goraml"
+	"github.com/zero-os/0-stor/store/core/goraml"
 )
 
 type Reservation struct {

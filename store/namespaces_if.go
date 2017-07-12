@@ -15,13 +15,13 @@ type NamespacesInterface interface { // nsidaclPost is the handler for POST /nam
 	// Create an dataAccessToken for a user. This token gives this user access to the data in this namespace
 	nsidaclPost(http.ResponseWriter, *http.Request)
 	// DeleteObject is the handler for DELETE /namespaces/{nsid}/objects/{id}
-	// Delete object from the store
+	// Delete object from the KV
 	DeleteObject(http.ResponseWriter, *http.Request)
 	// HeadObject is the handler for HEAD /namespaces/{nsid}/objects/{id}
-	// Test object exists in the store
+	// Test object exists in the KV
 	HeadObject(http.ResponseWriter, *http.Request)
 	// GetObject is the handler for GET /namespaces/{nsid}/objects/{id}
-	// Retrieve object from the store
+	// Retrieve object from the KV
 	GetObject(http.ResponseWriter, *http.Request)
 	// UpdateObject is the handler for PUT /namespaces/{nsid}/objects/{id}
 	// Update oject
@@ -64,17 +64,19 @@ type NamespacesInterface interface { // nsidaclPost is the handler for POST /nam
 	Createnamespace(http.ResponseWriter, *http.Request)
 
 	// GetStoreStats is the handler for GET /namespaces/stats
-	// Return usage statistics about the whole store
+	// Return usage statistics about the whole KV
 	GetStoreStats(http.ResponseWriter, *http.Request)
 	// UpdateStoreStats is the handler for POST /namespaces/stats
 	// Update Global Store statistics and available space
 	UpdateStoreStats(http.ResponseWriter, *http.Request)
 
 	// Get db object
-	DB() *Badger
+	DB() *DB
 
 	// Get Settings object
-	Config() *settings
+	Config() *Settings
+
+	APIManager() *APIManager
 }
 
 // NamespacesInterfaceRoutes is routing for /namespaces root endpoint
