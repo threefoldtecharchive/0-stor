@@ -46,6 +46,3 @@ _testmain.go
 
 store/store
 coverage.txt
-
-# db
-store/db

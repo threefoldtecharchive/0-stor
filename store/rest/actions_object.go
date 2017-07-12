@@ -1,4 +1,4 @@
-package main
+package rest
 
 import (
 	"encoding/json"
@@ -77,7 +77,7 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 		if oldFile.Reference < 255 {
 			oldFile.Reference = oldFile.Reference + 1
 			log.Debugln(file.Reference)
-			if err = api.db.Set(key, oldFile.ToBytes()); err != nil {
+			if err = api.db.Set(key, oldFile.Encode()); err != nil {
 				log.Errorln(err.Error())
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				return
@@ -90,7 +90,7 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if err = api.db.Set(key, file.ToBytes()); err != nil {
+		if err = api.db.Set(key, file.Encode()); err != nil {
 			log.Errorln(err.Error())
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
@@ -160,7 +160,7 @@ func (api NamespacesAPI) DeleteObject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	f := File{}
-	f.FromBytes(v)
+	f.Decode(v)
 
 
 	res := r.Context().Value("reservation").(*Reservation)
@@ -424,7 +424,7 @@ func (api NamespacesAPI) UpdateObject(w http.ResponseWriter, r *http.Request) {
 	file.Reference = oldFile.Reference
 
 	// Add object
-	if err = api.db.Set(key, file.ToBytes()); err != nil {
+	if err = api.db.Set(key, file.Encode()); err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}

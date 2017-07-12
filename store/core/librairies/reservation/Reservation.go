@@ -1,7 +1,7 @@
 package reservation
 
 import (
-	"github.com/zero-os/0-stor/store/core/goraml"
+	"github.com/zero-os/0-stor/store/goraml"
 )
 
 type Reservation struct {
@@ -9,8 +9,7 @@ type Reservation struct {
 	Created      goraml.DateTime `json:"created" validate:"nonzero"`
 	ExpireAt     goraml.DateTime `json:"expireAt" validate:"nonzero"`
 	Id           string          `json:"id" validate:"regexp=^[a-zA-Z0-9]+$,nonzero"`
-	SizeReserved float64           `json:"sizeReserved" validate:"min=1,multipleOf=1,nonzero"`
-	SizeUsed     float64           `json:"sizeUsed" validate:"min=1,nonzero"`
+	SizeReserved float64         `json:"sizeReserved" validate:"min=1,multipleOf=1,nonzero"`
+	SizeUsed     float64         `json:"sizeUsed" validate:"min=1,nonzero"`
 	Updated      goraml.DateTime `json:"updated" validate:"nonzero"`
 }
-

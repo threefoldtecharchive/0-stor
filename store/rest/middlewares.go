@@ -1,39 +1,42 @@
-package main
-
+package rest
 
 import (
-	"net/http"
-	"github.com/gorilla/mux"
-	log "github.com/Sirupsen/logrus"
-	"github.com/zero-os/0-stor/store/core/librairies/reservation"
 	"context"
 	"crypto/ecdsa"
-	"github.com/dgrijalva/jwt-go"
-	"strings"
 	"fmt"
+	"net/http"
+	"strings"
+
+	log "github.com/Sirupsen/logrus"
+	"github.com/dgrijalva/jwt-go"
+	"github.com/gorilla/mux"
+	"github.com/laher/goxc/config"
+	"github.com/zero-os/0-stor/store/core/librairies/reservation"
+	"github.com/zero-os/0-stor/store/db"
+	"github.com/zero-os/0-stor/store/rest/models"
 )
 
-type DataTokenValidMiddleware struct{
-	acl ACLEntry
+type DataTokenValidMiddleware struct {
+	acl models.ACLEntry
 }
 
-func NewDataTokenValidMiddleware(acl ACLEntry) *DataTokenValidMiddleware{
+func NewDataTokenValidMiddleware(acl ACLEntry) *DataTokenValidMiddleware {
 	return &DataTokenValidMiddleware{
-		acl : acl,
+		acl: acl,
 	}
 }
 
 func (dt *DataTokenValidMiddleware) Handler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token := r.Header.Get("data-access-token")
-		if token == ""{
+		if token == "" {
 			http.Error(w, "Data access token is missing", http.StatusUnauthorized)
 			return
 		}
 
 		res := Reservation{}
 
-		if err := res.ValidateDataAccessToken(dt.acl, token); err != nil{
+		if err := res.ValidateDataAccessToken(dt.acl, token); err != nil {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}
@@ -42,15 +45,14 @@ func (dt *DataTokenValidMiddleware) Handler(next http.Handler) http.Handler {
 	})
 }
 
-
 type ReservationValidMiddleware struct {
-	db *Badger
-	config *Settings
+	db     db.DB
+	config *config.Settings
 }
 
-func NewReservationValidMiddleware(db *Badger, config *Settings) *ReservationValidMiddleware {
+func NewReservationValidMiddleware(db db.DB, config *config.Settings) *ReservationValidMiddleware {
 	return &ReservationValidMiddleware{
-		db: db,
+		db:     db,
 		config: config,
 	}
 }
@@ -59,7 +61,7 @@ func (re *ReservationValidMiddleware) Handler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		token := r.Header.Get("reservation-token")
-		if token == ""{
+		if token == "" {
 			http.Error(w, "Reservation token is missing", http.StatusUnauthorized)
 			return
 		}
@@ -70,7 +72,7 @@ func (re *ReservationValidMiddleware) Handler(next http.Handler) http.Handler {
 
 		resID, err := res.ValidateReservationToken(token, nsid)
 
-		if err != nil{
+		if err != nil {
 			http.Error(w, "Reservation token is invalid", http.StatusUnauthorized)
 			return
 		}
@@ -83,13 +85,13 @@ func (re *ReservationValidMiddleware) Handler(next http.Handler) http.Handler {
 
 		v, err := res.Get(re.db, re.config)
 
-		if err != nil{
+		if err != nil {
 			log.Errorln(err.Error())
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
 
-		if v == nil{
+		if v == nil {
 			http.Error(w, "Reservation token is invalid", http.StatusUnauthorized)
 			return
 		}

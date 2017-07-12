@@ -1,19 +1,23 @@
-package main
+package badger
 
 import (
 	"os"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/dgraph-io/badger"
+	badgerkv "github.com/dgraph-io/badger"
+	"github.com/zero-os/0-stor/store/config"
+	"github.com/zero-os/0-stor/store/db"
 )
 
-type Badger struct {
-	KV *badger.KV
-	Config *Settings
+var _ db.DB = (*BadgerDB)(nil)
+
+type BadgerDB struct {
+	KV     *badgerkv.KV
+	Config *config.Settings
 }
 
 /* Constructor */
-func NewBadger(settings *Settings) (*Badger, error) {
+func New(settings *config.Settings) (*BadgerDB, error) {
 	log.Println("Initializing db directories")
 
 	if err := os.MkdirAll(settings.DB.Dirs.Meta, 0774); err != nil {
@@ -30,11 +34,11 @@ func NewBadger(settings *Settings) (*Badger, error) {
 
 	log.Printf("\t\tData dir: %v [SUCCESS]", settings.DB.Dirs.Data)
 
-	opts := badger.DefaultOptions
+	opts := badgerkv.DefaultOptions
 	opts.Dir = settings.DB.Dirs.Meta
 	opts.ValueDir = settings.DB.Dirs.Data
 
-	kv, err := badger.NewKV(&opts)
+	kv, err := badgerkv.NewKV(&opts)
 
 	if err == nil {
 		log.Println("Loading db [SUCCESS]")
@@ -42,75 +46,65 @@ func NewBadger(settings *Settings) (*Badger, error) {
 		log.Println("Loading db [ERROR]")
 	}
 
-	return &Badger{
-		KV: kv,
+	return &BadgerDB{
+		KV:     kv,
 		Config: settings,
 	}, err
 }
 
-func (b Badger) New(settings *Settings) (*Badger, error) {
-	return NewBadger(settings)
-}
-
-func (b Badger) Close() error {
+func (b BadgerDB) Close() error {
 	err := b.KV.Close()
-	if err != nil{
+	if err != nil {
 		log.Errorln(err.Error())
-		err = ErrorDB
 	}
 	return err
 }
 
-func (b Badger) Delete(key string) error {
-	err :=  b.KV.Delete([]byte(key))
-	if err != nil{
+func (b BadgerDB) Delete(key string) error {
+	err := b.KV.Delete([]byte(key))
+	if err != nil {
 		log.Errorln(err.Error())
-		err = ErrorDB
 	}
 	return err
 }
 
-func (b Badger) Set(key string, val []byte) error {
+func (b BadgerDB) Set(key string, val []byte) error {
 	err := b.KV.Set([]byte(key), val)
-	if err != nil{
+	if err != nil {
 		log.Errorln(err.Error())
-		err = ErrorDB
 	}
 	return err
 }
 
-func (b Badger) Get(key string) ([]byte, error) {
-	var item badger.KVItem
+func (b BadgerDB) Get(key string) ([]byte, error) {
+	var item badgerkv.KVItem
 
 	err := b.KV.Get([]byte(key), &item)
 
-	if err != nil{
+	if err != nil {
 		log.Errorln(err.Error())
-		err = ErrorDB
 		return nil, err
 	}
 
 	v := item.Value()
 
-	if len(v) == 0{
-		err = ErrorNotFound
-
+	if len(v) == 0 {
+		err = db.ErrNotFound
 	}
 
 	return v, err
 }
 
-func (b Badger) Exists(key string) (bool, error) {
-	exists, err :=  b.KV.Exists([]byte(key))
-	if err != nil{
+func (b BadgerDB) Exists(key string) (bool, error) {
+	exists, err := b.KV.Exists([]byte(key))
+	if err != nil {
 		log.Errorln(err.Error())
-		err = ErrorDB
 	}
 	return exists, err
 }
 
-func (b Badger) GetAllStartingWith(prefix string, start int, count int) ([][]byte, error) {
-	opt := badger.DefaultIteratorOptions
+func (b BadgerDB) GetAllStartingWith(prefix string, start int, count int) ([][]byte, error) {
+	opt := badgerkv.DefaultIteratorOptions
 	opt.PrefetchSize = b.Config.DB.Iterator.PreFetchSize
 
 	it := b.KV.NewIterator(opt)
@@ -136,8 +130,6 @@ func (b Badger) GetAllStartingWith(prefix string, start int, count int) ([][]byt
 		value := item.Value()
 		result = append(result, value)
 
-
-
 		if len(result) == count {
 			break
 		}
@@ -146,8 +138,8 @@ func (b Badger) GetAllStartingWith(prefix string, start int, count int) ([][]byt
 	return result, nil
 }
 
-func (b Badger) ListAllRecordsStartingWith(prefix string) ([]string, error) {
-	opt := badger.DefaultIteratorOptions
+func (b BadgerDB) List(prefix string) ([]string, error) {
+	opt := badgerkv.DefaultIteratorOptions
 	opt.PrefetchSize = b.Config.DB.Iterator.PreFetchSize
 	opt.FetchValues = false
 
@@ -167,22 +159,22 @@ func (b Badger) ListAllRecordsStartingWith(prefix string) ([]string, error) {
 	return result, nil
 }
 
-/* Get File */
-func (b Badger) GetFile(key string) (*File, error) {
-	bytes, err := b.Get(key)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if bytes == nil {
-		return nil, nil
-	}
-
-	file := &File{}
-	err = file.FromBytes(bytes)
-	if err != nil {
-		return nil, err
-	}
-	return file, nil
-}
+// /* Get File */
+// func (b BadgerDB) GetFile(key string) (*File, error) {
+// 	bytes, err := b.Get(key)
+//
+// 	if err != nil {
+// 		return nil, err
+// 	}
+//
+// 	if bytes == nil {
+// 		return nil, nil
+// 	}
+//
+// 	file := &File{}
+// 	err = file.Decode(bytes)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return file, nil
+// }

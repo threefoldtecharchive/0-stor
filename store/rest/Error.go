@@ -1,4 +1,4 @@
-package main
+package rest
 
 import (
 	"gopkg.in/validator.v2"
@@ -9,6 +9,5 @@ type Error struct {
 }
 
 func (s Error) Validate() error {
-
 	return validator.Validate(s)
 }

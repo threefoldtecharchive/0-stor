@@ -5,7 +5,11 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
-	"github.com/zero-os/0-stor/store/core/goraml"
+	"github.com/zero-os/0-stor/store/config"
+	"github.com/zero-os/0-stor/store/db/badger"
+	"github.com/zero-os/0-stor/store/goraml"
+	"github.com/zero-os/0-stor/store/rest"
+	"github.com/zero-os/0-stor/store/rest/models"
 
 	"os"
 	"os/signal"
@@ -19,7 +23,6 @@ func gracefulShutdown(db *Badger) {
 	log.Println("Gracefully closing 0-stor")
 	db.Close()
 	os.Exit(0)
-
 }
 
 const version = "0.0.1"
@@ -31,7 +34,7 @@ func main() {
 
 	log.SetFormatter(&log.TextFormatter{FullTimestamp: true})
 	log.SetOutput(os.Stdout)
-	settings := new(Settings)
+	settings := &config.Settings{}
 
 	var configPath string
 	// settings := loadSettings()
@@ -82,8 +85,6 @@ func main() {
 	app.Before = func(c *cli.Context) error {
 		if configPath != "" {
 			settings.Load(configPath)
-		}else {
-			settings.LoadDefaults()
 		}
 
 		if settings.DebugLog {
@@ -109,14 +110,15 @@ func main() {
 		// apidocs
 		r.PathPrefix("/apidocs/").Handler(http.StripPrefix("/apidocs/", http.FileServer(http.Dir("./apidocs/"))))
 
-		db, err := NewBadger(settings)
+		db, err := badger.New(settings)
 		if err != nil {
 			log.Fatal(err.Error())
 		}
 
-		st := StoreStat{}
+		// TODO: is this the correct location to do that ?
+		st := models.StoreStat{}
 		exists, err := st.Exists(db, settings)
-		if err != nil{
+		if err != nil {
 			log.Errorln("Database Error")
 			log.Errorln(err.Error())
 			return
@@ -124,7 +126,7 @@ func main() {
 
 		state := "[USING CURRENT]"
 
-		if !exists{
+		if !exists {
 			s := StoreStat{}
 			s.Save(db, settings)
 			state = "[CREATED]"
@@ -132,30 +134,24 @@ func main() {
 
 		log.Printf("Global Stats collection: %v\t%s", settings.Store.Stats.Collection, state)
 
-		apiMan := NewAPIManager(db, settings)
-		api := NewNamespacesAPI(db, settings, apiMan)
+		apiMan := rest.NewAPIManager(db, settings)
+		api := rest.NewNamespacesAPI(db, settings)
 
 		NamespacesInterfaceRoutes(r, api)
-
 
 		sigChan := make(chan os.Signal, 1)
 		signal.Notify(sigChan, syscall.SIGINT)
 
-		defer gracefulShutdown(db)
-
 		go func() {
-			<-sigChan
-			gracefulShutdown(db)
+			log.Infof("Server listening on %s\n", settings.BindAddress)
+			if err := http.ListenAndServe(settings.BindAddress, r); err != nil {
+				log.Fatal(err.Error())
+			}
 		}()
 
-		log.Infof("Server listening on %s\n", settings.BindAddress)
-
-		if err := http.ListenAndServe(settings.BindAddress, r); err != nil {
-			log.Fatal(err.Error())
-
-		}
+		<-sigChan // block on signal handler
+		gracefulShutdown(db)
 	}
 
 	app.Run(os.Args)
-
 }
