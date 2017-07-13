@@ -9,9 +9,17 @@ import (
 	"github.com/zero-os/0-stor/store/db"
 	"github.com/zero-os/0-stor/store/utils"
 	validator "gopkg.in/validator.v2"
+	"github.com/zero-os/0-stor/store/config"
+	"strings"
 )
 
 var _ (db.Model) = (*Namespace)(nil)
+
+/*
+| SpaceAvailable  | SpaceUsed  |label size   | ACL[] length |Label   |ACL[0]  Size | ACL[0] |
+|-----------------|------------|-------------|--------------|--------|-------------|--------|
+| 8 bytes         | 8 bytes    | 2 bytes     | 2 bytes      |        |  2 bytes    |        |
+*/
 
 type Namespace struct {
 	NamespaceCreate
@@ -49,15 +57,18 @@ func (s *Namespace) Decode(data []byte) error {
 }
 
 func (s *Namespace) Key() string {
-	return fmt.Sprintf("%s%s", NAMESPACE_PREFIX, s.Label)
+	return fmt.Sprintf("%s%s", config.NAMESPACE_COLLECTION_PREFIX, s.Label)
 }
 
 var _ (db.Model) = (*NamespaceCreate)(nil)
 
-// NamespaceCreate is the object sent from the user to create a namespace
-// label size   | ACL[] length |Label   |ACL[0]  SizeAvailable | ACL[0] |
-// |-------------|--------------|--------|-------------|--------|
-// | 2 bytes     | 2 bytes      |        |    2 bytes |        |
+/*
+ NamespaceCreate is the object sent from the user to create a namespace
+ label size   | ACL[] length |Label   |ACL[0]  SizeAvailable | ACL[0] |
+ |------------|--------------|--------|-------------|--------|
+ | 2 bytes    | 2 bytes      |        |    2 bytes |        |
+*/
+
 type NamespaceCreate struct {
 	Acl   []ACL  `json:"acl"`
 	Label string `json:"label" validate:"min=5,max=128,regexp=^[a-zA-Z0-9]+$,nonzero"`
@@ -66,6 +77,7 @@ type NamespaceCreate struct {
 func (s NamespaceCreate) Validate() error {
 	return validator.Validate(s)
 }
+
 
 func (s NamespaceCreate) Encode() ([]byte, error) {
 	label := []byte(s.Label)
@@ -128,7 +140,11 @@ func (s *NamespaceCreate) Decode(data []byte) error {
 	return nil
 }
 
-// FIXME
+
+func (s *NamespaceCreate) Key() string {
+	return fmt.Sprintf("%s%s", config.NAMESPACE_COLLECTION_PREFIX, s.Label)
+}
+
 func (s *NamespaceCreate) UpdateACL(acl ACL) {
 	aclIndex := -1 // -1 means ACL for that user does not exist
 
@@ -146,56 +162,8 @@ func (s *NamespaceCreate) UpdateACL(acl ACL) {
 	} else { // Insert new ACL
 		s.Acl = append(s.Acl, acl)
 	}
-
-	// return s.Save(db, config)
 }
 
-//
-// func (s NamespaceCreate) Exists(db DB, config *Settings) (bool, error) {
-// 	exists, err := db.Exists(s.Label)
-// 	if err != nil {
-// 		log.Errorln(err.Error())
-// 		return exists, err
-// 	}
-// 	return exists, nil
-// }
-//
-// func (s NamespaceCreate) Save(db DB, config *Settings) error {
-// 	return db.Set(s.Label, s.Encode())
-// }
-
-func (s *NamespaceCreate) Key() string {
-	return fmt.Sprintf("%s%s", NAMESPACE_PREFIX, s.Label)
-}
-
-// func (s *NamespaceCreate) Get(db DB, config *Settings) (*NamespaceCreate, error) {
-// 	key := s.GetKeyForNamespace(s.Label, config)
-// 	v, err := db.Get(key)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-//
-// 	if len(v) == 0 {
-// 		return nil, nil
-// 	}
-// 	s.Decode(v)
-// 	return s, nil
-// // }
-//
-// func GetNamespaceStats(label string) (*NamespaceStats, error) {
-// 	stats := NamespaceStats{
-// 		Namespace: Label,
-// 	}
-// 	return stats.Get(db, config)
-// }
-
-//
-// func (s *NamespaceCreate) GetKeyForReservations(config *Settings) string {
-// 	r := Reservation{
-// 		Namespace: s.Label,
-// 	}
-// 	return r.GetKey(config)
-// }
 
 type NamespaceStat struct {
 	NrObjects      int64 `json:"NrObjects" validate:"nonzero"`
@@ -260,30 +228,9 @@ func (s *NamespaceStats) Decode(data []byte) error {
 }
 
 func (s NamespaceStats) Key() string {
-	return fmt.Sprintf("%s%s", NAMESPACE_STATS_PREFIX, s.Namespace)
+	label := s.Namespace
+	if strings.Index(label, config.NAMESPACE_COLLECTION_PREFIX) != -1{
+		label = strings.Replace(label, config.NAMESPACE_COLLECTION_PREFIX, "", 1)
+	}
+	return fmt.Sprintf("%s%s", config.NAMESPACE_STATS_COLLECTION_PREFIX, label)
 }
-
-// func (s NamespaceStats) Save(db DB, config *Settings) error {
-// 	key := s.GetKeyForNameSpace(config)
-// 	return db.Set(key, s.Encode())
-// }
-//
-// func (s NamespaceStats) Delete(db DB, config *Settings) error {
-// 	key := s.GetKeyForNameSpace(config)
-// 	return db.Delete(key)
-// }
-//
-// func (s *NamespaceStats) Get(db DB, config *Settings) (*NamespaceStats, error) {
-// 	key := s.GetKeyForNameSpace(config)
-// 	v, err := db.Get(key)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-//
-// 	if v == nil {
-// 		return nil, errors.New("Namespace stats not found")
-// 	}
-//
-// 	s.Decode(v)
-// 	return s, nil
-// }

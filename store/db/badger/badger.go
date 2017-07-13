@@ -103,7 +103,11 @@ func (b BadgerDB) Exists(key string) (bool, error) {
 	return exists, err
 }
 
-func (b BadgerDB) GetAllStartingWith(prefix string, start int, count int) ([][]byte, error) {
+/*
+	Pass count = -1 to get all elements starting from the provided index
+
+ */
+func (b BadgerDB) Filter(prefix string, start int, count int) ([][]byte, error) {
 	opt := badgerkv.DefaultIteratorOptions
 	opt.PrefetchSize = b.Config.DB.Iterator.PreFetchSize
 
@@ -117,20 +121,18 @@ func (b BadgerDB) GetAllStartingWith(prefix string, start int, count int) ([][]b
 	prefixBytes := []byte(prefix)
 
 	for it.Seek(prefixBytes); it.ValidForPrefix(prefixBytes); it.Next() {
-		item := it.Item()
-
-		// Found a namespace
 		counter++
 
-		// Skip this namespace if its index < intended startingIndex
+		// Skip until starting index
 		if counter < start {
 			continue
 		}
 
+		item := it.Item()
 		value := item.Value()
 		result = append(result, value)
 
-		if len(result) == count {
+		if count > 0 && len(result) == count {
 			break
 		}
 	}
@@ -158,23 +160,3 @@ func (b BadgerDB) List(prefix string) ([]string, error) {
 
 	return result, nil
 }
-
-// /* Get File */
-// func (b BadgerDB) GetFile(key string) (*File, error) {
-// 	bytes, err := b.Get(key)
-//
-// 	if err != nil {
-// 		return nil, err
-// 	}
-//
-// 	if bytes == nil {
-// 		return nil, nil
-// 	}
-//
-// 	file := &File{}
-// 	err = file.Decode(bytes)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return file, nil
-// }

@@ -7,10 +7,13 @@ import (
 
 var _ (db.Model) = (*ACL)(nil)
 
-// ACL of a reservation
-// | ACLEntry  | Id      |
-// |-----------|---------|
-// | 4 bytes   | variable|
+/*
+ ACL of a reservation
+ | ACLEntry  | Id      |
+ |-----------|---------|
+ | 4 bytes   | variable|
+*/
+
 type ACL struct {
 	Acl ACLEntry `json:"acl" validate:"nonzero"`
 	Id  string   `json:"id" validate:"regexp=^\w+$,nonzero"`
@@ -43,10 +46,12 @@ func (s *ACL) Key() string {
 	return s.Id
 }
 
-// ACLEntry for a reservation
-// | Admin  | Read  | Write  | Delete  |
-// |--------|-------|--------|---------|
-// | 1 byte | 1 byte| 1 byte | 1 byte  |
+/*
+ ACLEntry for a reservation
+ | Admin  | Read  | Write  | Delete  |
+ |--------|-------|--------|---------|
+ | 1 byte | 1 byte| 1 byte | 1 byte  |
+*/
 type ACLEntry struct {
 	Admin  bool `json:"admin"`
 	Delete bool `json:"delete"`
@@ -55,7 +60,6 @@ type ACLEntry struct {
 }
 
 func (s ACLEntry) Validate() error {
-
 	return validator.Validate(s)
 }
 
@@ -108,11 +112,6 @@ func (s *ACLEntry) Decode(data []byte) error {
 	return nil
 }
 
-func (s *ACLEntry) SetAdminPrivileges() *ACLEntry {
-	s.Admin = true
-	s.Delete = true
-	s.Read = true
-	s.Write = true
-
-	return s
+func (s ACLEntry) Key() string{
+	return nil
 }

@@ -4,8 +4,7 @@ package db
 type DB interface {
 	Get(key string) ([]byte, error)
 	Exists(key string) (bool, error)
-	// GetAllStartingWith(prefix string, start int, count int) ([][]byte, error)
-	// ListAllRecordsStartingWith(prefix string) ([]string, error)
+	Filter(prefix string, start int, count int) ([][]byte, error)
 	List(prefix string) ([]string, error)
 	Set(key string, value []byte) error
 	Delete(key string) error

@@ -10,6 +10,8 @@ import (
 const (
 	STORE_STATS_COLLECTION_NAME             = "0@stats"
 	NAMESPACE_RESERVATION_COLLECTION_PREFIX = "1@res_"
+	NAMESPACE_COLLECTION_PREFIX = "2@_"
+	NAMESPACE_STATS_COLLECTION_PREFIX = "0@stats_"
 )
 
 type Settings struct {
@@ -30,7 +32,7 @@ type Settings struct {
 		Pagination struct {
 			PageSize int `json:"page_size"`
 		}
-	} `json:badger`
+	} `json:db`
 }
 
 func (s *Settings) Load(path string) error {
@@ -50,11 +52,3 @@ func (s *Settings) Load(path string) error {
 
 	return nil
 }
-
-// func (s *Settings) LoadDefaults() error {
-// 	s.Store.Stats.Collection = STORE_STATS_COLLECTION_NAME
-// 	s.Namespace.Stats.Prefix = NAMESPACE_STATS_COLlECTION_NAME_PREFIX
-// 	s.Namespace.Reservations.Prefix = NAMESPACE_RESERVATION_COLLECTION_PREFIX
-// 	s.Namespace.Prefix = NAMESPACE_COLLECTION_NAME_PREFIX
-// 	return nil
-// }

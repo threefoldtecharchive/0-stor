@@ -1,15 +1,9 @@
 package rest
 
 import (
-	"net/http"
-
-	log "github.com/Sirupsen/logrus"
-	"github.com/laher/goxc/config"
 	"github.com/zero-os/0-stor/store/db"
+	"github.com/zero-os/0-stor/store/config"
 
-	"fmt"
-
-	"github.com/gorilla/mux"
 )
 
 var _ (NamespacesInterface) = (*NamespacesAPI)(nil)
@@ -20,41 +14,18 @@ type NamespacesAPI struct {
 	db     db.DB
 }
 
-func NewNamespacesAPI(db DB, conf *config.Settings) *NamespacesAPI {
+func NewNamespacesAPI(db db.DB, conf *config.Settings) *NamespacesAPI {
 	return &NamespacesAPI{
-		apiManager: apiMan,
 		db:         db,
 		config:     conf,
 	}
 
 }
 
-func (api NamespacesAPI) DB() DB {
+func (api NamespacesAPI) DB() db.DB {
 	return api.db
 }
 
-func (api NamespacesAPI) Config() *Settings {
+func (api NamespacesAPI) Config() *config.Settings {
 	return api.config
-}
-
-func (api NamespacesAPI) UpdateNamespaceStats(nsid string) error {
-	nsStats := NamespaceStats{Namespace: nsid}
-
-	_, err := nsStats.Get(api.db, api.config)
-	if err != nil {
-		log.Errorln(err.Error())
-		return err
-	}
-
-	nsStats.NrRequests += 1
-
-	if err := nsStats.Save(api.db, api.config); err != nil {
-		log.Errorln(err.Error())
-		return err
-	}
-	return nil
-}
-
-func (api NamespacesAPI) GetNamespaceID(r *http.Request) string {
-	return fmt.Sprintf("%s%s", api.config.Namespace.Prefix, mux.Vars(r)["nsid"])
 }

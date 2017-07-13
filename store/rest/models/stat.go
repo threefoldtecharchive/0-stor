@@ -3,6 +3,7 @@ package models
 import (
 	"github.com/zero-os/0-stor/store/utils"
 	validator "gopkg.in/validator.v2"
+	"github.com/zero-os/0-stor/store/config"
 )
 
 type StoreStatRequest struct {
@@ -18,11 +19,11 @@ func (s StoreStatRequest) Validate() error {
 	return validator.Validate(s)
 }
 
-func (s *StoreStat) Encode() []byte {
+func (s *StoreStat) Encode() ([]byte, error) {
 	bytes := make([]byte, 16)
 	copy(bytes[0:8], utils.Float64bytes(s.SizeAvailable))
 	copy(bytes[8:16], utils.Float64bytes(s.SizeUsed))
-	return bytes
+	return bytes, nil
 }
 
 func (s *StoreStat) Decode(data []byte) error {
@@ -31,22 +32,6 @@ func (s *StoreStat) Decode(data []byte) error {
 	return nil
 }
 
-//
-// func (s StoreStat) Save(db DB, config *Settings) error {
-// 	key := config.Store.Stats.Collection
-// 	return db.Set(key, s.Encode())
-// }
-//
-// func (s StoreStat) Exists(db DB, config *Settings) (bool, error) {
-// 	return db.Exists(config.Store.Stats.Collection)
-// }
-//
-// func (s *StoreStat) Get(db DB, config *Settings) error {
-// 	key := config.Store.Stats.Collection
-// 	v, err := db.Get(key)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	s.Decode(v)
-// 	return nil
-// }
+func (s StoreStat) Key() string {
+	return config.STORE_STATS_COLLECTION_NAME
+}

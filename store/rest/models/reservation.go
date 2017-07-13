@@ -13,9 +13,29 @@ import (
 	"github.com/zero-os/0-stor/store/db"
 	"github.com/zero-os/0-stor/store/utils"
 	validator "gopkg.in/validator.v2"
+	"github.com/zero-os/0-stor/store/config"
+	"strings"
 )
 
 var _ (db.Model) = (*Reservation)(nil)
+
+/*
+-----------------------------------------------------------------
+SizeReserved| TotalSizeReserved |Size of CreationDate
+ 8         |   8      |  2
+-----------------------------------------------------------------
+
+-----------------------------------------------------------------------
+Size of UpdateDate     |Size of ExpirationDate | Size ID | Size AdminID
+    2                  |         2             |  2       |   2
+----------------------------------------------------------------------
+
+------------------------------------------------------------
+ CreationDate | UpdateDate | ExpirationDate | ID | AdminId
+------------------------------------------------------------
+
+*/
+
 
 type Reservation struct {
 	Namespace string
@@ -53,48 +73,14 @@ func (s Reservation) SizeRemaining() float64 {
 }
 
 func (s Reservation) Key() string {
-	return fmt.Sprintf("%s%s_%s", RESERVATION_PREFIX, s.Namespace, s.Id)
+	label := s.Namespace
+	if strings.Index(label, config.NAMESPACE_COLLECTION_PREFIX) != -1{
+		label = strings.Replace(label, config.NAMESPACE_COLLECTION_PREFIX, "", 1)
+	}
+	return fmt.Sprintf("%s%s_%s", config.NAMESPACE_RESERVATION_COLLECTION_PREFIX, label, s.Id)
 }
 
-//
-// func (r Reservation) Save(db DB, config *Settings) error {
-// 	key := r.GetKey(config)
-// 	return db.Set(key, r.Encode())
-// }
-//
-// func (r *Reservation) Get(db DB, config *Settings) (*Reservation, error) {
-// 	key := r.GetKey(config)
-// 	v, err := db.Get(key)
-//
-// 	if err != nil {
-// 		return nil, err
-// 	}
-//
-// 	if v == nil {
-// 		return nil, nil
-// 	}
-//
-// 	r.Decode(v)
-// 	return r, nil
-// }
-
 func (s Reservation) Encode() ([]byte, error) {
-	/*
-			-----------------------------------------------------------------
-			SizeReserved| TotalSizeReserved |Size of CreationDate
-			 8         |   8      |  2
-			-----------------------------------------------------------------
-
-			-----------------------------------------------------------------------
-			Size of UpdateDate     |Size of ExpirationDate | Size ID | Size AdminID
-		 	    2                  |         2             |  2       |   2
-			----------------------------------------------------------------------
-
-			------------------------------------------------------------
-			 CreationDate | UpdateDate | ExpirationDate | ID | AdminId
-			------------------------------------------------------------
-
-	*/
 
 	adminId := s.AdminId
 	aSize := int16(len(adminId))
@@ -201,11 +187,11 @@ func (s *Reservation) Decode(data []byte) error {
 }
 
 /*
-	Token format
-	-----------------------------------------------------------------------------------------------------------
-	Random bytes |ReservationExpirationDateEpoch| namespace ID length| reservation ID length| namespaceID|resID
-	    51           8                                2 bytes        |     2 bytes
-	-----------------------------------------------------------------------------------------------------------
+Token format
+-----------------------------------------------------------------------------------------------------------
+Random bytes |ReservationExpirationDateEpoch| namespace ID length| reservation ID length| namespaceID|resID
+    51           8                                2 bytes        |     2 bytes
+-----------------------------------------------------------------------------------------------------------
 */
 
 func (s Reservation) GenerateTokenForReservation(namespaceID string) (string, error) {
