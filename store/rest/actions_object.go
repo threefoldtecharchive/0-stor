@@ -4,12 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"github.com/dgraph-io/badger"
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
-	"strings"
 	"strconv"
 	"github.com/zero-os/0-stor/store/rest/models"
+	"github.com/zero-os/0-stor/store/db"
 )
 
 // Createobject is the handler for POST /namespaces/{nsid}/objects
@@ -51,7 +50,7 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Make sure file contents are valid
-	file, err := reqBody.ToFile(true)
+	file, err := reqBody.ToFile(nsid)
 
 	if err != nil {
 		log.Errorln(err.Error())
@@ -61,53 +60,81 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 
 	reservation := r.Context().Value("reservation").(*models.Reservation)
 
-	oldObject := models.Object{
+	oldFile := models.File{
 		Id: reqBody.Id,
+		Namespace: nsid,
 	}
 
+	b, err := api.db.Get(oldFile.Key())
 
-
-	oldFile, err := api.db.GetFile(key)
-
-	// Database Error
 	if err != nil {
-		log.Errorln(err.Error())
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
+		if err != db.ErrNotFound {
+			log.Errorln(err.Error())
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}else{
+			// New file created as oldFile not exists
+			if reservation.SizeRemaining() < file.Size(){
+				http.Error(w, "File SizeAvailable exceeds the remaining free space in namespace", http.StatusForbidden)
+				return
+			}
 
-	// object already exists
-	if oldFile != nil {
-		// Only update reference -- we don't update content here
-		if oldFile.Reference < 255 {
-			oldFile.Reference = oldFile.Reference + 1
-			log.Debugln(file.Reference)
-			if err = api.db.Set(key, oldFile.Encode()); err != nil {
+			b, err = file.Encode()
+
+			if err != nil{
+				log.Errorln(err.Error())
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				return
+			}
+
+			if err = api.db.Set(file.Key(), b); err != nil {
+				log.Errorln(err.Error())
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				return
+			}
+
+			reservation.SizeUsed += file.Size()
+
+			b, err = reservation.Encode()
+
+			if err != nil{
+				log.Errorln(err.Error())
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				return
+			}
+
+			if err:= api.db.Set(reservation.Key(), b); err != nil{
 				log.Errorln(err.Error())
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				return
 			}
 		}
 	}else{
-		// New file created
-		if reservation.SizeRemaining() < file.Size(){
-			http.Error(w, "File SizeAvailable exceeds the remaining free space in namespace", http.StatusForbidden)
-			return
-		}
-
-		if err = api.db.Set(key, file.Encode()); err != nil {
+		err = oldFile.Decode(b)
+		if err != nil{
 			log.Errorln(err.Error())
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
 
-		reservation.SizeUsed += file.Size()
+		// Only update reference -- we don't update content here
+		if oldFile.Reference < 255 {
+			oldFile.Reference = oldFile.Reference + 1
+			log.Debugln(file.Reference)
+			b, err = oldFile.Encode()
+			if err != nil{
+				log.Errorln(err.Error())
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				return
+			}
 
-		if err:= reservation.Save(api.db, api.config); err != nil{
-			log.Errorln(err.Error())
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
+			if err = api.db.Set(oldFile.Key(), b); err != nil {
+				log.Errorln(err.Error())
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				return
+			}
 		}
+
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -121,11 +148,11 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 func (api NamespacesAPI) DeleteObject(w http.ResponseWriter, r *http.Request) {
 	nsid := mux.Vars(r)["nsid"]
 
-	// Update namespace stats
-	defer api.UpdateNamespaceStats(nsid)
+	ns := models.NamespaceCreate{
+		Label: nsid,
+	}
 
-	prefixedNamespaceID := fmt.Sprintf("%s%s", api.config.Namespace.Prefix, nsid)
-	exists, err := api.db.Exists(prefixedNamespaceID)
+	exists, err := api.db.Exists(ns.Key())
 
 	if err != nil{
 		log.Errorln(err.Error())
@@ -140,9 +167,12 @@ func (api NamespacesAPI) DeleteObject(w http.ResponseWriter, r *http.Request) {
 
 	id := mux.Vars(r)["id"]
 
-	key := fmt.Sprintf("%s:%s", nsid, id)
+	f := models.File{
+		Namespace:nsid,
+		Id: id,
+	}
 
-	v, err := api.db.Get(key)
+	v, err := api.db.Get(f.Key())
 
 	if err != nil {
 		log.Errorln(err.Error())
@@ -156,7 +186,7 @@ func (api NamespacesAPI) DeleteObject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = api.db.Delete(key)
+	err = api.db.Delete(f.Key())
 
 	if err != nil {
 		log.Errorln(err.Error())
@@ -164,14 +194,25 @@ func (api NamespacesAPI) DeleteObject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	f := File{}
-	f.Decode(v)
+	f = models.File{}
+	if err := f.Decode(v); err != nil{
+		log.Errorln(err.Error())
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 
 
-	res := r.Context().Value("reservation").(*Reservation)
+	res := r.Context().Value("reservation").(*models.Reservation)
 	res.SizeUsed -= f.Size()
 
-	if err:= res.Save(api.db, api.config); err != nil{
+	b, err := res.Encode()
+
+	if err != nil{
+		log.Errorln(err.Error())
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if err := api.db.Set(res.Key(), b); err != nil{
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
@@ -185,16 +226,13 @@ func (api NamespacesAPI) DeleteObject(w http.ResponseWriter, r *http.Request) {
 // Retrieve object from the KV
 func (api NamespacesAPI) GetObject(w http.ResponseWriter, r *http.Request) {
 
-	var file = &File{}
+	nsid := mux.Vars(r)["nsid"]
 
-	oldLabel := mux.Vars(r)["nsid"]
+	ns := models.NamespaceCreate{
+		Label: nsid,
+	}
 
-	// Update namespace stats
-	defer api.UpdateNamespaceStats(oldLabel)
-
-	nsid := fmt.Sprintf("%s%s", api.config.Namespace.Prefix, oldLabel)
-
-	exists, err := api.db.Exists(nsid)
+	exists, err := api.db.Exists(ns.Key())
 
 	if err != nil{
 		log.Errorln(err.Error())
@@ -209,9 +247,25 @@ func (api NamespacesAPI) GetObject(w http.ResponseWriter, r *http.Request) {
 
 	id := mux.Vars(r)["id"]
 
-	key := fmt.Sprintf("%s:%s", oldLabel, id)
+	f := models.File{
+		Namespace:nsid,
+		Id: id,
+	}
 
-	value, err := api.db.Get(key)
+	v, err := api.db.Get(f.Key())
+
+	if err != nil {
+		if err == db.ErrNotFound{
+			http.Error(w, "object doesn't exist", http.StatusNotFound)
+			return
+		}
+		log.Errorln(err.Error())
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+
+	err = f.Decode(v)
 
 	// Database Error
 	if err != nil {
@@ -220,15 +274,14 @@ func (api NamespacesAPI) GetObject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// KEY NOT FOUND
-	if value == nil {
-		http.Error(w, "Object doesn't exist", http.StatusNotFound)
-		return
-	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(file.ToObject(value, id))
+	json.NewEncoder(w).Encode(&models.Object{
+		Id: f.Id,
+		Tags: []models.Tag{},
+		Data: string(f.Payload),
+	})
 }
 
 // HeadObject is the handler for HEAD /namespaces/{nsid}/objects/{id}
@@ -236,11 +289,11 @@ func (api NamespacesAPI) GetObject(w http.ResponseWriter, r *http.Request) {
 func (api NamespacesAPI) HeadObject(w http.ResponseWriter, r *http.Request) {
 	nsid := mux.Vars(r)["nsid"]
 
-	// Update namespace stats
-	defer api.UpdateNamespaceStats(nsid)
+	ns := models.NamespaceCreate{
+		Label: nsid,
+	}
 
-	prefixedNamespaceID := fmt.Sprintf("%s%s", api.config.Namespace.Prefix, nsid)
-	exists, err := api.db.Exists(prefixedNamespaceID)
+	exists, err := api.db.Exists(ns.Key())
 
 	if err != nil{
 		log.Errorln(err.Error())
@@ -255,9 +308,13 @@ func (api NamespacesAPI) HeadObject(w http.ResponseWriter, r *http.Request) {
 
 	id := mux.Vars(r)["id"]
 
-	key := fmt.Sprintf("%s:%s", nsid, id)
+	f := models.File{
+		Namespace:nsid,
+		Id: id,
+	}
 
-	exists, err = api.db.Exists(key)
+
+	exists, err = api.db.Exists(f.Key())
 
 	if err != nil {
 		http.Error(w, "", http.StatusInternalServerError)
@@ -277,7 +334,7 @@ func (api NamespacesAPI) HeadObject(w http.ResponseWriter, r *http.Request) {
 // Listobjects is the handler for GET /namespaces/{nsid}/objects
 // List keys of the namespaces
 func (api NamespacesAPI) Listobjects(w http.ResponseWriter, r *http.Request) {
-	var respBody []Object
+	var respBody []models.Object
 
 	// Pagination
 	pageParam := r.FormValue("page")
@@ -307,11 +364,12 @@ func (api NamespacesAPI) Listobjects(w http.ResponseWriter, r *http.Request) {
 
 	nsid := mux.Vars(r)["nsid"]
 
-	// Update namespace stats
-	defer api.UpdateNamespaceStats(nsid)
 
-	prefixedNsid := fmt.Sprintf("%s%s", api.config.Namespace.Prefix, nsid)
-	exists, err := api.db.Exists(prefixedNsid)
+	ns := models.NamespaceCreate{
+		Label: nsid,
+	}
+
+	exists, err := api.db.Exists(ns.Key())
 
 	if err != nil{
 		log.Errorln(err.Error())
@@ -324,48 +382,41 @@ func (api NamespacesAPI) Listobjects(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	prefixStr := fmt.Sprintf("%s:", nsid)
-	prefix := []byte(prefixStr)
-
-	opt := badger.DefaultIteratorOptions
-	opt.PrefetchSize = api.config.DB.Iterator.PreFetchSize
-
-	it := api.db.KV.NewIterator(opt)
-	defer it.Close()
-
 	startingIndex := (page-1)*per_page + 1
-	counter := 0 // Number of objects encountered
 	resultsCount := per_page
 
-	for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
-		item := it.Item()
-		key := string(item.Key()[:])
+	prefixStr := fmt.Sprintf("%s:", nsid)
 
-		// Found a namespace
-		counter++
+	objects, err := api.db.Filter(prefixStr, startingIndex, resultsCount)
 
-		// Skip this object if its index < intended startingIndex
-		if counter < startingIndex {
-			continue
+	if err != nil{
+		log.Errorln(err.Error())
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	respBody = make([]models.Object, 0, len(objects))
+
+	for _, record := range(objects){
+		f := new(models.File)
+		if err := f.Decode(record); err != nil {
+			log.Errorln("Error decoding namespace :%v", err)
+			http.Error(w, "Error decoding namespace", http.StatusInternalServerError)
+			return
 		}
 
-		value := item.Value()
-
-		var file = &File{}
-		object := file.ToObject(value, key)
-
-		// remove prefix from file name
-		object.Id = strings.Replace(object.Id, prefixStr, "", 1)
-		respBody = append(respBody, *object)
-
-		if len(respBody) == resultsCount {
-			break
+		o := models.Object{
+			Id: f.Id,
+			Tags: []models.Tag{},
+			Data: string(f.Payload),
 		}
+
+		respBody = append(respBody, o)
 	}
 
 	// return empty list if no results
 	if len(respBody) == 0 {
-		respBody = []Object{}
+		respBody = []models.Object{}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -376,7 +427,7 @@ func (api NamespacesAPI) Listobjects(w http.ResponseWriter, r *http.Request) {
 // UpdateObject is the handler for PUT /namespaces/{nsid}/objects/{id}
 // Update oject
 func (api NamespacesAPI) UpdateObject(w http.ResponseWriter, r *http.Request) {
-	var reqBody ObjectUpdate
+	var reqBody models.ObjectUpdate
 
 	// decode request
 	defer r.Body.Close()
@@ -392,8 +443,10 @@ func (api NamespacesAPI) UpdateObject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	nsid := mux.Vars(r)["nsid"]
+
 	// Make sure file contents are valid
-	file, err := reqBody.ToFile(true)
+	file, err := reqBody.ToFile(nsid)
 
 	if err != nil {
 		log.Errorln(err.Error())
@@ -401,46 +454,65 @@ func (api NamespacesAPI) UpdateObject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	nsid := mux.Vars(r)["nsid"]
-
-	// Update namespace stats
-	defer api.UpdateNamespaceStats(nsid)
 
 	id := mux.Vars(r)["id"]
 
-	key := fmt.Sprintf("%s:%s", nsid, id)
-
-	oldFile, err := api.db.GetFile(key)
-
-	// Database Error
-	if err != nil {
-		log.Errorln(err.Error())
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
+	oldFile := models.File{
+		Id: id,
+		Namespace: nsid,
 	}
 
-	// KEY NOT FOUND
-	if oldFile == nil {
-		http.Error(w, "Object doesn't exist", http.StatusNotFound)
+	b, err := api.db.Get(oldFile.Key())
+
+	if err != nil {
+		if err == db.ErrNotFound{
+			http.Error(w, "Object doesn't exist", http.StatusNotFound)
+			return
+		}else {
+			log.Errorln(err.Error())
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	err = oldFile.Decode(b)
+
+	if err != nil{
+		log.Errorln(err.Error())
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
 	// Prepend the same value of the first byte of old data
 	file.Reference = oldFile.Reference
 
+	b, err = file.Encode()
+	if err != nil{
+		log.Errorln(err.Error())
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 	// Add object
-	if err = api.db.Set(key, file.Encode()); err != nil {
+	if err = api.db.Set(oldFile.Key(), b); err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 
-	res := r.Context().Value("reservation").(Reservation)
+	res := r.Context().Value("reservation").(models.Reservation)
 
 	diff := oldFile.Size() - file.Size()
 
 	res.SizeUsed += diff
 
-	if err:= res.Save(api.db, api.config); err != nil{
+	b, err = res.Encode()
+
+	if err != nil{
+		log.Errorln(err.Error())
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	if err:= api.db.Set(res.Key(), b); err != nil{
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
@@ -448,7 +520,7 @@ func (api NamespacesAPI) UpdateObject(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(&Object{
+	json.NewEncoder(w).Encode(&models.Object{
 		Id:   id,
 		Data: reqBody.Data,
 		Tags: reqBody.Tags,

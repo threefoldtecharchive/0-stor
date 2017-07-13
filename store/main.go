@@ -19,7 +19,7 @@ import (
 	"gopkg.in/validator.v2"
 )
 
-func gracefulShutdown(db *Badger) {
+func gracefulShutdown(db *badger.BadgerDB) {
 	log.Println("Gracefully closing 0-stor")
 	db.Close()
 	os.Exit(0)
@@ -117,7 +117,8 @@ func main() {
 
 		// TODO: is this the correct location to do that ?
 		st := models.StoreStat{}
-		exists, err := st.Exists(db, settings)
+
+		exists, err := db.Exists(st.Key())
 		if err != nil {
 			log.Errorln("Database Error")
 			log.Errorln(err.Error())
@@ -127,17 +128,25 @@ func main() {
 		state := "[USING CURRENT]"
 
 		if !exists {
-			s := StoreStat{}
-			s.Save(db, settings)
+			s := models.StoreStat{}
+			b, err := s.Encode()
+
+			if err != nil{
+				log.Fatal(err.Error())
+			}
+
+			if err = db.Set(s.Key(), b); err != nil{
+				log.Fatal(err.Error())
+			}
+
 			state = "[CREATED]"
 		}
 
-		log.Printf("Global Stats collection: %v\t%s", settings.Store.Stats.Collection, state)
+		log.Printf("Global Stats collection: %v\t%s", config.STORE_STATS_COLLECTION_NAME, state)
 
-		apiMan := rest.NewAPIManager(db, settings)
 		api := rest.NewNamespacesAPI(db, settings)
 
-		NamespacesInterfaceRoutes(r, api)
+		rest.NamespacesInterfaceRoutes(r, api)
 
 		sigChan := make(chan os.Signal, 1)
 		signal.Notify(sigChan, syscall.SIGINT)

@@ -43,7 +43,7 @@ func (s *ACL) Decode(data []byte) error {
 }
 
 func (s *ACL) Key() string {
-	return s.Id
+	return ""
 }
 
 /*
@@ -113,5 +113,5 @@ func (s *ACLEntry) Decode(data []byte) error {
 }
 
 func (s ACLEntry) Key() string{
-	return nil
+	return ""
 }

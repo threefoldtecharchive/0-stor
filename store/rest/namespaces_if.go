@@ -74,7 +74,7 @@ type NamespacesInterface interface { // nsidaclPost is the handler for POST /nam
 	UpdateStoreStats(http.ResponseWriter, *http.Request)
 
 	// Get db object
-	DB() *db.DB
+	DB() db.DB
 
 	// Get Settings object
 	Config() *config.Settings

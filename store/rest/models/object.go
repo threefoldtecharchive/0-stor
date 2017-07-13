@@ -4,8 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"encoding/binary"
 
 	validator "gopkg.in/validator.v2"
+	"strings"
+	"github.com/zero-os/0-stor/store/config"
 )
 
 const (
@@ -16,6 +19,7 @@ const (
 
 type File struct {
 	Namespace string
+	Id   string
 	Reference byte
 	CRC       [32]byte
 	Payload   []byte
@@ -23,20 +27,56 @@ type File struct {
 }
 
 func (f File) Key() string {
-	return fmt.Sprintf("%s:%s", f.Namespace)
+	label := f.Namespace
+	if strings.Index(label, config.NAMESPACE_COLLECTION_PREFIX) != -1{
+		label = strings.Replace(label, config.NAMESPACE_COLLECTION_PREFIX, "", 1)
+	}
+	label = fmt.Sprintf("%s%s", config.NAMESPACE_COLLECTION_PREFIX, label)
+	return fmt.Sprintf("%s:%s", label, f.Id)
 }
 
 func (f *File) Encode() ([]byte, error) {
-	size := len(f.Payload) + CRCSize + 1
+	id := []byte(f.Id)
+	idSize := len(id)
+
+	ns := []byte(f.Namespace)
+	nsSize := len(ns)
+
+	payloadSize := len(f.Payload)
+
+	tagSize := len(f.Tags)
+
+	size := 8 + 1 + idSize + nsSize + payloadSize + tagSize + CRCSize
+
 	result := make([]byte, size)
-	// First byte is reference
-	result[0] = f.Reference
+	binary.LittleEndian.PutUint16(result[0:2], uint16(idSize))
+	binary.LittleEndian.PutUint16(result[2:4], uint16(nsSize))
+	binary.LittleEndian.PutUint16(result[4:6], uint16(payloadSize))
+	binary.LittleEndian.PutUint16(result[6:8], uint16(tagSize))
+
+	start := 8
+	end := start + idSize
+	copy(result[start:end], id)
+
+	start = end
+	end = start + nsSize
+	copy(result[start:end], ns)
+
+	result[end] = f.Reference
+
 	// Next 32 bytes CRC
+	start = end + 1
+	end = start + CRCSize
+	copy(result[start:end], f.CRC[:])
 
-	copy(result[1:CRCSize+1], f.CRC[:])
+	start = end
+	end = start + payloadSize
 	// Next 1Mbs (file content)
-	copy(result[CRCSize+1:], f.Payload)
+	copy(result[start:end], f.Payload)
 
+	start = end
+	end = start + tagSize
+	copy(result[start:end], f.Tags)
 	return result, nil
 }
 
@@ -51,28 +91,38 @@ func (f *File) Decode(data []byte) error {
 		return errors.New(fmt.Sprintf("Invalid file size (%v) bytes", len(data)))
 	}
 
+	idSize := int16(binary.LittleEndian.Uint16(data[0:2]))
+	nsSize := int16(binary.LittleEndian.Uint16(data[2:4]))
+	payloadSize := int16(binary.LittleEndian.Uint16(data[4:6]))
+	tagSize := int16(binary.LittleEndian.Uint16(data[6:8]))
+
+	start := int16(8)
+	end := start + idSize
+	f.Id = string(data[start:end])
+
+	start = end
+	end = start + nsSize
+	f.Namespace = string(data[start:end])
+
+	f.Reference = data[end]
+
+	start = end + 1
+	end = start + int16(CRCSize)
 	var crc [CRCSize]byte
-
-	copy(crc[:], data[1:CRCSize+1])
-
-	var maxIdx int
-
-	if len(data) > FileSize+CRCSize+1 {
-		maxIdx = FileSize + CRCSize
-	} else {
-		maxIdx = len(data) - 1
-	}
-
-	var payload = make([]byte, maxIdx-CRCSize)
-
-	copy(payload, data[CRCSize+1:])
-
-	f.Reference = data[0]
+	copy(crc[:], data[start:end])
 	f.CRC = crc
-	f.Payload = payload
 
+	start = end
+	end = start + payloadSize
+	copy(f.Payload, data[start:end])
+
+	start = end
+	end = start + tagSize
+	copy(f.Tags, data[start:end])
 	return nil
 }
+
+
 
 type Object struct {
 	Data string `json:"data" validate:"nonzero"`
@@ -85,7 +135,7 @@ func (o Object) Validate() error {
 }
 
 func (o Object) Key() string{
-	return fmt.Sprintf("%s:%s", nsid, reqBody.Id)
+	return o.Id
 }
 
 func (o Object) Encode() ([]byte, error){
@@ -96,30 +146,24 @@ func (o *Object) Decode() error{
 	return nil
 }
 
-func (f *File) ToObject(data []byte, Id string) *Object {
-	return &Object{
-		Id:   Id,
-		Data: string(data[1:]),
+func (o *Object) ToFile(nsid string) (*File, error) {
+	file := &File{
+		Namespace: nsid,
+		Id: o.Id,
+		Reference: 1,
+		Tags: []byte{},
 	}
-}
 
-
-func (o *Object) ToFile(addReferenceByte bool) (*File, error) {
-	file := &File{}
-	var data []byte
 	bytes := []byte(o.Data)
 
-	// add reference
-	if addReferenceByte {
-		data = make([]byte, len(bytes)+1)
-		data[0] = byte(1)
-		copy(data[1:], bytes)
-	} else {
-		data = bytes
-	}
+	var crc [CRCSize]byte
 
-	err := file.Decode(data)
-	return file, err
+	copy(crc[:], bytes[0:32])
+
+	file.CRC = crc
+	file.Payload = bytes[32:]
+
+	return file, nil
 }
 
 type ObjectCreate struct{}
@@ -137,14 +181,12 @@ func (s ObjectUpdate) Validate() error {
 	return validator.Validate(s)
 }
 
-func (o *ObjectUpdate) ToFile(addReferenceByte bool) (*File, error) {
+func (o *ObjectUpdate) ToFile(nsid string) (*File, error) {
 	obj := &Object{
 		Data: o.Data,
 		Tags: o.Tags,
 	}
-	return obj.ToFile(true)
+	return obj.ToFile(nsid)
 
 }
-
-
 
