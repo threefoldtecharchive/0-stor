@@ -10,9 +10,9 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/mux"
-	"github.com/laher/goxc/config"
 	"github.com/zero-os/0-stor/store/core/librairies/reservation"
 	"github.com/zero-os/0-stor/store/db"
+	"github.com/zero-os/0-stor/store/config"
 	"github.com/zero-os/0-stor/store/rest/models"
 )
 
@@ -20,7 +20,7 @@ type DataTokenValidMiddleware struct {
 	acl models.ACLEntry
 }
 
-func NewDataTokenValidMiddleware(acl ACLEntry) *DataTokenValidMiddleware {
+func NewDataTokenValidMiddleware(acl models.ACLEntry) *DataTokenValidMiddleware {
 	return &DataTokenValidMiddleware{
 		acl: acl,
 	}
@@ -34,7 +34,7 @@ func (dt *DataTokenValidMiddleware) Handler(next http.Handler) http.Handler {
 			return
 		}
 
-		res := Reservation{}
+		res := models.Reservation{}
 
 		if err := res.ValidateDataAccessToken(dt.acl, token); err != nil {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
@@ -68,7 +68,7 @@ func (re *ReservationValidMiddleware) Handler(next http.Handler) http.Handler {
 
 		nsid := mux.Vars(r)["nsid"]
 
-		res := Reservation{}
+		res := models.Reservation{}
 
 		resID, err := res.ValidateReservationToken(token, nsid)
 
@@ -76,27 +76,34 @@ func (re *ReservationValidMiddleware) Handler(next http.Handler) http.Handler {
 			http.Error(w, "Reservation token is invalid", http.StatusUnauthorized)
 			return
 		}
-		res = Reservation{
+		res = models.Reservation{
 			Namespace: nsid,
 			Reservation: reservation.Reservation{
 				Id: resID,
 			},
 		}
 
-		v, err := res.Get(re.db, re.config)
+		b, err := re.db.Get(res.Key())
 
 		if err != nil {
+			if err == db.ErrNotFound{
+				http.Error(w, "Reservation token is invalid", http.StatusUnauthorized)
+				return
+
+			}else{
+				log.Errorln(err.Error())
+				http.Error(w, "Internal server error", http.StatusInternalServerError)
+				return
+			}
+		}
+
+		if err = res.Decode(b); err != nil{
 			log.Errorln(err.Error())
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
-		}
 
-		if v == nil {
-			http.Error(w, "Reservation token is invalid", http.StatusUnauthorized)
-			return
 		}
-
-		ctx := context.WithValue(r.Context(), "reservation", v)
+		ctx := context.WithValue(r.Context(), "reservation", res)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

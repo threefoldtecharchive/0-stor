@@ -5,12 +5,13 @@ import (
 	"net/http"
 	log "github.com/Sirupsen/logrus"
 	"fmt"
+	"github.com/zero-os/0-stor/store/rest/models"
 )
 
 // statsPost is the handler for POST /namespaces/stats
 // Update Global Store statistics and available space
 func (api NamespacesAPI) UpdateStoreStats(w http.ResponseWriter, r *http.Request) {
-	var reqBody StoreStatRequest
+	var reqBody models.StoreStatRequest
 
 	// decode request
 	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
@@ -25,8 +26,17 @@ func (api NamespacesAPI) UpdateStoreStats(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	storeStat := StoreStat{}
-	if err := storeStat.Get(api.db, api.config); err != nil{
+	storeStat := new(models.StoreStat)
+	b, err := api.db.Get(storeStat.Key())
+	if err != nil{
+		log.Errorln(err.Error())
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	err = storeStat.Decode(b)
+
+	if err != nil{
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
@@ -40,7 +50,15 @@ func (api NamespacesAPI) UpdateStoreStats(w http.ResponseWriter, r *http.Request
 
 	storeStat.SizeAvailable = reqBody.SizeAvailable
 
-	if err := storeStat.Save(api.db, api.config); err != nil{
+	b, err = storeStat.Encode()
+
+	if err != nil{
+		log.Errorln(err.Error())
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	if err := api.db.Set(storeStat.Key(), b); err != nil{
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
@@ -54,13 +72,23 @@ func (api NamespacesAPI) UpdateStoreStats(w http.ResponseWriter, r *http.Request
 // GetStoreStats is the handler for GET /namespaces/stats
 // Return usage statistics about the whole KV
 func (api NamespacesAPI) GetStoreStats(w http.ResponseWriter, r *http.Request) {
-	var respBody StoreStat
+	respBody := new(models.StoreStat)
 
-	if err := respBody.Get(api.db, api.config); err != nil{
+	b, err := api.db.Get(respBody.Key())
+	if err != nil{
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
+
+	err = respBody.Decode(b)
+
+	if err != nil{
+		log.Errorln(err.Error())
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 

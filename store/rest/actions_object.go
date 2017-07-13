@@ -9,20 +9,21 @@ import (
 	"github.com/gorilla/mux"
 	"strings"
 	"strconv"
+	"github.com/zero-os/0-stor/store/rest/models"
 )
 
 // Createobject is the handler for POST /namespaces/{nsid}/objects
 // Set an object into the namespace
 func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
-	var reqBody Object
+	var reqBody models.Object
 
 	nsid := mux.Vars(r)["nsid"]
 
-	// Update namespace stats
-	defer api.UpdateNamespaceStats(nsid)
+	ns := models.NamespaceCreate{
+		Label: nsid,
+	}
 
-	prefixedNamespaceID := fmt.Sprintf("%s%s", api.config.Namespace.Prefix, nsid)
-	exists, err := api.db.Exists(prefixedNamespaceID)
+	exists, err := api.db.Exists(ns.Key())
 
 	if err != nil{
 		log.Errorln(err.Error())
@@ -58,7 +59,7 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	reservation := r.Context().Value("reservation").(*Reservation)
+	reservation := r.Context().Value("reservation").(*models.Reservation)
 
 	key := fmt.Sprintf("%s:%s", nsid, reqBody.Id)
 

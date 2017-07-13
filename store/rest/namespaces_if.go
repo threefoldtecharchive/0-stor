@@ -8,6 +8,9 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
+	"github.com/zero-os/0-stor/store/db"
+	"github.com/zero-os/0-stor/store/config"
+	"github.com/zero-os/0-stor/store/rest/models"
 )
 
 // NamespacesInterface is interface for /namespaces root endpoint
@@ -71,12 +74,10 @@ type NamespacesInterface interface { // nsidaclPost is the handler for POST /nam
 	UpdateStoreStats(http.ResponseWriter, *http.Request)
 
 	// Get db object
-	DB() *DB
+	DB() *db.DB
 
 	// Get Settings object
-	Config() *Settings
-
-	APIManager() *APIManager
+	Config() *config.Settings
 }
 
 // NamespacesInterfaceRoutes is routing for /namespaces root endpoint
@@ -89,7 +90,7 @@ func NamespacesInterfaceRoutes(r *mux.Router, i NamespacesInterface) {
 
 	r.Handle("/namespaces/{nsid}/objects/{id}",
 		alice.New(
-			NewDataTokenValidMiddleware(ACLEntry{ // At least user should have Delete permissions
+			NewDataTokenValidMiddleware(models.ACLEntry{ // At least user should have Delete permissions
 				Read: false,
 				Write:false,
 				Delete:true,
@@ -100,7 +101,7 @@ func NamespacesInterfaceRoutes(r *mux.Router, i NamespacesInterface) {
 
 	r.Handle("/namespaces/{nsid}/objects/{id}",
 		alice.New(
-			NewDataTokenValidMiddleware(ACLEntry{ // At least user should have  Read permissions
+			NewDataTokenValidMiddleware(models.ACLEntry{ // At least user should have  Read permissions
 				Read: true,
 				Write:false,
 				Delete:false,
@@ -111,7 +112,7 @@ func NamespacesInterfaceRoutes(r *mux.Router, i NamespacesInterface) {
 
 	r.Handle("/namespaces/{nsid}/objects/{id}",
 		alice.New(
-			NewDataTokenValidMiddleware(ACLEntry{ // At least user should have  Read permissions
+			NewDataTokenValidMiddleware(models.ACLEntry{ // At least user should have  Read permissions
 				Read: true,
 				Write:false,
 				Delete:false,
@@ -122,7 +123,7 @@ func NamespacesInterfaceRoutes(r *mux.Router, i NamespacesInterface) {
 
 	r.Handle("/namespaces/{nsid}/objects/{id}",
 		alice.New(
-			NewDataTokenValidMiddleware(ACLEntry{ //At least write permissions
+			NewDataTokenValidMiddleware(models.ACLEntry{ //At least write permissions
 				Read: false,
 				Write:true,
 				Delete:false,
@@ -134,7 +135,7 @@ func NamespacesInterfaceRoutes(r *mux.Router, i NamespacesInterface) {
 
 	r.Handle("/namespaces/{nsid}/objects",
 		alice.New(
-			NewDataTokenValidMiddleware(ACLEntry{ // At least user should have  Read permissions
+			NewDataTokenValidMiddleware(models.ACLEntry{ // At least user should have  Read permissions
 				Read: true,
 				Write:false,
 				Delete:false,
@@ -145,7 +146,7 @@ func NamespacesInterfaceRoutes(r *mux.Router, i NamespacesInterface) {
 
 	r.Handle("/namespaces/{nsid}/objects",
 		alice.New(
-			NewDataTokenValidMiddleware(ACLEntry{ // At least user should have  write permissions
+			NewDataTokenValidMiddleware(models.ACLEntry{ // At least user should have  write permissions
 				Read: false,
 				Write:true,
 				Delete:false,
@@ -176,7 +177,7 @@ func NamespacesInterfaceRoutes(r *mux.Router, i NamespacesInterface) {
 
 	r.Handle("/namespaces/{nsid}/stats",
 		alice.New(
-			NewDataTokenValidMiddleware(ACLEntry{ // Admin permissions
+			NewDataTokenValidMiddleware(models.ACLEntry{ // Admin permissions
 				Read: true,
 				Write:true,
 				Delete:true,
