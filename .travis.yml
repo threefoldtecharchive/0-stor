@@ -4,7 +4,7 @@ go:
   - 1.8
 
 install:
-  -  go get -v ./...
+  -  go get -t -v ./...
 
 script:
   - bash codecov.sh
