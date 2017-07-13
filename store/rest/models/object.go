@@ -13,63 +13,17 @@ const (
 	CRCSize  = 32
 )
 
-type Object struct {
-	Data string `json:"data" validate:"nonzero"`
-	Id   string `json:"id" validate:"min=5,max=128,regexp=^[a-zA-Z0-9]+$,nonzero"`
-	Tags []Tag  `json:"tags,omitempty"`
-}
-
-func (s Object) Validate() error {
-	return validator.Validate(s)
-}
-
-func (o *Object) ToFile(addReferenceByte bool) (*File, error) {
-	file := &File{}
-	var data []byte
-	bytes := []byte(o.Data)
-
-	// add reference
-	if addReferenceByte {
-		data = make([]byte, len(bytes)+1)
-		data[0] = byte(1)
-		copy(data[1:], bytes)
-	} else {
-		data = bytes
-	}
-
-	err := file.Decode(data)
-	return file, err
-}
-
-type ObjectCreate struct{}
-
-func (s ObjectCreate) Validate() error {
-	return validator.Validate(s)
-}
-
-type ObjectUpdate struct {
-	Data string `json:"data" validate:"nonzero"`
-	Tags []Tag  `json:"tags,omitempty"`
-}
-
-func (s ObjectUpdate) Validate() error {
-	return validator.Validate(s)
-}
-
-func (o *ObjectUpdate) ToFile(addReferenceByte bool) (*File, error) {
-	obj := &Object{
-		Data: o.Data,
-		Tags: o.Tags,
-	}
-	return obj.ToFile(true)
-
-}
 
 type File struct {
+	Namespace string
 	Reference byte
 	CRC       [32]byte
 	Payload   []byte
 	Tags      []byte
+}
+
+func (f File) Key() string {
+	return fmt.Sprintf("%s:%s", f.Namespace)
 }
 
 func (f *File) Encode() ([]byte, error) {
@@ -120,9 +74,77 @@ func (f *File) Decode(data []byte) error {
 	return nil
 }
 
+type Object struct {
+	Data string `json:"data" validate:"nonzero"`
+	Id   string `json:"id" validate:"min=5,max=128,regexp=^[a-zA-Z0-9]+$,nonzero"`
+	Tags []Tag  `json:"tags,omitempty"`
+}
+
+func (o Object) Validate() error {
+	return validator.Validate(o)
+}
+
+func (o Object) Key() string{
+	return fmt.Sprintf("%s:%s", nsid, reqBody.Id)
+}
+
+func (o Object) Encode() ([]byte, error){
+	return []byte{}, nil
+}
+
+func (o *Object) Decode() error{
+	return nil
+}
+
 func (f *File) ToObject(data []byte, Id string) *Object {
 	return &Object{
 		Id:   Id,
 		Data: string(data[1:]),
 	}
 }
+
+
+func (o *Object) ToFile(addReferenceByte bool) (*File, error) {
+	file := &File{}
+	var data []byte
+	bytes := []byte(o.Data)
+
+	// add reference
+	if addReferenceByte {
+		data = make([]byte, len(bytes)+1)
+		data[0] = byte(1)
+		copy(data[1:], bytes)
+	} else {
+		data = bytes
+	}
+
+	err := file.Decode(data)
+	return file, err
+}
+
+type ObjectCreate struct{}
+
+func (s ObjectCreate) Validate() error {
+	return validator.Validate(s)
+}
+
+type ObjectUpdate struct {
+	Data string `json:"data" validate:"nonzero"`
+	Tags []Tag  `json:"tags,omitempty"`
+}
+
+func (s ObjectUpdate) Validate() error {
+	return validator.Validate(s)
+}
+
+func (o *ObjectUpdate) ToFile(addReferenceByte bool) (*File, error) {
+	obj := &Object{
+		Data: o.Data,
+		Tags: o.Tags,
+	}
+	return obj.ToFile(true)
+
+}
+
+
+

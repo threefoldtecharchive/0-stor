@@ -134,8 +134,6 @@ func (api NamespacesAPI) Deletensid(w http.ResponseWriter, r *http.Request) {
 	 	b, err := api.db.Get(storeStat.Key())
 	 	if err != nil {
 	 		log.Errorln(err.Error())
-	 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-	 		return
 	 	}
 
 	 	if err := storeStat.Decode(b); err != nil {
@@ -157,8 +155,6 @@ func (api NamespacesAPI) Deletensid(w http.ResponseWriter, r *http.Request) {
 
 	 	if err = namespaceStats.Decode(stats); err != nil{
 			log.Errorln(err.Error())
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
 		}
 	 	storeStat.SizeAvailable += namespaceStats.TotalSizeReserved
 	 	storeStat.SizeUsed -= namespaceStats.TotalSizeReserved
@@ -166,36 +162,29 @@ func (api NamespacesAPI) Deletensid(w http.ResponseWriter, r *http.Request) {
 	 	// delete namespacestats
 	 	if err = api.db.Delete(namespaceStats.Key()); err != nil {
 	 		log.Errorln(err.Error())
-	 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-	 		return
 	 	}
 
 		b, err = storeStat.Encode()
 
 		if err != nil{
 			log.Errorln(err.Error())
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
 		}
 	 	// Save Updated global stats
 	 	if err = api.db.Set(storeStat.Key(), b); err != nil {
 	 		log.Errorln(err.Error())
-	 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-	 		return
 	 	}
 
 	 	// Delete reservations
 	 	r := new(models.Reservation)
 		r.Namespace = nsid
 
-	 	resutls2, err := api.db.Filter(r.Key(), 0, -1)
+	 	resutls2, err := api.db.List(r.Key())
 
 	 	for _, key := range resutls2 {
-	 		if err := api.db.Delete(string(key)); err != nil {
+	 		if err := api.db.Delete(key); err != nil {
 	 			log.Errorln(err.Error())
 
 	 		}
-
 	 	}
 	 }()
 

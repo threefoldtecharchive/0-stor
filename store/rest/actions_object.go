@@ -61,7 +61,11 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 
 	reservation := r.Context().Value("reservation").(*models.Reservation)
 
-	key := fmt.Sprintf("%s:%s", nsid, reqBody.Id)
+	oldObject := models.Object{
+		Id: reqBody.Id,
+	}
+
+
 
 	oldFile, err := api.db.GetFile(key)
 

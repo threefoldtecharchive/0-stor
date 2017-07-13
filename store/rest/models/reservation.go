@@ -194,8 +194,8 @@ Random bytes |ReservationExpirationDateEpoch| namespace ID length| reservation I
 -----------------------------------------------------------------------------------------------------------
 */
 
-func (s Reservation) GenerateTokenForReservation(namespaceID string) (string, error) {
-	nID := []byte(namespaceID)
+func (s Reservation) GenerateTokenForReservation() (string, error) {
+	nID := []byte(s.Namespace)
 	rID := []byte(s.Id)
 
 	b := make([]byte, 63+len(nID)+len(rID))

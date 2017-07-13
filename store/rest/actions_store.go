@@ -6,6 +6,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"fmt"
 	"github.com/zero-os/0-stor/store/rest/models"
+	"github.com/zero-os/0-stor/store/db"
 )
 
 // statsPost is the handler for POST /namespaces/stats
@@ -29,9 +30,15 @@ func (api NamespacesAPI) UpdateStoreStats(w http.ResponseWriter, r *http.Request
 	storeStat := new(models.StoreStat)
 	b, err := api.db.Get(storeStat.Key())
 	if err != nil{
-		log.Errorln(err.Error())
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
+		if err == db.ErrNotFound{
+			http.Error(w, "Not Found", http.StatusNotFound)
+			return
+		}else{
+			log.Errorln(err.Error())
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+
 	}
 
 	err = storeStat.Decode(b)
