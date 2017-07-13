@@ -5,11 +5,11 @@ import (
 	"net/http"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/zero-os/0-stor/store/db/badger"
 	"github.com/zero-os/0-stor/store/rest/models"
 
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/gorilla/mux"
 )
@@ -67,7 +67,7 @@ func (api NamespacesAPI) Createnamespace(w http.ResponseWriter, r *http.Request)
 
 	// Add stats
 	// stats are saved prefixed with its own prefix + (non prefixed namespace)
-	defer func() {
+	go func() {
 		stats := models.NewNamespaceStats(originalLabel)
 		b, err := stats.Encode()
 		if err != nil {
@@ -122,70 +122,77 @@ func (api NamespacesAPI) Deletensid(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Delete objects in a namespace
-	defer func() {
-		resutls, err := api.db.ListAllRecordsStartingWith(fmt.Sprintf("%s:", nsid))
-
-		for _, key := range resutls {
-			if err := api.db.Delete(key); err != nil {
-				log.Errorln(err.Error())
-
-			}
-
-		}
-
-		storeStat := StoreStat{}
-		if err := storeStat.Get(api.db, api.config); err != nil {
-			log.Errorln(err.Error())
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-
-		ns := NamespaceCreate{
-			Label: nsid,
-		}
-
-		stats, err := ns.GetStats(api.db, api.config)
-
-		if err != nil {
-			log.Errorln(err.Error())
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-
-		namespaceStats := stats
-		storeStat.SizeAvailable += namespaceStats.TotalSizeReserved
-		storeStat.SizeUsed -= namespaceStats.TotalSizeReserved
-
-		// delete namespacestats
-		if err := namespaceStats.Delete(api.db, api.config); err != nil {
-			log.Errorln(err.Error())
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-
-		// Save Updated global stats
-		if err := storeStat.Save(api.db, api.config); err != nil {
-			log.Println("save")
-			log.Errorln(err.Error())
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-
-		// Delete reservations
-		r := Reservation{
-			Namespace: nsid,
-		}
-
-		resutls, err = api.db.ListAllRecordsStartingWith(r.GetKey(api.config))
-
-		for _, key := range resutls {
-			if err := api.db.Delete(key); err != nil {
-				log.Errorln(err.Error())
-
-			}
-
-		}
-	}()
+	// defer func() {
+	// 	resutls, err := api.db.List(fmt.Sprintf("%s:", nsid))
+	//
+	// 	for _, key := range resutls {
+	// 		if err := api.db.Delete(key); err != nil {
+	// 			log.Errorln(err.Error())
+	//
+	// 		}
+	//
+	// 	}
+	//
+	// 	storeStat := models.StoreStat{}
+	// 	b, err := api.db.Get(models.STORE_STATS_PREFIX)
+	// 	if err != nil {
+	// 		log.Errorln(err.Error())
+	// 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	// 		return
+	// 	}
+	//
+	// 	if err := storeStat.Decode(b); err != nil {
+	// 		log.Errorln(err.Error())
+	// 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	// 		return
+	// 	}
+	//
+	// 	ns := NamespaceCreate{
+	// 		Label: nsid,
+	// 	}
+	//
+	// 	stats, err := ns.GetStats(api.db, api.config)
+	//
+	// 	if err != nil {
+	// 		log.Errorln(err.Error())
+	// 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	// 		return
+	// 	}
+	//
+	// 	namespaceStats := stats
+	// 	storeStat.SizeAvailable += namespaceStats.TotalSizeReserved
+	// 	storeStat.SizeUsed -= namespaceStats.TotalSizeReserved
+	//
+	// 	// delete namespacestats
+	// 	if err := namespaceStats.Delete(api.db, api.config); err != nil {
+	// 		log.Errorln(err.Error())
+	// 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	// 		return
+	// 	}
+	//
+	// 	// Save Updated global stats
+	// 	if err := storeStat.Save(api.db, api.config); err != nil {
+	// 		log.Println("save")
+	// 		log.Errorln(err.Error())
+	// 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	// 		return
+	// 	}
+	//
+	// 	// Delete reservations
+	// 	r := Reservation{
+	// 		Namespace: nsid,
+	// 	}
+	//
+	// 	resutls, err = api.db.ListAllRecordsStartingWith(r.GetKey(api.config))
+	//
+	// 	for _, key := range resutls {
+	// 		if err := api.db.Delete(key); err != nil {
+	// 			log.Errorln(err.Error())
+	//
+	// 		}
+	//
+	// 	}
+	// }()
 
 	// 204 has no body
 	http.Error(w, "", http.StatusNoContent)
@@ -197,28 +204,31 @@ func (api NamespacesAPI) Getnsid(w http.ResponseWriter, r *http.Request) {
 
 	nsid := mux.Vars(r)["nsid"]
 
-	namespace := NamespaceCreate{
+	namespace := models.NamespaceCreate{
 		Label: nsid,
 	}
 
-	v, err := namespace.Get(api.db, api.config)
-
+	b, err := api.db.Get(namespace.Key())
 	if err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-
 	// NOT FOUND
-	if v == nil {
+	if err == badger.ErrNotFound {
 		http.Error(w, "Namespace doesn't exist", http.StatusNotFound)
+		return
+	}
+
+	if err := namespace.Decode(b); err != nil {
+		log.Errorln(err.Error())
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
 	// Update namespace stats
 	defer api.UpdateNamespaceStats(nsid)
 
-	v.Label = strings.Replace(namespace.Label, api.config.Namespace.Prefix, "", 1)
 	respBody := Namespace{
 		NamespaceCreate: *v,
 	}
@@ -231,8 +241,6 @@ func (api NamespacesAPI) Getnsid(w http.ResponseWriter, r *http.Request) {
 // Listnamespaces is the handler for GET /namespaces
 // List all namespaces
 func (api NamespacesAPI) Listnamespaces(w http.ResponseWriter, r *http.Request) {
-	var respBody []Namespace
-
 	// Pagination
 	pageParam := r.FormValue("page")
 	perPageParam := r.FormValue("perPage")
@@ -262,16 +270,34 @@ func (api NamespacesAPI) Listnamespaces(w http.ResponseWriter, r *http.Request) 
 	startingIndex := (page-1)*perPage + 1
 	resultsCount := perPage
 
-	results, err := api.db.GetAllStartingWith(api.config.Namespace.Prefix, startingIndex, resultsCount)
+	list, err := api.db.List(models.NAMESPACE_PREFIX)
+	if err != nil {
+		log.Errorln("Error listing namespace :%v", err)
+		http.Error(w, "Error listing namespace", http.StatusInternalServerError)
+		return
+	}
 
-	for _, v := range results {
-		var namespace NamespaceCreate
-		namespace.Decode(v)
-		namespace.Label = strings.Replace(namespace.Label, api.config.Namespace.Prefix, "", 1)
-		respBody = append(respBody, Namespace{
-			NamespaceCreate: namespace,
+	respBody := make([]Namespace, 0, len(list))
+
+	for i := startingIndex; i < resultsCount || i >= len(list); i++ {
+		key := fmt.Sprintf("%s%s", models.NAMESPACE_PREFIX, list[i])
+		b, err := api.db.Get(key)
+		if err != nil {
+			log.Errorln("Error loading namespace :%v", err)
+			http.Error(w, "Error loading namespace", http.StatusInternalServerError)
+			return
+		}
+
+		ns := models.NamespaceCreate{label: list[i]}
+		if err := ns.Decode(b); err != nil {
+			log.Errorln("Error decoding namespace :%v", err)
+			http.Error(w, "Error decoding namespace", http.StatusInternalServerError)
+			return
+		}
+
+		respBody = append(respBody, models.Namespace{
+			NamespaceCreate: ns,
 		})
-
 	}
 
 	// return empty list if no results
@@ -443,11 +469,14 @@ func (api NamespacesAPI) nsidaclPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Update name space
-	if err := namespace.UpdateACL(api.db, api.config, reqBody); err != nil {
+	if err := namespace.UpdateACL(reqBody); err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
+
+    namespace.Encode()
+    api.db.
 
 	dataToken, err := reservation.GenerateDataAccessTokenForUser(reqBody.Id, namespace.Label, reqBody.Acl)
 

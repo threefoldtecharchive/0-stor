@@ -15,8 +15,6 @@ import (
 	validator "gopkg.in/validator.v2"
 )
 
-const RESERVATION_PREFIX = "1@res_"
-
 var _ (db.Model) = (*Reservation)(nil)
 
 type Reservation struct {

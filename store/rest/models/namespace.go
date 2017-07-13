@@ -11,11 +11,6 @@ import (
 	validator "gopkg.in/validator.v2"
 )
 
-const (
-	NAMESPACE_PREFIX       = "2@_"
-	NAMESPACE_STATS_PREFIX = "0@stats_"
-)
-
 var _ (db.Model) = (*Namespace)(nil)
 
 type Namespace struct {
@@ -134,27 +129,26 @@ func (s *NamespaceCreate) Decode(data []byte) error {
 }
 
 // FIXME
-// func (s NamespaceCreate) UpdateACL(db DB, config *Settings, acl ACL) error {
-// 	aclIndex := -1 // -1 means ACL for that user does not exist
-//
-// 	// Find if ACL for that user already exists
-// 	for i, item := range s.Acl {
-// 		if item.Id == acl.Id {
-// 			aclIndex = i
-// 			break
-// 		}
-// 	}
-//
-// 	// Update User ACL
-// 	if aclIndex != -1 {
-// 		s.Acl[aclIndex] = acl
-// 	} else { // Insert new ACL
-// 		s.Acl = append(s.Acl, acl)
-// 	}
-//
-// 	return s.Save(db, config)
-//
-// }
+func (s *NamespaceCreate) UpdateACL(acl ACL) {
+	aclIndex := -1 // -1 means ACL for that user does not exist
+
+	// Find if ACL for that user already exists
+	for i, item := range s.Acl {
+		if item.Id == acl.Id {
+			aclIndex = i
+			break
+		}
+	}
+
+	// Update User ACL
+	if aclIndex != -1 {
+		s.Acl[aclIndex] = acl
+	} else { // Insert new ACL
+		s.Acl = append(s.Acl, acl)
+	}
+
+	// return s.Save(db, config)
+}
 
 //
 // func (s NamespaceCreate) Exists(db DB, config *Settings) (bool, error) {
@@ -188,12 +182,13 @@ func (s *NamespaceCreate) Key() string {
 // 	return s, nil
 // // }
 //
-// func (s *NamespaceCreate) GetStats(db DB, config *Settings) (*NamespaceStats, error) {
+// func GetNamespaceStats(label string) (*NamespaceStats, error) {
 // 	stats := NamespaceStats{
-// 		Namespace: s.Label,
+// 		Namespace: Label,
 // 	}
 // 	return stats.Get(db, config)
 // }
+
 //
 // func (s *NamespaceCreate) GetKeyForReservations(config *Settings) string {
 // 	r := Reservation{
