@@ -1,14 +1,14 @@
 package models
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"math"
-	"encoding/binary"
+
+	"strings"
 
 	validator "gopkg.in/validator.v2"
-	"strings"
-	"github.com/zero-os/0-stor/store/config"
 )
 
 const (
@@ -16,10 +16,9 @@ const (
 	CRCSize  = 32
 )
 
-
 type File struct {
 	Namespace string
-	Id   string
+	Id        string
 	Reference byte
 	CRC       [32]byte
 	Payload   []byte
@@ -28,10 +27,10 @@ type File struct {
 
 func (f File) Key() string {
 	label := f.Namespace
-	if strings.Index(label, config.NAMESPACE_COLLECTION_PREFIX) != -1{
-		label = strings.Replace(label, config.NAMESPACE_COLLECTION_PREFIX, "", 1)
+	if strings.Index(label, NAMESPACE_PREFIX) != -1 {
+		label = strings.Replace(label, NAMESPACE_PREFIX, "", 1)
 	}
-	label = fmt.Sprintf("%s%s", config.NAMESPACE_COLLECTION_PREFIX, label)
+	label = fmt.Sprintf("%s%s", NAMESPACE_PREFIX, label)
 	return fmt.Sprintf("%s:%s", label, f.Id)
 }
 
@@ -122,8 +121,6 @@ func (f *File) Decode(data []byte) error {
 	return nil
 }
 
-
-
 type Object struct {
 	Data string `json:"data" validate:"nonzero"`
 	Id   string `json:"id" validate:"min=5,max=128,regexp=^[a-zA-Z0-9]+$,nonzero"`
@@ -134,24 +131,24 @@ func (o Object) Validate() error {
 	return validator.Validate(o)
 }
 
-func (o Object) Key() string{
+func (o Object) Key() string {
 	return o.Id
 }
 
-func (o Object) Encode() ([]byte, error){
+func (o Object) Encode() ([]byte, error) {
 	return []byte{}, nil
 }
 
-func (o *Object) Decode() error{
+func (o *Object) Decode() error {
 	return nil
 }
 
 func (o *Object) ToFile(nsid string) (*File, error) {
 	file := &File{
 		Namespace: nsid,
-		Id: o.Id,
+		Id:        o.Id,
 		Reference: 1,
-		Tags: []byte{},
+		Tags:      []byte{},
 	}
 
 	bytes := []byte(o.Data)
@@ -189,4 +186,3 @@ func (o *ObjectUpdate) ToFile(nsid string) (*File, error) {
 	return obj.ToFile(nsid)
 
 }
-

@@ -7,12 +7,6 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
-const (
-	STORE_STATS_COLLECTION_NAME             = "0@stats"
-	NAMESPACE_RESERVATION_COLLECTION_PREFIX = "1@res_"
-	NAMESPACE_COLLECTION_PREFIX = "2@_"
-	NAMESPACE_STATS_COLLECTION_PREFIX = "0@stats_"
-)
 
 type Settings struct {
 	DebugLog bool `json:"debug"`

@@ -6,11 +6,12 @@ import (
 	"math"
 	"time"
 
+	"strings"
+
+	"github.com/zero-os/0-stor/store/core/librairies/reservation"
 	"github.com/zero-os/0-stor/store/db"
 	"github.com/zero-os/0-stor/store/utils"
 	validator "gopkg.in/validator.v2"
-	"github.com/zero-os/0-stor/store/config"
-	"strings"
 )
 
 var _ (db.Model) = (*Namespace)(nil)
@@ -57,7 +58,7 @@ func (s *Namespace) Decode(data []byte) error {
 }
 
 func (s *Namespace) Key() string {
-	return fmt.Sprintf("%s%s", config.NAMESPACE_COLLECTION_PREFIX, s.Label)
+	return fmt.Sprintf("%s%s", NAMESPACE_PREFIX, s.Label)
 }
 
 var _ (db.Model) = (*NamespaceCreate)(nil)
@@ -77,7 +78,6 @@ type NamespaceCreate struct {
 func (s NamespaceCreate) Validate() error {
 	return validator.Validate(s)
 }
-
 
 func (s NamespaceCreate) Encode() ([]byte, error) {
 	label := []byte(s.Label)
@@ -140,9 +140,8 @@ func (s *NamespaceCreate) Decode(data []byte) error {
 	return nil
 }
 
-
 func (s *NamespaceCreate) Key() string {
-	return fmt.Sprintf("%s%s", config.NAMESPACE_COLLECTION_PREFIX, s.Label)
+	return fmt.Sprintf("%s%s", NAMESPACE_PREFIX, s.Label)
 }
 
 func (s *NamespaceCreate) UpdateACL(acl ACL) {
@@ -163,7 +162,6 @@ func (s *NamespaceCreate) UpdateACL(acl ACL) {
 		s.Acl = append(s.Acl, acl)
 	}
 }
-
 
 type NamespaceStat struct {
 	NrObjects      int64 `json:"NrObjects" validate:"nonzero"`
@@ -229,8 +227,18 @@ func (s *NamespaceStats) Decode(data []byte) error {
 
 func (s NamespaceStats) Key() string {
 	label := s.Namespace
-	if strings.Index(label, config.NAMESPACE_COLLECTION_PREFIX) != -1{
-		label = strings.Replace(label, config.NAMESPACE_COLLECTION_PREFIX, "", 1)
+	if strings.Index(label, NAMESPACE_PREFIX) != -1 {
+		label = strings.Replace(label, NAMESPACE_PREFIX, "", 1)
 	}
-	return fmt.Sprintf("%s%s", config.NAMESPACE_STATS_COLLECTION_PREFIX, label)
+	return fmt.Sprintf("%s%s", NAMESPACE_STATS_PREFIX, label)
+}
+
+type NamespacesNsidReservationPostRespBody struct {
+	DataAccessToken  string                  `json:"dataAccessToken" validate:"nonzero"`
+	Reservation      reservation.Reservation `json:"reservation" validate:"nonzero"`
+	ReservationToken string                  `json:"reservationToken" validate:"nonzero"`
+}
+
+func (s NamespacesNsidReservationPostRespBody) Validate() error {
+	return validator.Validate(s)
 }

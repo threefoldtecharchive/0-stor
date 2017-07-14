@@ -9,12 +9,12 @@ import (
 
 	"github.com/zero-os/0-stor/store/goraml"
 
+	"strings"
+
 	"github.com/zero-os/0-stor/store/core/librairies/reservation"
 	"github.com/zero-os/0-stor/store/db"
 	"github.com/zero-os/0-stor/store/utils"
 	validator "gopkg.in/validator.v2"
-	"github.com/zero-os/0-stor/store/config"
-	"strings"
 )
 
 var _ (db.Model) = (*Reservation)(nil)
@@ -22,7 +22,7 @@ var _ (db.Model) = (*Reservation)(nil)
 /*
 -----------------------------------------------------------------
 SizeReserved| TotalSizeReserved |Size of CreationDate
- 8         |   8      |  2
+ 8         |   8                |  2
 -----------------------------------------------------------------
 
 -----------------------------------------------------------------------
@@ -35,7 +35,6 @@ Size of UpdateDate     |Size of ExpirationDate | Size ID | Size AdminID
 ------------------------------------------------------------
 
 */
-
 
 type Reservation struct {
 	Namespace string
@@ -74,10 +73,10 @@ func (s Reservation) SizeRemaining() float64 {
 
 func (s Reservation) Key() string {
 	label := s.Namespace
-	if strings.Index(label, config.NAMESPACE_COLLECTION_PREFIX) != -1{
-		label = strings.Replace(label, config.NAMESPACE_COLLECTION_PREFIX, "", 1)
+	if strings.Index(label, NAMESPACE_PREFIX) != -1 {
+		label = strings.Replace(label, NAMESPACE_PREFIX, "", 1)
 	}
-	return fmt.Sprintf("%s%s_%s", config.NAMESPACE_RESERVATION_COLLECTION_PREFIX, label, s.Id)
+	return fmt.Sprintf("%s%s_%s", RESERVATION_PREFIX, label, s.Id)
 }
 
 func (s Reservation) Encode() ([]byte, error) {

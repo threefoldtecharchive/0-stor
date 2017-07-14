@@ -1,10 +1,10 @@
 package utils
 
 import (
-	"math"
-	"encoding/binary"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/binary"
+	"math"
 )
 
 func Float64frombytes(bytes []byte) float64 {
@@ -20,8 +20,8 @@ func Float64bytes(float float64) []byte {
 	return bytes
 }
 
-/* Random bytes generator */
-func GenerateRandomBytes(n int) ([]byte, error){
+// Random bytes generator
+func GenerateRandomBytes(n int) ([]byte, error) {
 	b := make([]byte, n)
 
 	_, err := rand.Read(b)
@@ -32,19 +32,18 @@ func GenerateRandomBytes(n int) ([]byte, error){
 	return b, nil
 }
 
-func GenerateUUID(n int) (string, error){
+func GenerateUUID(n int) (string, error) {
 	b, err := GenerateRandomBytes(n)
 
 	token, err := base64.URLEncoding.EncodeToString(b), err
-	if err != nil{
+	if err != nil {
 		return "", err
 	}
 	return token, nil
 
 }
 
-func InvalidateToken(token string) error{
+func InvalidateToken(token string) error {
 	//@TODO: Invalidate GWT token
 	return nil
 }
-

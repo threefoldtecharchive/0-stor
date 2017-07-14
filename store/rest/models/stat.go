@@ -3,7 +3,6 @@ package models
 import (
 	"github.com/zero-os/0-stor/store/utils"
 	validator "gopkg.in/validator.v2"
-	"github.com/zero-os/0-stor/store/config"
 )
 
 type StoreStatRequest struct {
@@ -33,5 +32,5 @@ func (s *StoreStat) Decode(data []byte) error {
 }
 
 func (s StoreStat) Key() string {
-	return config.STORE_STATS_COLLECTION_NAME
+	return STORE_STATS_PREFIX
 }
