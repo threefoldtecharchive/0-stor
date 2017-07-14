@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"net/http"
 
-	log "github.com/Sirupsen/logrus"
-	"github.com/zero-os/0-stor/store/rest/models"
-	"github.com/zero-os/0-stor/store/config"
 	"fmt"
 	"strconv"
+
+	log "github.com/Sirupsen/logrus"
+	"github.com/zero-os/0-stor/store/rest/models"
 
 	"github.com/gorilla/mux"
 	"github.com/zero-os/0-stor/store/db"
@@ -241,7 +241,7 @@ func (api NamespacesAPI) Listnamespaces(w http.ResponseWriter, r *http.Request) 
 	}
 
 	if perPageParam == "" {
-		perPageParam = strconv.Itoa(api.config.DB.Pagination.PageSize)
+		perPageParam = "20"
 	}
 
 	page, err := strconv.Atoi(pageParam)

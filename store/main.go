@@ -68,18 +68,6 @@ func main() {
 			Value:       "db/meta",
 			Destination: &settings.DB.Dirs.Meta,
 		},
-		cli.IntFlag{
-			Name:        "pagination",
-			Usage:       "Default pagination page size",
-			Value:       100,
-			Destination: &settings.DB.Pagination.PageSize,
-		},
-		cli.IntFlag{
-			Name:        "prefetch",
-			Usage:       "Set pre-fetch size",
-			Value:       100,
-			Destination: &settings.DB.Iterator.PreFetchSize,
-		},
 	}
 
 	app.Before = func(c *cli.Context) error {

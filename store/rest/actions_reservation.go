@@ -29,7 +29,7 @@ func (api NamespacesAPI) ListReservations(w http.ResponseWriter, r *http.Request
 	}
 
 	if per_pageParam == "" {
-		per_pageParam = strconv.Itoa(api.config.DB.Pagination.PageSize)
+		per_pageParam = "20"
 	}
 
 	page, err := strconv.Atoi(pageParam)

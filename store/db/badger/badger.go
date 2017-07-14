@@ -103,13 +103,9 @@ func (b BadgerDB) Exists(key string) (bool, error) {
 	return exists, err
 }
 
-/*
-	Pass count = -1 to get all elements starting from the provided index
-
- */
+// Pass count = -1 to get all elements starting from the provided index
 func (b BadgerDB) Filter(prefix string, start int, count int) ([][]byte, error) {
 	opt := badgerkv.DefaultIteratorOptions
-	opt.PrefetchSize = b.Config.DB.Iterator.PreFetchSize
 
 	it := b.KV.NewIterator(opt)
 	defer it.Close()
@@ -142,7 +138,6 @@ func (b BadgerDB) Filter(prefix string, start int, count int) ([][]byte, error) 
 
 func (b BadgerDB) List(prefix string) ([]string, error) {
 	opt := badgerkv.DefaultIteratorOptions
-	opt.PrefetchSize = b.Config.DB.Iterator.PreFetchSize
 	opt.FetchValues = false
 
 	it := b.KV.NewIterator(opt)

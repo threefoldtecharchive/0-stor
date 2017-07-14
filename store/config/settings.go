@@ -7,7 +7,6 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
-
 type Settings struct {
 	DebugLog bool `json:"debug"`
 
@@ -18,14 +17,6 @@ type Settings struct {
 			Meta string `json:"meta"`
 			Data string `json:"data"`
 		} `json:"dirs"`
-
-		Iterator struct {
-			PreFetchSize int `json:"pre_fetch_size"`
-		} `json:"iterator"`
-
-		Pagination struct {
-			PageSize int `json:"page_size"`
-		}
 	} `json:db`
 }
 
