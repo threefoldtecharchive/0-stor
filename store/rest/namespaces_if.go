@@ -26,9 +26,6 @@ type NamespacesInterface interface { // nsidaclPost is the handler for POST /nam
 	// GetObject is the handler for GET /namespaces/{nsid}/objects/{id}
 	// Retrieve object from the KV
 	GetObject(http.ResponseWriter, *http.Request)
-	// UpdateObject is the handler for PUT /namespaces/{nsid}/objects/{id}
-	// Update oject
-	UpdateObject(http.ResponseWriter, *http.Request)
 	// Listobjects is the handler for GET /namespaces/{nsid}/objects
 	// List keys of the namespaces
 	Listobjects(http.ResponseWriter, *http.Request)
@@ -56,16 +53,12 @@ type NamespacesInterface interface { // nsidaclPost is the handler for POST /nam
 	// Getnsid is the handler for GET /namespaces/{nsid}
 	// Get detail view about nsid
 	Getnsid(http.ResponseWriter, *http.Request)
-	// Updatensid is the handler for PUT /namespaces/{nsid}
-	// Update nsid
-	Updatensid(http.ResponseWriter, *http.Request)
 	// Listnamespaces is the handler for GET /namespaces
 	// List all namespaces
 	Listnamespaces(http.ResponseWriter, *http.Request)
 	// Createnamespace is the handler for POST /namespaces
 	// Create a new namespace
 	Createnamespace(http.ResponseWriter, *http.Request)
-
 	// GetStoreStats is the handler for GET /namespaces/stats
 	// Return usage statistics about the whole KV
 	GetStoreStats(http.ResponseWriter, *http.Request)
