@@ -1,8 +1,8 @@
 package reservation
 
 import (
-	"gopkg.in/validator.v2"
 	"errors"
+	"gopkg.in/validator.v2"
 )
 
 type ReservationRequest struct {
@@ -19,8 +19,8 @@ func (s ReservationRequest) Validate() error {
 	return nil
 }
 
-func (s ReservationRequest) ValidateFreeSpace(sizeAvailable float64) error{
-	if float64(s.Size) > sizeAvailable{
+func (s ReservationRequest) ValidateFreeSpace(sizeAvailable float64) error {
+	if float64(s.Size) > sizeAvailable {
 		return errors.New("Requested reservation size exceeds allowed limits")
 	}
 	return nil

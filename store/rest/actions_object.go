@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
-	"strconv"
-	"github.com/zero-os/0-stor/store/rest/models"
 	"github.com/zero-os/0-stor/store/db"
+	"github.com/zero-os/0-stor/store/rest/models"
 )
 
 // Createobject is the handler for POST /namespaces/{nsid}/objects
@@ -24,13 +25,13 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 
 	exists, err := api.db.Exists(ns.Key())
 
-	if err != nil{
+	if err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	if !exists{
+	if !exists {
 		http.Error(w, "Namespace doesn't exist", http.StatusNotFound)
 		return
 	}
@@ -43,7 +44,7 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := reqBody.Validate(); err != nil{
+	if err := reqBody.Validate(); err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
@@ -61,7 +62,7 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 	reservation := r.Context().Value("reservation").(*models.Reservation)
 
 	oldFile := models.File{
-		Id: reqBody.Id,
+		Id:        reqBody.Id,
 		Namespace: nsid,
 	}
 
@@ -72,16 +73,16 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 			log.Errorln(err.Error())
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
-		}else{
+		} else {
 			// New file created as oldFile not exists
-			if reservation.SizeRemaining() < file.Size(){
+			if reservation.SizeRemaining() < file.Size() {
 				http.Error(w, "File SizeAvailable exceeds the remaining free space in namespace", http.StatusForbidden)
 				return
 			}
 
 			b, err = file.Encode()
 
-			if err != nil{
+			if err != nil {
 				log.Errorln(err.Error())
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				return
@@ -97,21 +98,21 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 
 			b, err = reservation.Encode()
 
-			if err != nil{
+			if err != nil {
 				log.Errorln(err.Error())
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				return
 			}
 
-			if err:= api.db.Set(reservation.Key(), b); err != nil{
+			if err := api.db.Set(reservation.Key(), b); err != nil {
 				log.Errorln(err.Error())
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				return
 			}
 		}
-	}else{
+	} else {
 		err = oldFile.Decode(b)
-		if err != nil{
+		if err != nil {
 			log.Errorln(err.Error())
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
@@ -122,7 +123,7 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 			oldFile.Reference = oldFile.Reference + 1
 			log.Debugln(file.Reference)
 			b, err = oldFile.Encode()
-			if err != nil{
+			if err != nil {
 				log.Errorln(err.Error())
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				return
@@ -142,7 +143,6 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(&reqBody)
 }
 
-
 // DeleteObject is the handler for DELETE /namespaces/{nsid}/objects/{id}
 // Delete object from the KV
 func (api NamespacesAPI) DeleteObject(w http.ResponseWriter, r *http.Request) {
@@ -154,13 +154,13 @@ func (api NamespacesAPI) DeleteObject(w http.ResponseWriter, r *http.Request) {
 
 	exists, err := api.db.Exists(ns.Key())
 
-	if err != nil{
+	if err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	if !exists{
+	if !exists {
 		http.Error(w, "Namespace doesn't exist", http.StatusNotFound)
 		return
 	}
@@ -168,8 +168,8 @@ func (api NamespacesAPI) DeleteObject(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 
 	f := models.File{
-		Namespace:nsid,
-		Id: id,
+		Namespace: nsid,
+		Id:        id,
 	}
 
 	v, err := api.db.Get(f.Key())
@@ -195,24 +195,23 @@ func (api NamespacesAPI) DeleteObject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	f = models.File{}
-	if err := f.Decode(v); err != nil{
+	if err := f.Decode(v); err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-
 
 	res := r.Context().Value("reservation").(*models.Reservation)
 	res.SizeUsed -= f.Size()
 
 	b, err := res.Encode()
 
-	if err != nil{
+	if err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	if err := api.db.Set(res.Key(), b); err != nil{
+	if err := api.db.Set(res.Key(), b); err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
@@ -234,13 +233,13 @@ func (api NamespacesAPI) GetObject(w http.ResponseWriter, r *http.Request) {
 
 	exists, err := api.db.Exists(ns.Key())
 
-	if err != nil{
+	if err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	if !exists{
+	if !exists {
 		http.Error(w, "Namespace doesn't exist", http.StatusNotFound)
 		return
 	}
@@ -248,14 +247,14 @@ func (api NamespacesAPI) GetObject(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 
 	f := models.File{
-		Namespace:nsid,
-		Id: id,
+		Namespace: nsid,
+		Id:        id,
 	}
 
 	v, err := api.db.Get(f.Key())
 
 	if err != nil {
-		if err == db.ErrNotFound{
+		if err == db.ErrNotFound {
 			http.Error(w, "object doesn't exist", http.StatusNotFound)
 			return
 		}
@@ -263,7 +262,6 @@ func (api NamespacesAPI) GetObject(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-
 
 	err = f.Decode(v)
 
@@ -274,11 +272,10 @@ func (api NamespacesAPI) GetObject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(&models.Object{
-		Id: f.Id,
+		Id:   f.Id,
 		Tags: []models.Tag{},
 		Data: string(f.Payload),
 	})
@@ -295,13 +292,13 @@ func (api NamespacesAPI) HeadObject(w http.ResponseWriter, r *http.Request) {
 
 	exists, err := api.db.Exists(ns.Key())
 
-	if err != nil{
+	if err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	if !exists{
+	if !exists {
 		http.Error(w, "Namespace doesn't exist", http.StatusNotFound)
 		return
 	}
@@ -309,10 +306,9 @@ func (api NamespacesAPI) HeadObject(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 
 	f := models.File{
-		Namespace:nsid,
-		Id: id,
+		Namespace: nsid,
+		Id:        id,
 	}
-
 
 	exists, err = api.db.Exists(f.Key())
 
@@ -364,20 +360,19 @@ func (api NamespacesAPI) Listobjects(w http.ResponseWriter, r *http.Request) {
 
 	nsid := mux.Vars(r)["nsid"]
 
-
 	ns := models.NamespaceCreate{
 		Label: nsid,
 	}
 
 	exists, err := api.db.Exists(ns.Key())
 
-	if err != nil{
+	if err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	if !exists{
+	if !exists {
 		http.Error(w, "Namespace doesn't exist", http.StatusNotFound)
 		return
 	}
@@ -389,7 +384,7 @@ func (api NamespacesAPI) Listobjects(w http.ResponseWriter, r *http.Request) {
 
 	objects, err := api.db.Filter(prefixStr, startingIndex, resultsCount)
 
-	if err != nil{
+	if err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
@@ -397,7 +392,7 @@ func (api NamespacesAPI) Listobjects(w http.ResponseWriter, r *http.Request) {
 
 	respBody = make([]models.Object, 0, len(objects))
 
-	for _, record := range(objects){
+	for _, record := range objects {
 		f := new(models.File)
 		if err := f.Decode(record); err != nil {
 			log.Errorln("Error decoding namespace :%v", err)
@@ -406,7 +401,7 @@ func (api NamespacesAPI) Listobjects(w http.ResponseWriter, r *http.Request) {
 		}
 
 		o := models.Object{
-			Id: f.Id,
+			Id:   f.Id,
 			Tags: []models.Tag{},
 			Data: string(f.Payload),
 		}
@@ -437,7 +432,7 @@ func (api NamespacesAPI) UpdateObject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := reqBody.Validate(); err != nil{
+	if err := reqBody.Validate(); err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
@@ -454,21 +449,20 @@ func (api NamespacesAPI) UpdateObject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-
 	id := mux.Vars(r)["id"]
 
 	oldFile := models.File{
-		Id: id,
+		Id:        id,
 		Namespace: nsid,
 	}
 
 	b, err := api.db.Get(oldFile.Key())
 
 	if err != nil {
-		if err == db.ErrNotFound{
+		if err == db.ErrNotFound {
 			http.Error(w, "Object doesn't exist", http.StatusNotFound)
 			return
-		}else {
+		} else {
 			log.Errorln(err.Error())
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
@@ -477,7 +471,7 @@ func (api NamespacesAPI) UpdateObject(w http.ResponseWriter, r *http.Request) {
 
 	err = oldFile.Decode(b)
 
-	if err != nil{
+	if err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
@@ -487,7 +481,7 @@ func (api NamespacesAPI) UpdateObject(w http.ResponseWriter, r *http.Request) {
 	file.Reference = oldFile.Reference
 
 	b, err = file.Encode()
-	if err != nil{
+	if err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
@@ -506,13 +500,13 @@ func (api NamespacesAPI) UpdateObject(w http.ResponseWriter, r *http.Request) {
 
 	b, err = res.Encode()
 
-	if err != nil{
+	if err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	if err:= api.db.Set(res.Key(), b); err != nil{
+	if err := api.db.Set(res.Key(), b); err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return

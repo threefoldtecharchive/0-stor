@@ -1,9 +1,8 @@
 package rest
 
 import (
-	"github.com/zero-os/0-stor/store/db"
 	"github.com/zero-os/0-stor/store/config"
-
+	"github.com/zero-os/0-stor/store/db"
 )
 
 var _ (NamespacesInterface) = (*NamespacesAPI)(nil)
@@ -16,8 +15,8 @@ type NamespacesAPI struct {
 
 func NewNamespacesAPI(db db.DB, conf *config.Settings) *NamespacesAPI {
 	return &NamespacesAPI{
-		db:         db,
-		config:     conf,
+		db:     db,
+		config: conf,
 	}
 
 }

@@ -2,11 +2,11 @@ package rest
 
 import (
 	"encoding/json"
-	"net/http"
-	log "github.com/Sirupsen/logrus"
 	"fmt"
-	"github.com/zero-os/0-stor/store/rest/models"
+	log "github.com/Sirupsen/logrus"
 	"github.com/zero-os/0-stor/store/db"
+	"github.com/zero-os/0-stor/store/rest/models"
+	"net/http"
 )
 
 // statsPost is the handler for POST /namespaces/stats
@@ -21,7 +21,7 @@ func (api NamespacesAPI) UpdateStoreStats(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if err:= reqBody.Validate(); err != nil{
+	if err := reqBody.Validate(); err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
@@ -29,11 +29,11 @@ func (api NamespacesAPI) UpdateStoreStats(w http.ResponseWriter, r *http.Request
 
 	storeStat := new(models.StoreStat)
 	b, err := api.db.Get(storeStat.Key())
-	if err != nil{
-		if err == db.ErrNotFound{
+	if err != nil {
+		if err == db.ErrNotFound {
 			http.Error(w, "Not Found", http.StatusNotFound)
 			return
-		}else{
+		} else {
 			log.Errorln(err.Error())
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
@@ -43,14 +43,14 @@ func (api NamespacesAPI) UpdateStoreStats(w http.ResponseWriter, r *http.Request
 
 	err = storeStat.Decode(b)
 
-	if err != nil{
+	if err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	if reqBody.SizeAvailable < storeStat.SizeUsed{
-		err := fmt.Sprintf("Store stats available size must be greater than used size (%v)",  storeStat.SizeUsed)
+	if reqBody.SizeAvailable < storeStat.SizeUsed {
+		err := fmt.Sprintf("Store stats available size must be greater than used size (%v)", storeStat.SizeUsed)
 		http.Error(w, err, http.StatusForbidden)
 		return
 	}
@@ -59,13 +59,13 @@ func (api NamespacesAPI) UpdateStoreStats(w http.ResponseWriter, r *http.Request
 
 	b, err = storeStat.Encode()
 
-	if err != nil{
+	if err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	if err := api.db.Set(storeStat.Key(), b); err != nil{
+	if err := api.db.Set(storeStat.Key(), b); err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
@@ -82,7 +82,7 @@ func (api NamespacesAPI) GetStoreStats(w http.ResponseWriter, r *http.Request) {
 	respBody := new(models.StoreStat)
 
 	b, err := api.db.Get(respBody.Key())
-	if err != nil{
+	if err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
@@ -90,7 +90,7 @@ func (api NamespacesAPI) GetStoreStats(w http.ResponseWriter, r *http.Request) {
 
 	err = respBody.Decode(b)
 
-	if err != nil{
+	if err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return

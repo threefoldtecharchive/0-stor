@@ -112,6 +112,6 @@ func (s *ACLEntry) Decode(data []byte) error {
 	return nil
 }
 
-func (s ACLEntry) Key() string{
+func (s ACLEntry) Key() string {
 	return ""
 }

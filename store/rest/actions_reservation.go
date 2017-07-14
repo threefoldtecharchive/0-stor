@@ -11,9 +11,9 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/zero-os/0-stor/store/core/librairies/reservation"
+	"github.com/zero-os/0-stor/store/db"
 	"github.com/zero-os/0-stor/store/goraml"
 	"github.com/zero-os/0-stor/store/rest/models"
-	"github.com/zero-os/0-stor/store/db"
 )
 
 // ListReservations is the handler for GET /namespaces/{nsid}/reservation
@@ -119,7 +119,6 @@ func (api NamespacesAPI) UpdateReservation(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-
 	namespaceStats := new(models.NamespaceStats)
 	namespaceStats.Namespace = nsid
 
@@ -131,12 +130,11 @@ func (api NamespacesAPI) UpdateReservation(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if err = namespaceStats.Decode(stats); err != nil{
+	if err = namespaceStats.Decode(stats); err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-
 
 	if err != nil {
 		log.Errorln(err.Error())
@@ -168,17 +166,17 @@ func (api NamespacesAPI) UpdateReservation(w http.ResponseWriter, r *http.Reques
 
 	b, err := api.db.Get(reservation.Key())
 	if err != nil {
-		if err == db.ErrNotFound{
+		if err == db.ErrNotFound {
 			http.Error(w, "Not found", http.StatusNotFound)
 			return
-		}else{
+		} else {
 			log.Errorln(err.Error())
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
 	}
 
-	if err := reservation.Decode(b); err != nil{
+	if err := reservation.Decode(b); err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
@@ -187,11 +185,11 @@ func (api NamespacesAPI) UpdateReservation(w http.ResponseWriter, r *http.Reques
 	// Get KV stat
 	storeStats := new(models.StoreStat)
 	b, err = api.db.Get(storeStats.Key())
-	if err != nil{
-		if err == db.ErrNotFound{
+	if err != nil {
+		if err == db.ErrNotFound {
 			http.Error(w, "Not Found", http.StatusNotFound)
 			return
-		}else{
+		} else {
 			log.Errorln(err.Error())
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
@@ -201,7 +199,7 @@ func (api NamespacesAPI) UpdateReservation(w http.ResponseWriter, r *http.Reques
 
 	err = storeStats.Decode(b)
 
-	if err != nil{
+	if err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
@@ -254,41 +252,41 @@ func (api NamespacesAPI) UpdateReservation(w http.ResponseWriter, r *http.Reques
 	// Save Updated global stats
 	b, err = storeStats.Encode()
 
-	if err != nil{
+	if err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	if err := api.db.Set(storeStats.Key(), b); err != nil{
+	if err := api.db.Set(storeStats.Key(), b); err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
 	b, err = reservation.Encode()
-	if err != nil{
+	if err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
 	// Update reservation
-	if err := api.db.Set(reservation.Key(), b); err != nil{
+	if err := api.db.Set(reservation.Key(), b); err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
 	b, err = namespaceStats.Encode()
-	if err != nil{
+	if err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
 	// Save namespacestats
-	if err := api.db.Set(namespaceStats.Key(), b); err != nil{
+	if err := api.db.Set(namespaceStats.Key(), b); err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
@@ -338,17 +336,17 @@ func (api NamespacesAPI) nsidreservationidGet(w http.ResponseWriter, r *http.Req
 
 	b, err := api.db.Get(respBody.Key())
 	if err != nil {
-		if err == db.ErrNotFound{
+		if err == db.ErrNotFound {
 			http.Error(w, "Not found", http.StatusNotFound)
 			return
-		}else{
+		} else {
 			log.Errorln(err.Error())
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
 	}
 
-	if err := respBody.Decode(b); err != nil{
+	if err := respBody.Decode(b); err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
@@ -395,12 +393,11 @@ func (api NamespacesAPI) CreateReservation(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if err = namespaceStats.Decode(stats); err != nil{
+	if err = namespaceStats.Decode(stats); err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-
 
 	if err != nil {
 		log.Errorln(err.Error())
@@ -482,7 +479,7 @@ func (api NamespacesAPI) CreateReservation(w http.ResponseWriter, r *http.Reques
 
 	// Save Updated global stats
 	b, err = storeStat.Encode()
-	if err != nil{
+	if err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
@@ -496,7 +493,7 @@ func (api NamespacesAPI) CreateReservation(w http.ResponseWriter, r *http.Reques
 
 	// Save namespacestats
 	b, err = namespaceStats.Encode()
-	if err != nil{
+	if err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
@@ -510,12 +507,12 @@ func (api NamespacesAPI) CreateReservation(w http.ResponseWriter, r *http.Reques
 
 	// Save reservation
 	b, err = reservation.Encode()
-	if err != nil{
+	if err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	if err :=  api.db.Set(reservation.Key(), b); err != nil {
+	if err := api.db.Set(reservation.Key(), b); err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
@@ -529,17 +526,16 @@ func (api NamespacesAPI) CreateReservation(w http.ResponseWriter, r *http.Reques
 
 	ns.UpdateACL(acl)
 	b, err = ns.Encode()
-	if err != nil{
+	if err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	if err :=  api.db.Set(ns.Key(), b); err != nil {
+	if err := api.db.Set(ns.Key(), b); err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-
 
 	respBody = models.NamespacesNsidReservationPostRespBody{
 		Reservation:      reservation.Reservation,

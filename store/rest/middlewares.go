@@ -10,9 +10,9 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/mux"
+	"github.com/zero-os/0-stor/store/config"
 	"github.com/zero-os/0-stor/store/core/librairies/reservation"
 	"github.com/zero-os/0-stor/store/db"
-	"github.com/zero-os/0-stor/store/config"
 	"github.com/zero-os/0-stor/store/rest/models"
 )
 
@@ -86,18 +86,18 @@ func (re *ReservationValidMiddleware) Handler(next http.Handler) http.Handler {
 		b, err := re.db.Get(res.Key())
 
 		if err != nil {
-			if err == db.ErrNotFound{
+			if err == db.ErrNotFound {
 				http.Error(w, "Reservation token is invalid", http.StatusUnauthorized)
 				return
 
-			}else{
+			} else {
 				log.Errorln(err.Error())
 				http.Error(w, "Internal server error", http.StatusInternalServerError)
 				return
 			}
 		}
 
-		if err = res.Decode(b); err != nil{
+		if err = res.Decode(b); err != nil {
 			log.Errorln(err.Error())
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
