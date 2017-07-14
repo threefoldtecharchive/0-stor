@@ -77,7 +77,7 @@ type NamespacesInterface interface { // nsidaclPost is the handler for POST /nam
 	DB() db.DB
 
 	// Get Settings object
-	Config() *config.Settings
+	Config() config.Settings
 }
 
 // NamespacesInterfaceRoutes is routing for /namespaces root endpoint

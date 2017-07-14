@@ -47,10 +47,10 @@ func (dt *DataTokenValidMiddleware) Handler(next http.Handler) http.Handler {
 
 type ReservationValidMiddleware struct {
 	db     db.DB
-	config *config.Settings
+	config config.Settings
 }
 
-func NewReservationValidMiddleware(db db.DB, config *config.Settings) *ReservationValidMiddleware {
+func NewReservationValidMiddleware(db db.DB, config config.Settings) *ReservationValidMiddleware {
 	return &ReservationValidMiddleware{
 		db:     db,
 		config: config,
