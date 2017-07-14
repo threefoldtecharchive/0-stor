@@ -3,7 +3,7 @@
 Single device object store
 [![Build Status](https://travis-ci.org/zero-os/0-stor.svg?branch=master)](https://travis-ci.org/zero-os/0-stor)
 
-[API specification](https://htmlpreviewer.github.io/?./specs/raml/sdstor.html)
+[API specification](https://rawgit.com/zero-os/0-stor/master/specs/raml/sdstor.html)
 
 # Installation
 

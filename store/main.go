@@ -20,12 +20,6 @@ import (
 	"gopkg.in/validator.v2"
 )
 
-func gracefulShutdown(db *badger.BadgerDB) {
-	log.Println("Gracefully closing 0-stor")
-	db.Close()
-	os.Exit(0)
-}
-
 const version = "0.0.1"
 
 func main() {
@@ -108,7 +102,6 @@ func main() {
 		}
 
 		api := rest.NewNamespacesAPI(db, settings)
-
 		rest.NamespacesInterfaceRoutes(r, api)
 
 		sigChan := make(chan os.Signal, 1)
@@ -122,7 +115,9 @@ func main() {
 		}()
 
 		<-sigChan // block on signal handler
-		gracefulShutdown(db)
+		log.Println("Gracefully closing 0-stor")
+		db.Close()
+		os.Exit(0)
 	}
 
 	app.Run(os.Args)

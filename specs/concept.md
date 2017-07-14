@@ -1,21 +1,20 @@
 # Single Disk Stor (SDStor)
 
 ### Concept:
-- services objects over network from a chosen data structure e.g. SophiaDB...
+- services objects over network from a chosen data structure
 - is backend object stor which can be used by high level client for storing files, directories, ...
 
 ### Format of objects stored on disk
 Structure used:
 ```
 - 1 byte : Number of references stored, 0 means is deleted, 255 means permanent
-- 160 * 16 bytes (2,56KB): **FIXME: why need this if we have the refernce counter already ? **
-    list of consumers
+- 160 * 16 bytes (2,56KB): list of consumers
     each consumer is represented with a 16 bytes id
 - 4 bytes: CRC of payload behind
 - payload: actual data, max size 1M
 ```
 
-- consumer is ItsYou.online UID
+- consumer is a 16 byte string (this has no meaning for the 0-stor, its up to the user to give meaning to it e.g. IYO uid)
 - special first byte meaning:
 	- 0: no consumers, marked for deletion but is still there
 	- 255: permanent = cannot be deleted
@@ -23,9 +22,9 @@ Structure used:
 ### principles
 
 - rest based network server (using go-raml to generate)
-- backend is ardb with selected data store. **Still need to make some perf test to see which one will give more thoughput.**
- We will start with forestdb
-- when HD then there is maximum one NOS per HD, on SSD preferably as well but can change
+- backend is [badger](https://github.com/dgraph-io/badger)
+- key and value can be written on two different location which enable use to put keys on a fast disk (ssd) and value on a slower disk. Since value log is always append, we don't loose too much performance even if we write in HDD
+- we don't work with reference counter only, we need to keep list of consumers (reference counter to dangerous)
 
 #### Data Format send from the client:
 Before sending any data to the client, the data need to be process using the follow flow:
@@ -66,9 +65,6 @@ Per reservation track:
 - nr of objects stored
 - size of the data
 
-### questions/assumptions:
+### remarks
 - We use only access data token to control access. Any user if he knows proper token, he can access data.
-- ~~If access set for "" (empty) dataSecret it means reservation is open for anyone.~~ do we still want this feature?
-- We use ItsYou.online IDs to identify consumers.
-- Data structure contains MD5 hashes of ItsYou.online IDs.
-- On put if we put new data content with the same key, data gets rewrited but consumer list remains the same.
+- We cannot overwrite data !!! once written it can only be deleted, once deleted a new one can be created.
