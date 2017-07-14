@@ -5,50 +5,50 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	badgerkv "github.com/dgraph-io/badger"
-	"github.com/zero-os/0-stor/store/config"
 	"github.com/zero-os/0-stor/store/db"
 )
 
 var _ db.DB = (*BadgerDB)(nil)
 
+// BadgerDB implements the db.DB interace
 type BadgerDB struct {
-	KV     *badgerkv.KV
-	Config *config.Settings
+	KV *badgerkv.KV
+	// Config *config.Settings
 }
 
-/* Constructor */
-func New(settings *config.Settings) (*BadgerDB, error) {
-	log.Println("Initializing db directories")
+// Constructor
+func New(data, meta string) (*BadgerDB, error) {
+	// log.Println("Initializing db directories")
 
-	if err := os.MkdirAll(settings.DB.Dirs.Meta, 0774); err != nil {
-		log.Printf("\t\tMeta dir: %v [ERROR]", settings.DB.Dirs.Meta)
+	if err := os.MkdirAll(meta, 0774); err != nil {
+		log.Errorf("\t\tMeta dir: %v [ERROR]", meta)
 		return nil, err
 	}
 
-	log.Printf("\t\tMeta dir: %v [SUCCESS]", settings.DB.Dirs.Meta)
+	// log.Printf("\t\tMeta dir: %v [SUCCESS]", meta)
 
-	if err := os.MkdirAll(settings.DB.Dirs.Data, 0774); err != nil {
-		log.Printf("\t\tData dir: %v [ERROR]", settings.DB.Dirs.Data)
+	if err := os.MkdirAll(data, 0774); err != nil {
+		log.Errorf("\t\tData dir: %v [ERROR]", data)
 		return nil, err
 	}
 
-	log.Printf("\t\tData dir: %v [SUCCESS]", settings.DB.Dirs.Data)
+	// log.Printf("\t\tData dir: %v [SUCCESS]", data)
 
 	opts := badgerkv.DefaultOptions
-	opts.Dir = settings.DB.Dirs.Meta
-	opts.ValueDir = settings.DB.Dirs.Data
+	opts.Dir = meta
+	opts.ValueDir = data
+	opts.SyncWrites = true
 
 	kv, err := badgerkv.NewKV(&opts)
 
-	if err == nil {
-		log.Println("Loading db [SUCCESS]")
-	} else {
-		log.Println("Loading db [ERROR]")
-	}
+	// if err == nil {
+	// 	log.Println("Loading db [SUCCESS]")
+	// } else {
+	// 	log.Println("Loading db [ERROR]")
+	// }
 
 	return &BadgerDB{
-		KV:     kv,
-		Config: settings,
+		KV: kv,
 	}, err
 }
 

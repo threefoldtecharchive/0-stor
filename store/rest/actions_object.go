@@ -94,6 +94,7 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
+			// TODO: Update reservation asynchronously
 			reservation.SizeUsed += file.Size()
 
 			b, err = reservation.Encode()
@@ -186,6 +187,8 @@ func (api NamespacesAPI) DeleteObject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// TODO: we should not delete directly, but decrease the reference counter.
+	// if reference counter reach 0, delete content.
 	err = api.db.Delete(f.Key())
 
 	if err != nil {
@@ -276,7 +279,7 @@ func (api NamespacesAPI) GetObject(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(&models.Object{
 		Id:   f.Id,
-		Tags: []models.Tag{},
+		Tags: []models.Tag{}, // TODO: why returning empty slice ?
 		Data: string(f.Payload),
 	})
 }

@@ -135,14 +135,6 @@ func (o Object) Key() string {
 	return o.Id
 }
 
-func (o Object) Encode() ([]byte, error) {
-	return []byte{}, nil
-}
-
-func (o *Object) Decode() error {
-	return nil
-}
-
 func (o *Object) ToFile(nsid string) (*File, error) {
 	file := &File{
 		Namespace: nsid,

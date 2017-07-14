@@ -50,10 +50,10 @@ type ReservationValidMiddleware struct {
 	config config.Settings
 }
 
-func NewReservationValidMiddleware(db db.DB, config config.Settings) *ReservationValidMiddleware {
+func NewReservationValidMiddleware(db db.DB) *ReservationValidMiddleware {
 	return &ReservationValidMiddleware{
-		db:     db,
-		config: config,
+		db: db,
+		// config: config,
 	}
 }
 

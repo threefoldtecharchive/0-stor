@@ -3,10 +3,11 @@ package rest
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/zero-os/0-stor/store/db"
 	"github.com/zero-os/0-stor/store/rest/models"
-	"net/http"
 )
 
 // statsPost is the handler for POST /namespaces/stats
