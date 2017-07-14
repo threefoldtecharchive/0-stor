@@ -9,14 +9,13 @@ import (
 	"github.com/zero-os/0-stor/store/db"
 	"github.com/zero-os/0-stor/store/db/badger"
 	"github.com/zero-os/0-stor/store/goraml"
-	"github.com/zero-os/0-stor/store/rest"
 	"github.com/zero-os/0-stor/store/rest/models"
+	"github.com/zero-os/0-stor/store/router"
 
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/gorilla/mux"
 	"gopkg.in/validator.v2"
 )
 
@@ -29,7 +28,7 @@ func main() {
 
 	log.SetFormatter(&log.TextFormatter{FullTimestamp: true})
 	log.SetOutput(os.Stdout)
-	settings := &config.Settings{}
+	settings := config.Settings{}
 
 	var configPath string
 
@@ -43,6 +42,11 @@ func main() {
 			Name:        "debug, d",
 			Usage:       "Enable debug logging",
 			Destination: &settings.DebugLog,
+		},
+		cli.BoolFlag{
+			Name:        "nojwt",
+			Usage:       "Disable jwt protection, use only for testing!",
+			Destination: &settings.DisableJWT,
 		},
 		cli.StringFlag{
 			Name:        "bind, b",
@@ -82,17 +86,17 @@ func main() {
 	app.Action = func(c *cli.Context) {
 		log.Infoln(app.Name, "version", app.Version)
 
-		r := mux.NewRouter()
+		// r := mux.NewRouter()
 
-		// home page
-		r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			http.ServeFile(w, r, "index.html")
-		})
+		// // home page
+		// r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		// 	http.ServeFile(w, r, "index.html")
+		// })
+		//
+		// // apidocs
+		// r.PathPrefix("/apidocs/").Handler(http.StripPrefix("/apidocs/", http.FileServer(http.Dir("./apidocs/"))))
 
-		// apidocs
-		r.PathPrefix("/apidocs/").Handler(http.StripPrefix("/apidocs/", http.FileServer(http.Dir("./apidocs/"))))
-
-		db, err := badger.New(settings)
+		db, err := badger.New(settings.DB.Dirs.Data, settings.DB.Dirs.Meta)
 		if err != nil {
 			log.Fatal(err.Error())
 		}
@@ -101,9 +105,7 @@ func main() {
 			log.Fatalf("Error checking store stats : %v", err)
 		}
 
-		api := rest.NewNamespacesAPI(db, settings)
-		rest.NamespacesInterfaceRoutes(r, api)
-
+		r := router.GetRouter(db, settings, !settings.DisableJWT)
 		sigChan := make(chan os.Signal, 1)
 		signal.Notify(sigChan, syscall.SIGINT)
 

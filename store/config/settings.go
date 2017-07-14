@@ -8,7 +8,8 @@ import (
 )
 
 type Settings struct {
-	DebugLog bool `json:"debug"`
+	DebugLog   bool `json:"debug"`
+	DisableJWT bool `json:"disable_jwt"`
 
 	BindAddress string `json:"bind"`
 
