@@ -6,6 +6,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
 	"github.com/zero-os/0-stor/store/config"
+	"github.com/zero-os/0-stor/store/db"
 	"github.com/zero-os/0-stor/store/db/badger"
 	"github.com/zero-os/0-stor/store/goraml"
 	"github.com/zero-os/0-stor/store/rest"
@@ -37,7 +38,6 @@ func main() {
 	settings := &config.Settings{}
 
 	var configPath string
-	// settings := loadSettings()
 
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
@@ -103,34 +103,9 @@ func main() {
 			log.Fatal(err.Error())
 		}
 
-		// TODO: is this the correct location to do that ?
-		st := models.StoreStat{}
-
-		exists, err := db.Exists(st.Key())
-		if err != nil {
-			log.Errorln("Database Error")
-			log.Errorln(err.Error())
-			return
+		if err := ensureStoreStat(db); err != nil {
+			log.Fatalf("Error checking store stats : %v", err)
 		}
-
-		state := "[USING CURRENT]"
-
-		if !exists {
-			s := models.StoreStat{}
-			b, err := s.Encode()
-
-			if err != nil{
-				log.Fatal(err.Error())
-			}
-
-			if err = db.Set(s.Key(), b); err != nil{
-				log.Fatal(err.Error())
-			}
-
-			state = "[CREATED]"
-		}
-
-		log.Printf("Global Stats collection: %v\t%s", config.STORE_STATS_COLLECTION_NAME, state)
 
 		api := rest.NewNamespacesAPI(db, settings)
 
@@ -151,4 +126,30 @@ func main() {
 	}
 
 	app.Run(os.Args)
+}
+
+func ensureStoreStat(db db.DB) error {
+	exists, err := db.Exists(models.STORE_STATS_PREFIX)
+	if err != nil {
+		return err
+	}
+
+	state := "[USING CURRENT]"
+
+	if !exists {
+		s := models.StoreStat{}
+		b, err := s.Encode()
+		if err != nil {
+			return err
+		}
+
+		if err = db.Set(s.Key(), b); err != nil {
+			return err
+		}
+
+		state = "[CREATED]"
+	}
+
+	log.Printf("Global Stats collection: %v\t%s", models.STORE_STATS_PREFIX, state)
+	return nil
 }
