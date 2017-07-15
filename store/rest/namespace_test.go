@@ -62,8 +62,8 @@ func TestGetNameSpace(t *testing.T) {
 	// populate db with some namespace
 	ns := models.Namespace{
 		NamespaceCreate: models.NamespaceCreate{Label: "namespace1"},
-		SpaceAvailable:  100,
-		SpaceUsed:       50,
+		SpaceAvailable:  0,
+		SpaceUsed:       0,
 	}
 	b, err := ns.Encode()
 	require.NoError(t, err)

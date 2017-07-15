@@ -220,7 +220,9 @@ func (api NamespacesAPI) Getnsid(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respBody := models.Namespace{
-		NamespaceCreate: namespace,
+		NamespaceCreate:  models.NamespaceCreate{
+			Label: nsid,
+		},
 	}
 
 	w.Header().Set("Content-Type", "application/json")
