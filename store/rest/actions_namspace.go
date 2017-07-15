@@ -117,59 +117,16 @@ func (api NamespacesAPI) Deletensid(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Delete objects in a namespace
 	defer func() {
+		// Delete objects in a namespace
 		resutls, err := api.db.List(fmt.Sprintf("%s:", nsid))
 
 		for _, key := range resutls {
 			if err := api.db.Delete(key); err != nil {
 				log.Errorln(err.Error())
+				return // db error, nothing more to do
 			}
 
-		}
-
-		storeStat := models.StoreStat{}
-		b, err := api.db.Get(storeStat.Key())
-		if err != nil {
-			log.Errorln(err.Error())
-		}
-
-		if err := storeStat.Decode(b); err != nil {
-			log.Errorln(err.Error())
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-
-		namespaceStats := new(models.NamespaceStats)
-		namespaceStats.Namespace = nsid
-
-		stats, err := api.db.Get(namespaceStats.Key())
-
-		if err != nil {
-			log.Errorln(err.Error())
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-
-		if err = namespaceStats.Decode(stats); err != nil {
-			log.Errorln(err.Error())
-		}
-		storeStat.SizeAvailable += namespaceStats.TotalSizeReserved
-		storeStat.SizeUsed -= namespaceStats.TotalSizeReserved
-
-		// delete namespacestats
-		if err = api.db.Delete(namespaceStats.Key()); err != nil {
-			log.Errorln(err.Error())
-		}
-
-		b, err = storeStat.Encode()
-
-		if err != nil {
-			log.Errorln(err.Error())
-		}
-		// Save Updated global stats
-		if err = api.db.Set(storeStat.Key(), b); err != nil {
-			log.Errorln(err.Error())
 		}
 
 		// Delete reservations
@@ -181,9 +138,61 @@ func (api NamespacesAPI) Deletensid(w http.ResponseWriter, r *http.Request) {
 		for _, key := range resutls2 {
 			if err := api.db.Delete(key); err != nil {
 				log.Errorln(err.Error())
-
+				// db error, nothing more to do
 			}
 		}
+
+		namespaceStats := new(models.NamespaceStats)
+		namespaceStats.Namespace = nsid
+		totalSizeReserved := 0.0
+
+		stats, err := api.db.Get(namespaceStats.Key())
+
+		if err != nil {
+			log.Errorln(err.Error())
+			return // db error, or stats not found .. nothing more to do
+		}
+
+		if err = namespaceStats.Decode(stats); err != nil {
+			log.Errorln(err.Error())
+		}
+
+		totalSizeReserved = namespaceStats.TotalSizeReserved
+
+		// delete namespacestats
+		if err = api.db.Delete(namespaceStats.Key()); err != nil {
+			log.Errorln(err.Error())
+			return
+		}
+
+		storeStat := models.StoreStat{}
+		b, err := api.db.Get(storeStat.Key())
+		if err == nil {
+			if err := storeStat.Decode(b); err != nil {
+				log.Errorln(err.Error())
+			}
+		}else{
+			log.Errorln(err.Error())
+			return
+		}
+
+		storeStat.SizeAvailable += totalSizeReserved
+		storeStat.SizeUsed -= totalSizeReserved
+
+
+		b, err = storeStat.Encode()
+
+		if err != nil {
+			log.Errorln(err.Error())
+			return
+		}
+		// Save Updated global stats
+		if err = api.db.Set(storeStat.Key(), b); err != nil {
+			log.Errorln(err.Error())
+			return
+		}
+
+
 	}()
 
 	// 204 has no body

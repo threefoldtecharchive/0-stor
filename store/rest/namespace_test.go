@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/zero-os/0-stor/store/rest/models"
+	"time"
 )
 
 func TestCreateNameSpace(t *testing.T) {
@@ -81,11 +82,111 @@ func TestGetNameSpace(t *testing.T) {
 }
 
 func TestDeleteNameSpace(t *testing.T) {
-	// TODO
-	t.SkipNow()
+	url, db, clean := getTestAPI(t)
+	defer clean()
+
+	body := &bytes.Buffer{}
+	ns := models.NamespaceCreate{Label: "mynamespace"}
+	err := json.NewEncoder(body).Encode(ns)
+	require.NoError(t, err)
+
+	// create namespace!
+	_, err = http.Post(url+"/namespaces", "application/json", body)
+	require.NoError(t, err)
+
+	//Sleep to allow creation of namespace stats
+	time.Sleep(time.Second)
+
+	// Add some objects
+	for _, label := range []string{"obj1", "obj2", "obj3"} {
+		f := models.File{}
+		f.Namespace = "mynamespace"
+		f.Id = label
+		f.Payload = []byte{1,2}
+		f.CRC = [32]byte{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
+		f.Tags = []byte{}
+		b, err := f.Encode()
+		require.NoError(t, err)
+		err = db.Set(f.Key(), b)
+		require.NoError(t, err)
+	}
+
+	// all files exist
+	for _, label := range []string{"obj1", "obj2", "obj3"} {
+		f := models.File{}
+		f.Namespace = "mynamespace"
+		f.Id = label
+		exists, err := db.Exists(f.Key())
+		require.NoError(t, err)
+		assert.True(t, exists, "file does not exist")
+	}
+
+	req, err := http.NewRequest("DELETE", url+"/namespaces/mynamespace",  &bytes.Buffer{})
+	req.Header.Add("Content-Type", "application/json")
+	require.NoError(t, err)
+	cli := http.DefaultClient
+
+	resp, err := cli.Do(req)
+
+	//Sleep to allow deletion of related collections
+	time.Sleep(time.Second)
+
+	assert.Equal(t, resp.StatusCode, http.StatusNoContent)
+	exists, err := db.Exists(ns.Key())
+	require.NoError(t, err)
+	assert.False(t, exists, "namespace exists")
+
+	nss := models.NamespaceStats{
+		Namespace: "mynamespace",
+	}
+
+	exists, err = db.Exists(nss.Key())
+	require.NoError(t, err)
+	assert.False(t, exists, "namespace stats exists")
+
+	// no files exist
+	for _, label := range []string{"obj1", "obj2", "obj3"} {
+		f := models.File{}
+		f.Namespace = "mynamespace"
+		f.Id = label
+		exists, err = db.Exists(f.Key())
+		require.NoError(t, err)
+		assert.False(t, exists, "file exists")
+	}
+
 }
 
 func TestStatNamespace(t *testing.T) {
-	// TODO
-	t.SkipNow()
+	url, db, clean := getTestAPI(t)
+	defer clean()
+
+	body := &bytes.Buffer{}
+	ns := models.NamespaceCreate{Label: "mynamespace"}
+	err := json.NewEncoder(body).Encode(ns)
+	require.NoError(t, err)
+
+	_, err = http.Post(url+"/namespaces", "application/json", body)
+	require.NoError(t, err)
+
+	//Sleep to allow creation of namespace stats
+	time.Sleep(time.Second)
+
+	expected := models.NamespaceStats{
+		Namespace: "mynamespace",
+		TotalSizeReserved:0,
+		NrRequests:0,
+	}
+
+	result := models.NamespaceStats{}
+
+	b, err := db.Get(expected.Key())
+	require.NoError(t, err)
+	err = result.Decode(b)
+	require.NoError(t, err)
+
+
+	expected.Created = result.Created
+	expected.Namespace = ""
+
+	assert.EqualValues(t, expected, result)
 }
