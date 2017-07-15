@@ -10,7 +10,6 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/mux"
-	"github.com/zero-os/0-stor/store/config"
 	"github.com/zero-os/0-stor/store/core/librairies/reservation"
 	"github.com/zero-os/0-stor/store/db"
 	"github.com/zero-os/0-stor/store/rest/models"
@@ -46,14 +45,12 @@ func (dt *DataTokenValidMiddleware) Handler(next http.Handler) http.Handler {
 }
 
 type ReservationValidMiddleware struct {
-	db     db.DB
-	config config.Settings
+	db db.DB
 }
 
 func NewReservationValidMiddleware(db db.DB) *ReservationValidMiddleware {
 	return &ReservationValidMiddleware{
 		db: db,
-		// config: config,
 	}
 }
 
