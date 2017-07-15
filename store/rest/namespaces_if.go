@@ -7,8 +7,10 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/justinas/alice"
 	"github.com/zero-os/0-stor/store/config"
 	"github.com/zero-os/0-stor/store/db"
+	"github.com/zero-os/0-stor/store/rest/models"
 )
 
 // NamespacesInterface is interface for /namespaces root endpoint
@@ -74,25 +76,134 @@ type NamespacesInterface interface { // nsidaclPost is the handler for POST /nam
 // NamespacesInterfaceRoutes is routing for /namespaces root endpoint
 func NamespacesInterfaceRoutes(r *mux.Router, i NamespacesInterface) {
 
-	r.HandleFunc("/namespaces/{nsid}/acl", i.nsidaclPost).Methods("POST")
-	r.HandleFunc("/namespaces/{nsid}/objects/{id}", i.DeleteObject).Methods("DELETE")
-	r.HandleFunc("/namespaces/{nsid}/objects/{id}", i.HeadObject).Methods("HEAD")
-	r.HandleFunc("/namespaces/{nsid}/objects/{id}", i.GetObject).Methods("GET")
-	r.HandleFunc("/namespaces/{nsid}/objects", i.Listobjects).Methods("GET")
-	r.HandleFunc("/namespaces/{nsid}/objects", i.Createobject).Methods("POST")
-	r.HandleFunc("/namespaces/{nsid}/reservation/{id}", i.nsidreservationidGet).Methods("GET")
-	r.HandleFunc("/namespaces/{nsid}/reservation/{id}", i.UpdateReservation).Methods("PUT")
-	r.HandleFunc("/namespaces/{nsid}/reservation", i.ListReservations).Methods("GET")
-	r.HandleFunc("/namespaces/{nsid}/reservation", i.CreateReservation).Methods("POST")
+	r.Handle("/namespaces/{nsid}/acl",
+		alice.New(
+			NewReservationValidMiddleware(i.DB(), i.Config()).Handler).
+			Then(http.HandlerFunc(i.nsidaclPost))).Methods("POST")
+
+	r.Handle("/namespaces/{nsid}/objects/{id}",
+		alice.New(
+			NewDataTokenValidMiddleware(models.ACLEntry{ // At least user should have Delete permissions
+				Read:   false,
+				Write:  false,
+				Delete: true,
+				Admin:  false,
+			}).Handler,
+			NewReservationValidMiddleware(i.DB(), i.Config()).Handler).
+			Then(http.HandlerFunc(i.DeleteObject))).Methods("DELETE")
+
+	r.Handle("/namespaces/{nsid}/objects/{id}",
+		alice.New(
+			NewDataTokenValidMiddleware(models.ACLEntry{ // At least user should have  Read permissions
+				Read:   true,
+				Write:  false,
+				Delete: false,
+				Admin:  false,
+			}).Handler,
+			NewReservationValidMiddleware(i.DB(), i.Config()).Handler).
+			Then(http.HandlerFunc(i.HeadObject))).Methods("HEAD")
+
+	r.Handle("/namespaces/{nsid}/objects/{id}",
+		alice.New(
+			NewDataTokenValidMiddleware(models.ACLEntry{ // At least user should have  Read permissions
+				Read:   true,
+				Write:  false,
+				Delete: false,
+				Admin:  false,
+			}).Handler,
+			NewReservationValidMiddleware(i.DB(), i.Config()).Handler).
+			Then(http.HandlerFunc(i.GetObject))).Methods("GET")
+
+	r.Handle("/namespaces/{nsid}/objects/{id}",
+		alice.New(
+			NewDataTokenValidMiddleware(models.ACLEntry{ //At least write permissions
+				Read:   false,
+				Write:  true,
+				Delete: false,
+				Admin:  false,
+			}).Handler,
+
+			NewReservationValidMiddleware(i.DB(), i.Config()).Handler).
+			Then(http.HandlerFunc(i.UpdateObject))).Methods("PUT")
+
+	r.Handle("/namespaces/{nsid}/objects",
+		alice.New(
+			NewDataTokenValidMiddleware(models.ACLEntry{ // At least user should have  Read permissions
+				Read:   true,
+				Write:  false,
+				Delete: false,
+				Admin:  false,
+			}).Handler,
+			NewReservationValidMiddleware(i.DB(), i.Config()).Handler).
+			Then(http.HandlerFunc(i.Listobjects))).Methods("GET")
+
+	r.Handle("/namespaces/{nsid}/objects",
+		alice.New(
+			NewDataTokenValidMiddleware(models.ACLEntry{ // At least user should have  write permissions
+				Read:   false,
+				Write:  true,
+				Delete: false,
+				Admin:  false,
+			}).Handler,
+			NewReservationValidMiddleware(i.DB(), i.Config()).Handler).
+			Then(http.HandlerFunc(i.Createobject))).Methods("POST")
+
+	r.Handle("/namespaces/{nsid}/reservation/{id}",
+		alice.New(
+			NewOauth2itsyouonlineMiddleware([]string{"user:name"}).Handler).
+			Then(http.HandlerFunc(i.nsidreservationidGet))).Methods("GET")
+
+	r.Handle("/namespaces/{nsid}/reservation/{id}",
+		alice.New(
+			NewOauth2itsyouonlineMiddleware([]string{"user:name"}).Handler).
+			Then(http.HandlerFunc(i.UpdateReservation))).Methods("PUT")
+
+	r.Handle("/namespaces/{nsid}/reservation",
+		alice.New(
+			NewOauth2itsyouonlineMiddleware([]string{"user:name"}).Handler).
+			Then(http.HandlerFunc(i.ListReservations))).Methods("GET")
+
+	r.Handle("/namespaces/{nsid}/reservation",
+		alice.New(
+			NewOauth2itsyouonlineMiddleware([]string{"user:name"}).Handler).
+			Then(http.HandlerFunc(i.CreateReservation))).Methods("POST")
+
+	r.Handle("/namespaces/{nsid}/stats",
+		alice.New(
+			NewDataTokenValidMiddleware(models.ACLEntry{ // Admin permissions
+				Read:   true,
+				Write:  true,
+				Delete: true,
+				Admin:  true,
+			}).Handler).
+			Then(http.HandlerFunc(i.StatsNamespace))).Methods("GET")
 
 	/* namespaces/stats Must come before /namespaces/{nsid}
 	   Otherwise it won't match!
 	*/
-	r.HandleFunc("/namespaces/{nsid}/stats", i.StatsNamespace).Methods("GET")
-	// r.HandleFunc("/namespaces/stats", i.UpdateStoreStats).Methods("POST")
-	r.HandleFunc("/namespaces/stats", i.GetStoreStats).Methods("GET")
-	r.HandleFunc("/namespaces/{nsid}", i.Deletensid).Methods("DELETE")
-	r.HandleFunc("/namespaces/{nsid}", i.Getnsid).Methods("GET")
-	r.HandleFunc("/namespaces", i.Listnamespaces).Methods("GET")
-	r.HandleFunc("/namespaces", i.Createnamespace).Methods("POST")
+
+	r.Handle("/namespaces/stats",
+		alice.New(NewOauth2itsyouonlineMiddleware([]string{"user:name"}).Handler).
+			Then(http.HandlerFunc(i.UpdateStoreStats))).Methods("POST")
+
+	r.Handle("/namespaces/stats",
+		alice.New(NewOauth2itsyouonlineMiddleware([]string{"user:name"}).Handler).
+			Then(http.HandlerFunc(i.GetStoreStats))).Methods("GET")
+
+	r.Handle("/namespaces/{nsid}",
+		http.HandlerFunc(i.Deletensid)).Methods("DELETE")
+
+	r.Handle("/namespaces/{nsid}",
+		http.HandlerFunc(i.Getnsid)).Methods("GET")
+
+	r.Handle("/namespaces/{nsid}",
+		http.HandlerFunc(i.Updatensid)).Methods("PUT")
+
+	r.Handle("/namespaces",
+		alice.New(NewOauth2itsyouonlineMiddleware([]string{"user:name"}).Handler).
+			Then(http.HandlerFunc(i.Listnamespaces))).Methods("GET")
+
+	r.Handle("/namespaces",
+		alice.New(NewOauth2itsyouonlineMiddleware([]string{"user:name"}).Handler).
+			Then(http.HandlerFunc(i.Createnamespace))).Methods("POST")
 }
