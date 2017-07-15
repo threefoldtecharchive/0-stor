@@ -190,3 +190,90 @@ func TestStatNamespace(t *testing.T) {
 
 	assert.EqualValues(t, expected, result)
 }
+
+
+func TestUpdateACLs(t *testing.T){
+	url, db, clean := getTestAPI(t)
+	defer clean()
+
+	ns := models.NamespaceCreate{
+		Label: "namespace1",
+		Acl: []models.ACL{
+			models.ACL{
+				Acl: models.ACLEntry{
+					Delete: true,
+					Read:true,
+					Write: true,
+					Admin: true,
+				},
+				Id: "hamdy",
+			},
+
+			models.ACL{
+				Acl: models.ACLEntry{
+					Delete: true,
+					Read:true,
+					Write: true,
+					Admin: true,
+				},
+				Id: "zaibon",
+			},
+
+		},
+	}
+
+	b, err := ns.Encode()
+	require.NoError(t, err)
+	err = db.Set(ns.Key(), b)
+	require.NoError(t, err)
+
+	b, err = db.Get(ns.Key())
+	require.NoError(t, err)
+	err = ns.Decode(b)
+	require.NoError(t, err)
+	assert.Equal(t, len(ns.Acl), 2)
+
+	body := &bytes.Buffer{}
+
+	acl := models.ACL{
+		Id: "hamdy",
+		Acl: models.ACLEntry{
+			Read: true,
+			Write: false,
+			Delete: false,
+			Admin: false,
+		},
+	}
+
+	err = json.NewEncoder(body).Encode(acl)
+	require.NoError(t, err)
+
+	resp, err := http.Post(url+"/namespaces/namespace1/acl", "application/json", body)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	b, err = db.Get(ns.Key())
+	require.NoError(t, err)
+	err = ns.Decode(b)
+	require.NoError(t, err)
+	assert.Equal(t, len(ns.Acl), 2)
+
+	for _, v := range ns.Acl{
+		if v.Id == "hamdy"{
+			assert.False(t, v.Acl.Delete)
+			assert.False(t, v.Acl.Write)
+			assert.False(t, v.Acl.Admin)
+			assert.True(t, v.Acl.Read)
+
+
+		}else if v.Id == "zaibon" {
+			assert.True(t, v.Acl.Read)
+			assert.True(t, v.Acl.Write)
+			assert.True(t, v.Acl.Admin)
+			assert.True(t, v.Acl.Delete)
+		}else{
+			assert.Fail(t, "Invalid Id")
+		}
+	}
+}
+

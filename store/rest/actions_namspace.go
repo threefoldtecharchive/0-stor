@@ -365,7 +365,7 @@ func (api NamespacesAPI) nsidaclPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	reservation := r.Context().Value("reservation").(*models.Reservation)
+
 
 	// decode request
 	defer r.Body.Close()
@@ -392,13 +392,21 @@ func (api NamespacesAPI) nsidaclPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dataToken, err := reservation.GenerateDataAccessTokenForUser(reqBody.Id, namespace.Label, reqBody.Acl)
 
-	if err != nil {
-		log.Errorln(err.Error())
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
+	var dataToken string
+	reservation := r.Context().Value("reservation")
+	if reservation == nil{
+		dataToken = ""
+	}else{
+		dataToken, err = reservation.(*models.Reservation).GenerateDataAccessTokenForUser(reqBody.Id, namespace.Label, reqBody.Acl)
+
+		if err != nil {
+			log.Errorln(err.Error())
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
 	}
+
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)

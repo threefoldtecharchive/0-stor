@@ -77,8 +77,8 @@ type NamespacesInterface interface { // nsidaclPost is the handler for POST /nam
 func NamespacesInterfaceRoutes(r *mux.Router, i NamespacesInterface) {
 
 	r.Handle("/namespaces/{nsid}/acl",
-		alice.New(
-			NewReservationValidMiddleware(i.DB()).Handler).
+		//alice.New(NewReservationValidMiddleware(i.DB()).Handler).
+		alice.New().
 			Then(http.HandlerFunc(i.nsidaclPost))).Methods("POST")
 
 	r.Handle("/namespaces/{nsid}/objects/{id}",
