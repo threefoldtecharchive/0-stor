@@ -53,13 +53,13 @@ func main() {
 		cli.StringFlag{
 			Name:        "data",
 			Usage:       "Data directory",
-			Value:       "db/data",
+			Value:       ".db/data",
 			Destination: &settings.DB.Dirs.Data,
 		},
 		cli.StringFlag{
 			Name:        "meta",
 			Usage:       "Metadata directory",
-			Value:       "db/meta",
+			Value:       ".db/meta",
 			Destination: &settings.DB.Dirs.Meta,
 		},
 	}
