@@ -25,7 +25,7 @@ func TestCreateObject(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, http.StatusCreated, resp.StatusCode)
 
-	// create object in namespace
+	// Trying to create invalid object.
 	body = &bytes.Buffer{}
 	obj := models.Object{
 		Data: "hello world",
@@ -33,14 +33,31 @@ func TestCreateObject(t *testing.T) {
 	}
 	err = json.NewEncoder(body).Encode(obj)
 	require.NoError(t, err)
-	resp, err = http.Post(url+"/namespaces/mynamespace", "application/json", body)
+	resp, err = http.Post(url+"/namespaces/mynamespace/objects", "application/json", body)
+	require.NoError(t, err)
+
+	// TODO, more test on the content of the obj
+	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	f, err := obj.ToFile("mynamespace")
+	require.Error(t, err, "File contents < 32 bytes. There should be an error")
+
+	// Trying to create valid object.
+	body = &bytes.Buffer{}
+	obj = models.Object{
+		Data: "********************************abcdef",
+		Id:   "myobject",
+	}
+	err = json.NewEncoder(body).Encode(obj)
+	require.NoError(t, err)
+	resp, err = http.Post(url+"/namespaces/mynamespace/objects", "application/json", body)
 	require.NoError(t, err)
 
 	// TODO, more test on the content of the obj
 	require.Equal(t, http.StatusCreated, resp.StatusCode)
-	f, err := obj.ToFile("mynamespace")
+	f, err = obj.ToFile("mynamespace")
 	require.NoError(t, err)
 	exists, err := db.Exists(f.Key())
+	require.NoError(t, err)
 	assert.True(t, exists)
 
 }

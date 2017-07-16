@@ -30,7 +30,6 @@ func (f File) Key() string {
 	if strings.Index(label, NAMESPACE_PREFIX) != -1 {
 		label = strings.Replace(label, NAMESPACE_PREFIX, "", 1)
 	}
-	label = fmt.Sprintf("%s%s", NAMESPACE_PREFIX, label)
 	return fmt.Sprintf("%s:%s", label, f.Id)
 }
 
@@ -136,6 +135,7 @@ func (o Object) Key() string {
 }
 
 func (o *Object) ToFile(nsid string) (*File, error) {
+
 	file := &File{
 		Namespace: nsid,
 		Id:        o.Id,
@@ -144,6 +144,10 @@ func (o *Object) ToFile(nsid string) (*File, error) {
 	}
 
 	bytes := []byte(o.Data)
+
+	if len(bytes) <= CRCSize{
+		return nil, errors.New("File contents must be greater than 32 bytes")
+	}
 
 	var crc [CRCSize]byte
 

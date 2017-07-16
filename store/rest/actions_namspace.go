@@ -119,7 +119,7 @@ func (api NamespacesAPI) Deletensid(w http.ResponseWriter, r *http.Request) {
 
 	defer func() {
 		// Delete objects in a namespace
-		resutls, err := api.db.List(fmt.Sprintf("%s:", nsid))
+		resutls, err := api.db.List(fmt.Sprintf("%s:", mux.Vars(r)["nsid"]))
 
 		for _, key := range resutls {
 			if err := api.db.Delete(key); err != nil {

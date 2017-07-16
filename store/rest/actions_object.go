@@ -50,6 +50,14 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	contentSize := len([]byte(reqBody.Data))
+
+	if contentSize <= 32{
+		log.Errorf("Trying to create object with data size %d", contentSize)
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+
 	// Make sure file contents are valid
 	file, err := reqBody.ToFile(nsid)
 
@@ -59,7 +67,7 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	reservation := r.Context().Value("reservation").(*models.Reservation)
+
 
 	oldFile := models.File{
 		Id:        reqBody.Id,
@@ -75,13 +83,32 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 			return
 		} else {
 			// New file created as oldFile not exists
-			if reservation.SizeRemaining() < file.Size() {
-				http.Error(w, "File SizeAvailable exceeds the remaining free space in namespace", http.StatusForbidden)
-				return
+			res := r.Context().Value("reservation")
+			if res != nil{
+				reservation := res.(*models.Reservation)
+				if reservation.SizeRemaining() < file.Size() {
+					http.Error(w, "File SizeAvailable exceeds the remaining free space in namespace", http.StatusForbidden)
+					return
+				}
+				// TODO: Update reservation asynchronously
+				reservation.SizeUsed += file.Size()
+
+				b, err = reservation.Encode()
+
+				if err != nil {
+					log.Errorln(err.Error())
+					http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+					return
+				}
+
+				if err := api.db.Set(reservation.Key(), b); err != nil {
+					log.Errorln(err.Error())
+					http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+					return
+				}
 			}
 
 			b, err = file.Encode()
-
 			if err != nil {
 				log.Errorln(err.Error())
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -89,23 +116,6 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 			}
 
 			if err = api.db.Set(file.Key(), b); err != nil {
-				log.Errorln(err.Error())
-				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-				return
-			}
-
-			// TODO: Update reservation asynchronously
-			reservation.SizeUsed += file.Size()
-
-			b, err = reservation.Encode()
-
-			if err != nil {
-				log.Errorln(err.Error())
-				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-				return
-			}
-
-			if err := api.db.Set(reservation.Key(), b); err != nil {
 				log.Errorln(err.Error())
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				return
@@ -140,7 +150,7 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(&reqBody)
 }
 
