@@ -5,9 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
-
 	"strings"
-
 	validator "gopkg.in/validator.v2"
 )
 
@@ -31,6 +29,17 @@ func (f File) Key() string {
 		label = strings.Replace(label, NAMESPACE_PREFIX, "", 1)
 	}
 	return fmt.Sprintf("%s:%s", label, f.Id)
+}
+
+func(f File) ToObject() (*Object, error){
+	crc := make([]byte, CRCSize)
+	copy(crc, f.CRC[:])
+	return &Object{
+		Id:   f.Id,
+		Tags: []Tag{}, // TODO: why returning empty slice ?
+		Data: fmt.Sprintf("%s%s", string(crc), string(f.Payload)),
+	}, nil
+
 }
 
 func (f *File) Encode() ([]byte, error) {
@@ -94,6 +103,10 @@ func (f *File) Decode(data []byte) error {
 	payloadSize := int16(binary.LittleEndian.Uint16(data[4:6]))
 	tagSize := int16(binary.LittleEndian.Uint16(data[6:8]))
 
+	f.CRC = [CRCSize]byte{}
+	f.Payload = []byte{}
+	f.Tags = []byte{}
+
 	start := int16(8)
 	end := start + idSize
 	f.Id = string(data[start:end])
@@ -112,7 +125,10 @@ func (f *File) Decode(data []byte) error {
 
 	start = end
 	end = start + payloadSize
-	copy(f.Payload, data[start:end])
+
+	payload := make([]byte, len(data[start:end]))
+	copy(payload, data[start:end])
+	f.Payload = payload
 
 	start = end
 	end = start + tagSize

@@ -186,26 +186,15 @@ func (api NamespacesAPI) DeleteObject(w http.ResponseWriter, r *http.Request) {
 	v, err := api.db.Get(f.Key())
 
 	if err != nil {
+		if err == db.ErrNotFound{
+			http.Error(w, "Namespace or object doesn't exist", http.StatusNotFound)
+			return
+		}
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	// NOT FOUND
-	if v == nil {
-		http.Error(w, "Namespace or object doesn't exist", http.StatusNotFound)
-		return
-	}
-
-	// TODO: we should not delete directly, but decrease the reference counter.
-	// if reference counter reach 0, delete content.
-	err = api.db.Delete(f.Key())
-
-	if err != nil {
-		log.Errorln(err.Error())
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
 
 	f = models.File{}
 	if err := f.Decode(v); err != nil {
@@ -214,20 +203,47 @@ func (api NamespacesAPI) DeleteObject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res := r.Context().Value("reservation").(*models.Reservation)
-	res.SizeUsed -= f.Size()
+	if f.Reference == 1{
+		err = api.db.Delete(f.Key())
 
-	b, err := res.Encode()
+		if err != nil {
+			log.Errorln(err.Error())
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		res := r.Context().Value("reservation")
+		if res != nil{
+			reservation := res.(*models.Reservation)
+			reservation.SizeUsed -= f.Size()
 
-	if err != nil {
-		log.Errorln(err.Error())
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-	if err := api.db.Set(res.Key(), b); err != nil {
-		log.Errorln(err.Error())
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
+			b, err := reservation.Encode()
+
+			if err != nil {
+				log.Errorln(err.Error())
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				return
+			}
+			if err := api.db.Set(reservation.Key(), b); err != nil {
+				log.Errorln(err.Error())
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				return
+			}
+		}
+
+	}else{
+		f.Reference -= 1
+		b, err := f.Encode()
+		if err != nil{
+			log.Errorln(err.Error())
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		err = api.db.Set(f.Key(), b)
+		if err != nil{
+			log.Errorln(err.Error())
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
 	}
 
 	// 204 has no bddy
@@ -277,7 +293,6 @@ func (api NamespacesAPI) GetObject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = f.Decode(v)
-
 	// Database Error
 	if err != nil {
 		log.Errorln(err.Error())
@@ -285,13 +300,17 @@ func (api NamespacesAPI) GetObject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	result, err := f.ToObject()
+	if err != nil{
+		log.Errorln(err.Error())
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(&models.Object{
-		Id:   f.Id,
-		Tags: []models.Tag{}, // TODO: why returning empty slice ?
-		Data: string(f.Payload),
-	})
+	json.NewEncoder(w).Encode(result)
 }
 
 // HeadObject is the handler for HEAD /namespaces/{nsid}/objects/{id}
