@@ -13,7 +13,7 @@ import (
 )
 
 func TestCreateNameSpace(t *testing.T) {
-	url, db, clean := getTestAPI(t)
+	url, db, clean := getTestAPI(t, map[string]MiddlewareEntry{})
 	defer clean()
 
 	body := &bytes.Buffer{}
@@ -31,7 +31,7 @@ func TestCreateNameSpace(t *testing.T) {
 }
 
 func TestListNamespace(t *testing.T) {
-	url, db, clean := getTestAPI(t)
+	url, db, clean := getTestAPI(t, map[string]MiddlewareEntry{})
 	defer clean()
 
 	// populate db with some namespace
@@ -57,7 +57,7 @@ func TestListNamespace(t *testing.T) {
 }
 
 func TestGetNameSpace(t *testing.T) {
-	url, db, clean := getTestAPI(t)
+	url, db, clean := getTestAPI(t, map[string]MiddlewareEntry{})
 	defer clean()
 
 	// populate db with some namespace
@@ -82,7 +82,7 @@ func TestGetNameSpace(t *testing.T) {
 }
 
 func TestDeleteNameSpace(t *testing.T) {
-	url, db, clean := getTestAPI(t)
+	url, db, clean := getTestAPI(t, map[string]MiddlewareEntry{})
 	defer clean()
 
 	body := &bytes.Buffer{}
@@ -157,7 +157,7 @@ func TestDeleteNameSpace(t *testing.T) {
 }
 
 func TestStatNamespace(t *testing.T) {
-	url, db, clean := getTestAPI(t)
+	url, db, clean := getTestAPI(t, map[string]MiddlewareEntry{})
 	defer clean()
 
 	body := &bytes.Buffer{}
@@ -193,7 +193,7 @@ func TestStatNamespace(t *testing.T) {
 
 
 func TestUpdateACLs(t *testing.T){
-	url, db, clean := getTestAPI(t)
+	url, db, clean := getTestAPI(t, map[string]MiddlewareEntry{})
 	defer clean()
 
 	ns := models.NamespaceCreate{

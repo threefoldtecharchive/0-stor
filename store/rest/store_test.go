@@ -6,11 +6,11 @@ import (
 	"encoding/json"
 	"github.com/stretchr/testify/require"
 	"net/http"
-	"github.com/zero-os/1-s/store/rest/models"
+	"github.com/zero-os/0-stor/store/rest/models"
 )
 
 func TestUpdateStoreStats(t *testing.T) {
-	url, db, clean := getTestAPI(t)
+	url, db, clean := getTestAPI(t, map[string]MiddlewareEntry{})
 	defer clean()
 
 	// create store stats
@@ -76,7 +76,7 @@ func TestUpdateStoreStats(t *testing.T) {
 }
 
 func TestGetStoreStats(t *testing.T) {
-	url, db, clean := getTestAPI(t)
+	url, db, clean := getTestAPI(t, map[string]MiddlewareEntry{})
 	defer clean()
 
 	// create store stats

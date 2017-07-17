@@ -32,7 +32,8 @@ func GetRouter(db db.DB, settings config.Settings) http.Handler {
 	})
 
 	api := rest.NewNamespacesAPI(db, settings)
-	rest.NamespacesInterfaceRoutes(r, api)
+	routes := new(rest.HttpRoutes).GetRoutes(api)
+	rest.NamespacesInterfaceRoutes(r, routes)
 
 	router := NewRouter(r)
 	router.Use(LoggingMiddleware)

@@ -12,7 +12,7 @@ import (
 )
 
 func TestCreateObject(t *testing.T) {
-	url, db, clean := getTestAPI(t)
+	url, db, clean := getTestAPI(t, map[string]MiddlewareEntry{})
 	defer clean()
 
 	// create namespace
@@ -119,7 +119,7 @@ func TestCreateObject(t *testing.T) {
 }
 
 func TestGetObject(t *testing.T){
-	url, db, clean := getTestAPI(t)
+	url, db, clean := getTestAPI(t, map[string]MiddlewareEntry{})
 	defer clean()
 
 	// create namespace
@@ -166,7 +166,7 @@ func TestGetObject(t *testing.T){
 
 
 func TestHeadObject(t *testing.T){
-	url, db, clean := getTestAPI(t)
+	url, db, clean := getTestAPI(t, map[string]MiddlewareEntry{})
 	defer clean()
 
 	// create namespace
@@ -205,7 +205,7 @@ func TestHeadObject(t *testing.T){
 }
 
 func TestListObjects(t *testing.T){
-	url, db, clean := getTestAPI(t)
+	url, db, clean := getTestAPI(t, map[string]MiddlewareEntry{})
 	defer clean()
 
 	ns := models.NamespaceCreate{}
@@ -278,7 +278,7 @@ func TestListObjects(t *testing.T){
 }
 
 func TestDeleteObject(t *testing.T){
-	url, db, clean := getTestAPI(t)
+	url, db, clean := getTestAPI(t, map[string]MiddlewareEntry{})
 	defer clean()
 
 	ns := models.NamespaceCreate{Label: "namespace1"}
