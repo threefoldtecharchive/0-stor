@@ -27,19 +27,8 @@ Structure used:
 - we don't work with reference counter only, we need to keep list of consumers (reference counter to dangerous)
 
 #### Data Format send from the client:
-Before sending any data to the client, the data need to be process using the follow flow:
-
-1. Split data into blocks of `blocksize` (configurable)
-2. for each block:
- - create hash of the block (h1)
- - compress the block using snappy
- - symetric encryption of block using h1 as key
- - hash compressed/encrypted block (h2)
- - create crc of the compressed/encrypted block
-3. Uploads all the blocks:
-    - h1 is the key of the block
-    - compressed/encrypted block+crc is the playload
-
+The 0-stor is doesn't expect any specific data format from the client. 
+The knowledge of how the data are layout is the responsiility of the client. All client will be built using the [0-stor-lib](https://github.com/zero-os/0-stor-lib). The lib will be responsible to know how to process the data for write and read operations.
 
 ### 3 types of secrets
 
