@@ -8,6 +8,7 @@ import (
 	"strings"
 	validator "gopkg.in/validator.v2"
 	"hash/crc32"
+	"bytes"
 )
 
 const (
@@ -65,37 +66,20 @@ func (f *File) Encode() ([]byte, error) {
 
 	tagsSize := len(tags)
 
-	size := 10 + 1 + idSize + nsSize + plSize + tagsSize + crcSize
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.LittleEndian, uint16(idSize))
+	binary.Write(buf, binary.LittleEndian, uint16(nsSize))
+	binary.Write(buf, binary.LittleEndian, uint16(crcSize))
+	binary.Write(buf, binary.LittleEndian, uint16(plSize))
+	binary.Write(buf, binary.LittleEndian, uint16(tagsSize))
+	binary.Write(buf, binary.LittleEndian, id)
+	binary.Write(buf, binary.LittleEndian, ns)
+	binary.Write(buf, binary.LittleEndian, f.Reference)
+	binary.Write(buf, binary.LittleEndian, crc)
+	binary.Write(buf, binary.LittleEndian, pl)
+	binary.Write(buf, binary.LittleEndian, tags)
 
-	result := make([]byte, size)
-	binary.LittleEndian.PutUint16(result[0:2], uint16(idSize))
-	binary.LittleEndian.PutUint16(result[2:4], uint16(nsSize))
-	binary.LittleEndian.PutUint16(result[4:6], uint16(crcSize))
-	binary.LittleEndian.PutUint16(result[6:8], uint16(plSize))
-	binary.LittleEndian.PutUint16(result[8:10], uint16(tagsSize))
-
-	start := 10
-	end := start + idSize
-	copy(result[start:end], id)
-
-	start = end
-	end = start + nsSize
-	copy(result[start:end], ns)
-
-	result[end] = f.Reference
-
-	start = end + 1
-	end = start + crcSize
-	copy(result[start:end], crc)
-
-	start = end
-	end = start + plSize
-	copy(result[start:end], pl)
-
-	start = end
-	end = start + tagsSize
-	copy(result[start:end], tags)
-	return result, nil
+	return buf.Bytes(), nil
 }
 
 func (f *File) Size() float64 {
@@ -139,6 +123,7 @@ func (f *File) Decode(data []byte) error {
 	start = end
 	end = start + tagsSize
 	t := new(Tags)
+
 	err := t.Decode(data[start:end])
 
 	if err != nil{

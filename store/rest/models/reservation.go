@@ -15,6 +15,7 @@ import (
 	"github.com/zero-os/0-stor/store/db"
 	"github.com/zero-os/0-stor/store/utils"
 	validator "gopkg.in/validator.v2"
+	"bytes"
 )
 
 var _ (db.Model) = (*Reservation)(nil)
@@ -95,42 +96,24 @@ func (s Reservation) Encode() ([]byte, error) {
 	uSize := int16(len(updated))
 	eSize := int16(len(expiration))
 
-	result := make([]byte, 26+cSize+uSize+eSize+aSize+iSize)
+	buf := new(bytes.Buffer)
 
-	copy(result[0:8], utils.Float64bytes(s.SizeReserved))
-	copy(result[8:16], utils.Float64bytes(s.SizeUsed))
+	binary.Write(buf, binary.LittleEndian, utils.Float64bytes(s.SizeReserved))
+	binary.Write(buf, binary.LittleEndian, utils.Float64bytes(s.SizeUsed))
 
-	binary.LittleEndian.PutUint16(result[16:18], uint16(cSize))
-	binary.LittleEndian.PutUint16(result[18:20], uint16(uSize))
-	binary.LittleEndian.PutUint16(result[20:22], uint16(eSize))
-	binary.LittleEndian.PutUint16(result[22:24], uint16(iSize))
-	binary.LittleEndian.PutUint16(result[24:26], uint16(aSize))
+	binary.Write(buf, binary.LittleEndian, uint16(cSize))
+	binary.Write(buf, binary.LittleEndian, uint16(uSize))
+	binary.Write(buf, binary.LittleEndian, uint16(eSize))
+	binary.Write(buf, binary.LittleEndian, uint16(iSize))
+	binary.Write(buf, binary.LittleEndian, uint16(aSize))
 
-	//Creation Date size and date
-	start := 26
-	end := 26 + cSize
-	copy(result[start:end], created)
+	binary.Write(buf, binary.LittleEndian, created)
+	binary.Write(buf, binary.LittleEndian, updated)
+	binary.Write(buf, binary.LittleEndian, expiration)
+	binary.Write(buf, binary.LittleEndian, []byte(id))
+	binary.Write(buf, binary.LittleEndian, []byte(adminId))
 
-	//update Date
-	start2 := end
-	end2 := end + uSize
-	copy(result[start2:end2], updated)
-
-	//ExpirationDate
-	start3 := end2
-	end3 := start3 + eSize
-	copy(result[start3:end3], expiration)
-
-	// ID
-	start4 := end3
-	end4 := start4 + iSize
-	copy(result[start4:end4], []byte(id))
-
-	// Admin ID
-	start5 := end4
-	end5 := start5 + aSize
-	copy(result[start5:end5], []byte(adminId))
-	return result, nil
+	return buf.Bytes(), nil
 }
 
 func (s *Reservation) Decode(data []byte) error {

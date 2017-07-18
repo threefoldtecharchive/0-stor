@@ -3,6 +3,8 @@ package models
 import (
 	"github.com/zero-os/0-stor/store/utils"
 	validator "gopkg.in/validator.v2"
+	"encoding/binary"
+	"bytes"
 )
 
 type StoreStatRequest struct {
@@ -19,10 +21,10 @@ func (s StoreStatRequest) Validate() error {
 }
 
 func (s *StoreStat) Encode() ([]byte, error) {
-	bytes := make([]byte, 16)
-	copy(bytes[0:8], utils.Float64bytes(s.SizeAvailable))
-	copy(bytes[8:16], utils.Float64bytes(s.SizeUsed))
-	return bytes, nil
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.LittleEndian, utils.Float64bytes(s.SizeAvailable))
+	binary.Write(buf, binary.LittleEndian, utils.Float64bytes(s.SizeUsed))
+	return buf.Bytes(), nil
 }
 
 func (s *StoreStat) Decode(data []byte) error {

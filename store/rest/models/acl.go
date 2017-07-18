@@ -3,6 +3,8 @@ package models
 import (
 	"github.com/zero-os/0-stor/store/db"
 	validator "gopkg.in/validator.v2"
+	"bytes"
+	"encoding/binary"
 )
 
 var _ (db.Model) = (*ACL)(nil)
@@ -25,14 +27,14 @@ func (s ACL) Validate() error {
 
 func (s ACL) Encode() ([]byte, error) {
 	Id := []byte(s.Id)
-	b := make([]byte, len(Id)+4)
+	buf := new(bytes.Buffer)
 	aclEncoded, err := s.Acl.Encode()
 	if err != nil {
 		return nil, err
 	}
-	copy(b[0:4], aclEncoded)
-	copy(b[4:], Id)
-	return b, nil
+	binary.Write(buf, binary.LittleEndian, aclEncoded)
+	binary.Write(buf, binary.LittleEndian, Id)
+	return buf.Bytes(), nil
 }
 
 func (s *ACL) Decode(data []byte) error {
