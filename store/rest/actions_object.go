@@ -128,7 +128,11 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
-
+		// Check files are identical, otherwise throw conflict
+		if oldFile.CRC != file.CRC{
+			http.Error(w, "File already exists with different content", http.StatusConflict)
+			return
+		}
 		// Only update reference -- we don't update content here
 		if oldFile.Reference < 255 {
 			oldFile.Reference = oldFile.Reference + 1
@@ -434,7 +438,7 @@ func (api NamespacesAPI) Listobjects(w http.ResponseWriter, r *http.Request) {
 
 		o := models.Object{
 			Id:   f.Id,
-			Tags: []models.Tag{},
+			Tags: f.Tags,
 			Data: string(f.Payload),
 		}
 

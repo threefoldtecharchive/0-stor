@@ -28,7 +28,7 @@ func TestObjectEncodeDecode(t *testing.T) {
 	b, err := f.Encode()
 	require.NoError(t, err)
 
-	f2 := File{}
+	f2 := &File{}
 	err = f2.Decode(b)
 	require.NoError(t, err)
 

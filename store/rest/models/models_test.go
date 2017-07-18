@@ -39,8 +39,13 @@ func TestModelsEncodeDecode(t *testing.T) {
 				Namespace: "foo",
 				Id:        "ID",
 				Reference: byte(1),
-				Payload:   []byte("hello world"),
-				Tags:      []byte("hello world"),
+				Payload:   "hello world",
+				Tags:      []Tag{
+					{
+						Key: "hi",
+						Value: "there",
+					},
+				},
 			},
 			name: "File",
 			obj:  &File{},

@@ -102,9 +102,9 @@ func TestDeleteNameSpace(t *testing.T) {
 		f := models.File{}
 		f.Namespace = "mynamespace"
 		f.Id = label
-		f.Payload = []byte{1,2}
-		f.CRC = [32]byte{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
-		f.Tags = []byte{}
+		f.Payload = "hello world!"
+		f.CRC = "crcrccccccccc"
+		f.Tags = []models.Tag{}
 		b, err := f.Encode()
 		require.NoError(t, err)
 		err = db.Set(f.Key(), b)

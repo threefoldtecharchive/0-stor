@@ -11,6 +11,7 @@ import (
 	"github.com/zero-os/0-stor/store/config"
 	"github.com/zero-os/0-stor/store/db"
 	"github.com/zero-os/0-stor/store/rest"
+	//"github.com/justinas/alice"
 )
 
 func LoggingMiddleware(h http.Handler) http.Handler {
@@ -33,6 +34,11 @@ func GetRouter(db db.DB, settings config.Settings) http.Handler {
 
 	api := rest.NewNamespacesAPI(db, settings)
 	routes := new(rest.HttpRoutes).GetRoutes(api)
+
+	// Uncomment if you want to run server without middlewares
+	//for i, _ := range routes{
+	//	routes[i].Middlewares = []alice.Constructor{}
+	//}
 	rest.NamespacesInterfaceRoutes(r, routes)
 
 	router := NewRouter(r)
