@@ -3,10 +3,11 @@ package rest
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/zero-os/0-stor/store/db"
 	"github.com/zero-os/0-stor/store/rest/models"
-	"net/http"
 )
 
 // statsPost is the handler for POST /namespaces/stats
@@ -51,7 +52,7 @@ func (api NamespacesAPI) UpdateStoreStats(w http.ResponseWriter, r *http.Request
 
 	if reqBody.SizeAvailable < storeStat.SizeUsed {
 		err := fmt.Sprintf("Store stats available size must be greater than used size (%v)", storeStat.SizeUsed)
-		http.Error(w, err, http.StatusForbidden)
+		http.Error(w, err, http.StatusBadRequest)
 		return
 	}
 
@@ -83,6 +84,10 @@ func (api NamespacesAPI) GetStoreStats(w http.ResponseWriter, r *http.Request) {
 
 	b, err := api.db.Get(respBody.Key())
 	if err != nil {
+		if err == db.ErrNotFound {
+			http.Error(w, "Not Found", http.StatusNotFound)
+			return
+		}
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return

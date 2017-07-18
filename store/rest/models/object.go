@@ -5,24 +5,23 @@ import (
 	"errors"
 	"fmt"
 	"math"
-
 	"strings"
-
 	validator "gopkg.in/validator.v2"
+	"hash/crc32"
 )
 
 const (
 	FileSize = 1024 * 1024
-	CRCSize  = 32
+	POLYNOMIAL = 0xD5828281
 )
 
 type File struct {
 	Namespace string
 	Id        string
 	Reference byte
-	CRC       [32]byte
-	Payload   []byte
-	Tags      []byte
+	CRC       string
+	Payload   string
+	Tags      []Tag
 }
 
 func (f File) Key() string {
@@ -30,30 +29,52 @@ func (f File) Key() string {
 	if strings.Index(label, NAMESPACE_PREFIX) != -1 {
 		label = strings.Replace(label, NAMESPACE_PREFIX, "", 1)
 	}
-	label = fmt.Sprintf("%s%s", NAMESPACE_PREFIX, label)
 	return fmt.Sprintf("%s:%s", label, f.Id)
 }
 
+func(f File) ToObject() (*Object, error){
+	return &Object{
+		Id:   f.Id,
+		Tags: f.Tags,
+		Data: f.Payload,
+	}, nil
+}
+
 func (f *File) Encode() ([]byte, error) {
+	f.CRC = fmt.Sprint(crc32.Checksum([]byte(f.Payload), crc32.MakeTable(POLYNOMIAL)))
+
 	id := []byte(f.Id)
 	idSize := len(id)
 
 	ns := []byte(f.Namespace)
 	nsSize := len(ns)
 
-	payloadSize := len(f.Payload)
+	pl := []byte(f.Payload)
+	plSize := len(pl)
 
-	tagSize := len(f.Tags)
+	crc := []byte(f.CRC)
+	crcSize:= len(crc)
 
-	size := 8 + 1 + idSize + nsSize + payloadSize + tagSize + CRCSize
+	t := new(Tags)
+	t.Tags = f.Tags
+	tags, err := t.Encode()
+
+	if err != nil{
+		return []byte{}, nil
+	}
+
+	tagsSize := len(tags)
+
+	size := 10 + 1 + idSize + nsSize + plSize + tagsSize + crcSize
 
 	result := make([]byte, size)
 	binary.LittleEndian.PutUint16(result[0:2], uint16(idSize))
 	binary.LittleEndian.PutUint16(result[2:4], uint16(nsSize))
-	binary.LittleEndian.PutUint16(result[4:6], uint16(payloadSize))
-	binary.LittleEndian.PutUint16(result[6:8], uint16(tagSize))
+	binary.LittleEndian.PutUint16(result[4:6], uint16(crcSize))
+	binary.LittleEndian.PutUint16(result[6:8], uint16(plSize))
+	binary.LittleEndian.PutUint16(result[8:10], uint16(tagsSize))
 
-	start := 8
+	start := 10
 	end := start + idSize
 	copy(result[start:end], id)
 
@@ -63,19 +84,17 @@ func (f *File) Encode() ([]byte, error) {
 
 	result[end] = f.Reference
 
-	// Next 32 bytes CRC
 	start = end + 1
-	end = start + CRCSize
-	copy(result[start:end], f.CRC[:])
+	end = start + crcSize
+	copy(result[start:end], crc)
 
 	start = end
-	end = start + payloadSize
-	// Next 1Mbs (file content)
-	copy(result[start:end], f.Payload)
+	end = start + plSize
+	copy(result[start:end], pl)
 
 	start = end
-	end = start + tagSize
-	copy(result[start:end], f.Tags)
+	end = start + tagsSize
+	copy(result[start:end], tags)
 	return result, nil
 }
 
@@ -84,18 +103,20 @@ func (f *File) Size() float64 {
 }
 
 func (f *File) Decode(data []byte) error {
-	if len(data) > FileSize+CRCSize {
-		return errors.New("Data size exceeds limits")
-	} else if len(data) <= CRCSize {
-		return errors.New(fmt.Sprintf("Invalid file size (%v) bytes", len(data)))
+	if len(data) > FileSize {
+		msg := fmt.Sprintf("Data size exceeds max limit (%s)", FileSize)
+		return errors.New(msg)
 	}
 
 	idSize := int16(binary.LittleEndian.Uint16(data[0:2]))
 	nsSize := int16(binary.LittleEndian.Uint16(data[2:4]))
-	payloadSize := int16(binary.LittleEndian.Uint16(data[4:6]))
-	tagSize := int16(binary.LittleEndian.Uint16(data[6:8]))
+	crcSize := int16(binary.LittleEndian.Uint16(data[4:6]))
+	plSize := int16(binary.LittleEndian.Uint16(data[6:8]))
+	tagsSize := int16(binary.LittleEndian.Uint16(data[8:10]))
 
-	start := int16(8)
+	f.Tags = []Tag{}
+
+	start := int16(10)
 	end := start + idSize
 	f.Id = string(data[start:end])
 
@@ -106,18 +127,24 @@ func (f *File) Decode(data []byte) error {
 	f.Reference = data[end]
 
 	start = end + 1
-	end = start + int16(CRCSize)
-	var crc [CRCSize]byte
-	copy(crc[:], data[start:end])
-	f.CRC = crc
+	end = start + int16(crcSize)
+	f.CRC = string(data[start:end])
 
 	start = end
-	end = start + payloadSize
-	copy(f.Payload, data[start:end])
+	end = start + plSize
+
+	f.Payload = string(data[start:end])
+
 
 	start = end
-	end = start + tagSize
-	copy(f.Tags, data[start:end])
+	end = start + tagsSize
+	t := new(Tags)
+	err := t.Decode(data[start:end])
+
+	if err != nil{
+		return err
+	}
+	f.Tags = t.Tags
 	return nil
 }
 
@@ -135,31 +162,17 @@ func (o Object) Key() string {
 	return o.Id
 }
 
-func (o Object) Encode() ([]byte, error) {
-	return []byte{}, nil
-}
-
-func (o *Object) Decode() error {
-	return nil
-}
-
 func (o *Object) ToFile(nsid string) (*File, error) {
+	t := crc32.MakeTable(POLYNOMIAL)
+	crc := fmt.Sprint(crc32.Checksum([]byte(o.Data), t))
 	file := &File{
 		Namespace: nsid,
 		Id:        o.Id,
+		CRC: crc,
 		Reference: 1,
-		Tags:      []byte{},
+		Payload: o.Data,
+		Tags:     o.Tags,
 	}
-
-	bytes := []byte(o.Data)
-
-	var crc [CRCSize]byte
-
-	copy(crc[:], bytes[0:32])
-
-	file.CRC = crc
-	file.Payload = bytes[32:]
-
 	return file, nil
 }
 
@@ -184,5 +197,4 @@ func (o *ObjectUpdate) ToFile(nsid string) (*File, error) {
 		Tags: o.Tags,
 	}
 	return obj.ToFile(nsid)
-
 }

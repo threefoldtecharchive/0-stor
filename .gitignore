@@ -46,3 +46,5 @@ _testmain.go
 
 store/store
 coverage.txt
+
+store/.db

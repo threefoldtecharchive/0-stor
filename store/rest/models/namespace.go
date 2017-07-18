@@ -127,6 +127,8 @@ func (s *NamespaceCreate) Decode(data []byte) error {
 	end := 4 + lSize
 	s.Label = string(data[start:end])
 
+	s.Acl = []ACL{}
+
 	for i := 0; i < int(aSize); i++ {
 		start = end
 		end = end + 2

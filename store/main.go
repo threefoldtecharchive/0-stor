@@ -9,14 +9,14 @@ import (
 	"github.com/zero-os/0-stor/store/db"
 	"github.com/zero-os/0-stor/store/db/badger"
 	"github.com/zero-os/0-stor/store/goraml"
-	"github.com/zero-os/0-stor/store/rest"
 	"github.com/zero-os/0-stor/store/rest/models"
+	"github.com/zero-os/0-stor/store/routes"
 
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/gorilla/mux"
+	"github.com/gorilla/handlers"
 	"gopkg.in/validator.v2"
 )
 
@@ -29,7 +29,7 @@ func main() {
 
 	log.SetFormatter(&log.TextFormatter{FullTimestamp: true})
 	log.SetOutput(os.Stdout)
-	settings := &config.Settings{}
+	settings := config.Settings{}
 
 	var configPath string
 
@@ -53,13 +53,13 @@ func main() {
 		cli.StringFlag{
 			Name:        "data",
 			Usage:       "Data directory",
-			Value:       "db/data",
+			Value:       ".db/data",
 			Destination: &settings.DB.Dirs.Data,
 		},
 		cli.StringFlag{
 			Name:        "meta",
 			Usage:       "Metadata directory",
-			Value:       "db/meta",
+			Value:       ".db/meta",
 			Destination: &settings.DB.Dirs.Meta,
 		},
 	}
@@ -82,17 +82,7 @@ func main() {
 	app.Action = func(c *cli.Context) {
 		log.Infoln(app.Name, "version", app.Version)
 
-		r := mux.NewRouter()
-
-		// home page
-		r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			http.ServeFile(w, r, "index.html")
-		})
-
-		// apidocs
-		r.PathPrefix("/apidocs/").Handler(http.StripPrefix("/apidocs/", http.FileServer(http.Dir("./apidocs/"))))
-
-		db, err := badger.New(settings)
+		db, err := badger.New(settings.DB.Dirs.Data, settings.DB.Dirs.Meta)
 		if err != nil {
 			log.Fatal(err.Error())
 		}
@@ -101,8 +91,7 @@ func main() {
 			log.Fatalf("Error checking store stats : %v", err)
 		}
 
-		api := rest.NewNamespacesAPI(db, settings)
-		rest.NamespacesInterfaceRoutes(r, api)
+		r := routes.GetRouter(db, settings)
 
 		sigChan := make(chan os.Signal, 1)
 		signal.Notify(sigChan, syscall.SIGINT)
@@ -147,4 +136,8 @@ func ensureStoreStat(db db.DB) error {
 
 	log.Printf("Global Stats collection: %v\t%s", models.STORE_STATS_PREFIX, state)
 	return nil
+}
+
+func LoggingMiddleware(h http.Handler) http.Handler {
+	return handlers.LoggingHandler(log.StandardLogger().Out, h)
 }

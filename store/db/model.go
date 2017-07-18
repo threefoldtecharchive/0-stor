@@ -7,5 +7,5 @@ type Model interface {
 	Key() string
 	Decode([]byte) error
 	Encode() ([]byte, error)
-	Validate() error
+	// Validate() error
 }

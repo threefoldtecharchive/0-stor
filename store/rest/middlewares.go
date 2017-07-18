@@ -10,7 +10,6 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/mux"
-	"github.com/zero-os/0-stor/store/config"
 	"github.com/zero-os/0-stor/store/core/librairies/reservation"
 	"github.com/zero-os/0-stor/store/db"
 	"github.com/zero-os/0-stor/store/rest/models"
@@ -46,14 +45,12 @@ func (dt *DataTokenValidMiddleware) Handler(next http.Handler) http.Handler {
 }
 
 type ReservationValidMiddleware struct {
-	db     db.DB
-	config *config.Settings
+	db db.DB
 }
 
-func NewReservationValidMiddleware(db db.DB, config *config.Settings) *ReservationValidMiddleware {
+func NewReservationValidMiddleware(db db.DB) *ReservationValidMiddleware {
 	return &ReservationValidMiddleware{
-		db:     db,
-		config: config,
+		db: db,
 	}
 }
 
@@ -108,6 +105,55 @@ func (re *ReservationValidMiddleware) Handler(next http.Handler) http.Handler {
 	})
 }
 
+type NamespaceStatMiddleware struct {
+	db db.DB
+}
+
+func NewNamespaceStatMiddleware(db db.DB) *NamespaceStatMiddleware {
+	return &NamespaceStatMiddleware{
+		db: db,
+	}
+}
+
+func (nm *NamespaceStatMiddleware) Handler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		defer func(){
+			nsid := mux.Vars(r)["nsid"]
+
+			nsStats := models.NamespaceStats{Namespace:nsid}
+
+			b, err := nm.db.Get(nsStats.Key())
+			if err != nil{
+				if err == db.ErrNotFound{
+					log.Errorln("namespace stats for (%s) doesn't exist", nsid)
+				}
+
+				log.Errorln(err.Error())
+				return
+			}
+
+			err = nsStats.Decode(b)
+			if err != nil{
+				log.Errorln(err.Error())
+				return
+			}
+
+			nsStats.NrRequests += 1
+			if err != nil{
+				log.Errorln(err.Error())
+				return
+			}
+			b, err = nsStats.Encode()
+
+			if err := nm.db.Set(nsStats.Key(), b); err != nil{
+				log.Errorln(err.Error())
+				return
+			}
+		}()
+		next.ServeHTTP(w, r)
+	})
+}
 // Oauth2itsyouonlineMiddleware is oauth2 middleware for itsyouonline
 type Oauth2itsyouonlineMiddleware struct {
 	describedBy string

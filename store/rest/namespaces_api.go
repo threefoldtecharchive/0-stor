@@ -9,11 +9,11 @@ var _ (NamespacesInterface) = (*NamespacesAPI)(nil)
 
 // NamespacesAPI is API implementation of /namespaces root endpoint
 type NamespacesAPI struct {
-	config *config.Settings
+	config config.Settings
 	db     db.DB
 }
 
-func NewNamespacesAPI(db db.DB, conf *config.Settings) *NamespacesAPI {
+func NewNamespacesAPI(db db.DB, conf config.Settings) *NamespacesAPI {
 	return &NamespacesAPI{
 		db:     db,
 		config: conf,
@@ -25,6 +25,6 @@ func (api NamespacesAPI) DB() db.DB {
 	return api.db
 }
 
-func (api NamespacesAPI) Config() *config.Settings {
+func (api NamespacesAPI) Config() config.Settings {
 	return api.config
 }

@@ -196,7 +196,24 @@ types:
 
   /{nsid}:
     securedBy: [ reservation.reservationToken ]
-    type: member
+    get:
+      displayName: GetNameSpace
+      description: Get detail view about namespace
+      responses:
+        200:
+          body:
+            type: <<resourcePathName | !singularize | !uppercamelcase>>
+        404:
+          description: <<resourcePathName | !singularize>> not found
+    delete:
+      displayName: DeleteNamespace
+      description: Delete namespace
+      responses:
+        204:
+          description: namespace deleted successfully
+        404:
+          description: namespace not found
+
     /stats:
       securedBy: [ reservation.reservationToken ]
       get:
@@ -262,20 +279,6 @@ types:
             200:
               body:
                 type: object
-            404:
-              description: |
-                Object not found
-        put:
-          displayName: UpdateObject
-          description: |
-            Update oject
-          body:
-            type: ObjectUpdate
-          responses:
-            200:
-              description: |
-                Object has been updated
-              # body: TODO
             404:
               description: |
                 Object not found
