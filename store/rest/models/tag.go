@@ -3,6 +3,7 @@ package models
 import (
 	validator "gopkg.in/validator.v2"
 	"encoding/binary"
+	"bytes"
 )
 
 
@@ -13,10 +14,10 @@ type TagHeader struct{
 }
 
 func (h TagHeader) Encode() ([]byte, error){
-	r := make([]byte, 16)
-	binary.LittleEndian.PutUint64(r[0:8], uint64(h.KeyLen))
-	binary.LittleEndian.PutUint64(r[8:16], uint64(h.ValueLen))
-	return r, nil
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.LittleEndian, uint64(h.KeyLen))
+	binary.Write(buf, binary.LittleEndian, uint64(h.ValueLen))
+	return buf.Bytes(), nil
 }
 
 func (h *TagHeader) Decode(data []byte) error{
@@ -54,21 +55,13 @@ func (t Tag) Encode() ([]byte, error){
 		return []byte{}, nil
 	}
 
-	start := 0
-	end := len(encodedHeader)
+	buf := new(bytes.Buffer)
 
-	r := make([]byte, len(encodedHeader) + len(key) + len(val))
-	copy(r[start:end], encodedHeader)
+	binary.Write(buf, binary.LittleEndian, encodedHeader)
+	binary.Write(buf, binary.LittleEndian, key)
+	binary.Write(buf, binary.LittleEndian, val)
 
-	start = end
-	end = start + len(key)
-	copy(r[start:end], key)
-
-	start = end
-	end = start + len(val)
-	copy(r[start:end], val)
-
-	return r, nil
+	return buf.Bytes(), nil
 }
 
 func (t *Tag) Decode(data []byte) error{
@@ -118,30 +111,23 @@ func (t Tags) Encode() ([]byte, error){
 
 
 
-	r := make([]byte, 2 + tagsSize + totalLength*2)
+	buf := new(bytes.Buffer)
 
-	start := 0
-	end := start + 2
+	binary.Write(buf, binary.LittleEndian, uint16(totalLength))
 
-	binary.LittleEndian.PutUint16(r[start:end], uint16(totalLength))
 
 	for _, v := range tags{
-		start = end
-		end = start + 2
-		binary.LittleEndian.PutUint16(r[start:end], uint16(len(v)))
+		binary.Write(buf, binary.LittleEndian, uint16(len(v)))
 	}
 
 	for _, v := range tags{
-		start = end
-		end = start + len(v)
-		copy(r[start:end], v)
+		binary.Write(buf, binary.LittleEndian, v)
 	}
 
-	return r, nil
+	return buf.Bytes(), nil
 }
 
 func (t *Tags) Decode(data []byte) error{
-
 	start := 0
 	end := 2
 
@@ -159,6 +145,8 @@ func (t *Tags) Decode(data []byte) error{
 		start = end
 		end = start + int(size)
 		tag := new(Tag)
+
+
 		err := tag.Decode(data[start:end])
 		if err != nil{
 			return err

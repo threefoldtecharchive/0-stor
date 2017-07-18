@@ -11,6 +11,7 @@ import (
 	"github.com/zero-os/0-stor/store/db"
 	"github.com/zero-os/0-stor/store/utils"
 	validator "gopkg.in/validator.v2"
+	"bytes"
 )
 
 var _ (db.Model) = (*Namespace)(nil)
@@ -201,14 +202,13 @@ func (s *NamespaceStats) Encode() ([]byte, error) {
 	*/
 
 	created := []byte(time.Time(s.Created).Format(time.RFC3339))
-	result := make([]byte, 24+len(created))
-	binary.LittleEndian.PutUint64(result[0:8], uint64(s.NrObjects))
-	binary.LittleEndian.PutUint64(result[8:16], uint64(s.NrRequests))
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.LittleEndian, uint64(s.NrObjects))
+	binary.Write(buf, binary.LittleEndian, uint64(s.NrRequests))
+	binary.Write(buf, binary.LittleEndian, uint64(s.TotalSizeReserved))
+	binary.Write(buf, binary.LittleEndian, created)
 
-	copy(result[16:24], utils.Float64bytes(s.TotalSizeReserved))
-
-	copy(result[24:], created)
-	return result, nil
+	return buf.Bytes(), nil
 }
 
 func (s *NamespaceStats) Decode(data []byte) error {
