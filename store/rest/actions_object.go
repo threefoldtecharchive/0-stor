@@ -50,14 +50,6 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	contentSize := len([]byte(reqBody.Data))
-
-	if contentSize <= 32{
-		log.Errorf("Trying to create object with data size %d", contentSize)
-		http.Error(w, "Bad request", http.StatusBadRequest)
-		return
-	}
-
 	// Make sure file contents are valid
 	file, err := reqBody.ToFile(nsid)
 
@@ -66,8 +58,6 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
-
-
 
 	oldFile := models.File{
 		Id:        reqBody.Id,
@@ -84,7 +74,7 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 		} else {
 			// New file created as oldFile not exists
 			res := r.Context().Value("reservation")
-			if res != nil{
+			if res != nil {
 				reservation := res.(*models.Reservation)
 				if reservation.SizeRemaining() < file.Size() {
 					http.Error(w, "File SizeAvailable exceeds the remaining free space in namespace", http.StatusForbidden)
@@ -129,7 +119,7 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		// Check files are identical, otherwise throw conflict
-		if oldFile.CRC != file.CRC{
+		if oldFile.CRC != file.CRC {
 			http.Error(w, "File already exists with different content", http.StatusConflict)
 			return
 		}
@@ -190,7 +180,7 @@ func (api NamespacesAPI) DeleteObject(w http.ResponseWriter, r *http.Request) {
 	v, err := api.db.Get(f.Key())
 
 	if err != nil {
-		if err == db.ErrNotFound{
+		if err == db.ErrNotFound {
 			http.Error(w, "Namespace or object doesn't exist", http.StatusNotFound)
 			return
 		}
@@ -199,7 +189,6 @@ func (api NamespacesAPI) DeleteObject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-
 	f = models.File{}
 	if err := f.Decode(v); err != nil {
 		log.Errorln(err.Error())
@@ -207,7 +196,7 @@ func (api NamespacesAPI) DeleteObject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if f.Reference == 1{
+	if f.Reference == 1 {
 		err = api.db.Delete(f.Key())
 
 		if err != nil {
@@ -216,7 +205,7 @@ func (api NamespacesAPI) DeleteObject(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		res := r.Context().Value("reservation")
-		if res != nil{
+		if res != nil {
 			reservation := res.(*models.Reservation)
 			reservation.SizeUsed -= f.Size()
 
@@ -234,16 +223,16 @@ func (api NamespacesAPI) DeleteObject(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-	}else{
+	} else {
 		f.Reference -= 1
 		b, err := f.Encode()
-		if err != nil{
+		if err != nil {
 			log.Errorln(err.Error())
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
 		err = api.db.Set(f.Key(), b)
-		if err != nil{
+		if err != nil {
 			log.Errorln(err.Error())
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
@@ -305,7 +294,7 @@ func (api NamespacesAPI) GetObject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	result, err := f.ToObject()
-	if err != nil{
+	if err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return

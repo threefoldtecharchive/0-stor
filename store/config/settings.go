@@ -8,8 +8,7 @@ import (
 )
 
 type Settings struct {
-	DebugLog bool `json:"debug"`
-
+	DebugLog    bool   `json:"debug"`
 	BindAddress string `json:"bind"`
 
 	DB struct {
@@ -18,6 +17,8 @@ type Settings struct {
 			Data string `json:"data"`
 		} `json:"dirs"`
 	} `json:db`
+
+	JWTKey string `json:"jwt_key"`
 }
 
 func (s *Settings) Load(path string) error {

@@ -14,7 +14,7 @@ var (
 	ErrWrongIssuer    = errors.New("reservation token not valid, wrong issuer")
 )
 
-type ReservationClaims struct {
+type reservationClaims struct {
 	jwt.StandardClaims
 	ID           string // ID of the reservation
 	AdminID      string // ID of the user that has created the reservation, only him can renew
@@ -24,7 +24,7 @@ type ReservationClaims struct {
 
 func GenerateReservationToken(reservation models.Reservation, key []byte) (string, error) {
 
-	claims := ReservationClaims{
+	claims := reservationClaims{
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: (time.Time)(reservation.ExpireAt).Unix(),
 			IssuedAt:  (time.Time)(reservation.Created).Unix(),
@@ -41,7 +41,7 @@ func GenerateReservationToken(reservation models.Reservation, key []byte) (strin
 }
 
 func ValidateReservationToken(tokenString, namespace string, key []byte) (string, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &ReservationClaims{}, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &reservationClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return key, nil
 	})
 
@@ -49,7 +49,7 @@ func ValidateReservationToken(tokenString, namespace string, key []byte) (string
 		return "", ErrWrongAlg
 	}
 
-	if claims, ok := token.Claims.(*ReservationClaims); ok && token.Valid {
+	if claims, ok := token.Claims.(*reservationClaims); ok && token.Valid {
 		if claims.Namespace != namespace {
 			return "", ErrWrongNamespace
 		}

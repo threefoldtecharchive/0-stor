@@ -239,8 +239,7 @@ func (api NamespacesAPI) UpdateReservation(w http.ResponseWriter, r *http.Reques
 		Delete: true,
 	}
 
-	dataToken, err := reservation.GenerateDataAccessTokenForUser(user, nsid, adminACL)
-
+	dataToken, err := jwt.GenerateDataAccessToken(user, reservation, adminACL, api.jwtKey)
 	if err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -437,7 +436,6 @@ func (api NamespacesAPI) CreateReservation(w http.ResponseWriter, r *http.Reques
 	}
 
 	reservation, err := models.NewReservation(nsid, "admin", float64(reqBody.Size), int(reqBody.Period))
-
 	if err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -458,8 +456,7 @@ func (api NamespacesAPI) CreateReservation(w http.ResponseWriter, r *http.Reques
 		Delete: true,
 	}
 
-	dataToken, err := reservation.GenerateDataAccessTokenForUser("admin", nsid, adminACL)
-
+	dataToken, err := jwt.GenerateDataAccessToken(reservation.AdminId, *reservation, adminACL, api.jwtKey)
 	if err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)

@@ -92,3 +92,88 @@ func TestReservationToken(t *testing.T) {
 	}
 
 }
+
+func TestDataAccessToken(t *testing.T) {
+	key := genKey(t)
+	now := time.Now()
+	id, err := utils.GenerateUUID(64)
+	require.NoError(t, err)
+
+	res := models.Reservation{
+		Namespace:    "ns1",
+		AdminId:      "user1",
+		Created:      goraml.DateTime(now),
+		ExpireAt:     goraml.DateTime(now.Add(time.Hour)),
+		Id:           id,
+		SizeReserved: 1024,
+		SizeUsed:     0,
+		Updated:      goraml.DateTime(now),
+	}
+
+	token, err := GenerateDataAccessToken("user2", res, models.ACLEntry{Write: true}, key)
+	require.NoError(t, err)
+
+	tt := []struct {
+		name      string
+		user      string
+		namespace string
+		acl       models.ACLEntry
+		at        time.Time
+		err       error
+	}{
+		{
+			name:      "valid",
+			user:      "user2",
+			namespace: "ns1",
+			acl:       models.ACLEntry{Write: true},
+			at:        now,
+			err:       nil,
+		},
+		{
+			name:      "expired",
+			user:      "user2",
+			namespace: "ns1",
+			acl:       models.ACLEntry{Write: true},
+			at:        now.Add(time.Hour * 24),
+			err:       jwt.NewValidationError("jwt expired", jwt.ValidationErrorExpired),
+		},
+		{
+			name:      "wrong namespace",
+			user:      "user2",
+			namespace: "ns2",
+			acl:       models.ACLEntry{Write: true},
+			at:        now,
+			err:       ErrWrongNamespace,
+		},
+		{
+			name:      "wrong user",
+			user:      "userwrong",
+			namespace: "ns1",
+			acl:       models.ACLEntry{Write: true},
+			at:        now,
+			err:       ErrWrongUser,
+		},
+		{
+			name:      "wrong acl",
+			user:      "user1",
+			namespace: "ns1",
+			acl:       models.ACLEntry{Write: false},
+			at:        now,
+			err:       ErrWrongUser,
+		},
+	}
+
+	for _, test := range tt {
+		t.Run(test.name, func(t *testing.T) {
+			at(test.at, func() {
+				err := ValidateDataAccessToken(token, test.user, test.namespace, test.acl, key)
+				if test.err != nil {
+					assert.Error(t, err)
+				} else {
+					assert.NoError(t, err)
+				}
+			})
+		})
+	}
+
+}

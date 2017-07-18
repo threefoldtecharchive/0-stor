@@ -18,7 +18,7 @@ func LoggingMiddleware(h http.Handler) http.Handler {
 	return handlers.LoggingHandler(log.StandardLogger().Out, h)
 }
 
-func GetRouter(db db.DB, settings config.Settings) http.Handler {
+func GetRouter(db db.DB, conf config.Settings) http.Handler {
 	r := mux.NewRouter()
 
 	// home page
@@ -32,8 +32,8 @@ func GetRouter(db db.DB, settings config.Settings) http.Handler {
 		http.ServeContent(w, r, "index.html", time.Now(), datareader)
 	})
 
-	api := rest.NewNamespacesAPI(db, settings)
-	routes := new(rest.HttpRoutes).GetRoutes(api)
+	api := rest.NewNamespacesAPI(db, conf)
+	routes := new(rest.HttpRoutes).GetRoutes(api, []byte(conf.JWTKey))
 
 	// Uncomment if you want to run server without middlewares
 	//for i, _ := range routes{

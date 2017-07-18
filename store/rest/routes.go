@@ -2,26 +2,31 @@ package rest
 
 import (
 	"net/http"
-	"github.com/zero-os/0-stor/store/rest/models"
+
 	"github.com/justinas/alice"
+	"github.com/zero-os/0-stor/store/rest/middleware"
+	"github.com/zero-os/0-stor/store/rest/models"
 )
 
 type HttpRoutes struct{}
 
-type HttpRouteEntry struct{
-	Path string
-	Handler func(http.ResponseWriter, *http.Request)
-	Methods []string
+type HttpRouteEntry struct {
+	Path        string
+	Handler     func(http.ResponseWriter, *http.Request)
+	Methods     []string
 	Middlewares []alice.Constructor
 }
 
-type MiddlewareEntry struct{
+type MiddlewareEntry struct {
 	Middlewares []alice.Constructor
 }
 
-
-func (h HttpRoutes) GetRoutes(i NamespacesInterface)[]HttpRouteEntry {
+func (h HttpRoutes) GetRoutes(i NamespacesInterface, jwtKey []byte) []HttpRouteEntry {
 	db := i.DB()
+	iyoHandler := middleware.NewOauth2itsyouonlineMiddleware([]string{"user:name"}).Handler
+	reservationMiddleware := middleware.NewReservationValidMiddleware(db, jwtKey).Handler
+	namespaceMidleware := middleware.NewNamespaceStatMiddleware(db).Handler
+
 	return []HttpRouteEntry{
 		{
 
@@ -29,8 +34,9 @@ func (h HttpRoutes) GetRoutes(i NamespacesInterface)[]HttpRouteEntry {
 			Handler: i.nsidaclPost,
 			Methods: []string{"POST"},
 			Middlewares: []alice.Constructor{
-				NewReservationValidMiddleware(db).Handler,
-				NewNamespaceStatMiddleware(db).Handler,
+				iyoHandler,
+				reservationMiddleware,
+				namespaceMidleware,
 			},
 		},
 
@@ -39,171 +45,177 @@ func (h HttpRoutes) GetRoutes(i NamespacesInterface)[]HttpRouteEntry {
 			Path:    "/namespaces/{nsid}/objects/{id}",
 			Methods: []string{"DELETE"},
 			Middlewares: []alice.Constructor{
-				NewDataTokenValidMiddleware(models.ACLEntry{ // At least user should have Delete permissions
+				iyoHandler,
+				reservationMiddleware,
+				middleware.NewDataTokenMiddleware(models.ACLEntry{ // At least user should have Delete permissions
 					Read:   false,
 					Write:  false,
 					Delete: true,
 					Admin:  false,
-				}).Handler,
-				NewReservationValidMiddleware(i.DB()).Handler,
-				NewNamespaceStatMiddleware(db).Handler,
+				}, jwtKey).Handler,
+				namespaceMidleware,
 			},
 		},
 
 		{
 			Handler: i.HeadObject,
-			Path: "/namespaces/{nsid}/objects/{id}",
+			Path:    "/namespaces/{nsid}/objects/{id}",
 			Methods: []string{"HEAD"},
 			Middlewares: []alice.Constructor{
-				NewDataTokenValidMiddleware(models.ACLEntry{ // At least user should have Read permissions
+				iyoHandler,
+				reservationMiddleware,
+				middleware.NewDataTokenMiddleware(models.ACLEntry{ // At least user should have Read permissions
 					Read:   true,
 					Write:  false,
 					Delete: false,
 					Admin:  false,
-				}).Handler,
-				NewReservationValidMiddleware(i.DB()).Handler,
-				NewNamespaceStatMiddleware(db).Handler,
+				}, jwtKey).Handler,
+				namespaceMidleware,
 			},
 		},
 
 		{
-			Path: "/namespaces/{nsid}/objects/{id}",
+			Path:    "/namespaces/{nsid}/objects/{id}",
 			Handler: i.GetObject,
 			Methods: []string{"GET"},
 			Middlewares: []alice.Constructor{
-				NewDataTokenValidMiddleware(models.ACLEntry{ // At least user should have Read permissions
+				iyoHandler,
+				reservationMiddleware,
+				middleware.NewDataTokenMiddleware(models.ACLEntry{ // At least user should have Read permissions
 					Read:   true,
 					Write:  false,
 					Delete: false,
 					Admin:  false,
-				}).Handler,
-				NewReservationValidMiddleware(i.DB()).Handler,
-				NewNamespaceStatMiddleware(db).Handler,
+				}, jwtKey).Handler,
+				namespaceMidleware,
 			},
 		},
 
 		{
-			Path: "/namespaces/{nsid}/objects",
+			Path:    "/namespaces/{nsid}/objects",
 			Handler: i.Listobjects,
 			Methods: []string{"GET"},
 			Middlewares: []alice.Constructor{
-				NewDataTokenValidMiddleware(models.ACLEntry{ // At least user should have Read permissions
+				iyoHandler,
+				middleware.NewDataTokenMiddleware(models.ACLEntry{ // At least user should have Read permissions
 					Read:   true,
 					Write:  false,
 					Delete: false,
 					Admin:  false,
-				}).Handler,
-				NewReservationValidMiddleware(i.DB()).Handler,
-				NewNamespaceStatMiddleware(db).Handler,
+				}, jwtKey).Handler,
+				reservationMiddleware,
+				namespaceMidleware,
 			},
 		},
 
 		{
-			Path: "/namespaces/{nsid}/objects",
+			Path:    "/namespaces/{nsid}/objects",
 			Handler: i.Createobject,
 			Methods: []string{"POST"},
 			Middlewares: []alice.Constructor{
-				NewDataTokenValidMiddleware(models.ACLEntry{ // At least user should have Write permissions
+				iyoHandler,
+				reservationMiddleware,
+				middleware.NewDataTokenMiddleware(models.ACLEntry{ // At least user should have Write permissions
 					Read:   false,
 					Write:  true,
 					Delete: false,
 					Admin:  false,
-				}).Handler,
-				NewReservationValidMiddleware(i.DB()).Handler,
-				NewNamespaceStatMiddleware(db).Handler,
+				}, jwtKey).Handler,
+				namespaceMidleware,
 			},
 		},
 		//
 		{
-			Path: "/namespaces/{nsid}/reservation/{id}",
+			Path:    "/namespaces/{nsid}/reservation/{id}",
 			Handler: i.nsidreservationidGet,
 			Methods: []string{"GET"},
 			Middlewares: []alice.Constructor{
-				NewOauth2itsyouonlineMiddleware([]string{"user:name"}).Handler,
+				iyoHandler,
 			},
 		},
 
 		{
-			Path: "/namespaces/{nsid}/reservation",
+			Path:    "/namespaces/{nsid}/reservation",
 			Handler: i.ListReservations,
 			Methods: []string{"GET"},
 			Middlewares: []alice.Constructor{
-				NewOauth2itsyouonlineMiddleware([]string{"user:name"}).Handler,
+				iyoHandler,
 			},
 		},
 
 		{
-			Path: "/namespaces/{nsid}/reservation",
+			Path:    "/namespaces/{nsid}/reservation",
 			Handler: i.CreateReservation,
 			Methods: []string{"POST"},
 			Middlewares: []alice.Constructor{
-				NewOauth2itsyouonlineMiddleware([]string{"user:name"}).Handler,
+				iyoHandler,
 			},
 		},
 		{
-			Path: "/namespaces/{nsid}/stats",
+			Path:    "/namespaces/{nsid}/stats",
 			Handler: i.StatsNamespace,
 			Methods: []string{"GET"},
 			Middlewares: []alice.Constructor{
-				NewDataTokenValidMiddleware(models.ACLEntry{ // Admin permissions
+				iyoHandler,
+				middleware.NewDataTokenMiddleware(models.ACLEntry{ // Admin permissions
 					Read:   true,
 					Write:  true,
 					Delete: true,
 					Admin:  true,
-				}).Handler,
-				NewNamespaceStatMiddleware(db).Handler,
+				}, jwtKey).Handler,
+				namespaceMidleware,
 			},
 		},
 		{
-			Path:  "/namespaces/stats",
+			Path:    "/namespaces/stats",
 			Handler: i.UpdateStoreStats,
 			Methods: []string{"POST"},
 			Middlewares: []alice.Constructor{
-				NewOauth2itsyouonlineMiddleware([]string{"user:name"}).Handler,
+				iyoHandler,
 			},
 		},
 		{
-			Path: "/namespaces/stats",
+			Path:    "/namespaces/stats",
 			Handler: i.GetStoreStats,
 			Methods: []string{"GET"},
 			Middlewares: []alice.Constructor{
-				NewOauth2itsyouonlineMiddleware([]string{"user:name"}).Handler,
+				iyoHandler,
 			},
 		},
 		{
-			Path: "/namespaces/{nsid}",
+			Path:    "/namespaces/{nsid}",
 			Handler: i.Deletensid,
 			Methods: []string{"DELETE"},
 			Middlewares: []alice.Constructor{
-				NewNamespaceStatMiddleware(db).Handler,
+				iyoHandler,
+				namespaceMidleware,
 			},
 		},
 		{
-			Path: "/namespaces/{nsid}",
+			Path:    "/namespaces/{nsid}",
 			Handler: i.Getnsid,
 			Methods: []string{"GET"},
 			Middlewares: []alice.Constructor{
-				NewNamespaceStatMiddleware(db).Handler,
+				iyoHandler,
+				namespaceMidleware,
 			},
 		},
 		{
-			Path: "/namespaces",
+			Path:    "/namespaces",
 			Handler: i.Listnamespaces,
 			Methods: []string{"GET"},
 			Middlewares: []alice.Constructor{
-				NewOauth2itsyouonlineMiddleware([]string{"user:name"}).Handler,
+				iyoHandler,
 			},
 		},
 		{
-			Path: "/namespaces",
+			Path:    "/namespaces",
 			Handler: i.Createnamespace,
 			Methods: []string{"POST"},
 			Middlewares: []alice.Constructor{
-				NewOauth2itsyouonlineMiddleware([]string{"user:name"}).Handler,
+				iyoHandler,
 			},
 		},
 	}
-
-
 
 }

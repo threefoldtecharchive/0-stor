@@ -157,25 +157,8 @@ types:
         type: string
         required: true
 
+securedBy: [ itsyouonline : { scopes: ["user:name"] } ]
 /stats:
-     securedBy: [ itsyouonline : { scopes: ["user:name"] } ]
-     post:
-      displayName: UpdateStoreStats
-      description: |
-        Update Global Store statistics and available space
-      body:
-        type: StoreStat
-      responses:
-        200:
-          description: Store statistics updated successfully
-          body:
-            description: |
-              New Store statistics
-            type:
-              StoreStat
-        400:
-          description: |
-            Bad request
      get:
       displayName: GetStoreStats
       description: |
@@ -186,7 +169,6 @@ types:
             type: StoreStat
 
 /namespaces:
-  securedBy: [ itsyouonline : { scopes: ["user:name"] } ]
   type: collection
   get:
     is: [ paginated ]
@@ -195,7 +177,7 @@ types:
       type: NamespaceCreate
 
   /{nsid}:
-    securedBy: [ reservation.reservationToken ]
+    securedBy: [ reservation.reservationToken , itsyouonline : { scopes: ["user:name"] }]
     get:
       displayName: GetNameSpace
       description: Get detail view about namespace
@@ -215,7 +197,7 @@ types:
           description: namespace not found
 
     /stats:
-      securedBy: [ reservation.reservationToken ]
+      securedBy: [ reservation.reservationToken , itsyouonline : { scopes: ["user:name"] }]
       get:
         displayName: StatsNamespace
         description: |
@@ -228,7 +210,7 @@ types:
             description: |
               No namespace with this id found
     /acl:
-      securedBy: [ reservation.reservationToken ]
+      securedBy: [ reservation.reservationToken , itsyouonline : { scopes: ["user:name"] }]
       post:
         description: |
           Create an dataAccessToken for a user. This token gives this user access to the data in this namespace
@@ -251,7 +233,7 @@ types:
 
     /objects:
       type: collection
-      securedBy: [ reservation.dataAccessToken ]
+      securedBy: [ reservation.dataAccessToken , itsyouonline : { scopes: ["user:name"] }]
       post:
         description: |
           Set an object into the namespace
@@ -260,7 +242,7 @@ types:
         description: |
           List keys of the namespaces
       /{id}:
-        securedBy: [ reservation.dataAccessToken ]
+        securedBy: [ reservation.dataAccessToken , itsyouonline : { scopes: ["user:name"] }]
         head:
           displayName: ExistObject
           description: |

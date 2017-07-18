@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/zero-os/0-stor/store/jwt"
 	"github.com/zero-os/0-stor/store/rest/models"
 
 	"github.com/gorilla/mux"
@@ -171,14 +172,13 @@ func (api NamespacesAPI) Deletensid(w http.ResponseWriter, r *http.Request) {
 			if err := storeStat.Decode(b); err != nil {
 				log.Errorln(err.Error())
 			}
-		}else{
+		} else {
 			log.Errorln(err.Error())
 			return
 		}
 
 		storeStat.SizeAvailable += totalSizeReserved
 		storeStat.SizeUsed -= totalSizeReserved
-
 
 		b, err = storeStat.Encode()
 
@@ -191,7 +191,6 @@ func (api NamespacesAPI) Deletensid(w http.ResponseWriter, r *http.Request) {
 			log.Errorln(err.Error())
 			return
 		}
-
 
 	}()
 
@@ -229,7 +228,7 @@ func (api NamespacesAPI) Getnsid(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respBody := models.Namespace{
-		NamespaceCreate:  models.NamespaceCreate{
+		NamespaceCreate: models.NamespaceCreate{
 			Label: nsid,
 		},
 	}
@@ -365,8 +364,6 @@ func (api NamespacesAPI) nsidaclPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-
-
 	// decode request
 	defer r.Body.Close()
 
@@ -392,21 +389,18 @@ func (api NamespacesAPI) nsidaclPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-
 	var dataToken string
-	reservation := r.Context().Value("reservation")
-	if reservation == nil{
+	reservation, present := r.Context().Value("reservation").(models.Reservation)
+	if !present {
 		dataToken = ""
-	}else{
-		dataToken, err = reservation.(*models.Reservation).GenerateDataAccessTokenForUser(reqBody.Id, namespace.Label, reqBody.Acl)
-
+	} else {
+		dataToken, err = jwt.GenerateDataAccessToken(reqBody.Id, reservation, reqBody.Acl, api.jwtKey)
 		if err != nil {
 			log.Errorln(err.Error())
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
 	}
-
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
