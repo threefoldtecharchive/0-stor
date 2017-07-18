@@ -8,7 +8,6 @@ import (
 
 	"strings"
 
-	"github.com/zero-os/0-stor/store/core/librairies/reservation"
 	"github.com/zero-os/0-stor/store/db"
 	"github.com/zero-os/0-stor/store/utils"
 	validator "gopkg.in/validator.v2"
@@ -236,9 +235,9 @@ func (s NamespaceStats) Key() string {
 }
 
 type NamespacesNsidReservationPostRespBody struct {
-	DataAccessToken  string                  `json:"dataAccessToken" validate:"nonzero"`
-	Reservation      reservation.Reservation `json:"reservation" validate:"nonzero"`
-	ReservationToken string                  `json:"reservationToken" validate:"nonzero"`
+	DataAccessToken  string      `json:"dataAccessToken" validate:"nonzero"`
+	Reservation      Reservation `json:"reservation" validate:"nonzero"`
+	ReservationToken string      `json:"reservationToken" validate:"nonzero"`
 }
 
 func (s NamespacesNsidReservationPostRespBody) Validate() error {

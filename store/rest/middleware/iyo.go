@@ -1,7 +1,6 @@
-package rest
+package midleware
 
 import (
-	"context"
 	"crypto/ecdsa"
 	"fmt"
 	"net/http"
@@ -9,101 +8,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/gorilla/mux"
-	"github.com/zero-os/0-stor/store/core/librairies/reservation"
-	"github.com/zero-os/0-stor/store/db"
-	"github.com/zero-os/0-stor/store/rest/models"
 )
-
-type DataTokenValidMiddleware struct {
-	acl models.ACLEntry
-}
-
-func NewDataTokenValidMiddleware(acl models.ACLEntry) *DataTokenValidMiddleware {
-	return &DataTokenValidMiddleware{
-		acl: acl,
-	}
-}
-
-func (dt *DataTokenValidMiddleware) Handler(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		token := r.Header.Get("data-access-token")
-		if token == "" {
-			http.Error(w, "Data access token is missing", http.StatusUnauthorized)
-			return
-		}
-
-		res := models.Reservation{}
-
-		if err := res.ValidateDataAccessToken(dt.acl, token); err != nil {
-			http.Error(w, err.Error(), http.StatusUnauthorized)
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
-}
-
-type ReservationValidMiddleware struct {
-	db db.DB
-}
-
-func NewReservationValidMiddleware(db db.DB) *ReservationValidMiddleware {
-	return &ReservationValidMiddleware{
-		db: db,
-	}
-}
-
-func (re *ReservationValidMiddleware) Handler(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
-		token := r.Header.Get("reservation-token")
-		if token == "" {
-			http.Error(w, "Reservation token is missing", http.StatusUnauthorized)
-			return
-		}
-
-		nsid := mux.Vars(r)["nsid"]
-
-		res := models.Reservation{}
-
-		resID, err := res.ValidateReservationToken(token, nsid)
-
-		if err != nil {
-			http.Error(w, "Reservation token is invalid", http.StatusUnauthorized)
-			return
-		}
-		res = models.Reservation{
-			Namespace: nsid,
-			Reservation: reservation.Reservation{
-				Id: resID,
-			},
-		}
-
-		b, err := re.db.Get(res.Key())
-
-		if err != nil {
-			if err == db.ErrNotFound {
-				http.Error(w, "Reservation token is invalid", http.StatusUnauthorized)
-				return
-
-			} else {
-				log.Errorln(err.Error())
-				http.Error(w, "Internal server error", http.StatusInternalServerError)
-				return
-			}
-		}
-
-		if err = res.Decode(b); err != nil {
-			log.Errorln(err.Error())
-			http.Error(w, "Internal server error", http.StatusInternalServerError)
-			return
-
-		}
-		ctx := context.WithValue(r.Context(), "reservation", res)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
-}
 
 // Oauth2itsyouonlineMiddleware is oauth2 middleware for itsyouonline
 type Oauth2itsyouonlineMiddleware struct {
