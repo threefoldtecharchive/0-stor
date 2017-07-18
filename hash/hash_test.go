@@ -35,7 +35,9 @@ func TestHash(t *testing.T) {
 }
 
 func testHash(t *testing.T, data, expected []byte, typ int) {
-	hasher, err := NewHasher(typ)
+	hasher, err := NewHasher(Config{
+		Type: typ,
+	})
 	assert.Nil(t, err)
 
 	assert.Equal(t, expected, hasher.Hash(data))

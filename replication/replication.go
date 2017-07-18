@@ -12,11 +12,16 @@ type Writer struct {
 	writers []io.Writer
 }
 
+// Config defines replication's configuration
+type Config struct {
+	Async bool `yaml:"async"`
+}
+
 // NewWriter creates new writer.
 // The replication will be done in async way if async = true.
-func NewWriter(writers []io.Writer, async bool) *Writer {
+func NewWriter(writers []io.Writer, conf Config) *Writer {
 	return &Writer{
-		async:   async,
+		async:   conf.Async,
 		writers: writers,
 	}
 }

@@ -28,7 +28,7 @@ func testReplication(t *testing.T, async bool) {
 		writers = append(writers, new(bytes.Buffer))
 	}
 
-	w := NewWriter(writers, async)
+	w := NewWriter(writers, Config{Async: async})
 	n, err := w.Write(data)
 	assert.Nil(t, err)
 	assert.Equal(t, numWriter*len(data), n)

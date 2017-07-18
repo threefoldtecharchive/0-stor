@@ -14,6 +14,11 @@ const (
 
 type hashEngine func([]byte) []byte
 
+// Config defines hasher configuration
+type Config struct {
+	Type int
+}
+
 // Hasher is object that produces hash according to it's type
 // given during it's creation
 type Hasher struct {
@@ -21,10 +26,10 @@ type Hasher struct {
 }
 
 // NewHasher creates new hasher
-func NewHasher(typ int) (*Hasher, error) {
+func NewHasher(conf Config) (*Hasher, error) {
 	var eng hashEngine
 
-	switch typ {
+	switch conf.Type {
 	case TypeBlake2:
 		eng = blake2bHash
 	case TypeSHA256:
@@ -32,7 +37,7 @@ func NewHasher(typ int) (*Hasher, error) {
 	case TypeMD5:
 		eng = md5Hash
 	default:
-		return nil, fmt.Errorf("invalid hash type: %v", typ)
+		return nil, fmt.Errorf("invalid hash type: %v", conf.Type)
 	}
 	return &Hasher{
 		engine: eng,

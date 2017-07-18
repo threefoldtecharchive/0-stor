@@ -28,11 +28,11 @@ const (
 // Config define compressor and decompressor configuration
 type Config struct {
 	// Compressor type : TypeSnappy, TypeGzip
-	Type int
+	Type int `yaml:"type"`
 
 	// Compression level : only supported for gzip
 	// Leave it blank for default value
-	Level int
+	Level int `yaml:"level"`
 }
 
 //Compressor is the interface that wraps the basic compress method

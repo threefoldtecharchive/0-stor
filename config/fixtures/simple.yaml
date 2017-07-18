@@ -1,0 +1,37 @@
+namespace: Gondor
+pipes:
+    - name: pipe1
+      type: compress
+      action: write
+      config:
+          type: 1
+
+    - name: pipe2
+      type: chunker
+      action: write
+      config:
+          chunkSize: 1
+
+    - name: pipe3
+      type: distribution
+      action: write
+      config:
+          k: 1
+
+    - name: pipe4
+      type: encrypt 
+      action: write
+      config:
+          type: 1
+
+    - name: pipe5
+      type: hash
+      action: write
+      config:
+          type: 1
+    - name: pipe6
+      type: replication
+      action: write
+      config:
+          async: true
+

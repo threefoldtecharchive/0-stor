@@ -12,13 +12,23 @@ type Distributor struct {
 	writers []io.Writer
 }
 
+// Config defines distribution's configuration
+type Config struct {
+	K int `yaml:"k"`
+	M int `yaml:"m"`
+}
+
+func (c Config) NumPieces() int {
+	return c.K + c.M
+}
+
 // NewDistributor creates new distribution
-func NewDistributor(k, m int, writers []io.Writer) (*Distributor, error) {
-	if len(writers) != k+m {
-		return nil, fmt.Errorf("invalid number of writers: %v expected: %v", len(writers), k+m)
+func NewDistributor(writers []io.Writer, conf Config) (*Distributor, error) {
+	if len(writers) != conf.K+conf.M {
+		return nil, fmt.Errorf("invalid number of writers: %v expected: %v", len(writers), conf.K+conf.M)
 	}
 
-	enc, err := NewEncoder(k, m)
+	enc, err := NewEncoder(conf.K, conf.M)
 	if err != nil {
 		return nil, err
 	}
@@ -55,12 +65,12 @@ type Restorer struct {
 }
 
 // NewRestorer creates restorer from the given reader.
-func NewRestorer(k, m int, readers []io.Reader) (*Restorer, error) {
-	if len(readers) != k+m {
-		return nil, fmt.Errorf("invalid number of readers: %v expected: %v", len(readers), k+m)
+func NewRestorer(readers []io.Reader, conf Config) (*Restorer, error) {
+	if len(readers) != conf.K+conf.M {
+		return nil, fmt.Errorf("invalid number of readers: %v expected: %v", len(readers), conf.K+conf.M)
 	}
 
-	dec, err := NewDecoder(k, m)
+	dec, err := NewDecoder(conf.K, conf.M)
 	if err != nil {
 		return nil, err
 	}

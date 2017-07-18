@@ -10,20 +10,24 @@ import (
 // TestChunkerEven test chunker with data length == multiply of chunkSize
 func TestChunkerEven(t *testing.T) {
 	dataLen := 100
-	chunkSize := 10
+	conf := Config{
+		ChunkSize: 10,
+	}
 
 	data := make([]byte, dataLen)
-	c := NewChunker(data, chunkSize)
-	testSplitterEven(t, c, dataLen, chunkSize)
+	c := NewChunker(data, conf)
+	testSplitterEven(t, c, dataLen, conf.ChunkSize)
 }
 
 func TestReaderEven(t *testing.T) {
 	dataLen := 100
-	chunkSize := 10
+	conf := Config{
+		ChunkSize: 10,
+	}
 
 	data := make([]byte, dataLen)
-	c := NewReader(bytes.NewReader(data), chunkSize)
-	testSplitterEven(t, c, dataLen, chunkSize)
+	c := NewReader(bytes.NewReader(data), conf)
+	testSplitterEven(t, c, dataLen, conf.ChunkSize)
 }
 
 func testSplitterEven(t *testing.T, s splitter, dataLen, chunkSize int) {
@@ -39,22 +43,26 @@ func testSplitterEven(t *testing.T, s splitter, dataLen, chunkSize int) {
 
 func TestChunkerNotEven(t *testing.T) {
 	dataLen := 99
-	chunkSize := 10
+	conf := Config{
+		ChunkSize: 10,
+	}
 
 	data := make([]byte, dataLen)
 
-	c := NewChunker(data, chunkSize)
-	testSplitterNotEven(t, c, dataLen, chunkSize)
+	c := NewChunker(data, conf)
+	testSplitterNotEven(t, c, dataLen, conf.ChunkSize)
 }
 
 func TestReaderNotEven(t *testing.T) {
 	dataLen := 99
-	chunkSize := 10
+	conf := Config{
+		ChunkSize: 10,
+	}
 
 	data := make([]byte, dataLen)
 
-	c := NewReader(bytes.NewReader(data), chunkSize)
-	testSplitterNotEven(t, c, dataLen, chunkSize)
+	c := NewReader(bytes.NewReader(data), conf)
+	testSplitterNotEven(t, c, dataLen, conf.ChunkSize)
 }
 
 // testSplitterNotEven test splitter with data length !=  multiply of chunkSize

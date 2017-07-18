@@ -16,11 +16,16 @@ type Chunker struct {
 	chunkSize int
 }
 
+// Config defines chunker configuration
+type Config struct {
+	ChunkSize int `yaml:"chunkSize" validate:"min=0"`
+}
+
 // NewChunker creates chunker for given data and chunk size
-func NewChunker(data []byte, chunkSize int) *Chunker {
+func NewChunker(data []byte, conf Config) *Chunker {
 	return &Chunker{
 		data:      data,
-		chunkSize: chunkSize,
+		chunkSize: conf.ChunkSize,
 	}
 }
 
@@ -48,11 +53,11 @@ type Reader struct {
 }
 
 // NewReader creates new splitter reader
-func NewReader(r io.Reader, chunkSize int) *Reader {
+func NewReader(r io.Reader, conf Config) *Reader {
 	return &Reader{
 		rd:        r,
-		chunkSize: chunkSize,
-		curChunk:  make([]byte, chunkSize),
+		chunkSize: conf.ChunkSize,
+		curChunk:  make([]byte, conf.ChunkSize),
 	}
 }
 

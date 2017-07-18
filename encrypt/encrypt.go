@@ -20,9 +20,9 @@ var (
 
 // Config defines EncrypterDecrypter config
 type Config struct {
-	Type    int
-	PrivKey []byte
-	Nonce   []byte
+	Type    int    `yaml:"type"`
+	PrivKey []byte `yaml:"privKey"`
+	Nonce   []byte `yaml:"nonce"`
 }
 
 // EncrypterDecrypter is interaface for encrypter and decrypter

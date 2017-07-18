@@ -11,21 +11,23 @@ import (
 
 func TestDistributeRestore(t *testing.T) {
 	const (
-		k       = 4
-		m       = 2
 		dataLen = 4096
 	)
+	conf := Config{
+		K: 4,
+		M: 2,
+	}
 
 	var writers []io.Writer
 	var buffs []*bytes.Buffer
-	for i := 0; i < k+m; i++ {
+	for i := 0; i < conf.NumPieces(); i++ {
 		buf := new(bytes.Buffer)
 		buffs = append(buffs, buf)
 		writers = append(writers, buf)
 	}
 
 	// distribute
-	d, err := NewDistributor(k, m, writers)
+	d, err := NewDistributor(writers, conf)
 	assert.Nil(t, err)
 
 	data := make([]byte, dataLen)
@@ -37,9 +39,9 @@ func TestDistributeRestore(t *testing.T) {
 	// restore
 	var readers []io.Reader
 
-	for i := 0; i < k+m; i++ {
+	for i := 0; i < conf.NumPieces(); i++ {
 		var reader io.Reader
-		if i < m {
+		if i < conf.M {
 			// simulate losing pieces here
 			// we can lost up to `m` pieces
 			reader = bytes.NewReader([]byte("a"))
@@ -49,7 +51,7 @@ func TestDistributeRestore(t *testing.T) {
 		readers = append(readers, reader)
 	}
 
-	r, err := NewRestorer(k, m, readers)
+	r, err := NewRestorer(readers, conf)
 	assert.Nil(t, err)
 
 	decoded := make([]byte, len(data))
@@ -65,20 +67,22 @@ func TestDistributeRestore(t *testing.T) {
 
 func TestDistributeDecode(t *testing.T) {
 	const (
-		k       = 4
-		m       = 2
 		dataLen = 4096
 	)
+	conf := Config{
+		K: 4,
+		M: 2,
+	}
 
 	var writers []io.Writer
 	var buffs []*bytes.Buffer
-	for i := 0; i < k+m; i++ {
+	for i := 0; i < conf.NumPieces(); i++ {
 		buf := new(bytes.Buffer)
 		buffs = append(buffs, buf)
 		writers = append(writers, buf)
 	}
 
-	d, err := NewDistributor(k, m, writers)
+	d, err := NewDistributor(writers, conf)
 	assert.Nil(t, err)
 
 	data := make([]byte, dataLen)
@@ -90,11 +94,11 @@ func TestDistributeDecode(t *testing.T) {
 	// decode
 	var lost []int
 
-	decodedChunks := make([][]byte, k+m)
-	for i := 0; i < k+m; i++ {
+	decodedChunks := make([][]byte, conf.NumPieces())
+	for i := 0; i < conf.NumPieces(); i++ {
 		decodedChunks[i] = make([]byte, buffs[i].Len())
 
-		if i < m {
+		if i < conf.M {
 			// simulate losing pieces here
 			// we can lost up to `m` pieces
 			lost = append(lost, i)
@@ -103,7 +107,7 @@ func TestDistributeDecode(t *testing.T) {
 		copy(decodedChunks[i], buffs[i].Bytes())
 	}
 
-	dec, err := NewDecoder(k, m)
+	dec, err := NewDecoder(conf.K, conf.M)
 	decoded, err := dec.Decode(decodedChunks, lost, len(data))
 	assert.Nil(t, err)
 
