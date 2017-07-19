@@ -1,8 +1,6 @@
 package models
 
 import (
-	"errors"
-
 	"gopkg.in/validator.v2"
 )
 
@@ -20,9 +18,3 @@ func (s ReservationRequest) Validate() error {
 	return nil
 }
 
-func (s ReservationRequest) ValidateFreeSpace(sizeAvailable float64) error {
-	if float64(s.Size) > sizeAvailable {
-		return errors.New("Requested reservation size exceeds allowed limits")
-	}
-	return nil
-}

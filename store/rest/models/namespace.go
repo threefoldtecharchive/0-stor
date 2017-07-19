@@ -8,10 +8,11 @@ import (
 
 	"strings"
 
+	"bytes"
+
 	"github.com/zero-os/0-stor/store/db"
 	"github.com/zero-os/0-stor/store/utils"
 	validator "gopkg.in/validator.v2"
-	"bytes"
 )
 
 var _ (db.Model) = (*Namespace)(nil)
@@ -178,7 +179,7 @@ type NamespaceStats struct {
 	NamespaceStat
 	Namespace         string
 	NrRequests        int64
-	TotalSizeReserved float64
+	TotalSizeReserved uint64
 	Created           time.Time
 }
 
@@ -205,7 +206,7 @@ func (s *NamespaceStats) Encode() ([]byte, error) {
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.LittleEndian, uint64(s.NrObjects))
 	binary.Write(buf, binary.LittleEndian, uint64(s.NrRequests))
-	binary.Write(buf, binary.LittleEndian, uint64(s.TotalSizeReserved))
+	binary.Write(buf, binary.LittleEndian, s.TotalSizeReserved)
 	binary.Write(buf, binary.LittleEndian, created)
 
 	return buf.Bytes(), nil
@@ -214,7 +215,7 @@ func (s *NamespaceStats) Encode() ([]byte, error) {
 func (s *NamespaceStats) Decode(data []byte) error {
 	s.NrObjects = int64(binary.LittleEndian.Uint64(data[0:8]))
 	s.NrRequests = int64(binary.LittleEndian.Uint64(data[8:16]))
-	s.TotalSizeReserved = utils.Float64frombytes(data[16:24])
+	s.TotalSizeReserved = binary.LittleEndian.Uint64(data[16:24])
 	cTime, err := time.Parse(time.RFC3339, string(data[24:]))
 
 	if err != nil {
