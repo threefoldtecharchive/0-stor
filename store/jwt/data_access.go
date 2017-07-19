@@ -41,35 +41,42 @@ func ValidateDataAccessToken(tokenString, user, namespace string, acl models.ACL
 	token, err := jwt.ParseWithClaims(tokenString, &dataAccessClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return key, nil
 	})
+	if err != nil {
+		return err
+	}
+
+	if !token.Valid {
+		return ErrTokenInvalid
+	}
 
 	if alg, present := token.Header["alg"]; !present || alg != jwt.SigningMethodHS256.Alg() {
 		return ErrWrongAlg
 	}
 
-	if claims, ok := token.Claims.(*dataAccessClaims); ok && token.Valid {
-		if claims.Namespace != namespace {
-			return ErrWrongNamespace
-		}
-		if claims.Issuer != "0-stor" {
-			return ErrWrongIssuer
-		}
-		if claims.User != user {
-			return ErrWrongUser
-		}
-
-		if claims.ACL.Admin {
-			// Admin has all right
-			return nil
-		}
-		// HTTP action ACL requires missing permission granted for that user
-		if (acl.Admin && !claims.ACL.Admin) ||
-			(acl.Read && !claims.ACL.Read) ||
-			(acl.Write && !claims.ACL.Write) ||
-			(acl.Delete && !claims.ACL.Delete) {
-			return ErrWrongACL
-		}
-		return nil
+	claims, ok := token.Claims.(*dataAccessClaims)
+	if !ok {
+		return ErrTokenInvalid
 	}
 
-	return err
+	if claims.Namespace != namespace {
+		return ErrWrongNamespace
+	}
+	if claims.Issuer != "0-stor" {
+		return ErrWrongIssuer
+	}
+	if claims.User != user {
+		return ErrWrongUser
+	}
+	if claims.ACL.Admin {
+		// Admin has all right
+		return nil
+	}
+	// HTTP action ACL requires missing permission granted for that user
+	if (acl.Admin && !claims.ACL.Admin) ||
+		(acl.Read && !claims.ACL.Read) ||
+		(acl.Write && !claims.ACL.Write) ||
+		(acl.Delete && !claims.ACL.Delete) {
+		return ErrWrongACL
+	}
+	return nil
 }

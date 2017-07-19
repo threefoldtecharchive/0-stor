@@ -37,18 +37,18 @@ func (nm *NamespaceStatMiddleware) Handler(next http.Handler) http.Handler {
 				return
 			}
 
-			err = nsStats.Decode(b)
-			if err != nil {
+			if err = nsStats.Decode(b); err != nil {
 				log.Errorln(err.Error())
 				return
 			}
 
 			nsStats.NrRequests++
+
+			b, err = nsStats.Encode()
 			if err != nil {
 				log.Errorln(err.Error())
 				return
 			}
-			b, err = nsStats.Encode()
 
 			if err := nm.db.Set(nsStats.Key(), b); err != nil {
 				log.Errorln(err.Error())
