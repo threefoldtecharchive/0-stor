@@ -10,6 +10,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/zero-os/0-stor/store/db"
 	"github.com/zero-os/0-stor/store/rest/models"
+	"github.com/zero-os/0-stor/store/utils"
 )
 
 // Createobject is the handler for POST /namespaces/{nsid}/objects
@@ -119,7 +120,7 @@ func (api NamespacesAPI) Createobject(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		// Check files are identical, otherwise throw conflict
-		if oldFile.CRC != file.CRC {
+		if utils.Hash(oldFile.Payload) != utils.Hash(file.Payload) {
 			http.Error(w, "File already exists with different content", http.StatusConflict)
 			return
 		}
