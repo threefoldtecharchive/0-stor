@@ -86,6 +86,7 @@ func (om *Oauth2itsyouonlineMiddleware) Handler(next http.Handler) http.Handler 
 
 		claims, err := om.checkJWTGetScope(accessToken)
 		if err != nil {
+			log.Errorln(err)
 			w.WriteHeader(403)
 			return
 		}
@@ -98,7 +99,7 @@ func (om *Oauth2itsyouonlineMiddleware) Handler(next http.Handler) http.Handler 
 
 		// check scopes
 		if !om.CheckScopes(scopes) {
-			log.Debug("no required scopes")
+			log.Errorln("no required scopes")
 			w.WriteHeader(403)
 			return
 		}

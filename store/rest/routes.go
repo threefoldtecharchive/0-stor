@@ -31,7 +31,7 @@ func (h HttpRoutes) GetRoutes(i NamespacesInterface, jwtKey []byte) []HttpRouteE
 		{
 
 			Path:    "/namespaces/{nsid}/acl",
-			Handler: i.nsidaclPost,
+			Handler: i.CreateDataAccesToken,
 			Methods: []string{"POST"},
 			Middlewares: []alice.Constructor{
 				iyoHandler,
@@ -124,10 +124,9 @@ func (h HttpRoutes) GetRoutes(i NamespacesInterface, jwtKey []byte) []HttpRouteE
 				namespaceMidleware,
 			},
 		},
-		//
 		{
-			Path:    "/namespaces/{nsid}/reservation/{id}",
-			Handler: i.nsidreservationidGet,
+			Path:    "/namespaces/{nsid}/reservations/{id}",
+			Handler: i.GetReservation,
 			Methods: []string{"GET"},
 			Middlewares: []alice.Constructor{
 				iyoHandler,
@@ -135,7 +134,7 @@ func (h HttpRoutes) GetRoutes(i NamespacesInterface, jwtKey []byte) []HttpRouteE
 		},
 
 		{
-			Path:    "/namespaces/{nsid}/reservation",
+			Path:    "/namespaces/{nsid}/reservations",
 			Handler: i.ListReservations,
 			Methods: []string{"GET"},
 			Middlewares: []alice.Constructor{
@@ -144,7 +143,7 @@ func (h HttpRoutes) GetRoutes(i NamespacesInterface, jwtKey []byte) []HttpRouteE
 		},
 
 		{
-			Path:    "/namespaces/{nsid}/reservation",
+			Path:    "/namespaces/{nsid}/reservations",
 			Handler: i.CreateReservation,
 			Methods: []string{"POST"},
 			Middlewares: []alice.Constructor{
@@ -184,7 +183,7 @@ func (h HttpRoutes) GetRoutes(i NamespacesInterface, jwtKey []byte) []HttpRouteE
 		},
 		{
 			Path:    "/namespaces/{nsid}",
-			Handler: i.Deletensid,
+			Handler: i.DeleteNamespace,
 			Methods: []string{"DELETE"},
 			Middlewares: []alice.Constructor{
 				iyoHandler,
@@ -193,7 +192,7 @@ func (h HttpRoutes) GetRoutes(i NamespacesInterface, jwtKey []byte) []HttpRouteE
 		},
 		{
 			Path:    "/namespaces/{nsid}",
-			Handler: i.Getnsid,
+			Handler: i.GetNamespace,
 			Methods: []string{"GET"},
 			Middlewares: []alice.Constructor{
 				iyoHandler,

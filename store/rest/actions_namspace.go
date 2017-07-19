@@ -94,7 +94,7 @@ func (api NamespacesAPI) Createnamespace(w http.ResponseWriter, r *http.Request)
 
 // Deletensid is the handler for DELETE /namespaces/{nsid}
 // Delete nsid
-func (api NamespacesAPI) Deletensid(w http.ResponseWriter, r *http.Request) {
+func (api NamespacesAPI) DeleteNamespace(w http.ResponseWriter, r *http.Request) {
 	nsid := fmt.Sprintf("%s%s", models.NAMESPACE_PREFIX, mux.Vars(r)["nsid"])
 
 	exists, err := api.db.Exists(nsid)
@@ -198,9 +198,9 @@ func (api NamespacesAPI) Deletensid(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "", http.StatusNoContent)
 }
 
-// Getnsid is the handler for GET /namespaces/{nsid}
+// GetNamespace is the handler for GET /namespaces/{nsid}
 // Get detail view about nsid
-func (api NamespacesAPI) Getnsid(w http.ResponseWriter, r *http.Request) {
+func (api NamespacesAPI) GetNamespace(w http.ResponseWriter, r *http.Request) {
 
 	nsid := mux.Vars(r)["nsid"]
 
@@ -335,9 +335,9 @@ func (api NamespacesAPI) StatsNamespace(w http.ResponseWriter, r *http.Request) 
 	json.NewEncoder(w).Encode(&respBody)
 }
 
-// nsidaclPost is the handler for POST /namespaces/{nsid}/acl
+// CreateDataAccesToken is the handler for POST /namespaces/{nsid}/acl
 // Create an dataAccessToken for a user. This token gives this user access to the data in this namespace
-func (api NamespacesAPI) nsidaclPost(w http.ResponseWriter, r *http.Request) {
+func (api NamespacesAPI) CreateDataAccesToken(w http.ResponseWriter, r *http.Request) {
 	var reqBody models.ACL
 
 	nsid := mux.Vars(r)["nsid"]

@@ -15,7 +15,7 @@ import (
 // NamespacesInterface is interface for /namespaces root endpoint
 type NamespacesInterface interface { // nsidaclPost is the handler for POST /namespaces/{nsid}/acl
 	// Create an dataAccessToken for a user. This token gives this user access to the data in this namespace
-	nsidaclPost(http.ResponseWriter, *http.Request)
+	CreateDataAccesToken(http.ResponseWriter, *http.Request)
 	// DeleteObject is the handler for DELETE /namespaces/{nsid}/objects/{id}
 	// Delete object from the KV
 	DeleteObject(http.ResponseWriter, *http.Request)
@@ -31,9 +31,9 @@ type NamespacesInterface interface { // nsidaclPost is the handler for POST /nam
 	// Createobject is the handler for POST /namespaces/{nsid}/objects
 	// Set an object into the namespace
 	Createobject(http.ResponseWriter, *http.Request)
-	// nsidreservationidGet is the handler for GET /namespaces/{nsid}/reservation/{id}
+	// GetReservation is the handler for GET /namespaces/{nsid}/reservation/{id}
 	// Return information about a reservation
-	nsidreservationidGet(http.ResponseWriter, *http.Request)
+	GetReservation(http.ResponseWriter, *http.Request)
 	// UpdateReservation is the handler for PUT /namespaces/{nsid}/reservation/{id}
 	// Renew an existing reservation
 	UpdateReservation(http.ResponseWriter, *http.Request)
@@ -48,10 +48,10 @@ type NamespacesInterface interface { // nsidaclPost is the handler for POST /nam
 	StatsNamespace(http.ResponseWriter, *http.Request)
 	// Deletensid is the handler for DELETE /namespaces/{nsid}
 	// Delete nsid
-	Deletensid(http.ResponseWriter, *http.Request)
-	// Getnsid is the handler for GET /namespaces/{nsid}
+	DeleteNamespace(http.ResponseWriter, *http.Request)
+	// GetNamespace is the handler for GET /namespaces/{nsid}
 	// Get detail view about nsid
-	Getnsid(http.ResponseWriter, *http.Request)
+	GetNamespace(http.ResponseWriter, *http.Request)
 	// Listnamespaces is the handler for GET /namespaces
 	// List all namespaces
 	Listnamespaces(http.ResponseWriter, *http.Request)
@@ -72,10 +72,9 @@ type NamespacesInterface interface { // nsidaclPost is the handler for POST /nam
 	Config() config.Settings
 }
 
-
 // NamespacesInterfaceRoutes is routing for /namespaces root endpoint
 func NamespacesInterfaceRoutes(r *mux.Router, entries []HttpRouteEntry) {
-	for _, e := range entries{
+	for _, e := range entries {
 		r.Handle(e.Path, alice.New(e.Middlewares...).Then(http.HandlerFunc(e.Handler))).Methods(e.Methods...)
 	}
 }

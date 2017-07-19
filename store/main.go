@@ -16,7 +16,6 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/gorilla/handlers"
 	"gopkg.in/validator.v2"
 )
 
@@ -146,8 +145,4 @@ func ensureStoreStat(db db.DB) error {
 
 	log.Printf("Global Stats collection: %v\t%s", models.STORE_STATS_PREFIX, state)
 	return nil
-}
-
-func LoggingMiddleware(h http.Handler) http.Handler {
-	return handlers.LoggingHandler(log.StandardLogger().Out, h)
 }

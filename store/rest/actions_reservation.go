@@ -298,9 +298,9 @@ func (api NamespacesAPI) UpdateReservation(w http.ResponseWriter, r *http.Reques
 	json.NewEncoder(w).Encode(&respBody)
 }
 
-// nsidreservationidGet is the handler for GET /namespaces/{nsid}/reservation/{id}
+// GetReservation is the handler for GET /namespaces/{nsid}/reservation/{id}
 // Return information about a reservation
-func (api NamespacesAPI) nsidreservationidGet(w http.ResponseWriter, r *http.Request) {
+func (api NamespacesAPI) GetReservation(w http.ResponseWriter, r *http.Request) {
 	var respBody models.Reservation
 
 	nsid := mux.Vars(r)["nsid"]
@@ -419,6 +419,7 @@ func (api NamespacesAPI) CreateReservation(w http.ResponseWriter, r *http.Reques
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
+	log.Debugf("%+v", storeStat)
 
 	// Validate reservation is applicable
 	if err := reqBody.Validate(); err != nil {
@@ -428,7 +429,6 @@ func (api NamespacesAPI) CreateReservation(w http.ResponseWriter, r *http.Reques
 	}
 
 	// Validate available disk space
-
 	if err := reqBody.ValidateFreeSpace(storeStat.SizeAvailable); err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Not Enough Disk Space", http.StatusForbidden)
