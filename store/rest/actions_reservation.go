@@ -10,16 +10,16 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/zero-os/0-stor/store/core/librairies/reservation"
 	"github.com/zero-os/0-stor/store/db"
 	"github.com/zero-os/0-stor/store/goraml"
+	"github.com/zero-os/0-stor/store/jwt"
 	"github.com/zero-os/0-stor/store/rest/models"
 )
 
 // ListReservations is the handler for GET /namespaces/{nsid}/reservation
 // Return a list of all the existing reservation for the give resource
 func (api NamespacesAPI) ListReservations(w http.ResponseWriter, r *http.Request) {
-	var respBody []reservation.Reservation
+	var respBody []models.Reservation
 	// Pagination
 	pageParam := r.FormValue("page")
 	per_pageParam := r.FormValue("per_page")
@@ -74,18 +74,18 @@ func (api NamespacesAPI) ListReservations(w http.ResponseWriter, r *http.Request
 	resutls2, err := api.db.Filter(res.Key(), startingIndex, resultsCount)
 
 	for _, value := range resutls2 {
-		tmp := new(models.Reservation)
+		tmp := models.Reservation{}
 		if err := tmp.Decode(value); err != nil {
 			log.Errorln(err.Error())
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
-		respBody = append(respBody, tmp.Reservation)
+		respBody = append(respBody, tmp)
 	}
 
 	// return empty list if no results
 	if len(respBody) == 0 {
-		respBody = []reservation.Reservation{}
+		respBody = []models.Reservation{}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -96,7 +96,7 @@ func (api NamespacesAPI) ListReservations(w http.ResponseWriter, r *http.Request
 // UpdateReservation is the handler for PUT /namespaces/{nsid}/reservation/{id}
 // Renew an existing reservation
 func (api NamespacesAPI) UpdateReservation(w http.ResponseWriter, r *http.Request) {
-	var reqBody reservation.ReservationRequest
+	var reqBody models.ReservationRequest
 	var respBody models.NamespacesNsidReservationPostRespBody
 	user := r.Context().Value("user").(string)
 
@@ -158,10 +158,8 @@ func (api NamespacesAPI) UpdateReservation(w http.ResponseWriter, r *http.Reques
 	}
 
 	reservation := models.Reservation{
-		nsid,
-		reservation.Reservation{
-			Id: rid,
-		},
+		Namespace: nsid,
+		Id:        rid,
 	}
 
 	b, err := api.db.Get(reservation.Key())
@@ -227,7 +225,7 @@ func (api NamespacesAPI) UpdateReservation(w http.ResponseWriter, r *http.Reques
 	reservation.SizeReserved += diff
 	reservation.ExpireAt = goraml.DateTime(expirationDate)
 
-	resToken, err := reservation.GenerateTokenForReservation()
+	resToken, err := jwt.GenerateReservationToken(reservation, api.JWTKey())
 	if err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -241,8 +239,7 @@ func (api NamespacesAPI) UpdateReservation(w http.ResponseWriter, r *http.Reques
 		Delete: true,
 	}
 
-	dataToken, err := reservation.GenerateDataAccessTokenForUser(user, nsid, adminACL)
-
+	dataToken, err := jwt.GenerateDataAccessToken(user, reservation, adminACL, api.jwtKey)
 	if err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -293,7 +290,7 @@ func (api NamespacesAPI) UpdateReservation(w http.ResponseWriter, r *http.Reques
 	}
 
 	respBody = models.NamespacesNsidReservationPostRespBody{
-		Reservation:      reservation.Reservation,
+		Reservation:      reservation,
 		DataAccessToken:  resToken,
 		ReservationToken: dataToken,
 	}
@@ -328,10 +325,8 @@ func (api NamespacesAPI) nsidreservationidGet(w http.ResponseWriter, r *http.Req
 	rid := mux.Vars(r)["id"]
 
 	respBody = models.Reservation{
-		nsid,
-		reservation.Reservation{
-			Id: rid,
-		},
+		Namespace: nsid,
+		Id:        rid,
 	}
 
 	b, err := api.db.Get(respBody.Key())
@@ -360,7 +355,7 @@ func (api NamespacesAPI) nsidreservationidGet(w http.ResponseWriter, r *http.Req
 // CreateReservation is the handler for POST /namespaces/{nsid}/reservation
 // Create a reservation for the given resource.
 func (api NamespacesAPI) CreateReservation(w http.ResponseWriter, r *http.Request) {
-	var reqBody reservation.ReservationRequest
+	var reqBody models.ReservationRequest
 	var respBody models.NamespacesNsidReservationPostRespBody
 
 	nsid := mux.Vars(r)["nsid"]
@@ -441,14 +436,13 @@ func (api NamespacesAPI) CreateReservation(w http.ResponseWriter, r *http.Reques
 	}
 
 	reservation, err := models.NewReservation(nsid, "admin", float64(reqBody.Size), int(reqBody.Period))
-
 	if err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	resToken, err := reservation.GenerateTokenForReservation()
+	resToken, err := jwt.GenerateReservationToken(*reservation, api.JWTKey())
 	if err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -462,8 +456,7 @@ func (api NamespacesAPI) CreateReservation(w http.ResponseWriter, r *http.Reques
 		Delete: true,
 	}
 
-	dataToken, err := reservation.GenerateDataAccessTokenForUser("admin", nsid, adminACL)
-
+	dataToken, err := jwt.GenerateDataAccessToken(reservation.AdminId, *reservation, adminACL, api.jwtKey)
 	if err != nil {
 		log.Errorln(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -538,7 +531,7 @@ func (api NamespacesAPI) CreateReservation(w http.ResponseWriter, r *http.Reques
 	}
 
 	respBody = models.NamespacesNsidReservationPostRespBody{
-		Reservation:      reservation.Reservation,
+		Reservation:      *reservation,
 		DataAccessToken:  dataToken,
 		ReservationToken: resToken,
 	}

@@ -30,7 +30,6 @@ func TestCreateObject(t *testing.T) {
 	//2017/07/17 17:29:37 httptest.Server blocked in Close after 5 seconds, waiting for connections:
 	//*net.TCPConn 0xc424fac0b8 127.0.0.1:34030 in state active
 
-
 	//body = &bytes.Buffer{}
 	//data := make([]byte, 1025*1024)
 	//obj := models.Object{
@@ -85,7 +84,6 @@ func TestCreateObject(t *testing.T) {
 
 	//
 
-
 	// Trying to add same file, reference is incremented by 1
 	body = &bytes.Buffer{}
 	obj = models.Object{
@@ -115,7 +113,7 @@ func TestCreateObject(t *testing.T) {
 
 	// reference can't exceed 255
 
-	for i:=1; i<260; i++{
+	for i := 1; i < 260; i++ {
 		body = &bytes.Buffer{}
 		obj = models.Object{
 			Data: "********************************abcdef",
@@ -145,7 +143,7 @@ func TestCreateObject(t *testing.T) {
 	require.Equal(t, f.Reference, byte(255))
 }
 
-func TestGetObject(t *testing.T){
+func TestGetObject(t *testing.T) {
 	url, db, clean := getTestAPI(t, map[string]MiddlewareEntry{})
 	defer clean()
 
@@ -166,7 +164,7 @@ func TestGetObject(t *testing.T){
 		Id:   "myobject",
 	}
 
-	f , err := obj.ToFile("mynamespace")
+	f, err := obj.ToFile("mynamespace")
 	require.NoError(t, err)
 
 	b, err := f.Encode()
@@ -175,7 +173,7 @@ func TestGetObject(t *testing.T){
 	err = db.Set("mynamespace:myobject", b)
 
 	body = &bytes.Buffer{}
-	resp, err = http.Get(url+"/namespaces/mynamespace/objects/myobject")
+	resp, err = http.Get(url + "/namespaces/mynamespace/objects/myobject")
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -186,13 +184,12 @@ func TestGetObject(t *testing.T){
 	require.Equal(t, result.Id, "myobject")
 	require.Equal(t, result.Data, obj.Data)
 
-	resp, err = http.Get(url+"/namespaces/mynamespace/objects/myobject2")
+	resp, err = http.Get(url + "/namespaces/mynamespace/objects/myobject2")
 	require.NoError(t, err)
 	require.Equal(t, http.StatusNotFound, resp.StatusCode)
 }
 
-
-func TestHeadObject(t *testing.T){
+func TestHeadObject(t *testing.T) {
 	url, db, clean := getTestAPI(t, map[string]MiddlewareEntry{})
 	defer clean()
 
@@ -213,7 +210,7 @@ func TestHeadObject(t *testing.T){
 		Id:   "myobject",
 	}
 
-	f , err := obj.ToFile("mynamespace")
+	f, err := obj.ToFile("mynamespace")
 	require.NoError(t, err)
 
 	b, err := f.Encode()
@@ -222,16 +219,16 @@ func TestHeadObject(t *testing.T){
 	err = db.Set("mynamespace:myobject", b)
 
 	body = &bytes.Buffer{}
-	resp, err = http.Head(url+"/namespaces/mynamespace/objects/myobject")
+	resp, err = http.Head(url + "/namespaces/mynamespace/objects/myobject")
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
-	resp, err = http.Get(url+"/namespaces/mynamespace/objects/myobject2")
+	resp, err = http.Get(url + "/namespaces/mynamespace/objects/myobject2")
 	require.NoError(t, err)
 	require.Equal(t, http.StatusNotFound, resp.StatusCode)
 }
 
-func TestListObjects(t *testing.T){
+func TestListObjects(t *testing.T) {
 	url, db, clean := getTestAPI(t, map[string]MiddlewareEntry{})
 	defer clean()
 
@@ -249,8 +246,8 @@ func TestListObjects(t *testing.T){
 	for _, label := range []string{"obj1", "obj2", "obj3"} {
 		f := models.File{
 			Namespace: "namespace1",
-			Payload: "abcd",
-			Id:   label,
+			Payload:   "abcd",
+			Id:        label,
 			Reference: 1,
 		}
 
@@ -261,7 +258,7 @@ func TestListObjects(t *testing.T){
 		require.NoError(t, err)
 	}
 
-	resp, err := http.Get(url+"/namespaces/namespace1/objects")
+	resp, err := http.Get(url + "/namespaces/namespace1/objects")
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -270,19 +267,19 @@ func TestListObjects(t *testing.T){
 
 	require.Equal(t, len(result), 3)
 
-	for _, obj := range result{
-		if obj.Id == "obj1"{
+	for _, obj := range result {
+		if obj.Id == "obj1" {
 			require.Equal(t, obj.Data, "abcd")
-		}else if obj.Id == "obj2"{
+		} else if obj.Id == "obj2" {
 			require.Equal(t, obj.Data, "abcd")
-		}else if obj.Id == "obj3"{
+		} else if obj.Id == "obj3" {
 			require.Equal(t, obj.Data, "abcd")
-		}else{
+		} else {
 			assert.Fail(t, "Invalid object name")
 		}
 	}
 
-	resp, err = http.Get(url+"/namespaces/namespace2/objects")
+	resp, err = http.Get(url + "/namespaces/namespace2/objects")
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -291,7 +288,7 @@ func TestListObjects(t *testing.T){
 
 	require.Equal(t, len(result), 0)
 
-	resp, err = http.Get(url+"/namespaces/namespace3/objects")
+	resp, err = http.Get(url + "/namespaces/namespace3/objects")
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -301,7 +298,7 @@ func TestListObjects(t *testing.T){
 	require.Equal(t, len(result), 0)
 }
 
-func TestDeleteObject(t *testing.T){
+func TestDeleteObject(t *testing.T) {
 	url, db, clean := getTestAPI(t, map[string]MiddlewareEntry{})
 	defer clean()
 
@@ -316,8 +313,8 @@ func TestDeleteObject(t *testing.T){
 
 	f := models.File{
 		Namespace: "namespace1",
-		Payload: "Hello world!",
-		Id:   "object1",
+		Payload:   "Hello world!",
+		Id:        "object1",
 		Reference: 2,
 	}
 
@@ -327,7 +324,7 @@ func TestDeleteObject(t *testing.T){
 	err = db.Set(f.Key(), b)
 	require.NoError(t, err)
 
-	req, err := http.NewRequest("DELETE", url+"/namespaces/namespace1/objects/object1",  &bytes.Buffer{})
+	req, err := http.NewRequest("DELETE", url+"/namespaces/namespace1/objects/object1", &bytes.Buffer{})
 	req.Header.Add("Content-Type", "application/json")
 	require.NoError(t, err)
 	cli := http.DefaultClient
@@ -351,7 +348,7 @@ func TestDeleteObject(t *testing.T){
 
 	// Now actually delete file
 
-	req, err = http.NewRequest("DELETE", url+"/namespaces/namespace1/objects/object1",  &bytes.Buffer{})
+	req, err = http.NewRequest("DELETE", url+"/namespaces/namespace1/objects/object1", &bytes.Buffer{})
 	req.Header.Add("Content-Type", "application/json")
 	require.NoError(t, err)
 	cli = http.DefaultClient
@@ -366,7 +363,7 @@ func TestDeleteObject(t *testing.T){
 	require.False(t, exists)
 
 	// Now 404
-	req, err = http.NewRequest("DELETE", url+"/namespaces/namespace1/objects/object1",  &bytes.Buffer{})
+	req, err = http.NewRequest("DELETE", url+"/namespaces/namespace1/objects/object1", &bytes.Buffer{})
 	req.Header.Add("Content-Type", "application/json")
 	require.NoError(t, err)
 	cli = http.DefaultClient

@@ -1,45 +1,42 @@
-package reservation
+package middleware
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/dgrijalva/jwt-go"
 )
+
+var iyoKey = []byte(`-----BEGIN PUBLIC KEY-----
+MHYwEAYHKoZIzj0CAQYFK4EEACIDYgAES5X8XrfKdx9gYayFITc89wad4usrk0n2
+7MjiGYvqalizeSWTHEpnd7oea9IQ8T5oJjMVH5cc0H5tFSKilFFeh//wngxIyny6
+6+Vq5t5B0V0Ehy01+2ceEon2Y0XDkIKv
+-----END PUBLIC KEY-----`)
 
 // Oauth2itsyouonlineMiddleware is oauth2 middleware for itsyouonline
 type Oauth2itsyouonlineMiddleware struct {
 	describedBy string
 	field       string
 	scopes      []string
+	key         *ecdsa.PublicKey
 }
 
-var JWTPublicKey *ecdsa.PublicKey
+const ctxKeyUsername = "0stor:username"
 
-const (
-	oauth2ServerPublicKey = `` // fill it with oauth2 server public key
-)
-
-func init() {
-	var err error
-
-	if len(oauth2ServerPublicKey) == 0 {
-		return
-	}
-	JWTPublicKey, err = jwt.ParseECPublicKeyFromPEM([]byte(oauth2ServerPublicKey))
+// NewOauth2itsyouonlineMiddlewarecreate new Oauth2itsyouonlineMiddleware struct
+func NewOauth2itsyouonlineMiddleware(scopes []string) *Oauth2itsyouonlineMiddleware {
+	pubKey, err := jwt.ParseECPublicKeyFromPEM(iyoKey)
 	if err != nil {
 		log.Fatalf("failed to parse pub key:%v", err)
 	}
 
-}
-
-// NewOauth2itsyouonlineMiddlewarecreate new Oauth2itsyouonlineMiddleware struct
-func NewOauth2itsyouonlineMiddleware(scopes []string) *Oauth2itsyouonlineMiddleware {
 	om := Oauth2itsyouonlineMiddleware{
 		scopes: scopes,
+		key:    pubKey,
 	}
 
 	om.describedBy = "headers"
@@ -73,41 +70,59 @@ func (om *Oauth2itsyouonlineMiddleware) Handler(next http.Handler) http.Handler 
 		// access token checking
 		if om.describedBy == "queryParameters" {
 			accessToken = r.URL.Query().Get(om.field)
+			if accessToken == "" {
+				accessToken = r.URL.Query().Get(strings.ToLower(om.field))
+			}
 		} else if om.describedBy == "headers" {
 			accessToken = r.Header.Get(om.field)
+			if accessToken == "" {
+				accessToken = r.Header.Get(strings.ToLower(om.field))
+			}
 		}
 		if accessToken == "" {
 			w.WriteHeader(401)
 			return
 		}
 
-		var scopes []string
-		if len(oauth2ServerPublicKey) > 0 {
-			scopes, err = om.checkJWTGetScope(accessToken)
-			if err != nil {
-				w.WriteHeader(403)
-				return
-			}
-		}
-
-		// check scopes
-		if !om.CheckScopes(scopes) {
+		claims, err := om.checkJWTGetScope(accessToken)
+		if err != nil {
 			w.WriteHeader(403)
 			return
 		}
 
-		next.ServeHTTP(w, r)
+		// extract scope from claims
+		var scopes []string
+		for _, v := range claims["scope"].([]interface{}) {
+			scopes = append(scopes, v.(string))
+		}
+
+		// check scopes
+		if !om.CheckScopes(scopes) {
+			log.Debug("no required scopes")
+			w.WriteHeader(403)
+			return
+		}
+
+		// pass the username in the context of the requests
+		username, present := claims["username"]
+		if present {
+			ctx := context.WithValue(r.Context(), ctxKeyUsername, username)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		} else {
+			next.ServeHTTP(w, r)
+		}
+
 	})
 }
 
-// check JWT token and get it's scopes
-func (om *Oauth2itsyouonlineMiddleware) checkJWTGetScope(tokenStr string) ([]string, error) {
+// check JWT token and returns the claims contain in the token
+func (om *Oauth2itsyouonlineMiddleware) checkJWTGetScope(tokenStr string) (jwt.MapClaims, error) {
 	jwtStr := strings.TrimSpace(strings.TrimPrefix(tokenStr, "Bearer"))
 	token, err := jwt.Parse(jwtStr, func(token *jwt.Token) (interface{}, error) {
 		if token.Method != jwt.SigningMethodES384 {
 			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
 		}
-		return JWTPublicKey, nil
+		return om.key, nil
 	})
 	if err != nil {
 		return nil, err
@@ -118,9 +133,5 @@ func (om *Oauth2itsyouonlineMiddleware) checkJWTGetScope(tokenStr string) ([]str
 		return nil, fmt.Errorf("invalid token")
 	}
 
-	var scopes []string
-	for _, v := range claims["scope"].([]interface{}) {
-		scopes = append(scopes, v.(string))
-	}
-	return scopes, nil
+	return claims, nil
 }

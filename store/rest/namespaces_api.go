@@ -11,6 +11,7 @@ var _ (NamespacesInterface) = (*NamespacesAPI)(nil)
 type NamespacesAPI struct {
 	config config.Settings
 	db     db.DB
+	jwtKey []byte
 }
 
 func NewNamespacesAPI(db db.DB, conf config.Settings) *NamespacesAPI {
@@ -27,4 +28,8 @@ func (api NamespacesAPI) DB() db.DB {
 
 func (api NamespacesAPI) Config() config.Settings {
 	return api.config
+}
+
+func (api NamespacesAPI) JWTKey() []byte {
+	return api.jwtKey
 }

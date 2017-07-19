@@ -62,11 +62,21 @@ func main() {
 			Value:       ".db/meta",
 			Destination: &settings.DB.Dirs.Meta,
 		},
+		cli.StringFlag{
+			Name:        "jwt",
+			Usage:       "Key used to signed the jwt produced by the 0-stor",
+			Destination: &settings.JWTKey,
+		},
 	}
 
 	app.Before = func(c *cli.Context) error {
 		if configPath != "" {
 			settings.Load(configPath)
+		}
+
+		if settings.JWTKey == "" {
+			log.Errorln("JWT key is empty. Please use the -jwt flag")
+			os.Exit(1)
 		}
 
 		if settings.DebugLog {

@@ -1,7 +1,8 @@
-package reservation
+package models
 
 import (
 	"errors"
+
 	"gopkg.in/validator.v2"
 )
 
