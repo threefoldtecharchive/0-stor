@@ -40,9 +40,9 @@ func TestModelsEncodeDecode(t *testing.T) {
 				Id:        "ID",
 				Reference: byte(1),
 				Payload:   "hello world",
-				Tags:      []Tag{
+				Tags: []Tag{
 					{
-						Key: "hi",
+						Key:   "hi",
 						Value: "there",
 					},
 				},
@@ -52,10 +52,8 @@ func TestModelsEncodeDecode(t *testing.T) {
 		},
 		{
 			model: &StoreStat{
-				StoreStatRequest: StoreStatRequest{
-					SizeAvailable: 100,
-				},
-				SizeUsed: 50,
+				SizeAvailable: 100,
+				SizeUsed:      50,
 			},
 			name: "StoreStat",
 			obj:  &StoreStat{},

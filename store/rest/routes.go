@@ -166,15 +166,7 @@ func (h HttpRoutes) GetRoutes(i NamespacesInterface, jwtKey []byte) []HttpRouteE
 			},
 		},
 		{
-			Path:    "/namespaces/stats",
-			Handler: i.UpdateStoreStats,
-			Methods: []string{"POST"},
-			Middlewares: []alice.Constructor{
-				iyoHandler,
-			},
-		},
-		{
-			Path:    "/namespaces/stats",
+			Path:    "/stats",
 			Handler: i.GetStoreStats,
 			Methods: []string{"GET"},
 			Middlewares: []alice.Constructor{

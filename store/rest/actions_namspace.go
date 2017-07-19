@@ -145,7 +145,7 @@ func (api NamespacesAPI) DeleteNamespace(w http.ResponseWriter, r *http.Request)
 
 		namespaceStats := new(models.NamespaceStats)
 		namespaceStats.Namespace = nsid
-		totalSizeReserved := 0.0
+		var totalSizeReserved uint64
 
 		stats, err := api.db.Get(namespaceStats.Key())
 

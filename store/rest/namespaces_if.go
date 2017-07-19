@@ -61,9 +61,6 @@ type NamespacesInterface interface { // nsidaclPost is the handler for POST /nam
 	// GetStoreStats is the handler for GET /namespaces/stats
 	// Return usage statistics about the whole KV
 	GetStoreStats(http.ResponseWriter, *http.Request)
-	// UpdateStoreStats is the handler for POST /namespaces/stats
-	// Update Global Store statistics and available space
-	UpdateStoreStats(http.ResponseWriter, *http.Request)
 
 	// Get db object
 	DB() db.DB

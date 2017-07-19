@@ -9,10 +9,11 @@ import (
 
 	"strings"
 
+	"bytes"
+
 	"github.com/zero-os/0-stor/store/db"
 	"github.com/zero-os/0-stor/store/utils"
 	validator "gopkg.in/validator.v2"
-	"bytes"
 )
 
 var _ (db.Model) = (*Reservation)(nil)
@@ -40,12 +41,12 @@ type Reservation struct {
 	Created      goraml.DateTime `json:"created" validate:"nonzero"`
 	ExpireAt     goraml.DateTime `json:"expireAt" validate:"nonzero"`
 	Id           string          `json:"id" validate:"regexp=^[a-zA-Z0-9]+$,nonzero"`
-	SizeReserved float64         `json:"sizeReserved" validate:"min=1,multipleOf=1,nonzero"`
+	SizeReserved uint64          `json:"sizeReserved" validate:"min=1,multipleOf=1,nonzero"`
 	SizeUsed     float64         `json:"sizeUsed" validate:"min=1,nonzero"`
 	Updated      goraml.DateTime `json:"updated" validate:"nonzero"`
 }
 
-func NewReservation(namespace string, admin string, size float64, period int) (*Reservation, error) {
+func NewReservation(namespace string, admin string, size uint64, period int) (*Reservation, error) {
 	creationDate := time.Now()
 	expirationDate := creationDate.AddDate(0, 0, period)
 
@@ -72,7 +73,7 @@ func (s Reservation) Validate() error {
 }
 
 func (s Reservation) SizeRemaining() float64 {
-	return s.SizeReserved - s.SizeUsed
+	return float64(s.SizeReserved) - s.SizeUsed
 }
 
 func (s Reservation) Key() string {
@@ -101,7 +102,7 @@ func (s Reservation) Encode() ([]byte, error) {
 
 	buf := new(bytes.Buffer)
 
-	binary.Write(buf, binary.LittleEndian, utils.Float64bytes(s.SizeReserved))
+	binary.Write(buf, binary.LittleEndian, s.SizeReserved)
 	binary.Write(buf, binary.LittleEndian, utils.Float64bytes(s.SizeUsed))
 
 	binary.Write(buf, binary.LittleEndian, uint16(cSize))
@@ -120,7 +121,7 @@ func (s Reservation) Encode() ([]byte, error) {
 }
 
 func (s *Reservation) Decode(data []byte) error {
-	s.SizeReserved = utils.Float64frombytes(data[0:8])
+	s.SizeReserved = binary.LittleEndian.Uint64(data[0:8])
 	s.SizeUsed = utils.Float64frombytes(data[8:16])
 
 	cSize := int16(binary.LittleEndian.Uint16(data[16:18]))

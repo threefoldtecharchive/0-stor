@@ -18,7 +18,7 @@ type reservationClaims struct {
 	jwt.StandardClaims
 	ID           string // ID of the reservation
 	AdminID      string // ID of the user that has created the reservation, only him can renew
-	SizeReserved float64
+	SizeReserved uint64
 	Namespace    string
 }
 
