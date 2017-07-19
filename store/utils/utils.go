@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"math"
+	"hash/fnv"
 )
 
 func Float64frombytes(bytes []byte) float64 {
@@ -41,6 +42,13 @@ func GenerateUUID(n int) (string, error) {
 	}
 	return token, nil
 
+}
+
+
+func Hash(s string) uint32 {
+	h := fnv.New32a()
+	h.Write([]byte(s))
+	return h.Sum32()
 }
 
 func InvalidateToken(token string) error {
