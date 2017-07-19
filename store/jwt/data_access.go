@@ -8,8 +8,11 @@ import (
 	"github.com/zero-os/0-stor/store/rest/models"
 )
 
-var ErrWrongUser = errors.New("data access token not valid, wrong user")
-var ErrWrongACL = errors.New("data access token not valid, wrong permission")
+var (
+	ErrTokenInvalid = errors.New("data access token not valid")
+	ErrWrongUser    = errors.New("data access token not valid, wrong user")
+	ErrWrongACL     = errors.New("data access token not valid, wrong permission")
+)
 
 type dataAccessClaims struct {
 	jwt.StandardClaims

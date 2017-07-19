@@ -8,8 +8,10 @@ import (
 	"os"
 )
 
-var keySize = flag.Int("size", 2048, "size of the key")
-var out = flag.String("out", "", "destination of the generate key. If empty output on stdout")
+var (
+	keySize = flag.Int("size", 2048, "size of the key")
+	out     = flag.String("out", "", "destination of the generate key. If empty output on stdout")
+)
 
 func diep(msg string) {
 	fmt.Fprintf(os.Stderr, "%v", msg)
