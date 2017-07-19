@@ -184,7 +184,7 @@ securedBy: [ itsyouonline : { scopes: ["user:name"] } ]
       responses:
         200:
           body:
-            type: <<resourcePathName | !singularize | !uppercamelcase>>
+            type: Namespace
         404:
           description: <<resourcePathName | !singularize>> not found
     delete:
