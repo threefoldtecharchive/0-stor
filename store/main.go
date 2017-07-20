@@ -1,18 +1,13 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
-	"github.com/docker/go-units"
 	"github.com/zero-os/0-stor/store/config"
-	"github.com/zero-os/0-stor/store/db"
 	"github.com/zero-os/0-stor/store/db/badger"
-	"github.com/zero-os/0-stor/store/disk"
 	"github.com/zero-os/0-stor/store/goraml"
-	"github.com/zero-os/0-stor/store/rest/models"
 	"github.com/zero-os/0-stor/store/routes"
 
 	"os"
@@ -64,21 +59,11 @@ func main() {
 			Value:       ".db/meta",
 			Destination: &settings.DB.Dirs.Meta,
 		},
-		cli.StringFlag{
-			Name:        "jwt",
-			Usage:       "Key used to signed the jwt produced by the 0-stor",
-			Destination: &settings.JWTKey,
-		},
 	}
 
 	app.Before = func(c *cli.Context) error {
 		if configPath != "" {
 			settings.Load(configPath)
-		}
-
-		if settings.JWTKey == "" {
-			log.Errorln("JWT key is empty. Please use the -jwt flag")
-			os.Exit(1)
 		}
 
 		if settings.DebugLog {
@@ -99,11 +84,11 @@ func main() {
 			log.Fatal(err.Error())
 		}
 
-		if err := ensureStoreStat(settings.DB.Dirs.Data, db); err != nil {
-			log.Fatalf("Error checking store stats : %v", err)
-		}
+		// if err := ensureStoreStat(settings.DB.Dirs.Data, db); err != nil {
+		// 	log.Fatalf("Error checking store stats : %v", err)
+		// }
 
-		r := routes.GetRouter(db, settings)
+		r := routes.GetRouter(db)
 
 		sigChan := make(chan os.Signal, 1)
 		signal.Notify(sigChan, syscall.SIGINT)
@@ -124,51 +109,52 @@ func main() {
 	app.Run(os.Args)
 }
 
-func ensureStoreStat(path string, db db.DB) error {
-	available, err := disk.FreeSpace(path)
-	if err != nil {
-		return err
-	}
-
-	namespaces, err := db.List(models.NAMESPACE_PREFIX)
-	if err != nil {
-		return err
-	}
-
-	var totalReserved uint64
-	for _, namespace := range namespaces {
-		nsStat := models.NamespaceStats{Namespace: namespace}
-		b, err := db.Get(nsStat.Key())
-		if err != nil {
-			return err
-		}
-		if err = nsStat.Decode(b); err != nil {
-			return err
-		}
-		totalReserved += nsStat.TotalSizeReserved
-	}
-
-	available = available - totalReserved
-
-	if available <= 0 {
-		return fmt.Errorf("total reserved size exceed availale disk space")
-	}
-
-	stat := models.StoreStat{
-		SizeUsed:      totalReserved,
-		SizeAvailable: available,
-	}
-	b, err := stat.Encode()
-	if err != nil {
-		return err
-	}
-
-	if err = db.Set(stat.Key(), b); err != nil {
-		return err
-	}
-
-	log.Infof("Space reserved : %s", units.BytesSize(float64(totalReserved)))
-	log.Infof("Space available : %s", units.BytesSize(float64(available)))
-
-	return nil
-}
+//
+// func ensureStoreStat(path string, db db.DB) error {
+// 	available, err := disk.FreeSpace(path)
+// 	if err != nil {
+// 		return err
+// 	}
+//
+// 	namespaces, err := db.List(models.NAMESPACE_PREFIX)
+// 	if err != nil {
+// 		return err
+// 	}
+//
+// 	var totalReserved uint64
+// 	for _, namespace := range namespaces {
+// 		nsStat := models.NamespaceStats{Namespace: namespace}
+// 		b, err := db.Get(nsStat.Key())
+// 		if err != nil {
+// 			return err
+// 		}
+// 		if err = nsStat.Decode(b); err != nil {
+// 			return err
+// 		}
+// 		totalReserved += nsStat.TotalSizeReserved
+// 	}
+//
+// 	available = available - totalReserved
+//
+// 	if available <= 0 {
+// 		return fmt.Errorf("total reserved size exceed availale disk space")
+// 	}
+//
+// 	stat := models.StoreStat{
+// 		SizeUsed:      totalReserved,
+// 		SizeAvailable: available,
+// 	}
+// 	b, err := stat.Encode()
+// 	if err != nil {
+// 		return err
+// 	}
+//
+// 	if err = db.Set(stat.Key(), b); err != nil {
+// 		return err
+// 	}
+//
+// 	log.Infof("Space reserved : %s", units.BytesSize(float64(totalReserved)))
+// 	log.Infof("Space available : %s", units.BytesSize(float64(available)))
+//
+// 	return nil
+// }

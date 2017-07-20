@@ -18,21 +18,16 @@ type BadgerDB struct {
 
 // Constructor
 func New(data, meta string) (*BadgerDB, error) {
-	// log.Println("Initializing db directories")
 
 	if err := os.MkdirAll(meta, 0774); err != nil {
 		log.Errorf("\t\tMeta dir: %v [ERROR]", meta)
 		return nil, err
 	}
 
-	// log.Printf("\t\tMeta dir: %v [SUCCESS]", meta)
-
 	if err := os.MkdirAll(data, 0774); err != nil {
 		log.Errorf("\t\tData dir: %v [ERROR]", data)
 		return nil, err
 	}
-
-	// log.Printf("\t\tData dir: %v [SUCCESS]", data)
 
 	opts := badgerkv.DefaultOptions
 	opts.Dir = meta
@@ -40,12 +35,6 @@ func New(data, meta string) (*BadgerDB, error) {
 	opts.SyncWrites = true
 
 	kv, err := badgerkv.NewKV(&opts)
-
-	// if err == nil {
-	// 	log.Println("Loading db [SUCCESS]")
-	// } else {
-	// 	log.Println("Loading db [ERROR]")
-	// }
 
 	return &BadgerDB{
 		KV: kv,
@@ -60,7 +49,7 @@ func (b BadgerDB) Close() error {
 	return err
 }
 
-func (b BadgerDB) Delete(key string) error {
+func (b BadgerDB) Delete(key []byte) error {
 	err := b.KV.Delete([]byte(key))
 	if err != nil {
 		log.Errorln(err.Error())
@@ -68,7 +57,7 @@ func (b BadgerDB) Delete(key string) error {
 	return err
 }
 
-func (b BadgerDB) Set(key string, val []byte) error {
+func (b BadgerDB) Set(key []byte, val []byte) error {
 	err := b.KV.Set([]byte(key), val)
 	if err != nil {
 		log.Errorln(err.Error())
@@ -76,7 +65,7 @@ func (b BadgerDB) Set(key string, val []byte) error {
 	return err
 }
 
-func (b BadgerDB) Get(key string) ([]byte, error) {
+func (b BadgerDB) Get(key []byte) ([]byte, error) {
 	var item badgerkv.KVItem
 
 	err := b.KV.Get([]byte(key), &item)
@@ -95,7 +84,7 @@ func (b BadgerDB) Get(key string) ([]byte, error) {
 	return v, err
 }
 
-func (b BadgerDB) Exists(key string) (bool, error) {
+func (b BadgerDB) Exists(key []byte) (bool, error) {
 	exists, err := b.KV.Exists([]byte(key))
 	if err != nil {
 		log.Errorln(err.Error())
@@ -104,7 +93,7 @@ func (b BadgerDB) Exists(key string) (bool, error) {
 }
 
 // Pass count = -1 to get all elements starting from the provided index
-func (b BadgerDB) Filter(prefix string, start int, count int) ([][]byte, error) {
+func (b BadgerDB) Filter(prefix []byte, start int, count int) ([][]byte, error) {
 	opt := badgerkv.DefaultIteratorOptions
 
 	it := b.KV.NewIterator(opt)
@@ -136,20 +125,18 @@ func (b BadgerDB) Filter(prefix string, start int, count int) ([][]byte, error) 
 	return result, nil
 }
 
-func (b BadgerDB) List(prefix string) ([]string, error) {
+func (b BadgerDB) List(prefix []byte) ([][]byte, error) {
 	opt := badgerkv.DefaultIteratorOptions
 	opt.FetchValues = false
 
 	it := b.KV.NewIterator(opt)
 	defer it.Close()
 
-	result := []string{}
+	result := [][]byte{}
 
-	prefixBytes := []byte(prefix)
-
-	for it.Seek(prefixBytes); it.ValidForPrefix(prefixBytes); it.Next() {
+	for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
 		item := it.Item()
-		key := string(item.Key()[:])
+		key := item.Key()[:]
 		result = append(result, key)
 	}
 

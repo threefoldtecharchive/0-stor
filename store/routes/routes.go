@@ -8,17 +8,19 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"github.com/zero-os/0-stor/store/config"
 	"github.com/zero-os/0-stor/store/db"
 	"github.com/zero-os/0-stor/store/rest"
-	//"github.com/justinas/alice"
 )
 
 func LoggingMiddleware(h http.Handler) http.Handler {
 	return handlers.LoggingHandler(log.StandardLogger().Out, h)
 }
 
-func GetRouter(db db.DB, conf config.Settings) http.Handler {
+func RecoveryHandler(h http.Handler) http.Handler {
+	return handlers.RecoveryHandler()(h)
+}
+
+func GetRouter(db db.DB) http.Handler {
 	r := mux.NewRouter()
 
 	// home page
@@ -32,17 +34,12 @@ func GetRouter(db db.DB, conf config.Settings) http.Handler {
 		http.ServeContent(w, r, "index.html", time.Now(), datareader)
 	})
 
-	api := rest.NewNamespacesAPI(db, conf)
-	routes := new(rest.HttpRoutes).GetRoutes(api, []byte(conf.JWTKey))
-
-	// Uncomment if you want to run server without middlewares
-	//for i, _ := range routes{
-	//	routes[i].Middlewares = []alice.Constructor{}
-	//}
-	rest.NamespacesInterfaceRoutes(r, routes)
+	api := rest.NewNamespaceAPI(db)
+	rest.NamespacesInterfaceRoutes(r, api)
 
 	router := NewRouter(r)
 	router.Use(LoggingMiddleware)
+	router.Use(RecoveryHandler)
 
 	return router.Handler()
 }

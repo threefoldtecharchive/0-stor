@@ -167,11 +167,11 @@ securedBy: [ itsyouonline : { scopes: ["user:memberof:store.namespace"] } ]
         is: [paginated]
         displayName: ListObjects
         description: |
-          List keys of the namespaces
+          List keys of the object in the namespace
         responses:
           200:
             body:
-              type: Object
+              type: string[]
       post:
         securedBy: [ itsyouonline : { scopes: ["user:memberof:store.namespace.write"] }]
         displayName: CreateObject
@@ -220,13 +220,14 @@ securedBy: [ itsyouonline : { scopes: ["user:memberof:store.namespace"] } ]
             404:
               description: |
                 Object not found
-      /references:
-        put:
-          securedBy: [ itsyouonline : { scopes: ["user:memberof:store.namespace.write"] }]
-          description: |
-            Update reference list.
-            The reference list of the object will be update with the references from the request body
-          body:
-            properties:
-              references:
-                type: ReferenceID[]
+        /references:
+          put:
+            displayName: UpdateReferenceList
+            securedBy: [ itsyouonline : { scopes: ["user:memberof:store.namespace.write"] }]
+            description: |
+              Update reference list.
+              The reference list of the object will be update with the references from the request body
+            body:
+              properties:
+                references:
+                  type: ReferenceID[]
