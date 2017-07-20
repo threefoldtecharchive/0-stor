@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/zero-os/0-stor/store/manager"
 	"github.com/zero-os/0-stor/store/stats"
 )
 
@@ -15,8 +16,8 @@ func (api NamespacesAPI) GetNameSpace(w http.ResponseWriter, r *http.Request) {
 
 	// FIXME: uncomment when the IYO middleware will create the namespace object in
 	// db automaticly
-	// mgr := manager.NewNamespaceManager(api.db)
-	//
+	mgr := manager.NewNamespaceManager(api.db)
+
 	// ns, err := mgr.Get(label)
 	// if err != nil {
 	// 	if err == db.ErrNotFound {
@@ -26,12 +27,16 @@ func (api NamespacesAPI) GetNameSpace(w http.ResponseWriter, r *http.Request) {
 	// 	}
 	// 	return
 	// }
-
+	count, err := mgr.Count(label)
+	if err != nil {
+		jsonError(w, err, http.StatusInternalServerError)
+		return
+	}
 	read, write := stats.Rate(label)
 	respBody := Namespace{
 		Label: label,
 		Stats: NamespaceStat{
-			// NrObjects: TODO
+			NrObjects:           int64(count),
 			ReadRequestPerHour:  read,
 			WriteRequestPerHour: write,
 			// SpaceAvailable: TODO
