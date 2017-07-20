@@ -31,20 +31,20 @@ The knowledge of how the data are layout is the responsiility of the client. All
 
 ## Namespaces concept
 We leverage ItsYou.online organization feature to create namespaces on the 0-stor.
-There is not API to create namespaces, instead any member of an organization that has a name following the format: `0stor.mynamespace` will have access to the namespace called `mynamespace`.  
+There is not API to create namespaces, instead any member of an organization that has a name following the format: `myorg_0stor.mynamespace` will have access to the namespace called `mynamespace`.  
 Since IYO organization name are unique, we avoid colision and problems in namespaces.
 
 ### ACL
 The ACl also leverage IYO organizations.  
 Imagine there is an organization with these sub organization:
 ```
-0stor.mynamespace
-0stor.mynamespace.write
-0stor.mynamespace.read
-0stor.mynamespace.delete
+myorg_0stor.mynamespace
+myorg_0stor.mynamespace.write
+myorg_0stor.mynamespace.read
+myorg_0stor.mynamespace.delete
 ```
 If a user is owner of an organization, he has all right (read/write/delete) on the corresponding namespace.  
-If a user is not only member, he needs to be put into the proper sub organization(s) to get some rights. So if he only needs read access, the user need to be member of the `0stor.mynamespace.read`.
+If a user is not only member, he needs to be put into the proper sub organization(s) to get some rights. So if he only needs read access, the user need to be member of the `myorg_0stor.mynamespace.read`.
 
 ### Reference concept
 The 0-stor expose a reference list concept to the user. To each object is attached a reference list.  
