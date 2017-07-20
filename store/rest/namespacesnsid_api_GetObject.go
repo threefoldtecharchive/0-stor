@@ -8,14 +8,19 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/zero-os/0-stor/store/db"
 	"github.com/zero-os/0-stor/store/manager"
+	"github.com/zero-os/0-stor/store/stats"
 )
 
 // GetObject is the handler for GET /namespaces/{nsid}/objects/{id}
 // Retrieve object from the store
 func (api NamespacesAPI) GetObject(w http.ResponseWriter, r *http.Request) {
+
 	vars := mux.Vars(r)
 	namespace := vars["nsid"]
 	key := []byte(vars["id"])
+
+	// increase rate counter
+	go stats.IncrRead(namespace)
 
 	mgr := manager.NewObjectManager(namespace, api.db)
 

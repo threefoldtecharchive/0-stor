@@ -8,6 +8,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/zero-os/0-stor/store/manager"
+	"github.com/zero-os/0-stor/store/stats"
 )
 
 // ListObjects is the handler for GET /namespaces/{nsid}/objects
@@ -15,6 +16,9 @@ import (
 func (api NamespacesAPI) ListObjects(w http.ResponseWriter, r *http.Request) { // page := req.FormValue("page")// per_page := req.FormValue("per_page")
 	vars := mux.Vars(r)
 	namespace := vars["nsid"]
+
+	// increase rate counter
+	go stats.IncrRead(namespace)
 
 	mgr := manager.NewObjectManager(namespace, api.db)
 
@@ -37,6 +41,7 @@ func (api NamespacesAPI) ListObjects(w http.ResponseWriter, r *http.Request) { /
 	for i := range ids {
 		respBody[i] = string(ids[i])
 	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(&respBody)
 }
