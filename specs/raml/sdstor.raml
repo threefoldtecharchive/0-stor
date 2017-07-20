@@ -8,67 +8,41 @@ uses:
   reservation: https://raw.githubusercontent.com/Jumpscale-Cockpit/raml-definitions/master/librairies/reservation.raml
 
 securitySchemes:
-  itsyouonline: !include https://raw.githubusercontent.com/Jumpscale-Cockpit/raml-definitions/master/securityScheme/iyo.raml
-
-resourceTypes:
-  collection: !include https://raw.githubusercontent.com/Jumpscale-Cockpit/raml-definitions/master/resourceTypes/collection.raml
-  member: !include https://raw.githubusercontent.com/Jumpscale-Cockpit/raml-definitions/master/resourceTypes/member.raml
-  listing: !include https://raw.githubusercontent.com/Jumpscale-Cockpit/raml-definitions/master/resourceTypes/listing.raml
+  itsyouonline:
+    description: |
+      OAuth2 is a protocol that lets external apps request authorization to private
+      details in a user's account without getting their password.
+    type: OAuth 2.0
+    describedBy:
+      headers:
+        Authorization:
+          description: |
+            Used to send a valid OAuth 2 access token. Do not use together with
+            the "access_token" query string parameter.
+      queryParameters:
+        access_token:
+          description: |
+            Used to send a valid OAuth 2 access token. Do not use together with
+            the "Authorization" header
+      responses:
+        404:
+          description: Unauthorized
+    settings:
+      authorizationUri: https://itsyou.online/v1/oauth/authorize
+      accessTokenUri: https://itsyou.online/v1/oauth/access_token?response_type=id_token
+      authorizationGrants: [ authorization_code, client_credentials ]
+      scopes:
+        - "user:memberof:store.namespace"
+        - "user:memberof:store.namespace.read"
+        - "user:memberof:store.namespace.write"
+        - "user:memberof:store.namespace.delete"
 
 traits:
   paginated: !include https://raw.githubusercontent.com/Jumpscale-Cockpit/raml-definitions/master/traits/pagination.raml
 
 types:
-  ACLEntry:
-    description: |
-      ACL entry for a reservation
-    properties:
-      read: boolean
-      write: boolean
-      delete: boolean
-      admin: boolean
 
-  ACL:
-    description: |
-      Mapping between a user ID or group ID and an ACLEntry
-    properties:
-      id:
-        type: string
-        pattern: ^\w+$
-        required: true
-      acl:
-        type: ACLEntry
-        required: true
-
-  NamespaceCreate:
-    properties:
-      label:
-        type: string
-        required: true
-        minLength: 5
-        maxLength: 128
-        pattern: ^\w+$
-      acl:
-        type: ACL[]
-    examples:
-      properties:
-        label: MyLabel
-        acl:
-          - id: normalUser
-            acl:
-              read: true
-              write: true
-              delete: false
-              admin: false
-          - id: admin
-            acl:
-              read: true
-              write: true
-              delete: true
-              admin: true
-
-  Namespace:
-    type: NamespaceCreate
+  NamespaceStat:
     properties:
       spaceUsed:
         description: |
@@ -82,19 +56,38 @@ types:
         type: number
         format: float
         required: false
-
-  NamespaceStat:
-    properties:
       requestPerHour:
         description: |
           Number of request per hour
         type: integer
         format: int64
-      NrObjects:
+      nrObjects:
         description: |
           Number of object contained in this namespace
         type: integer
         format: int64
+
+  Namespace:
+    properties:
+      label:
+        type: string
+        required: true
+        minLength: 5
+        maxLength: 128
+        pattern: ^\w+$
+      stats:
+        type: NamespaceStat
+        description: |
+          statistics of the namespace
+        required: false
+    examples:
+      properties:
+        label: MyLabel
+        stats:
+          spaceAvailable: 128
+          spaceUsed: 10
+          nrObjects: 400
+          requestPerHour: 250
 
   StoreStat:
       properties:
@@ -104,27 +97,23 @@ types:
           required: true
           type: integer
           format: int64
-          minimum: 1
+          minimum: 0
       examples:
         properties:
           size: 128
 
-  Tag:
-    properties:
-      key:
-        type: string
-        required: true
-        pattern: ^\w+$
-      value:
-        type: string
-        required: true
+  ReferenceID:
+    type: string
+    minLength: 1
+    maxLength: 16
+    pattern: ^\w+$
 
   Object:
     properties:
       id:
         required: true
         type: string
-        minLength: 5
+        minLength: 1
         maxLength: 128
         pattern: ^\w+$
       data:
@@ -132,24 +121,10 @@ types:
         type: file
         fileTypes: ['*/*'] # any file type allowed
         # maxLength: 1048576 TODO: define max upload size
-      tags:
-        required: false
-        type: Tag[]
+      referenceList:
+        type: ReferenceID[]
+        description: List of reference id using this object
 
-  # Needed to fullfill collection resourceTypes interface
-  ObjectCreate:
-    type: Object
-
-  ObjectUpdate:
-    properties:
-      data:
-        required: true
-        type: file
-        fileTypes: ['*/*'] # any file type allowed
-        # maxLength: 1048576 TODO: define max upload size
-      tags:
-        required: false
-        type: Tag[]
 
   Error:
     properties:
@@ -157,7 +132,7 @@ types:
         type: string
         required: true
 
-securedBy: [ itsyouonline : { scopes: ["user:name"] } ]
+securedBy: [ itsyouonline : { scopes: ["user:memberof:store.namespace"] } ]
 /stats:
      get:
       displayName: GetStoreStats
@@ -168,16 +143,8 @@ securedBy: [ itsyouonline : { scopes: ["user:name"] } ]
           body:
             type: StoreStat
 
-/namespaces:
-  type: collection
-  get:
-    is: [ paginated ]
-  post:
-    body:
-      type: NamespaceCreate
-
-  /{nsid}:
-    securedBy: [ reservation.reservationToken , itsyouonline : { scopes: ["user:name"] }]
+/namespaces/{nsid}:
+    securedBy: [ itsyouonline : { scopes: ["user:memberof:store.namespace"] }]
     get:
       displayName: GetNameSpace
       description: Get detail view about namespace
@@ -187,63 +154,39 @@ securedBy: [ itsyouonline : { scopes: ["user:name"] } ]
             type: Namespace
         404:
           description: Namespace not found
-    delete:
-      displayName: DeleteNamespace
-      description: Delete namespace
-      responses:
-        204:
-          description: namespace deleted successfully
-        404:
-          description: namespace not found
-
-    /stats:
-      securedBy: [ reservation.reservationToken , itsyouonline : { scopes: ["user:name"] }]
-      get:
-        displayName: StatsNamespace
-        description: |
-          Return usage statistics about this namespace
-        responses:
-          200:
-            body:
-              type: NamespaceStat
-          404:
-            description: |
-              No namespace with this id found
-    /acl:
-      securedBy: [ reservation.reservationToken , itsyouonline : { scopes: ["user:name"] }]
-      post:
-        description: |
-          Create an dataAccessToken for a user. This token gives this user access to the data in this namespace
-        body:
-          type: ACL
-        responses:
-          200:
-            description: Token created succesfully
-            body:
-              description: |
-                the dataAccessToken
-              properties:
-                dataAccessToken: string
     /reservations:
+      securedBy: [ reservation.reservationToken , itsyouonline : { scopes: ["user:memberof:store.namespace"] }]
       description: |
         Management of the reservation for this namespace
       type: reservation.reservableCollection
       /{id}:
         type: reservation.reservableMember
-
     /objects:
-      type: collection
-      securedBy: [ reservation.dataAccessToken , itsyouonline : { scopes: ["user:name"] }]
-      post:
-        description: |
-          Set an object into the namespace
       get:
+        securedBy: [ itsyouonline : { scopes: ["user:memberof:store.namespace.read"] }]
         is: [paginated]
+        displayName: ListObjects
         description: |
           List keys of the namespaces
+        responses:
+          200:
+            body:
+              type: Object
+      post:
+        securedBy: [ itsyouonline : { scopes: ["user:memberof:store.namespace.write"] }]
+        displayName: CreateObject
+        description: |
+          Set an object into the namespace
+        body:
+          type: Object
+        responses:
+          201:
+            description: object created
+            body:
+              type: Object
       /{id}:
-        securedBy: [ reservation.dataAccessToken , itsyouonline : { scopes: ["user:name"] }]
         head:
+          securedBy: [ itsyouonline : { scopes: ["user:memberof:store.namespace.read"] }]
           displayName: ExistObject
           description: |
             Test if an object with this id exists
@@ -254,6 +197,7 @@ securedBy: [ itsyouonline : { scopes: ["user:name"] } ]
               description: |
                 No object found with this id
         get:
+          securedBy: [ itsyouonline : { scopes: ["user:memberof:store.namespace.read"] }]
           displayName: GetObject
           description: |
             Retrieve object from the store
@@ -265,6 +209,7 @@ securedBy: [ itsyouonline : { scopes: ["user:name"] } ]
               description: |
                 Object not found
         delete:
+          securedBy: [ itsyouonline : { scopes: ["user:memberof:store.namespace.delete"] }]
           displayName: DeleteObject
           description: |
             Delete object from the store
@@ -275,3 +220,13 @@ securedBy: [ itsyouonline : { scopes: ["user:name"] } ]
             404:
               description: |
                 Object not found
+      /references:
+        put:
+          securedBy: [ itsyouonline : { scopes: ["user:memberof:store.namespace.write"] }]
+          description: |
+            Update reference list.
+            The reference list of the object will be update with the references from the request body
+          body:
+            properties:
+              references:
+                type: ReferenceID[]
