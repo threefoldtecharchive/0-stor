@@ -5,6 +5,8 @@ Single device object store
 
 [API specification](https://rawgit.com/zero-os/0-stor/master/specs/raml/sdstor.html)
 
+[link to group on telegram](https://t.me/joinchat/BwOvOw2-K4AN7p9VZckpFw)
+
 # Installation
 
 ```
