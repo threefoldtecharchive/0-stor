@@ -149,7 +149,8 @@ securedBy: [ itsyouonline : { scopes: ["user:memberof:store.namespace"] } ]
           body:
             type: StoreStat
 
-/namespaces/{nsid}:
+/namespaces:
+  /{nsid}:
     securedBy: [ itsyouonline : { scopes: ["user:memberof:store.namespace"] }]
     get:
       displayName: GetNameSpace
