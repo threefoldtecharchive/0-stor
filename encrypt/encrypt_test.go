@@ -17,8 +17,8 @@ func TestRoundTrip(t *testing.T) {
 
 		conf := Config{
 			Type:    TypeAESGCM,
-			PrivKey: privKey,
-			Nonce:   nonce,
+			PrivKey: string(privKey),
+			Nonce:   string(nonce),
 		}
 		testRoundTrip(t, conf)
 	})
@@ -37,7 +37,7 @@ func testRoundTrip(t *testing.T, conf Config) {
 	assert.Nil(t, err)
 
 	// decrypt ag
-	ag, err := newAESGCM(conf.PrivKey, conf.Nonce)
+	ag, err := newAESGCM([]byte(conf.PrivKey), []byte(conf.Nonce))
 	assert.Nil(t, err)
 
 	dag, err := ag.Decrypt(buf.Bytes())

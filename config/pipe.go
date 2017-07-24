@@ -49,7 +49,7 @@ func (p Pipe) CreateWriter(w io.Writer, shards []string) (io.Writer, error) {
 	}
 }
 
-func (p Pipe) createCompressWriter(w io.Writer) (compress.Writer, error) {
+func (p Pipe) createCompressWriter(w io.Writer) (io.Writer, error) {
 	conf := p.Config.(compress.Config)
 	return compress.NewWriter(conf, w)
 }

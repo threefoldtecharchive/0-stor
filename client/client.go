@@ -31,7 +31,7 @@ func NewClient(confFile string) (*Client, error) {
 	iyoClient := itsyouonline.NewClient(conf.Organization, conf.IyoClientID, conf.IyoSecret)
 
 	// stor writer
-	storWriter, err := conf.CreatePipeWriter(conf.Shards)
+	storWriter, err := conf.CreatePipeWriter(nil)
 	if err != nil {
 		return nil, err
 	}

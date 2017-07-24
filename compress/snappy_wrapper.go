@@ -6,16 +6,37 @@ import (
 	"github.com/golang/snappy"
 )
 
+type snappyWriter struct {
+	w io.Writer
+}
+
+func newSnappyWriter(w io.Writer) *snappyWriter {
+	return &snappyWriter{
+		w: w,
+	}
+}
+
+func (sw snappyWriter) Write(p []byte) (int, error) {
+	encoded := snappy.Encode(nil, p)
+	return sw.w.Write(encoded)
+}
+
 // snappyReader wraps the snappy.Reader object
 // to conform to Decompressor interface
 type snappyReader struct {
 	*snappy.Reader
+	rd io.Reader
 }
 
 func newSnappyReader(r io.Reader) *snappyReader {
 	return &snappyReader{
 		Reader: snappy.NewReader(r),
+		rd:     r,
 	}
+}
+
+func (sr *snappyReader) ReadAll(data []byte) ([]byte, error) {
+	return snappy.Decode(nil, data)
 }
 
 func (sr *snappyReader) Read(p []byte) (int, error) {

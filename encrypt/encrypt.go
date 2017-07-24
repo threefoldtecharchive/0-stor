@@ -21,8 +21,8 @@ var (
 // Config defines EncrypterDecrypter config
 type Config struct {
 	Type    int    `yaml:"type"`
-	PrivKey []byte `yaml:"privKey"`
-	Nonce   []byte `yaml:"nonce"`
+	PrivKey string `yaml:"privKey"`
+	Nonce   string `yaml:"nonce"`
 }
 
 // EncrypterDecrypter is interaface for encrypter and decrypter
@@ -35,7 +35,7 @@ type EncrypterDecrypter interface {
 func NewEncrypterDecrypter(conf Config) (EncrypterDecrypter, error) {
 	switch conf.Type {
 	case TypeAESGCM:
-		return newAESGCM(conf.PrivKey, conf.Nonce)
+		return newAESGCM([]byte(conf.PrivKey), []byte(conf.Nonce))
 	default:
 		return nil, fmt.Errorf("invalid type: %v", conf.Type)
 	}

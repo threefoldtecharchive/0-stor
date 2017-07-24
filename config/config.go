@@ -82,11 +82,12 @@ func (conf *Config) Write(w io.Writer) error {
 	return err
 }
 
-func (conf *Config) CreatePipeWriter(shards []string) (io.Writer, error) {
-	var nextWriter io.Writer
+func (conf *Config) CreatePipeWriter(finalWriter io.Writer) (io.Writer, error) {
+	nextWriter := finalWriter
+
 	for i := len(conf.Pipes) - 1; i >= 0; i-- {
 		pipe := conf.Pipes[i]
-		w, err := pipe.CreateWriter(nextWriter, shards)
+		w, err := pipe.CreateWriter(nextWriter, conf.Shards)
 		if err != nil {
 			return nil, err
 		}
