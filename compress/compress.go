@@ -35,93 +35,54 @@ type Config struct {
 	Level int `yaml:"level"`
 }
 
-//Compressor is the interface that wraps the basic compress method
-type Compressor interface {
+// Writer is the interface that wraps the basic compress method
+type Writer interface {
 	Close() error
 	Flush() error
 	Reset(w io.Writer)
 	Write(p []byte) (int, error)
 }
 
-// Writer is compress writer, implements the Compressor interface
-// Writes to a Writer are compressed and written to w.
-type Writer struct {
-	Compressor
-	typ int
-}
-
 // NewWriter returns a new Writer. Writes to the returned writer are compressed and written to w.
 // It is the caller's responsibility to call Close on the WriteCloser when done. Writes may be buffered and not flushed until Close.
-func NewWriter(c Config, w io.Writer) (*Writer, error) {
-	var comp Compressor
-	var err error
-
+func NewWriter(c Config, w io.Writer) (Writer, error) {
 	switch c.Type {
 	case TypeSnappy:
-		comp = snappy.NewBufferedWriter(w)
+		return snappy.NewBufferedWriter(w), nil
 
 	case TypeGzip:
 		if c.Level == 0 {
 			c.Level = DefaultCompression
 		}
-		comp, err = gzip.NewWriterLevel(w, c.Level)
-		if err != nil {
-			return nil, err
-		}
-
+		return gzip.NewWriterLevel(w, c.Level)
 	case TypeLz4:
-		comp = lz4.NewWriter(w)
+		return lz4.NewWriter(w), nil
 
 	default:
 		return nil, fmt.Errorf("unsupported compressor type:%v", c.Type)
 	}
-
-	return &Writer{
-		Compressor: comp,
-		typ:        c.Type,
-	}, nil
 }
 
-// Decompressor is the interface that wraps the basic decompress method
-type Decompressor interface {
+// A Reader is an io.Reader that can be read to retrieve uncompressed data
+type Reader interface {
 	Close() error
 	Read(p []byte) (int, error)
 	Reset(r io.Reader) error
 }
 
-// A Reader is an io.Reader that can be read to retrieve uncompressed data
-// from the compressed one.
-// It implements the Decompressor interface
-type Reader struct {
-	Decompressor
-	typ int
-}
-
 // NewReader returns a new Reader that decompresses from r
-func NewReader(c Config, r io.Reader) (*Reader, error) {
-	var d Decompressor
-	var err error
-
+func NewReader(c Config, r io.Reader) (Reader, error) {
 	switch c.Type {
 	case TypeSnappy:
-		d = newSnappyReader(r)
+		return newSnappyReader(r), nil
 
 	case TypeGzip:
-		d, err = gzip.NewReader(r)
-		if err != nil {
-			return nil, err
-		}
+		return gzip.NewReader(r)
 
 	case TypeLz4:
-		d = newLz4Reader(r)
+		return newLz4Reader(r), nil
 
 	default:
 		return nil, fmt.Errorf("unsupported decompressor type:%v", c.Type)
 	}
-
-	return &Reader{
-		Decompressor: d,
-		typ:          c.Type,
-	}, nil
-
 }

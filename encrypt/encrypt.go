@@ -60,7 +60,7 @@ func NewWriter(w io.Writer, conf Config) (*Writer, error) {
 }
 
 // Writers implements io.Writer interface
-func (w *Writer) Write(plain []byte) (int, error) {
+func (w Writer) Write(plain []byte) (int, error) {
 	encrypted := w.ed.Encrypt(plain)
 	return w.w.Write(encrypted)
 }

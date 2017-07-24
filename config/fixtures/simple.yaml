@@ -1,4 +1,10 @@
-namespace: Gondor
+organization: mordor
+namespace: thedisk
+iyo_client_id: 12345
+iyo_secret: 56789
+shards:
+    - http://127.0.0.1:12345
+    - http://127.0.0.1:12346
 pipes:
     - name: pipe1
       type: compress

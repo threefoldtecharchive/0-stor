@@ -18,6 +18,7 @@ type Config struct {
 	M int `yaml:"m"`
 }
 
+// NumPieces returns total number of pieces given the configuration
 func (c Config) NumPieces() int {
 	return c.K + c.M
 }
@@ -40,7 +41,7 @@ func NewDistributor(writers []io.Writer, conf Config) (*Distributor, error) {
 }
 
 // Write writes blocks to the given output writers
-func (d *Distributor) Write(data []byte) (int, error) {
+func (d Distributor) Write(data []byte) (int, error) {
 	var written int
 
 	encoded, err := d.enc.Encode(data)

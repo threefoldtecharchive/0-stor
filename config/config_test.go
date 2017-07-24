@@ -23,7 +23,7 @@ func TestDecode(t *testing.T) {
 	conf, err := NewFromReader(f)
 	assert.Nil(t, err)
 
-	assert.Equal(t, conf.Namespace, "Gondor")
+	assert.Equal(t, conf.Namespace, "thedisk")
 	assert.Equal(t, 6, len(conf.Pipes))
 
 	p1 := conf.Pipes[0]
@@ -70,8 +70,12 @@ func TestWrite(t *testing.T) {
 		Config: confPipe1,
 	}
 	conf := Config{
-		Namespace: "hai",
-		Pipes:     []Pipe{pipe1},
+		Organization: "gig",
+		Namespace:    "thedisk",
+		IyoClientID:  "abc",
+		IyoSecret:    "def",
+		Shards:       []string{"http://127.0.0.1:12345", "http://127.0.0.1:12346"},
+		Pipes:        []Pipe{pipe1},
 	}
 
 	buf := new(bytes.Buffer)
