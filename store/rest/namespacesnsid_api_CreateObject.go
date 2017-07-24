@@ -7,12 +7,16 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
 	"github.com/zero-os/0-stor/store/manager"
+	"github.com/zero-os/0-stor/store/stats"
 )
 
 // CreateObject is the handler for POST /namespaces/{nsid}/objects
 // Set an object into the namespace
 func (api NamespacesAPI) CreateObject(w http.ResponseWriter, r *http.Request) {
 	var reqBody Object
+
+	// increase request counter
+	go stats.IncrWrite(mux.Vars(r)["nsid"])
 
 	// decode request
 	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {

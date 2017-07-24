@@ -56,9 +56,14 @@ types:
         type: number
         format: float
         required: false
-      requestPerHour:
+      readRequestPerHour:
         description: |
-          Number of request per hour
+          Number of read request per hour
+        type: integer
+        format: int64
+      writeRequestPerHour:
+        description: |
+          Number of write request per hour
         type: integer
         format: int64
       nrObjects:
@@ -87,7 +92,8 @@ types:
           spaceAvailable: 128
           spaceUsed: 10
           nrObjects: 400
-          requestPerHour: 250
+          readRequestPerHour: 250
+          writeRequestPerHour: 120
 
   StoreStat:
       properties:
