@@ -28,6 +28,7 @@ func TestPipeWriter(t *testing.T) {
 		})
 	}
 }
+
 func testPipeWriter(t *testing.T, compressType int) {
 	compressConf := compress.Config{
 		Type: compressType,

@@ -7,6 +7,7 @@ import (
 	"gopkg.in/validator.v2"
 	"gopkg.in/yaml.v2"
 
+	"github.com/zero-os/0-stor-lib/allreader"
 	"github.com/zero-os/0-stor-lib/chunker"
 	"github.com/zero-os/0-stor-lib/compress"
 	"github.com/zero-os/0-stor-lib/distribution"
@@ -28,6 +29,19 @@ type Pipe struct {
 	Config interface{} `yaml:"config"`
 }
 
+func (p Pipe) CreateReader(rd io.Reader) (allreader.AllReader, error) {
+	switch p.Type {
+	case compressStr:
+		conf := p.Config.(compress.Config)
+		return compress.NewReader(conf, rd)
+	case encryptStr:
+		conf := p.Config.(encrypt.Config)
+		return encrypt.NewReader(rd, conf)
+	default:
+		return nil, fmt.Errorf("invalid type:%v", p.Type)
+	}
+}
+
 func (p Pipe) CreateWriter(w io.Writer, shards []string) (io.Writer, error) {
 	if p.Action != "write" {
 		return nil, fmt.Errorf("not write action")
@@ -45,7 +59,7 @@ func (p Pipe) CreateWriter(w io.Writer, shards []string) (io.Writer, error) {
 	case hashStr:
 		return p.createHashWriter(w)
 	default:
-		return nil, fmt.Errorf("invalid type")
+		return nil, fmt.Errorf("invalid type:%v", p.Type)
 	}
 }
 

@@ -100,3 +100,7 @@ func (r *Reader) Read(plain []byte) (int, error) {
 	copy(plain, decrypted)
 	return len(decrypted), nil
 }
+
+func (r *Reader) ReadAll(data []byte) ([]byte, error) {
+	return r.ed.Decrypt(data)
+}

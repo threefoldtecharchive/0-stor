@@ -6,6 +6,8 @@ import (
 
 	"gopkg.in/validator.v2"
 	"gopkg.in/yaml.v2"
+
+	"github.com/zero-os/0-stor-lib/allreader"
 )
 
 const (
@@ -94,4 +96,16 @@ func (conf *Config) CreatePipeWriter(finalWriter io.Writer) (io.Writer, error) {
 		nextWriter = w
 	}
 	return nextWriter, nil
+}
+
+func (conf *Config) CreateAllReaders() ([]allreader.AllReader, error) {
+	var readers []allreader.AllReader
+	for _, pipe := range conf.Pipes {
+		ar, err := pipe.CreateReader(nil)
+		if err != nil {
+			return nil, err
+		}
+		readers = append([]allreader.AllReader{ar}, readers...)
+	}
+	return readers, nil
 }
