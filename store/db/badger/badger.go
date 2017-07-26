@@ -10,6 +10,9 @@ import (
 
 var _ db.DB = (*BadgerDB)(nil)
 
+// Global database object, once initialized, it can be used in middlewares or what so ever
+var Database *BadgerDB
+
 // BadgerDB implements the db.DB interace
 type BadgerDB struct {
 	KV *badgerkv.KV
@@ -36,9 +39,11 @@ func New(data, meta string) (*BadgerDB, error) {
 
 	kv, err := badgerkv.NewKV(&opts)
 
-	return &BadgerDB{
+	Database = &BadgerDB{
 		KV: kv,
-	}, err
+	}
+
+	return Database, err
 }
 
 func (b BadgerDB) Close() error {
@@ -126,6 +131,7 @@ func (b BadgerDB) Filter(prefix []byte, start int, count int) ([][]byte, error) 
 }
 
 func (b BadgerDB) List(prefix []byte) ([][]byte, error) {
+
 	opt := badgerkv.DefaultIteratorOptions
 	opt.FetchValues = false
 

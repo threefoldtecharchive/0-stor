@@ -17,5 +17,5 @@ type StatsInterface interface { // GetStoreStats is the handler for GET /stats
 
 // StatsInterfaceRoutes is routing for /stats root endpoint
 func StatsInterfaceRoutes(r *mux.Router, i StatsInterface) {
-	r.Handle("/stats", alice.New(NewOauth2itsyouonlineMiddleware([]string{"user:memberof:store.namespace"}).Handler).Then(http.HandlerFunc(i.GetStoreStats))).Methods("GET")
+	r.Handle("/stats", alice.New().Then(http.HandlerFunc(i.GetStoreStats))).Methods("GET")
 }

@@ -71,6 +71,7 @@ func (o *Object) Decode(b []byte) error {
 		return err
 	}
 
+
 	// read the rest of the data from the read
 	o.Data, err = ioutil.ReadAll(r)
 	return err

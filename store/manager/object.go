@@ -35,21 +35,25 @@ func (mgr *ObjectManager) Set(key []byte, data []byte, referenceList [160][]byte
 	}
 
 	b, err := obj.Encode()
+
 	if err != nil {
-		log.Errorf("Error encoding object : %v", err)
 		return err
 	}
+
 	k := objKey(mgr.namespace, key)
 	log.Debugf("set objet %s into namespace %s", string(k), mgr.namespace)
 	return mgr.db.Set(k, b)
 }
 
 func (mgr *ObjectManager) List(start, count int) ([][]byte, error) {
-	keys, err := mgr.db.List([]byte(mgr.namespace))
+	prefix := fmt.Sprintf("%s:", mgr.namespace)
+	keys, err := mgr.db.List([]byte(prefix))
+
 	if err != nil {
 		return nil, err
 	}
 	// remove namespace prefix
+
 	for i := range keys {
 		keys[i] = keys[i][len(mgr.namespace)+1:]
 	}

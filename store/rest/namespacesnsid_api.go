@@ -12,6 +12,7 @@ type NamespacesAPI struct {
 	db db.DB
 }
 
+
 func NewNamespaceAPI(db db.DB) NamespacesInterface {
 	return NamespacesAPI{db: db}
 }

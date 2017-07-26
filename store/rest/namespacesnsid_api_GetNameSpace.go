@@ -14,19 +14,18 @@ import (
 func (api NamespacesAPI) GetNameSpace(w http.ResponseWriter, r *http.Request) {
 	label := mux.Vars(r)["nsid"]
 
-	// FIXME: uncomment when the IYO middleware will create the namespace object in
-	// db automaticly
 	mgr := manager.NewNamespaceManager(api.db)
 
-	// ns, err := mgr.Get(label)
-	// if err != nil {
-	// 	if err == db.ErrNotFound {
-	// 		jsonError(w, err, http.StatusNotFound)
-	// 	} else {
-	// 		jsonError(w, err, http.StatusInternalServerError)
-	// 	}
-	// 	return
-	// }
+	//ns, err := mgr.Get(label)
+	//if err != nil {
+	//	if err == db.ErrNotFound {
+	//		jsonError(w, err, http.StatusNotFound)
+	//	} else {
+	//		jsonError(w, err, http.StatusInternalServerError)
+	//	}
+	//	return
+	//}
+
 	count, err := mgr.Count(label)
 	if err != nil {
 		jsonError(w, err, http.StatusInternalServerError)
@@ -36,7 +35,7 @@ func (api NamespacesAPI) GetNameSpace(w http.ResponseWriter, r *http.Request) {
 	respBody := Namespace{
 		Label: label,
 		Stats: NamespaceStat{
-			NrObjects:           int64(count),
+			NrObjects:           int64(count) - 1,
 			ReadRequestPerHour:  read,
 			WriteRequestPerHour: write,
 			// SpaceAvailable: TODO

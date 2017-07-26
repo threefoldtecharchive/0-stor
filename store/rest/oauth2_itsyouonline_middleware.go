@@ -8,67 +8,177 @@ import (
 	"strings"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/pkg/errors"
+	"github.com/gorilla/mux"
+	"github.com/zero-os/0-stor/store/db"
+	"github.com/zero-os/0-stor/store/manager"
 )
+
+type Scope struct {
+	Namespace string
+	Actor string
+	Action string
+	Organization string
+	Permission string
+}
+
+func (s *Scope) Validate() error{
+	if s.Namespace == ""||
+		s.Action == "" ||
+		s.Actor == ""||
+		s.Organization == ""||
+		s.Permission == ""{
+			return errors.New("one or more required fields is empty")
+	}
+
+	if s.Permission != "read" &&
+		s.Permission != "write" &&
+		s.Permission != "delete" &&
+		s.Permission != "admin"{
+			return errors.New("Invalid permission")
+	}
+
+	return nil
+}
+
+func (s *Scope) Encode() (string, error){
+
+	if err := s.Validate(); err != nil{
+		return "", err
+	}
+
+
+	r := fmt.Sprintf("%s:%s:%s", s.Actor, s.Action, s.Organization)
+
+	if s.Namespace == ""{
+		r = fmt.Sprintf("%s.%s", r, "*")
+	}else{
+		r = fmt.Sprintf("%s.%s", r, s.Namespace)
+	}
+
+	if s.Permission != "admin"{
+		r = fmt.Sprintf("%s.%s", r, s.Permission)
+	}
+
+	return r, nil
+}
+
+func (s *Scope) Decode(scope string) error{
+	scope = strings.ToLower(scope)
+
+	if strings.Count(scope, ":") != 2{
+		return errors.New("Invalid scope string")
+	}
+
+	splitted := strings.Split(scope, ":")
+
+	actor := splitted[0]
+	action := splitted[1]
+
+	count := strings.Count(splitted[2], ".")
+
+	if count == 0 || count > 2{
+		return errors.New("Invalid scope string")
+	}
+
+	splitted = strings.Split(splitted[2], ".")
+
+	s.Organization = splitted[0]
+	s.Namespace = splitted[1]
+
+	if len(splitted) == 2{
+		s.Permission = "admin"
+	}else{
+		s.Permission = splitted[2]
+	}
+
+	s.Action = action
+	s.Actor = actor
+
+	if err := s.Validate(); err != nil{
+		return err
+	}
+
+	return nil
+}
+
 
 // Oauth2itsyouonlineMiddleware is oauth2 middleware for itsyouonline
 type Oauth2itsyouonlineMiddleware struct {
 	describedBy string
 	field       string
-	scopes      []string
+	scopes      []*Scope
+	pubKey      *ecdsa.PublicKey
+	url         string
+	db          db.DB
 }
-
-var JWTPublicKey *ecdsa.PublicKey
 
 const (
-	oauth2ServerPublicKey = `` // fill it with oauth2 server public key
+	oauth2ServerPublicKey = `-----BEGIN PUBLIC KEY-----
+MHYwEAYHKoZIzj0CAQYFK4EEACIDYgAEkmd07vxBqoCiHsaplIpjlonDeOnpvPam
+ORMdBcAlHNXbzwplcdK4qlZGPBz9mxDSrBOv9SZH+Et6r8gn9Fx/+ZjlvRwowqOU
+FpCIijAEx6A3BhfRUbmwl1evBKzWB/qw
+-----END PUBLIC KEY-----` // fill it with oauth2 server public key
+	oauth2ServerUrl = `https://staging.itsyou.online`
 )
 
-func init() {
-	var err error
-
-	if len(oauth2ServerPublicKey) == 0 {
-		return
-	}
-	JWTPublicKey, err = jwt.ParseECPublicKeyFromPEM([]byte(oauth2ServerPublicKey))
-	if err != nil {
-		log.Fatalf("failed to parse pub key:%v", err)
-	}
-
-}
-
 // NewOauth2itsyouonlineMiddlewarecreate new Oauth2itsyouonlineMiddleware struct
-func NewOauth2itsyouonlineMiddleware(scopes []string) *Oauth2itsyouonlineMiddleware {
+func NewOauth2itsyouonlineMiddleware(db db.DB, scopes []string) *Oauth2itsyouonlineMiddleware {
+
+	var s []*Scope
+
+	for _, scopeStr := range scopes{
+		scope := new(Scope)
+		if err := scope.Decode(scopeStr); err != nil{
+			log.Fatal("Invalid scope")
+		}
+		s = append(s, scope)
+	}
+
 	om := Oauth2itsyouonlineMiddleware{
-		scopes: scopes,
+		scopes: s,
 	}
 
 	om.describedBy = "headers"
 	om.field = "Authorization"
+	om.url = oauth2ServerUrl
 
+	if len(oauth2ServerPublicKey) > 0 {
+		JWTPublicKey, err := jwt.ParseECPublicKeyFromPEM([]byte(oauth2ServerPublicKey))
+		if err != nil {
+			log.Fatalf("failed to parse pub key:%v", err)
+		}
+		om.pubKey = JWTPublicKey
+	}
 	return &om
 }
 
 // CheckScopes checks whether user has needed scopes
-func (om *Oauth2itsyouonlineMiddleware) CheckScopes(scopes []string) bool {
-	if len(om.scopes) == 0 {
-		return true
-	}
+func (om *Oauth2itsyouonlineMiddleware) CheckPermissions(r *http.Request, scopes []*Scope) bool {
+	for _, s := range scopes{
+		for _, scope := range om.scopes{
+			if nsid, OK := mux.Vars(r)["nsid"]; OK{
+				if scope.Namespace == ""{
+					scope.Namespace = nsid
+				}
+			}
 
-	for _, allowed := range om.scopes {
-		for _, scope := range scopes {
-			if scope == allowed {
-				return true
+			if s.Namespace == scope.Namespace{
+				if s.Permission == "admin" || s.Permission == scope.Permission{
+					return true
+				}
 			}
 		}
 	}
+
 	return false
 }
+
 
 // Handler return HTTP handler representation of this middleware
 func (om *Oauth2itsyouonlineMiddleware) Handler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var accessToken string
-		var err error
 
 		// access token checking
 		if om.describedBy == "queryParameters" {
@@ -81,19 +191,44 @@ func (om *Oauth2itsyouonlineMiddleware) Handler(next http.Handler) http.Handler 
 			return
 		}
 
-		var scopes []string
+		var scopes []*Scope
+
 		if len(oauth2ServerPublicKey) > 0 {
-			scopes, err = om.checkJWTGetScope(accessToken)
+			scopeStrs, err := om.checkJWTGetScope(accessToken)
 			if err != nil {
 				w.WriteHeader(403)
 				return
 			}
+
+			for _, scopeStr := range scopeStrs{
+				scope := new(Scope)
+				if err := scope.Decode(scopeStr); err != nil{
+					w.WriteHeader(403)
+					return
+				}
+
+				// If namespace not defined ; i.e == "", replace with current
+				if nsid, OK := mux.Vars(r)["nsid"]; OK{
+					if scope.Namespace == ""{
+						scope.Namespace = nsid
+					}
+				}
+				scopes = append(scopes, scope)
+			}
 		}
 
 		// check scopes
-		if !om.CheckScopes(scopes) {
+		if !om.CheckPermissions(r, scopes) {
 			w.WriteHeader(403)
 			return
+		}
+
+		// Create namespace if not exists
+		if nsid, OK := mux.Vars(r)["nsid"]; OK{
+			if err := manager.NewNamespaceManager(om.db).Create(nsid); err != nil{
+				w.WriteHeader(500)
+				return
+			}
 		}
 
 		next.ServeHTTP(w, r)
@@ -107,7 +242,7 @@ func (om *Oauth2itsyouonlineMiddleware) checkJWTGetScope(tokenStr string) ([]str
 		if token.Method != jwt.SigningMethodES384 {
 			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
 		}
-		return JWTPublicKey, nil
+		return om.pubKey, nil
 	})
 	if err != nil {
 		return nil, err

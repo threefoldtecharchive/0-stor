@@ -32,6 +32,7 @@ func (api NamespacesAPI) ListObjects(w http.ResponseWriter, r *http.Request) { /
 	count := perPage
 
 	ids, err := mgr.List(start, count)
+
 	if err != nil {
 		jsonError(w, err, http.StatusInternalServerError)
 		return

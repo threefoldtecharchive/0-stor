@@ -7,6 +7,8 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/justinas/alice"
+	"github.com/zero-os/0-stor/store/db/badger"
 )
 
 // NamespacesInterface is interface for /namespaces/{nsid} root endpoint
@@ -55,14 +57,27 @@ func NamespacesInterfaceRoutes(r *mux.Router, i NamespacesInterface) {
 	// r.Handle("/namespaces/{nsid}/reservations", alice.New(NewOauth2itsyouonlineMiddleware([]string{"user:memberof:store.namespace"}).Handler).Then(http.HandlerFunc(i.ListReservations))).Methods("GET")
 	// r.Handle("/namespaces/{nsid}/reservations", alice.New(NewOauth2itsyouonlineMiddleware([]string{"user:memberof:store.namespace"}).Handler).Then(http.HandlerFunc(i.CreateReservation))).Methods("POST")
 	// r.Handle("/namespaces/{nsid}", alice.New(NewOauth2itsyouonlineMiddleware([]string{"user:memberof:store.namespace"}).Handler).Then(http.HandlerFunc(i.GetNameSpace))).Methods("GET")
-	r.Handle("/namespaces/{nsid}/objects/{id}/references", http.HandlerFunc(i.UpdateReferenceList)).Methods("PUT")
-	r.Handle("/namespaces/{nsid}/objects/{id}", http.HandlerFunc(i.DeleteObject)).Methods("DELETE")
-	r.Handle("/namespaces/{nsid}/objects/{id}", http.HandlerFunc(i.GetObject)).Methods("GET")
-	r.Handle("/namespaces/{nsid}/objects", http.HandlerFunc(i.ListObjects)).Methods("GET")
-	r.Handle("/namespaces/{nsid}/objects", http.HandlerFunc(i.CreateObject)).Methods("POST")
-	r.Handle("/namespaces/{nsid}/reservations/{id}", http.HandlerFunc(i.reservationsidGet)).Methods("GET")
-	r.Handle("/namespaces/{nsid}/reservations/{id}", http.HandlerFunc(i.UpdateReservation)).Methods("PUT")
-	r.Handle("/namespaces/{nsid}/reservations", http.HandlerFunc(i.ListReservations)).Methods("GET")
-	r.Handle("/namespaces/{nsid}/reservations", http.HandlerFunc(i.CreateReservation)).Methods("POST")
-	r.Handle("/namespaces/{nsid}", http.HandlerFunc(i.GetNameSpace)).Methods("GET")
-}
+	//
+	//r.Handle("/namespaces/{nsid}/objects/{id}/references", http.HandlerFunc(i.UpdateReferenceList)).Methods("PUT")
+	//r.Handle("/namespaces/{nsid}/objects/{id}", http.HandlerFunc(i.DeleteObject)).Methods("DELETE")
+	//r.Handle("/namespaces/{nsid}/objects/{id}", http.HandlerFunc(i.GetObject)).Methods("GET")
+	//r.Handle("/namespaces/{nsid}/objects", http.HandlerFunc(i.ListObjects)).Methods("GET")
+	//r.Handle("/namespaces/{nsid}/objects", http.HandlerFunc(i.CreateObject)).Methods("POST")
+	//r.Handle("/namespaces/{nsid}/reservations/{id}", http.HandlerFunc(i.reservationsidGet)).Methods("GET")
+	//r.Handle("/namespaces/{nsid}/reservations/{id}", http.HandlerFunc(i.UpdateReservation)).Methods("PUT")
+	//r.Handle("/namespaces/{nsid}/reservations", http.HandlerFunc(i.ListReservations)).Methods("GET")
+	//r.Handle("/namespaces/{nsid}/reservations", http.HandlerFunc(i.CreateReservation)).Methods("POST")
+	//r.Handle("/namespaces/{nsid}", http.HandlerFunc(i.GetNameSpace)).Methods("GET")
+
+	 r.Handle("/namespaces/{nsid}/objects/{id}/references", alice.New(NewCreateNamespaceMiddleware(badger.Database).Handler).Then(http.HandlerFunc(i.UpdateReferenceList))).Methods("PUT")
+	 r.Handle("/namespaces/{nsid}/objects/{id}", alice.New(NewCreateNamespaceMiddleware(badger.Database).Handler).Then(http.HandlerFunc(i.DeleteObject))).Methods("DELETE")
+	 r.Handle("/namespaces/{nsid}/objects/{id}", alice.New(NewCreateNamespaceMiddleware(badger.Database).Handler).Then(http.HandlerFunc(i.GetObject))).Methods("GET")
+	 r.Handle("/namespaces/{nsid}/objects", alice.New(NewCreateNamespaceMiddleware(badger.Database).Handler).Then(http.HandlerFunc(i.ListObjects))).Methods("GET")
+	 r.Handle("/namespaces/{nsid}/objects", alice.New(NewCreateNamespaceMiddleware(badger.Database).Handler).Then(http.HandlerFunc(i.CreateObject))).Methods("POST")
+	 r.Handle("/namespaces/{nsid}/reservations/{id}", alice.New(NewCreateNamespaceMiddleware(badger.Database).Handler).Then(http.HandlerFunc(i.reservationsidGet))).Methods("GET")
+	 r.Handle("/namespaces/{nsid}/reservations/{id}", alice.New(NewCreateNamespaceMiddleware(badger.Database).Handler).Then(http.HandlerFunc(i.UpdateReservation))).Methods("PUT")
+	 r.Handle("/namespaces/{nsid}/reservations", alice.New(NewCreateNamespaceMiddleware(badger.Database).Handler).Then(http.HandlerFunc(i.ListReservations))).Methods("GET")
+	 r.Handle("/namespaces/{nsid}/reservations", alice.New(NewCreateNamespaceMiddleware(badger.Database).Handler).Then(http.HandlerFunc(i.CreateReservation))).Methods("POST")
+	 r.Handle("/namespaces/{nsid}", alice.New(NewCreateNamespaceMiddleware(badger.Database).Handler).Then(http.HandlerFunc(i.GetNameSpace))).Methods("GET")
+
+	}
