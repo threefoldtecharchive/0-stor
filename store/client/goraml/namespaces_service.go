@@ -29,15 +29,16 @@ func (s *NamespacesService) DeleteObject(id, nsid string, headers, queryParams m
 }
 
 // Retrieve object from the store
-func (s *NamespacesService) GetObject(id, nsid string, headers, queryParams map[string]interface{}) (*http.Response, error) {
+func (s *NamespacesService) GetObject(id, nsid string, headers, queryParams map[string]interface{}) (Object, *http.Response, error) {
+	var u Object
 
 	resp, err := s.client.doReqNoBody("GET", s.client.BaseURI+"/namespaces/"+nsid+"/objects/"+id, headers, queryParams)
 	if err != nil {
-		return nil, err
+		return u, nil, err
 	}
 	defer resp.Body.Close()
 
-	return resp, nil
+	return u, resp, json.NewDecoder(resp.Body).Decode(&u)
 }
 
 // List keys of the object in the namespace
