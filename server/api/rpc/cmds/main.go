@@ -10,7 +10,7 @@ import (
 	validator "gopkg.in/validator.v2"
 
 
-	pb "github.com/zero-os/0-stor/server/api/rpc/store"
+	//pb "github.com/zero-os/0-stor/server/api/rpc/store"
 	"github.com/zero-os/0-stor/server/config"
 	"github.com/zero-os/0-stor/server/db/badger"
 	"github.com/zero-os/0-stor/goraml"
@@ -89,9 +89,9 @@ func main() {
 			log.Fatalln(err)
 		}
 
-		pb.RegisterObjectManagerServer(srv.GRPCServer(), &rpc.ObjectManager{db})
-		pb.RegisterNamespaceManagerServer(srv.GRPCServer(), rpc.NewNamespaceManager(db))
-		pb.RegisterReservationManagerServer(srv.GRPCServer(), &rpc.ReservationManager{db})
+		//pb.RegisterObjectManagerServer(srv.GRPCServer(), rpc.ObjectManager{db})
+		//pb.RegisterNamespaceManagerServer(srv.GRPCServer(), rpc.NewNamespaceManager(db))
+		//pb.RegisterReservationManagerServer(srv.GRPCServer(), &rpc.ReservationManager{db})
 
 		sigChan := make(chan os.Signal, 1)
 		signal.Notify(sigChan, syscall.SIGINT)
