@@ -8,106 +8,18 @@ import (
 	"strings"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/pkg/errors"
 	"github.com/gorilla/mux"
 	"github.com/zero-os/0-stor/store/db"
 	"github.com/zero-os/0-stor/store/manager"
+	"github.com/zero-os/0-stor/store/scope"
 )
-
-type Scope struct {
-	Namespace string
-	Actor string
-	Action string
-	Organization string
-	Permission string
-}
-
-func (s *Scope) Validate() error{
-	if s.Namespace == ""||
-		s.Action == "" ||
-		s.Actor == ""||
-		s.Organization == ""||
-		s.Permission == ""{
-			return errors.New("one or more required fields is empty")
-	}
-
-	if s.Permission != "read" &&
-		s.Permission != "write" &&
-		s.Permission != "delete" &&
-		s.Permission != "admin"{
-			return errors.New("Invalid permission")
-	}
-
-	return nil
-}
-
-func (s *Scope) Encode() (string, error){
-
-	if err := s.Validate(); err != nil{
-		return "", err
-	}
-
-
-	r := fmt.Sprintf("%s:%s:%s", s.Actor, s.Action, s.Organization)
-
-	if s.Namespace == ""{
-		r = fmt.Sprintf("%s.%s", r, "*")
-	}else{
-		r = fmt.Sprintf("%s.%s", r, s.Namespace)
-	}
-
-	if s.Permission != "admin"{
-		r = fmt.Sprintf("%s.%s", r, s.Permission)
-	}
-
-	return r, nil
-}
-
-func (s *Scope) Decode(scope string) error{
-	scope = strings.ToLower(scope)
-
-	if strings.Count(scope, ":") != 2{
-		return errors.New("Invalid scope string")
-	}
-
-	splitted := strings.Split(scope, ":")
-
-	actor := splitted[0]
-	action := splitted[1]
-
-	count := strings.Count(splitted[2], ".")
-
-	if count == 0 || count > 2{
-		return errors.New("Invalid scope string")
-	}
-
-	splitted = strings.Split(splitted[2], ".")
-
-	s.Organization = splitted[0]
-	s.Namespace = splitted[1]
-
-	if len(splitted) == 2{
-		s.Permission = "admin"
-	}else{
-		s.Permission = splitted[2]
-	}
-
-	s.Action = action
-	s.Actor = actor
-
-	if err := s.Validate(); err != nil{
-		return err
-	}
-
-	return nil
-}
 
 
 // Oauth2itsyouonlineMiddleware is oauth2 middleware for itsyouonline
 type Oauth2itsyouonlineMiddleware struct {
 	describedBy string
 	field       string
-	scopes      []*Scope
+	scopes      []*scope.Scope
 	pubKey      *ecdsa.PublicKey
 	url         string
 	db          db.DB
@@ -125,10 +37,10 @@ FpCIijAEx6A3BhfRUbmwl1evBKzWB/qw
 // NewOauth2itsyouonlineMiddlewarecreate new Oauth2itsyouonlineMiddleware struct
 func NewOauth2itsyouonlineMiddleware(db db.DB, scopes []string) *Oauth2itsyouonlineMiddleware {
 
-	var s []*Scope
+	var s []*scope.Scope
 
 	for _, scopeStr := range scopes{
-		scope := new(Scope)
+		scope := new(scope.Scope)
 		if err := scope.Decode(scopeStr); err != nil{
 			log.Fatal("Invalid scope")
 		}
@@ -154,19 +66,21 @@ func NewOauth2itsyouonlineMiddleware(db db.DB, scopes []string) *Oauth2itsyouonl
 }
 
 // CheckScopes checks whether user has needed scopes
-func (om *Oauth2itsyouonlineMiddleware) CheckPermissions(r *http.Request, scopes []*Scope) bool {
-	for _, s := range scopes{
-		for _, scope := range om.scopes{
+func (om *Oauth2itsyouonlineMiddleware) CheckPermissions(r *http.Request, scopes []*scope.Scope) bool {
+	for _, actual := range scopes{
+		for _, expected := range om.scopes{
 			if nsid, OK := mux.Vars(r)["nsid"]; OK{
-				if scope.Namespace == ""{
-					scope.Namespace = nsid
+				if expected.Namespace == ""{
+					expected.Namespace = nsid
 				}
 			}
 
-			if s.Namespace == scope.Namespace{
-				if s.Permission == "admin" || s.Permission == scope.Permission{
-					return true
-				}
+			if actual.Namespace == expected.Namespace &&
+				actual.Organization == expected.Organization&&
+				actual.Actor == expected.Actor && actual.Action == expected.Action{
+					if actual.Permission == "admin" || actual.Permission == expected.Permission{
+						return true
+					}
 			}
 		}
 	}
@@ -191,7 +105,7 @@ func (om *Oauth2itsyouonlineMiddleware) Handler(next http.Handler) http.Handler 
 			return
 		}
 
-		var scopes []*Scope
+		var scopes []*scope.Scope
 
 		if len(oauth2ServerPublicKey) > 0 {
 			scopeStrs, err := om.checkJWTGetScope(accessToken)
@@ -201,7 +115,7 @@ func (om *Oauth2itsyouonlineMiddleware) Handler(next http.Handler) http.Handler 
 			}
 
 			for _, scopeStr := range scopeStrs{
-				scope := new(Scope)
+				scope := new(scope.Scope)
 				if err := scope.Decode(scopeStr); err != nil{
 					w.WriteHeader(403)
 					return
