@@ -4,7 +4,10 @@ import (
 	"time"
 
 	"github.com/paulbellamy/ratecounter"
+	"sync"
 )
+
+var lock = sync.RWMutex{}
 
 type stat struct {
 	readReq  *ratecounter.RateCounter
@@ -39,6 +42,8 @@ func AddNamespace(label string) {
 
 // Incr increment the read request counter for a namespace
 func IncrRead(label string) {
+	lock.Lock()
+	defer lock.Unlock()
 	stat, ok := golbalNamespaceStat[label]
 	if !ok {
 		AddNamespace(label)
@@ -50,6 +55,8 @@ func IncrRead(label string) {
 
 // Incr increment the write request counter for a namespace
 func IncrWrite(label string) {
+	lock.Lock()
+	defer lock.Unlock()
 	stat, ok := golbalNamespaceStat[label]
 	if !ok {
 		AddNamespace(label)
