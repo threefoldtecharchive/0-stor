@@ -41,26 +41,23 @@ func testEncodeRoundTrip(t *testing.T, k, dataLen int) {
 	assert.Nil(t, err)
 
 	// decode
-	var lost []int
-
 	decodedChunks := make([][]byte, k+m)
 	for i := 0; i < k+m; i++ {
-		decodedChunks[i] = make([]byte, len(encoded[i]))
-
 		if i < m {
 			// simulate losing pieces here
 			// we can lost up to `m` pieces
-			lost = append(lost, i)
 			continue
 		}
-
+		decodedChunks[i] = make([]byte, len(encoded[i]))
 		copy(decodedChunks[i], encoded[i])
 	}
 
 	dec, err := NewDecoder(k, m)
 	assert.Nil(t, err)
-	decoded, err := dec.Decode(decodedChunks, lost, len(data))
+	decoded, err := dec.Decode(decodedChunks, len(data))
 	assert.Nil(t, err)
 
-	assert.Equal(t, data, decoded)
+	if !assert.Equal(t, data, decoded) {
+		return
+	}
 }

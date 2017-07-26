@@ -37,12 +37,12 @@ func (c *Client) Store(key, val []byte) error {
 }
 
 func (c *Client) Get(key []byte) ([]byte, error) {
-	resp, err := c.client.Namespaces.GetObject(string(key), c.nsid, nil, nil)
+	obj, resp, err := c.client.Namespaces.GetObject(string(key), c.nsid, nil, nil)
 	if err != nil {
 		return nil, err
 	}
 	if resp.StatusCode < 200 && resp.StatusCode > 300 {
 		return nil, fmt.Errorf("invalid status code: %v", resp.StatusCode)
 	}
-	return nil, nil
+	return []byte(obj.Data), nil
 }
