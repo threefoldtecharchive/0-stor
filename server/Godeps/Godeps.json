@@ -1,0 +1,106 @@
+{
+	"ImportPath": "github.com/zero-os/0-stor/store",
+	"GoVersion": "go1.8",
+	"GodepVersion": "v79",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "github.com/AndreasBriese/bbloom",
+			"Rev": "28f7e881ca57bc00e028f9ede9f0d9104cfeef5e"
+		},
+		{
+			"ImportPath": "github.com/Sirupsen/logrus",
+			"Comment": "v1.0.0-1-g85b1699",
+			"Rev": "85b1699d505667d13f8ac4478c1debbf85d6c5de"
+		},
+		{
+			"ImportPath": "github.com/bkaradzic/go-lz4",
+			"Comment": "v1.0.0-1-g7224d8d",
+			"Rev": "7224d8d8f27ef618c0a95f1ae69dbb0488abc33a"
+		},
+		{
+			"ImportPath": "github.com/codegangsta/cli",
+			"Comment": "v1.19.1-43-gcf33a9b",
+			"Rev": "cf33a9befefdd6c6ea1a236ab6d546e797a62cbf"
+		},
+		{
+			"ImportPath": "github.com/dgraph-io/badger",
+			"Rev": "cb5117ce1779c6112c1ecc9008ef4466ae374f7b"
+		},
+		{
+			"ImportPath": "github.com/dgraph-io/badger/skl",
+			"Rev": "cb5117ce1779c6112c1ecc9008ef4466ae374f7b"
+		},
+		{
+			"ImportPath": "github.com/dgraph-io/badger/table",
+			"Rev": "cb5117ce1779c6112c1ecc9008ef4466ae374f7b"
+		},
+		{
+			"ImportPath": "github.com/dgraph-io/badger/y",
+			"Rev": "cb5117ce1779c6112c1ecc9008ef4466ae374f7b"
+		},
+		{
+			"ImportPath": "github.com/dgrijalva/jwt-go",
+			"Comment": "v3.0.0-18-g6c8dedd",
+			"Rev": "6c8dedd55f8a2e41f605de6d5d66e51ed1f299fc"
+		},
+		{
+			"ImportPath": "github.com/gorilla/handlers",
+			"Comment": "v1.2.1-1-ga4d79d4",
+			"Rev": "a4d79d4487c2430a17d9dc8a1f74d1a6ed6908ca"
+		},
+		{
+			"ImportPath": "github.com/gorilla/mux",
+			"Comment": "v1.3.0-6-g4c1c395",
+			"Rev": "4c1c3952b7d9d0a061a3fa7b36fd373ba0398ebc"
+		},
+		{
+			"ImportPath": "github.com/justinas/alice",
+			"Comment": "1.0.0-16-g1051eaf",
+			"Rev": "1051eaf52fcafdd87ead59d28b065f1fcb8274ec"
+		},
+		{
+			"ImportPath": "github.com/paulbellamy/ratecounter",
+			"Comment": "v0.2.0-1-ga803f0e",
+			"Rev": "a803f0e4f07116687bb30965e8f7d0c32981b63c"
+		},
+		{
+			"ImportPath": "github.com/pkg/errors",
+			"Comment": "v0.8.0-5-gc605e28",
+			"Rev": "c605e284fe17294bda444b34710735b29d1a9d90"
+		},
+		{
+			"ImportPath": "github.com/pmezard/go-difflib/difflib",
+			"Comment": "v1.0.0",
+			"Rev": "792786c7400a136282c1664665ae0a8db921c6c2"
+		},
+		{
+			"ImportPath": "github.com/stretchr/testify/assert",
+			"Comment": "v1.1.4-27-g4d4bfba",
+			"Rev": "4d4bfba8f1d1027c4fdbe371823030df51419987"
+		},
+		{
+			"ImportPath": "github.com/stretchr/testify/require",
+			"Comment": "v1.1.4-27-g4d4bfba",
+			"Rev": "4d4bfba8f1d1027c4fdbe371823030df51419987"
+		},
+		{
+			"ImportPath": "golang.org/x/net/internal/timeseries",
+			"Rev": "34057069f4ab13dc4433c68d368737ebeafcccdc"
+		},
+		{
+			"ImportPath": "golang.org/x/net/trace",
+			"Rev": "34057069f4ab13dc4433c68d368737ebeafcccdc"
+		},
+		{
+			"ImportPath": "golang.org/x/sys/unix",
+			"Rev": "1e99a4f9d247b28c670884b9a8d6801f39a47b77"
+		},
+		{
+			"ImportPath": "gopkg.in/validator.v2",
+			"Rev": "07ffaad256c8e957050ad83d6472eb97d785013d"
+		}
+	]
+}

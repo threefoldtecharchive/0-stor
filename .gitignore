@@ -44,7 +44,7 @@ _testmain.go
 # Jetbrains
 .idea
 
-store/store
+server/server
 coverage.txt
 
-store/.db
+server/.db
