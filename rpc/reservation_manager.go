@@ -13,7 +13,7 @@ type ReservationManager struct {
 	db db.DB
 }
 
-func NewReservationManaer(db db.DB) {
+func NewReservationManaer(db db.DB) *ReservationManager {
 	return &ReservationManager{db: db}
 }
 

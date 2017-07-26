@@ -20,7 +20,7 @@ func NewNamespaceManager(db db.DB) *NamespaceManager {
 func (mgr *NamespaceManager) List(*pb.ListReservationRequest, pb.NamespaceManager_ListServer) error {
 	return nil
 }
-func (mgr *NamespaceManager) Create(context.Context, req *pb.CreateReservationRequest) (*pb.CreateNamespaceReply, error) {
+func (mgr *NamespaceManager) Create(context.Context, *pb.CreateReservationRequest) (*pb.CreateNamespaceReply, error) {
 	return nil, nil
 }
 func (mgr *NamespaceManager) Get(context.Context, *pb.GetNamespaceStatRequest) (*pb.GetNamespaceReply, error) {
