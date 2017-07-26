@@ -1,8 +1,8 @@
 package client
 
 import (
-	"github.com/zero-os/0-stor/client/librairies/reservation"
-	"github.com/zero-os/0-stor/server/vendor/gopkg.in/validator.v2"
+	"github.com/zero-os/0-stor/goraml/librairies/reservation"
+	"gopkg.in/validator.v2"
 )
 
 type NamespacesNsidReservationsPostRespBody struct {
