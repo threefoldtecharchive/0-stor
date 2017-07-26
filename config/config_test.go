@@ -66,7 +66,6 @@ func TestWrite(t *testing.T) {
 	pipe1 := Pipe{
 		Name:   "pipe1",
 		Type:   "compress",
-		Action: "write",
 		Config: confPipe1,
 	}
 	conf := Config{

@@ -47,19 +47,16 @@ func testPipeWriter(t *testing.T, compressType int) {
 			Pipe{
 				Name:   "pipe1",
 				Type:   compressStr,
-				Action: "write",
 				Config: compressConf,
 			},
 			Pipe{
 				Name:   "type2",
 				Type:   encryptStr,
-				Action: "write",
 				Config: encryptConf,
 			},
 			Pipe{
-				Name:   "type2",
-				Type:   hashStr,
-				Action: "write",
+				Name: "type2",
+				Type: hashStr,
 				Config: hash.Config{
 					Type: hash.TypeBlake2,
 				},

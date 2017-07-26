@@ -27,13 +27,11 @@ func TestRoundTrip(t *testing.T) {
 			config.Pipe{
 				Name:   "pipe1",
 				Type:   "compress",
-				Action: "write",
 				Config: compressConf,
 			},
 			config.Pipe{
 				Name:   "type2",
 				Type:   "encrypt",
-				Action: "write",
 				Config: encryptConf,
 			},
 		},
@@ -52,10 +50,9 @@ func TestRoundTrip(t *testing.T) {
 	assert.Nil(t, err)
 
 	// read it
-	ars, err := conf.CreateAllReaders()
+	rp, err := NewReadPipe(conf)
 	assert.Nil(t, err)
 
-	rp := NewReadPipe(ars)
 	readResult, err := rp.ReadAll(finalWriter.Bytes())
 	assert.Nil(t, err)
 	assert.Equal(t, data, readResult)

@@ -8,7 +8,6 @@ shards:
 pipes:
 - name: pipe1
   type: compress
-  action: write
   config:
     type: 1
     level: 0

@@ -24,8 +24,6 @@ type Pipe struct {
 	// chunker, compress, distribution, encrypt, hash, replication
 	Type string `yaml:"type" validate:"nonzero"`
 
-	// Action to be performed: `write` or `read`.
-	Action string      `yaml:"action" validate:"nonzero"`
 	Config interface{} `yaml:"config"`
 }
 
@@ -43,9 +41,6 @@ func (p Pipe) CreateReader(rd io.Reader) (allreader.AllReader, error) {
 }
 
 func (p Pipe) CreateWriter(w io.Writer, shards []string, org, namespace string) (io.Writer, error) {
-	if p.Action != "write" {
-		return nil, fmt.Errorf("not write action")
-	}
 	switch p.Type {
 	case chunkerStr:
 		//return p.createChunkerWriter(w)
@@ -149,10 +144,6 @@ func (p Pipe) validate() error {
 
 	if _, ok := validPipes[p.Type]; !ok {
 		return fmt.Errorf("invalid pipe: %v", p.Type)
-	}
-
-	if p.Action != "write" && p.Action != "read" {
-		return fmt.Errorf("invalid action: %v", p.Action)
 	}
 
 	return nil
