@@ -7,8 +7,10 @@ import (
 	"github.com/zero-os/0-stor-lib/client/itsyouonline"
 	"github.com/zero-os/0-stor-lib/config"
 	"github.com/zero-os/0-stor-lib/distribution"
+	"github.com/zero-os/0-stor-lib/pipe"
 )
 
+// Client defines 0-stor client
 type Client struct {
 	conf       *config.Config
 	iyoClient  *itsyouonline.Client
@@ -16,7 +18,7 @@ type Client struct {
 	ecEncoder  *distribution.Encoder
 }
 
-func NewClient(confFile string) (*Client, error) {
+func New(confFile string) (*Client, error) {
 	// read config
 	f, err := os.Open(confFile)
 	if err != nil {
@@ -46,4 +48,12 @@ func NewClient(confFile string) (*Client, error) {
 
 func (c *Client) Store(payload []byte) (int, error) {
 	return c.storWriter.Write(payload)
+}
+
+func (c *Client) Get(key []byte) ([]byte, error) {
+	rp, err := pipe.NewReadPipe(*c.conf)
+	if err != nil {
+		return nil, err
+	}
+	return rp.ReadAll(key)
 }

@@ -7,8 +7,9 @@ import (
 	"github.com/zero-os/0-stor-lib/stor"
 )
 
-// StorDistributor defines distributor that write
-// the encoded data to 0-stor
+// StorDistributor defines distributor that use 0-stor rest/grpc clients
+// as Writers.
+// It create one stor.Client for each shard
 type StorDistributor struct {
 	enc         *Encoder
 	hasher      *hash.Hasher
@@ -86,6 +87,28 @@ func NewStorRestorer(conf Config, shards []string, org, namespace string) (*Stor
 		dec:         dec,
 		storClients: storClients,
 	}, nil
+}
+
+// ReadAll implements allreader.ReadAll
+func (sr StorRestorer) ReadAll(key []byte) ([]byte, error) {
+	var chunkLen int
+	chunks := make([][]byte, sr.dec.k+sr.dec.m)
+
+	// read all chunks from stor.Clients
+	for i, sc := range sr.storClients {
+		data, err := sc.Get(key)
+		if err != nil {
+		} else {
+			chunks[i] = data
+			chunkLen = len(data)
+		}
+	}
+
+	origLen := chunkLen * (sr.dec.k) // TODO get from meta
+	origLen = 318
+	// decode
+	decoded, err := sr.dec.Decode(chunks, origLen)
+	return decoded, err
 }
 
 func createStorClients(shards []string, org, namespace, iyoJWTClient string) ([]stor.Client, error) {

@@ -27,7 +27,7 @@ type Pipe struct {
 	Config interface{} `yaml:"config"`
 }
 
-func (p Pipe) CreateReader(rd io.Reader) (allreader.AllReader, error) {
+func (p Pipe) CreateReader(rd io.Reader, shards []string, org, namespace string) (allreader.AllReader, error) {
 	switch p.Type {
 	case compressStr:
 		conf := p.Config.(compress.Config)
@@ -35,6 +35,9 @@ func (p Pipe) CreateReader(rd io.Reader) (allreader.AllReader, error) {
 	case encryptStr:
 		conf := p.Config.(encrypt.Config)
 		return encrypt.NewReader(rd, conf)
+	case distributionStr:
+		conf := p.Config.(distribution.Config)
+		return distribution.NewStorRestorer(conf, shards, org, namespace)
 	default:
 		return nil, fmt.Errorf("invalid type:%v", p.Type)
 	}

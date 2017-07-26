@@ -1,10 +1,10 @@
 package allreader
 
 import (
-	"io"
+//"io"
 )
 
 type AllReader interface {
-	io.Reader
+	//io.Reader
 	ReadAll([]byte) ([]byte, error)
 }

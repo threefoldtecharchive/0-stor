@@ -101,7 +101,7 @@ func (conf *Config) CreatePipeWriter(finalWriter io.Writer) (io.Writer, error) {
 func (conf *Config) CreateAllReaders() ([]allreader.AllReader, error) {
 	var readers []allreader.AllReader
 	for _, pipe := range conf.Pipes {
-		ar, err := pipe.CreateReader(nil)
+		ar, err := pipe.CreateReader(nil, conf.Shards, conf.Organization, conf.Namespace)
 		if err != nil {
 			return nil, err
 		}
