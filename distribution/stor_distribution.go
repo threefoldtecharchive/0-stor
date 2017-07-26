@@ -16,7 +16,7 @@ type StorDistributor struct {
 }
 
 // NewStorDistributor creates new StorDistributor
-func NewStorDistributor(shards []string, conf Config) (*StorDistributor, error) {
+func NewStorDistributor(conf Config, shards []string, org, namespace string) (*StorDistributor, error) {
 	if len(shards) < conf.NumPieces() {
 		return nil, fmt.Errorf("invalid number of shards=%v, expected=%v", len(shards), conf.NumPieces())
 	}
@@ -24,7 +24,7 @@ func NewStorDistributor(shards []string, conf Config) (*StorDistributor, error) 
 	// stor clients
 	var scs []stor.Client
 	for _, shard := range shards {
-		storClient, err := stor.NewClient(shard)
+		storClient, err := stor.NewClient(shard, org, namespace, "")
 		if err != nil {
 			return nil, err
 		}

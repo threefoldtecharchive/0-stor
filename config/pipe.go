@@ -42,7 +42,7 @@ func (p Pipe) CreateReader(rd io.Reader) (allreader.AllReader, error) {
 	}
 }
 
-func (p Pipe) CreateWriter(w io.Writer, shards []string) (io.Writer, error) {
+func (p Pipe) CreateWriter(w io.Writer, shards []string, org, namespace string) (io.Writer, error) {
 	if p.Action != "write" {
 		return nil, fmt.Errorf("not write action")
 	}
@@ -53,7 +53,7 @@ func (p Pipe) CreateWriter(w io.Writer, shards []string) (io.Writer, error) {
 	case compressStr:
 		return p.createCompressWriter(w)
 	case distributionStr:
-		return p.createStorDistributor(shards)
+		return p.createStorDistributor(shards, org, namespace)
 	case encryptStr:
 		return p.createEncryptWriter(w)
 	case hashStr:
@@ -78,9 +78,9 @@ func (p Pipe) createHashWriter(w io.Writer) (*hash.Writer, error) {
 	return hash.NewWriter(w, conf)
 }
 
-func (p Pipe) createStorDistributor(shards []string) (*distribution.StorDistributor, error) {
+func (p Pipe) createStorDistributor(shards []string, org, namespace string) (*distribution.StorDistributor, error) {
 	conf := p.Config.(distribution.Config)
-	return distribution.NewStorDistributor(shards, conf)
+	return distribution.NewStorDistributor(conf, shards, org, namespace)
 }
 
 // set p.Config to proper type.

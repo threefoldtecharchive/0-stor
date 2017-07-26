@@ -89,7 +89,7 @@ func (conf *Config) CreatePipeWriter(finalWriter io.Writer) (io.Writer, error) {
 
 	for i := len(conf.Pipes) - 1; i >= 0; i-- {
 		pipe := conf.Pipes[i]
-		w, err := pipe.CreateWriter(nextWriter, conf.Shards)
+		w, err := pipe.CreateWriter(nextWriter, conf.Shards, conf.Organization, conf.Namespace)
 		if err != nil {
 			return nil, err
 		}

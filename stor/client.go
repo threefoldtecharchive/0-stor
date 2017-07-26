@@ -9,6 +9,6 @@ type Client interface {
 	Get(key []byte) (val []byte, err error)
 }
 
-func NewClient(addr string) (Client, error) {
-	return rest.NewClient(addr), nil
+func NewClient(addr, org, namespace, iyoJWTToken string) (Client, error) {
+	return rest.NewClient(addr, org, namespace, iyoJWTToken), nil
 }
