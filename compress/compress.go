@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/zero-os/0-stor-lib/allreader"
 	"github.com/zero-os/0-stor-lib/fullreadwrite"
 )
 
@@ -36,7 +35,7 @@ type Config struct {
 }
 
 // NewWriter returns a new Writer. Writes to the returned writer are compressed and written to w.
-func NewWriter(c Config, w fullreadwrite.FullWriter) (fullreadwrite.FullWriter, error) {
+func NewWriter(c Config, w fullreadwrite.Writer) (fullreadwrite.Writer, error) {
 	switch c.Type {
 	case TypeSnappy:
 		return newSnappyWriter(w), nil
@@ -57,7 +56,7 @@ func NewWriter(c Config, w fullreadwrite.FullWriter) (fullreadwrite.FullWriter, 
 }
 
 // NewReader returns a new Reader that decompresses from r
-func NewReader(c Config, r io.Reader) (allreader.AllReader, error) {
+func NewReader(c Config, r io.Reader) (fullreadwrite.Reader, error) {
 	switch c.Type {
 	case TypeSnappy:
 		return newSnappyReader(r), nil

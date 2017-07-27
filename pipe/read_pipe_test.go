@@ -53,7 +53,7 @@ func TestRoundTrip(t *testing.T) {
 	rp, err := NewReadPipe(conf)
 	assert.Nil(t, err)
 
-	readResult, err := rp.ReadAll(finalWriter.Bytes())
+	readResult, err := rp.ReadFull(finalWriter.Bytes())
 	assert.Nil(t, err)
 	assert.Equal(t, data, readResult)
 }

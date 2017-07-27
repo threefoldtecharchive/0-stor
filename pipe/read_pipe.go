@@ -1,13 +1,13 @@
 package pipe
 
 import (
-	"github.com/zero-os/0-stor-lib/allreader"
 	"github.com/zero-os/0-stor-lib/config"
+	"github.com/zero-os/0-stor-lib/fullreadwrite"
 )
 
 // ReadPipe represents pipe of readers
 type ReadPipe struct {
-	readers []allreader.AllReader
+	readers []fullreadwrite.Reader
 }
 
 // NewReadPipe create ReadPipe from config
@@ -21,13 +21,13 @@ func NewReadPipe(conf config.Config) (*ReadPipe, error) {
 	}, nil
 }
 
-// ReadAll passes the data to the pipes
-func (rp ReadPipe) ReadAll(data []byte) ([]byte, error) {
+// ReadFull passes the data to the pipes
+func (rp ReadPipe) ReadFull(data []byte) ([]byte, error) {
 	var err error
 	curData := data
 
 	for _, rd := range rp.readers {
-		curData, err = rd.ReadAll(curData)
+		curData, err = rd.ReadFull(curData)
 		if err != nil {
 			return nil, err
 		}

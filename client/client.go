@@ -17,7 +17,7 @@ type Client struct {
 	conf       *config.Config
 	iyoClient  *itsyouonline.Client
 	metaCli    *meta.Client
-	storWriter fullreadwrite.FullWriter
+	storWriter fullreadwrite.Writer
 	ecEncoder  *distribution.Encoder
 }
 
@@ -85,5 +85,5 @@ func (c *Client) Get(key []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	return rp.ReadAll(metaBytes)
+	return rp.ReadFull(metaBytes)
 }

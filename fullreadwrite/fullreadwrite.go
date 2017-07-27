@@ -6,13 +6,18 @@ import (
 	"github.com/zero-os/0-stor-lib/meta"
 )
 
+// WriteResponse defines response of WriteFull
 type WriteResponse struct {
 	Written int
 	Err     error
 	Meta    *meta.Meta
 }
 
-type FullWriter interface {
+type Writer interface {
 	io.Writer
 	WriteFull(data []byte) WriteResponse
+}
+
+type Reader interface {
+	ReadFull([]byte) ([]byte, error)
 }

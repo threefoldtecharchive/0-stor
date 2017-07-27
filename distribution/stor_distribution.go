@@ -117,8 +117,9 @@ func NewStorRestorer(conf Config, shards []string, org, namespace string) (*Stor
 	}, nil
 }
 
-// ReadAll implements allreader.ReadAll
-func (sr StorRestorer) ReadAll(rawMeta []byte) ([]byte, error) {
+// ReadFull implements fullreadwrite.Reader
+// The input is raw metadata
+func (sr StorRestorer) ReadFull(rawMeta []byte) ([]byte, error) {
 	// decode the meta
 	meta, err := meta.Decode(rawMeta)
 	if err != nil {

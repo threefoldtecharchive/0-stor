@@ -51,7 +51,7 @@ func testRoundTrip(t *testing.T, conf Config) {
 	}
 
 	// decompress by read from the reader
-	b, err := r.ReadAll(buf.Bytes())
+	b, err := r.ReadFull(buf.Bytes())
 	if !assert.Nil(t, err) {
 		return
 	}

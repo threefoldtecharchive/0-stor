@@ -9,10 +9,10 @@ import (
 )
 
 type snappyWriter struct {
-	w fullreadwrite.FullWriter
+	w fullreadwrite.Writer
 }
 
-func newSnappyWriter(w fullreadwrite.FullWriter) *snappyWriter {
+func newSnappyWriter(w fullreadwrite.Writer) *snappyWriter {
 	return &snappyWriter{
 		w: w,
 	}
@@ -42,7 +42,7 @@ func newSnappyReader(r io.Reader) *snappyReader {
 	}
 }
 
-func (sr *snappyReader) ReadAll(data []byte) ([]byte, error) {
+func (sr *snappyReader) ReadFull(data []byte) ([]byte, error) {
 	return snappy.Decode(nil, data)
 }
 

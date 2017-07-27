@@ -46,11 +46,11 @@ func NewEncrypterDecrypter(conf Config) (EncrypterDecrypter, error) {
 // Writer defines encryption writer
 type Writer struct {
 	ed EncrypterDecrypter
-	w  fullreadwrite.FullWriter
+	w  fullreadwrite.Writer
 }
 
 // NewWriter creates new encryption writer
-func NewWriter(w fullreadwrite.FullWriter, conf Config) (*Writer, error) {
+func NewWriter(w fullreadwrite.Writer, conf Config) (*Writer, error) {
 	ed, err := NewEncrypterDecrypter(conf)
 	if err != nil {
 		return nil, err
@@ -108,6 +108,6 @@ func (r *Reader) Read(plain []byte) (int, error) {
 	return len(decrypted), nil
 }
 
-func (r *Reader) ReadAll(data []byte) ([]byte, error) {
+func (r *Reader) ReadFull(data []byte) ([]byte, error) {
 	return r.ed.Decrypt(data)
 }

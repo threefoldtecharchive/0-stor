@@ -7,7 +7,6 @@ import (
 	"gopkg.in/validator.v2"
 	"gopkg.in/yaml.v2"
 
-	"github.com/zero-os/0-stor-lib/allreader"
 	"github.com/zero-os/0-stor-lib/chunker"
 	"github.com/zero-os/0-stor-lib/compress"
 	"github.com/zero-os/0-stor-lib/distribution"
@@ -28,7 +27,7 @@ type Pipe struct {
 	Config interface{} `yaml:"config"`
 }
 
-func (p Pipe) CreateReader(rd io.Reader, shards []string, org, namespace string) (allreader.AllReader, error) {
+func (p Pipe) CreateReader(rd io.Reader, shards []string, org, namespace string) (fullreadwrite.Reader, error) {
 	switch p.Type {
 	case compressStr:
 		conf := p.Config.(compress.Config)
@@ -44,7 +43,7 @@ func (p Pipe) CreateReader(rd io.Reader, shards []string, org, namespace string)
 	}
 }
 
-func (p Pipe) CreateWriter(w fullreadwrite.FullWriter, shards []string, org, namespace string) (fullreadwrite.FullWriter, error) {
+func (p Pipe) CreateWriter(w fullreadwrite.Writer, shards []string, org, namespace string) (fullreadwrite.Writer, error) {
 	switch p.Type {
 	case chunkerStr:
 		panic("chunker is not supported by pipe.CreateWriter")
@@ -61,12 +60,12 @@ func (p Pipe) CreateWriter(w fullreadwrite.FullWriter, shards []string, org, nam
 	}
 }
 
-func (p Pipe) createCompressWriter(w fullreadwrite.FullWriter) (fullreadwrite.FullWriter, error) {
+func (p Pipe) createCompressWriter(w fullreadwrite.Writer) (fullreadwrite.Writer, error) {
 	conf := p.Config.(compress.Config)
 	return compress.NewWriter(conf, w)
 }
 
-func (p Pipe) createEncryptWriter(w fullreadwrite.FullWriter) (*encrypt.Writer, error) {
+func (p Pipe) createEncryptWriter(w fullreadwrite.Writer) (*encrypt.Writer, error) {
 	conf := p.Config.(encrypt.Config)
 	return encrypt.NewWriter(w, conf)
 }

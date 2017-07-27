@@ -67,7 +67,7 @@ func newGzipReader(rd io.Reader) (*gzipReader, error) {
 	}, nil
 }
 
-func (gr gzipReader) ReadAll(data []byte) ([]byte, error) {
+func (gr gzipReader) ReadFull(data []byte) ([]byte, error) {
 	br := bytes.NewReader(data)
 	rd, err := gzip.NewReader(br)
 	if err != nil {
