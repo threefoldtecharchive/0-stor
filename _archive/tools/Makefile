@@ -4,7 +4,7 @@ SRC = g8stor-cli.c
 OBJ = g8stor-cli.o
 
 CFLAGS  = -pthread -W -Wall -O2 -I../src/ -I/usr/include/hiredis -g
-LDFLAGS = ../src/libg8stor.a -lhiredis -lssl -lcrypto -lsnappy -lz -lm
+LDFLAGS = ../src/lib0stor.a -lhiredis -lssl -lcrypto -lsnappy -lz -lm
 
 CC = gcc
 
@@ -21,4 +21,3 @@ clean:
 
 mrproper: clean
 	rm -fv $(EXEC)
-

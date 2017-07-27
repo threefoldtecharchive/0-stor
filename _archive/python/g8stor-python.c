@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <hiredis.h>
-#include "libg8stor.h"
+#include "lib0stor.h"
 
 /*
 remote_t *remotes = NULL;
@@ -43,8 +43,10 @@ static PyObject *g8storclient_encrypt(PyObject *self, PyObject *args) {
 
     printf("[+] encrypting %d chunks\n", buffer->chunks);
     for(int i = 0; i < buffer->chunks; i++) {
-        // uploading chunk
-        chunk_t *chunk = encrypt_chunk(buffer);
+        const unsigned char *data = buffer_next(buffer);
+
+        // encrypting chunk
+        chunk_t *chunk = encrypt_chunk(data, buffer->chunksize);
 
         // inserting hash to the list
         PyObject *pychunk = PyDict_New();
@@ -102,12 +104,16 @@ static PyObject *g8storclient_decrypt(PyObject *self, PyObject *args) {
         memcpy(datadup, data, length);
 
         chunk_t *chunk = chunk_new(strdup(id), strdup(cipher), datadup, length);
+        chunk_t *output = NULL;
 
         // downloading chunk
-        if(!(chunksize = decrypt_chunk(chunk, buffer)))
+        if(!(output = decrypt_chunk(chunk)))
             fprintf(stderr, "[-] decrypt failed\n");
 
-        printf("-> chunk restored: %lu bytes\n", chunksize);
+        buffer->chunks += 1;
+        buffer->finalsize += output->length;
+        printf("[+] chunk restored: %lu bytes\n", output->length);
+
         chunk_free(chunk);
     }
 

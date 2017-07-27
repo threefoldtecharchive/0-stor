@@ -1,33 +1,4 @@
-# libg8stor
-```bash
-git clone https://github.com/zero-os/lib0stor
-cd lib0stor
-```
+# 0-stor-lib [![Build Status](https://travis-ci.org/zero-os/0-stor-lib.svg?branch=master)](https://travis-ci.org/zero-os/0-stor-lib)  [![codecov](https://codecov.io/gh/zero-os/0-stor-lib/branch/master/graph/badge.svg)](https://codecov.io/gh/zero-os/0-stor-lib) [![godoc](https://godoc.org/github.com/zero-os/0-stor-lib?status.svg)](https://godoc.org/github.com/zero-os/0-stor-lib)
 
-Prepare dependencies
-```bash
-rm -rf src/3rdparty/xxtea-c
-git clone https://github.com/xxtea/xxtea-c.git src/3rdparty/xxtea-c
-```
-
-Install dependencies (all devel): `hiredis ssl snappy zlib python`
-
-Compile library
-```bash
-cd src
-make clean && make
-```
-
-
-Compile command-line tools
-```bash
-cd ../tools
-make clean && make
-```
-
-Ensure library works with command-line
-```bash
-dd if=/dev/urandom of=/tmp/libstor-source bs=1M count=8
-./g8stor-cli /tmp/libstor-source /tmp/libstor-verify
-md5sum /tmp/libstor-*
-```
+[Specifications](specs)
+API documentation : [https://godoc.org/github.com/zero-os/0-stor-lib](https://godoc.org/github.com/zero-os/0-stor-lib)
