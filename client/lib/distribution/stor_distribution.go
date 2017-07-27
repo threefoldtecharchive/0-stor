@@ -3,10 +3,10 @@ package distribution
 import (
 	"fmt"
 
-	"github.com/zero-os/0-stor-lib/fullreadwrite"
-	"github.com/zero-os/0-stor-lib/hash"
-	"github.com/zero-os/0-stor-lib/meta"
-	"github.com/zero-os/0-stor-lib/stor"
+	"github.com/zero-os/0-stor/client/fullreadwrite"
+	"github.com/zero-os/0-stor/client/lib/hash"
+	"github.com/zero-os/0-stor/client/meta"
+	"github.com/zero-os/0-stor/client/stor"
 )
 
 // StorDistributor defines distributor that use 0-stor rest/grpc clients

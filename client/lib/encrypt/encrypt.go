@@ -6,7 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 
-	"github.com/zero-os/0-stor-lib/fullreadwrite"
+	"github.com/zero-os/0-stor/client/fullreadwrite"
 )
 
 // Encryption type

@@ -6,7 +6,7 @@ import (
 	"log"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/zero-os/0-stor-lib/client/itsyouonline"
+	"github.com/zero-os/0-stor/client/itsyouonline"
 )
 
 var JWTPublicKey *ecdsa.PublicKey

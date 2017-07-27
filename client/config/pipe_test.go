@@ -6,9 +6,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/zero-os/0-stor-lib/compress"
-	"github.com/zero-os/0-stor-lib/encrypt"
-	"github.com/zero-os/0-stor-lib/fullreadwrite"
+	"github.com/zero-os/0-stor/client/fullreadwrite"
+	"github.com/zero-os/0-stor/client/lib/compress"
+	"github.com/zero-os/0-stor/client/lib/encrypt"
 )
 
 func TestPipeWriter(t *testing.T) {

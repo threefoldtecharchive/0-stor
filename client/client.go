@@ -4,12 +4,11 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/zero-os/0-stor-lib/client/itsyouonline"
-	"github.com/zero-os/0-stor-lib/config"
-	"github.com/zero-os/0-stor-lib/distribution"
-	"github.com/zero-os/0-stor-lib/fullreadwrite"
-	"github.com/zero-os/0-stor-lib/meta"
-	"github.com/zero-os/0-stor-lib/pipe"
+	"github.com/zero-os/0-stor/client/config"
+	"github.com/zero-os/0-stor/client/fullreadwrite"
+	"github.com/zero-os/0-stor/client/itsyouonline"
+	"github.com/zero-os/0-stor/client/meta"
+	"github.com/zero-os/0-stor/client/pipe"
 )
 
 // Client defines 0-stor client
@@ -18,7 +17,6 @@ type Client struct {
 	iyoClient  *itsyouonline.Client
 	metaCli    *meta.Client
 	storWriter fullreadwrite.Writer
-	ecEncoder  *distribution.Encoder
 }
 
 func New(confFile string) (*Client, error) {

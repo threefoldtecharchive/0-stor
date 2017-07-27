@@ -7,7 +7,7 @@ import (
 	"gopkg.in/validator.v2"
 	"gopkg.in/yaml.v2"
 
-	"github.com/zero-os/0-stor-lib/fullreadwrite"
+	"github.com/zero-os/0-stor/client/fullreadwrite"
 )
 
 const (

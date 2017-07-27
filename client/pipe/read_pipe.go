@@ -1,8 +1,8 @@
 package pipe
 
 import (
-	"github.com/zero-os/0-stor-lib/config"
-	"github.com/zero-os/0-stor-lib/fullreadwrite"
+	"github.com/zero-os/0-stor/client/config"
+	"github.com/zero-os/0-stor/client/fullreadwrite"
 )
 
 // ReadPipe represents pipe of readers

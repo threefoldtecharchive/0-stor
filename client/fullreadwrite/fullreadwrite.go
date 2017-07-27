@@ -3,7 +3,7 @@ package fullreadwrite
 import (
 	"io"
 
-	"github.com/zero-os/0-stor-lib/meta"
+	"github.com/zero-os/0-stor/client/meta"
 )
 
 // WriteResponse defines response of WriteFull

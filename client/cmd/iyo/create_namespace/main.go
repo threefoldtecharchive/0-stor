@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/zero-os/0-stor-lib/client/itsyouonline"
+	"github.com/zero-os/0-stor/client/itsyouonline"
 )
 
 func main() {

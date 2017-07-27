@@ -7,13 +7,13 @@ import (
 	"gopkg.in/validator.v2"
 	"gopkg.in/yaml.v2"
 
-	"github.com/zero-os/0-stor-lib/chunker"
-	"github.com/zero-os/0-stor-lib/compress"
-	"github.com/zero-os/0-stor-lib/distribution"
-	"github.com/zero-os/0-stor-lib/encrypt"
-	"github.com/zero-os/0-stor-lib/fullreadwrite"
-	"github.com/zero-os/0-stor-lib/hash"
-	"github.com/zero-os/0-stor-lib/replication"
+	"github.com/zero-os/0-stor/client/fullreadwrite"
+	"github.com/zero-os/0-stor/client/lib/chunker"
+	"github.com/zero-os/0-stor/client/lib/compress"
+	"github.com/zero-os/0-stor/client/lib/distribution"
+	"github.com/zero-os/0-stor/client/lib/encrypt"
+	"github.com/zero-os/0-stor/client/lib/hash"
+	"github.com/zero-os/0-stor/client/lib/replication"
 )
 
 // Pipe defines each 0-stor client pipe

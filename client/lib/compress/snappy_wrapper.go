@@ -5,7 +5,7 @@ import (
 
 	"github.com/golang/snappy"
 
-	"github.com/zero-os/0-stor-lib/fullreadwrite"
+	"github.com/zero-os/0-stor/client/fullreadwrite"
 )
 
 type snappyWriter struct {

@@ -3,7 +3,7 @@ package pipe
 import (
 	"io"
 
-	"github.com/zero-os/0-stor-lib/config"
+	"github.com/zero-os/0-stor/client/config"
 )
 
 type WritePipe struct {

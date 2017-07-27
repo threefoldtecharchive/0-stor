@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/zero-os/0-stor-lib/client"
+	"github.com/zero-os/0-stor/client"
 )
 
 func main() {

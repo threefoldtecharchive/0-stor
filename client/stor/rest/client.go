@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	client "github.com/zero-os/0-stor/store/client/goraml"
+	client "github.com/zero-os/0-stor/client/goraml"
 )
 
 // Client is 0-stor client.
