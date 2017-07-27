@@ -44,7 +44,7 @@ func TestDistributeRestore(t *testing.T) {
 		if i < conf.M {
 			// simulate losing pieces here
 			// we can lost up to `m` pieces
-			reader = bytes.NewReader([]byte("a"))
+			reader = bytes.NewReader(nil)
 		} else {
 			reader = bytes.NewReader(buffs[i].Bytes())
 		}
@@ -92,25 +92,25 @@ func TestDistributeDecode(t *testing.T) {
 	assert.Nil(t, err)
 
 	// decode
-	var lost []int
 
 	decodedChunks := make([][]byte, conf.NumPieces())
 	for i := 0; i < conf.NumPieces(); i++ {
-		decodedChunks[i] = make([]byte, buffs[i].Len())
 
 		if i < conf.M {
 			// simulate losing pieces here
 			// we can lost up to `m` pieces
-			lost = append(lost, i)
 			continue
 		}
+		decodedChunks[i] = make([]byte, buffs[i].Len())
 		copy(decodedChunks[i], buffs[i].Bytes())
 	}
 
 	dec, err := NewDecoder(conf.K, conf.M)
-	decoded, err := dec.Decode(decodedChunks, lost, len(data))
+	decoded, err := dec.Decode(decodedChunks, len(data))
 	assert.Nil(t, err)
 
-	assert.Equal(t, data, decoded)
+	if !assert.Equal(t, data, decoded) {
+		return
+	}
 
 }

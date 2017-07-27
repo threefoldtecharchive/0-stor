@@ -1,13 +1,11 @@
 package distribution
 
 import (
-	"fmt"
-
 	"github.com/templexxx/reedsolomon"
 )
 
 const (
-	padFactor = reedsolomon.LoopSizeAVX2
+	padFactor = 256
 )
 
 // Encoder encode the data to be distributed
@@ -36,10 +34,11 @@ func NewEncoder(k, m int) (*Encoder, error) {
 // Encode encodes the data using erasure code
 func (enc *Encoder) Encode(data []byte) ([][]byte, error) {
 	datas := enc.splitData(data)
-
 	parities := reedsolomon.NewMatrix(enc.m, len(datas[0]))
-	err := enc.enc.Encode(datas, parities)
-	return append(datas, parities...), err
+	datas = append(datas, parities...)
+
+	err := enc.enc.Encode(datas)
+	return datas, err
 }
 
 func (enc *Encoder) splitData(data []byte) [][]byte {
@@ -101,30 +100,9 @@ func NewDecoder(k, m int) (*Decoder, error) {
 // Decode decodes the data using erasure code.
 // Lost is array of lost pieces index.
 // origLen is the original data length.
-func (d *Decoder) Decode(chunks [][]byte, lost []int, origLen int) ([]byte, error) {
-	if len(lost) > d.m {
-		return nil, fmt.Errorf("too many lost chunks: %v, max: %v", len(lost), d.m)
-	}
-
-	// get pieces we have from pieces we lost
-	have := func() []int {
-		var have []int
-
-		// build map of lost pieces for easier checking
-		lostMap := make(map[int]struct{})
-		for _, v := range lost {
-			lostMap[v] = struct{}{}
-		}
-		for i := 0; i < len(chunks); i++ {
-			if _, ok := lostMap[i]; !ok {
-				have = append(have, i)
-			}
-		}
-		return have
-	}()
-
+func (d *Decoder) Decode(chunks [][]byte, origLen int) ([]byte, error) {
 	// decode
-	if err := d.dec.Reconst(chunks, have, lost); err != nil {
+	if err := d.dec.ReconstructData(chunks); err != nil {
 		return nil, err
 	}
 

@@ -18,6 +18,7 @@ type Config struct {
 	M int `yaml:"m"`
 }
 
+// NumPieces returns total number of pieces given the configuration
 func (c Config) NumPieces() int {
 	return c.K + c.M
 }
@@ -40,7 +41,7 @@ func NewDistributor(writers []io.Writer, conf Config) (*Distributor, error) {
 }
 
 // Write writes blocks to the given output writers
-func (d *Distributor) Write(data []byte) (int, error) {
+func (d Distributor) Write(data []byte) (int, error) {
 	var written int
 
 	encoded, err := d.enc.Encode(data)
@@ -84,8 +85,6 @@ func NewRestorer(readers []io.Reader, conf Config) (*Restorer, error) {
 // length of the decoded argument must be the same as lenght of
 // the original data
 func (r *Restorer) Read(decoded []byte) (int, error) {
-	var lost []int
-
 	origLen := len(decoded)
 	chunks := make([][]byte, r.dec.k+r.dec.m)
 	chunkLen := getPaddedLen(origLen, r.dec.k) / r.dec.k
@@ -95,15 +94,13 @@ func (r *Restorer) Read(decoded []byte) (int, error) {
 		data, err := ioutil.ReadAll(reader)
 		if err != nil || len(data) != chunkLen {
 			// error and invalid lenght are marked as data lost!
-			lost = append(lost, i)
-			chunks[i] = make([]byte, chunkLen)
 		} else {
 			chunks[i] = data
 		}
 	}
 
 	// decode
-	res, err := r.dec.Decode(chunks, lost, origLen)
+	res, err := r.dec.Decode(chunks, origLen)
 	if err != nil || len(res) != origLen {
 		return len(res), err
 	}
