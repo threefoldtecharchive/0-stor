@@ -1,7 +1,6 @@
 package config
 
 import (
-	"bytes"
 	"crypto/rand"
 	"testing"
 
@@ -9,7 +8,7 @@ import (
 
 	"github.com/zero-os/0-stor-lib/compress"
 	"github.com/zero-os/0-stor-lib/encrypt"
-	"github.com/zero-os/0-stor-lib/hash"
+	"github.com/zero-os/0-stor-lib/fullreadwrite"
 )
 
 func TestPipeWriter(t *testing.T) {
@@ -17,7 +16,7 @@ func TestPipeWriter(t *testing.T) {
 		name         string
 		compressType int
 	}{
-		{"gzip", compress.TypeGzip},
+		//{"gzip", compress.TypeGzip},
 		{"snappy", compress.TypeSnappy},
 		//{"lz4", compress.TypeLz4},
 	}
@@ -38,9 +37,6 @@ func testPipeWriter(t *testing.T, compressType int) {
 		PrivKey: "12345678901234567890123456789012",
 		Nonce:   "123456789012",
 	}
-	hashConf := hash.Config{
-		Type: hash.TypeBlake2,
-	}
 
 	conf := Config{
 		Pipes: []Pipe{
@@ -54,51 +50,37 @@ func testPipeWriter(t *testing.T, compressType int) {
 				Type:   encryptStr,
 				Config: encryptConf,
 			},
-			Pipe{
-				Name: "type2",
-				Type: hashStr,
-				Config: hash.Config{
-					Type: hash.TypeBlake2,
-				},
-			},
 		},
 	}
 
 	data := make([]byte, 4096)
 	rand.Read(data)
 
-	finalWriter := new(bytes.Buffer)
+	finalWriter := fullreadwrite.NewBytesBuffer()
 
 	pw, err := conf.CreatePipeWriter(finalWriter)
 	assert.Nil(t, err)
 
-	_, err = pw.Write(data)
-	assert.Nil(t, err)
+	resp := pw.WriteFull(data)
+	assert.Nil(t, resp.Err)
 
 	// compare with manual writer
 	resultManual := func() []byte {
 		// (1) compress it
-		bufComp := new(bytes.Buffer)
+		bufComp := fullreadwrite.NewBytesBuffer()
 		compressor, err := compress.NewWriter(compressConf, bufComp)
 		assert.Nil(t, err)
 		_, err = compressor.Write(data)
 		assert.Nil(t, err)
 
 		// (2) encrypt it
-		bufEncryp := new(bytes.Buffer)
+		bufEncryp := fullreadwrite.NewBytesBuffer()
 		encrypter, err := encrypt.NewWriter(bufEncryp, encryptConf)
 		assert.Nil(t, err)
 		_, err = encrypter.Write(bufComp.Bytes())
 		assert.Nil(t, err)
 
-		// (3) hash it
-		bufHash := new(bytes.Buffer)
-		hasher, err := hash.NewWriter(bufHash, hashConf)
-		assert.Nil(t, err)
-		_, err = hasher.Write(bufEncryp.Bytes())
-		assert.Nil(t, err)
-
-		return bufHash.Bytes()
+		return bufEncryp.Bytes()
 	}()
 
 	assert.Equal(t, resultManual, finalWriter.Bytes())

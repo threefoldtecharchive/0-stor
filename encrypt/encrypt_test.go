@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/zero-os/0-stor-lib/fullreadwrite"
 )
 
 func TestRoundTrip(t *testing.T) {
@@ -28,7 +30,7 @@ func testRoundTrip(t *testing.T, conf Config) {
 	plain := []byte("hello world")
 
 	// encrypt
-	buf := new(bytes.Buffer)
+	buf := fullreadwrite.NewBytesBuffer()
 
 	w, err := NewWriter(buf, conf)
 	assert.Nil(t, err)

@@ -5,7 +5,7 @@ import (
 )
 
 type Client interface {
-	Store(key, val []byte) (err error)
+	Store(key, val []byte) (storKey string, err error)
 	Get(key []byte) (val []byte, err error)
 	GetWithStringKey(key string) (val []byte, err error)
 }

@@ -8,6 +8,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/zero-os/0-stor-lib/allreader"
+	"github.com/zero-os/0-stor-lib/fullreadwrite"
 )
 
 const (
@@ -36,7 +37,8 @@ type Config struct {
 	Namespace    string   `yaml:"namespace" validate:"nonzero"`
 	IyoClientID  string   `yaml:"iyo_client_id" validate:"nonzero"`
 	IyoSecret    string   `yaml:"iyo_secret" validate:"nonzero"`
-	Shards       []string `yaml:"shards" validate:"nonzero"`
+	Shards       []string `yaml:"shards" validate:"nonzero"` // 0-stor shards
+	MetaShards   []string `yaml:"meta_shards"`
 	Pipes        []Pipe   `yaml:"pipes" validate:"nonzero"`
 }
 
@@ -84,7 +86,7 @@ func (conf *Config) Write(w io.Writer) error {
 	return err
 }
 
-func (conf *Config) CreatePipeWriter(finalWriter io.Writer) (io.Writer, error) {
+func (conf *Config) CreatePipeWriter(finalWriter fullreadwrite.FullWriter) (fullreadwrite.FullWriter, error) {
 	nextWriter := finalWriter
 
 	for i := len(conf.Pipes) - 1; i >= 0; i-- {

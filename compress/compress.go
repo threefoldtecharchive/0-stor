@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/zero-os/0-stor-lib/allreader"
+	"github.com/zero-os/0-stor-lib/fullreadwrite"
 )
 
 // Compressor/decompressor type
@@ -35,17 +36,18 @@ type Config struct {
 }
 
 // NewWriter returns a new Writer. Writes to the returned writer are compressed and written to w.
-func NewWriter(c Config, w io.Writer) (io.Writer, error) {
+func NewWriter(c Config, w fullreadwrite.FullWriter) (fullreadwrite.FullWriter, error) {
 	switch c.Type {
 	case TypeSnappy:
 		return newSnappyWriter(w), nil
 
-	case TypeGzip:
-		if c.Level == 0 {
-			c.Level = DefaultCompression
-		}
+	/*case TypeGzip:
+	if c.Level == 0 {
+		c.Level = DefaultCompression
+	}
 
-		return newGzipWriter(w, c.Level), nil
+	return newGzipWriter(w, c.Level), nil
+	*/
 	//case TypeLz4:
 	//	return newLz4Writer(w), nil
 

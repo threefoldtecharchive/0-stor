@@ -26,24 +26,23 @@ func NewClient(addr, org, namespace, iyoJWTToken string) *Client {
 }
 
 // Store store the val to 0-stor with given key as id
-func (c *Client) Store(key, val []byte) error {
+func (c *Client) Store(key, val []byte) (string, error) {
 	obj := client.Object{
 		Id:   base64.URLEncoding.EncodeToString(key),
 		Data: base64.StdEncoding.EncodeToString(val),
 	}
 	_, resp, err := c.client.Namespaces.CreateObject(c.nsid, obj, nil, nil)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if resp.StatusCode < 200 && resp.StatusCode > 300 {
-		return fmt.Errorf("invalid status code: %v", resp.StatusCode)
+		return "", fmt.Errorf("invalid status code: %v", resp.StatusCode)
 	}
-	fmt.Printf("data stored with key=%v\n", obj.Id)
-	return nil
+	return obj.Id, nil
 }
 
 func (c *Client) Get(key []byte) ([]byte, error) {
-	return c.GetWithStringKey(base64.URLEncoding.EncodeToString(key))
+	return c.GetWithStringKey(string(key))
 }
 
 func (c *Client) GetWithStringKey(key string) ([]byte, error) {

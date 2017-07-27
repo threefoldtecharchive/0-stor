@@ -1,7 +1,6 @@
 package pipe
 
 import (
-	"bytes"
 	"crypto/rand"
 	"testing"
 
@@ -10,6 +9,7 @@ import (
 	"github.com/zero-os/0-stor-lib/compress"
 	"github.com/zero-os/0-stor-lib/config"
 	"github.com/zero-os/0-stor-lib/encrypt"
+	"github.com/zero-os/0-stor-lib/fullreadwrite"
 )
 
 func TestRoundTrip(t *testing.T) {
@@ -41,7 +41,7 @@ func TestRoundTrip(t *testing.T) {
 	rand.Read(data)
 
 	// write it
-	finalWriter := new(bytes.Buffer)
+	finalWriter := fullreadwrite.NewBytesBuffer()
 
 	pw, err := conf.CreatePipeWriter(finalWriter)
 	assert.Nil(t, err)

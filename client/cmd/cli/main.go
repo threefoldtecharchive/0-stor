@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/base64"
 	"io/ioutil"
 	"log"
 	"os"
@@ -44,16 +43,11 @@ func uploadFile(c *client.Client, fileName string) error {
 	if err != nil {
 		return err
 	}
-	_, err = c.Store(b)
-	return err
+	return c.Store([]byte(fileName), b)
 }
 
 func downloadFile(c *client.Client, key, resultFile string) error {
-	bKey, err := base64.URLEncoding.DecodeString(key)
-	if err != nil {
-		return err
-	}
-	b, err := c.Get(bKey)
+	b, err := c.Get([]byte(key))
 	if err != nil {
 		return err
 	}

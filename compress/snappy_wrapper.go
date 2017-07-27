@@ -4,13 +4,15 @@ import (
 	"io"
 
 	"github.com/golang/snappy"
+
+	"github.com/zero-os/0-stor-lib/fullreadwrite"
 )
 
 type snappyWriter struct {
-	w io.Writer
+	w fullreadwrite.FullWriter
 }
 
-func newSnappyWriter(w io.Writer) *snappyWriter {
+func newSnappyWriter(w fullreadwrite.FullWriter) *snappyWriter {
 	return &snappyWriter{
 		w: w,
 	}
@@ -19,6 +21,11 @@ func newSnappyWriter(w io.Writer) *snappyWriter {
 func (sw snappyWriter) Write(p []byte) (int, error) {
 	encoded := snappy.Encode(nil, p)
 	return sw.w.Write(encoded)
+}
+
+func (sw snappyWriter) WriteFull(p []byte) fullreadwrite.WriteResponse {
+	encoded := snappy.Encode(nil, p)
+	return sw.w.WriteFull(encoded)
 }
 
 // snappyReader wraps the snappy.Reader object

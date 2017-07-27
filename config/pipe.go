@@ -12,6 +12,7 @@ import (
 	"github.com/zero-os/0-stor-lib/compress"
 	"github.com/zero-os/0-stor-lib/distribution"
 	"github.com/zero-os/0-stor-lib/encrypt"
+	"github.com/zero-os/0-stor-lib/fullreadwrite"
 	"github.com/zero-os/0-stor-lib/hash"
 	"github.com/zero-os/0-stor-lib/replication"
 )
@@ -43,10 +44,9 @@ func (p Pipe) CreateReader(rd io.Reader, shards []string, org, namespace string)
 	}
 }
 
-func (p Pipe) CreateWriter(w io.Writer, shards []string, org, namespace string) (io.Writer, error) {
+func (p Pipe) CreateWriter(w fullreadwrite.FullWriter, shards []string, org, namespace string) (fullreadwrite.FullWriter, error) {
 	switch p.Type {
 	case chunkerStr:
-		//return p.createChunkerWriter(w)
 		panic("chunker is not supported by pipe.CreateWriter")
 	case compressStr:
 		return p.createCompressWriter(w)
@@ -55,18 +55,18 @@ func (p Pipe) CreateWriter(w io.Writer, shards []string, org, namespace string) 
 	case encryptStr:
 		return p.createEncryptWriter(w)
 	case hashStr:
-		return p.createHashWriter(w)
+		panic("hasher is not supported by pipe.CreateWriter")
 	default:
 		return nil, fmt.Errorf("invalid type:%v", p.Type)
 	}
 }
 
-func (p Pipe) createCompressWriter(w io.Writer) (io.Writer, error) {
+func (p Pipe) createCompressWriter(w fullreadwrite.FullWriter) (fullreadwrite.FullWriter, error) {
 	conf := p.Config.(compress.Config)
 	return compress.NewWriter(conf, w)
 }
 
-func (p Pipe) createEncryptWriter(w io.Writer) (*encrypt.Writer, error) {
+func (p Pipe) createEncryptWriter(w fullreadwrite.FullWriter) (*encrypt.Writer, error) {
 	conf := p.Config.(encrypt.Config)
 	return encrypt.NewWriter(w, conf)
 }

@@ -3,7 +3,9 @@ package distribution
 import (
 	"fmt"
 
+	"github.com/zero-os/0-stor-lib/fullreadwrite"
 	"github.com/zero-os/0-stor-lib/hash"
+	"github.com/zero-os/0-stor-lib/meta"
 	"github.com/zero-os/0-stor-lib/stor"
 )
 
@@ -14,6 +16,7 @@ type StorDistributor struct {
 	enc         *Encoder
 	hasher      *hash.Hasher
 	storClients []stor.Client
+	shards      []string
 }
 
 // NewStorDistributor creates new StorDistributor
@@ -44,22 +47,47 @@ func NewStorDistributor(conf Config, shards []string, org, namespace string) (*S
 		storClients: storClients,
 		enc:         enc,
 		hasher:      hasher,
+		shards:      shards,
 	}, nil
 }
 
 // Write implements io.Writer
-func (sd StorDistributor) Write(data []byte) (written int, err error) {
+func (sd StorDistributor) Write(data []byte) (int, error) {
 	key := sd.hasher.Hash(data)
 	encoded, err := sd.enc.Encode(data)
 	if err != nil {
-		return
+		return 0, err
 	}
 
 	for i, piece := range encoded {
-		if err = sd.storClients[i].Store(key, piece); err != nil {
+		if _, err = sd.storClients[i].Store(key, piece); err != nil {
+			return 0, err
+		}
+	}
+	return len(data), nil
+}
+
+func (sd StorDistributor) WriteFull(data []byte) (wc fullreadwrite.WriteResponse) {
+	key := sd.hasher.Hash(data)
+	encoded, err := sd.enc.Encode(data)
+	if err != nil {
+		wc.Err = err
+		return
+	}
+
+	var storKey string
+	for i, piece := range encoded {
+		storKey, err = sd.storClients[i].Store(key, piece)
+		if err != nil {
+			wc.Err = err
 			return
 		}
-		written += len(piece)
+	}
+	wc.Written = len(data)
+	wc.Meta = &meta.Meta{
+		Key:    []byte(storKey),
+		Size:   uint64(len(data)),
+		Shards: sd.shards,
 	}
 	return
 }
@@ -90,24 +118,26 @@ func NewStorRestorer(conf Config, shards []string, org, namespace string) (*Stor
 }
 
 // ReadAll implements allreader.ReadAll
-func (sr StorRestorer) ReadAll(key []byte) ([]byte, error) {
-	var chunkLen int
+func (sr StorRestorer) ReadAll(rawMeta []byte) ([]byte, error) {
+	// decode the meta
+	meta, err := meta.Decode(rawMeta)
+	if err != nil {
+		return nil, err
+	}
+
 	chunks := make([][]byte, sr.dec.k+sr.dec.m)
 
 	// read all chunks from stor.Clients
 	for i, sc := range sr.storClients {
-		data, err := sc.Get(key)
+		data, err := sc.Get(meta.Key)
 		if err != nil {
 		} else {
 			chunks[i] = data
-			chunkLen = len(data)
 		}
 	}
 
-	origLen := chunkLen * (sr.dec.k) // TODO get from meta
-	origLen = 318
 	// decode
-	decoded, err := sr.dec.Decode(chunks, origLen)
+	decoded, err := sr.dec.Decode(chunks, int(meta.Size))
 	return decoded, err
 }
 

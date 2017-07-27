@@ -1,12 +1,14 @@
 package client
 
 import (
-	"io"
+	"fmt"
 	"os"
 
 	"github.com/zero-os/0-stor-lib/client/itsyouonline"
 	"github.com/zero-os/0-stor-lib/config"
 	"github.com/zero-os/0-stor-lib/distribution"
+	"github.com/zero-os/0-stor-lib/fullreadwrite"
+	"github.com/zero-os/0-stor-lib/meta"
 	"github.com/zero-os/0-stor-lib/pipe"
 )
 
@@ -14,7 +16,8 @@ import (
 type Client struct {
 	conf       *config.Config
 	iyoClient  *itsyouonline.Client
-	storWriter io.Writer
+	metaCli    *meta.Client
+	storWriter fullreadwrite.FullWriter
 	ecEncoder  *distribution.Encoder
 }
 
@@ -38,16 +41,31 @@ func New(confFile string) (*Client, error) {
 		return nil, err
 	}
 
+	// meta client
+	metaCli, err := meta.NewClient(conf.MetaShards)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Client{
 		conf:       conf,
+		metaCli:    metaCli,
 		iyoClient:  iyoClient,
 		storWriter: storWriter,
 	}, nil
 
 }
 
-func (c *Client) Store(payload []byte) (int, error) {
-	return c.storWriter.Write(payload)
+func (c *Client) Store(key, payload []byte) error {
+	resp := c.storWriter.WriteFull(payload)
+	if resp.Err != nil {
+		return resp.Err
+	}
+	if resp.Meta == nil {
+		return nil
+	}
+	fmt.Printf("data stored with key (in metaserver) = %v\n", string(key))
+	return c.metaCli.Put(string(key), *resp.Meta)
 }
 
 func (c *Client) Get(key []byte) ([]byte, error) {
@@ -55,5 +73,17 @@ func (c *Client) Get(key []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return rp.ReadAll(key)
+
+	// get the meta
+	meta, err := c.metaCli.Get(string(key))
+	if err != nil {
+		return nil, err
+	}
+
+	metaBytes, err := meta.Bytes()
+	if err != nil {
+		return nil, err
+	}
+
+	return rp.ReadAll(metaBytes)
 }

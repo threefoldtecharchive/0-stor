@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+
+	"github.com/zero-os/0-stor-lib/fullreadwrite"
 )
 
 // Encryption type
@@ -44,11 +46,11 @@ func NewEncrypterDecrypter(conf Config) (EncrypterDecrypter, error) {
 // Writer defines encryption writer
 type Writer struct {
 	ed EncrypterDecrypter
-	w  io.Writer
+	w  fullreadwrite.FullWriter
 }
 
 // NewWriter creates new encryption writer
-func NewWriter(w io.Writer, conf Config) (*Writer, error) {
+func NewWriter(w fullreadwrite.FullWriter, conf Config) (*Writer, error) {
 	ed, err := NewEncrypterDecrypter(conf)
 	if err != nil {
 		return nil, err
@@ -63,6 +65,11 @@ func NewWriter(w io.Writer, conf Config) (*Writer, error) {
 func (w Writer) Write(plain []byte) (int, error) {
 	encrypted := w.ed.Encrypt(plain)
 	return w.w.Write(encrypted)
+}
+
+func (w Writer) WriteFull(plain []byte) fullreadwrite.WriteResponse {
+	encrypted := w.ed.Encrypt(plain)
+	return w.w.WriteFull(encrypted)
 }
 
 // Reader defines encryption reader.
