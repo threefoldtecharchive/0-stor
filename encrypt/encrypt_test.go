@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/zero-os/0-stor-lib/fullreadwrite"
 )
 
 func TestRoundTrip(t *testing.T) {
@@ -17,8 +19,8 @@ func TestRoundTrip(t *testing.T) {
 
 		conf := Config{
 			Type:    TypeAESGCM,
-			PrivKey: privKey,
-			Nonce:   nonce,
+			PrivKey: string(privKey),
+			Nonce:   string(nonce),
 		}
 		testRoundTrip(t, conf)
 	})
@@ -28,7 +30,7 @@ func testRoundTrip(t *testing.T, conf Config) {
 	plain := []byte("hello world")
 
 	// encrypt
-	buf := new(bytes.Buffer)
+	buf := fullreadwrite.NewBytesBuffer()
 
 	w, err := NewWriter(buf, conf)
 	assert.Nil(t, err)
@@ -37,7 +39,7 @@ func testRoundTrip(t *testing.T, conf Config) {
 	assert.Nil(t, err)
 
 	// decrypt ag
-	ag, err := newAESGCM(conf.PrivKey, conf.Nonce)
+	ag, err := newAESGCM([]byte(conf.PrivKey), []byte(conf.Nonce))
 	assert.Nil(t, err)
 
 	dag, err := ag.Decrypt(buf.Bytes())

@@ -1,8 +1,15 @@
-namespace: hai
+organization: gig
+namespace: thedisk
+iyo_client_id: abc
+iyo_secret: def
+shards:
+- http://127.0.0.1:12345
+- http://127.0.0.1:12346
+meta_shards:
+- 127.0.0.1:2379
 pipes:
 - name: pipe1
   type: compress
-  action: write
   config:
     type: 1
     level: 0

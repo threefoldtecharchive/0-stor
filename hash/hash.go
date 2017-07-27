@@ -2,6 +2,7 @@ package hash
 
 import (
 	"fmt"
+	"io"
 )
 
 // Hash Type
@@ -23,6 +24,27 @@ type Config struct {
 // given during it's creation
 type Hasher struct {
 	engine hashEngine
+}
+
+type Writer struct {
+	w      io.Writer
+	hasher *Hasher
+}
+
+func NewWriter(w io.Writer, conf Config) (*Writer, error) {
+	hasher, err := NewHasher(conf)
+	if err != nil {
+		return nil, err
+	}
+	return &Writer{
+		w:      w,
+		hasher: hasher,
+	}, nil
+}
+
+func (w Writer) Write(p []byte) (int, error) {
+	hashed := w.hasher.Hash(p)
+	return w.w.Write(hashed)
 }
 
 // NewHasher creates new hasher

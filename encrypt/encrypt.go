@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+
+	"github.com/zero-os/0-stor-lib/fullreadwrite"
 )
 
 // Encryption type
@@ -21,8 +23,8 @@ var (
 // Config defines EncrypterDecrypter config
 type Config struct {
 	Type    int    `yaml:"type"`
-	PrivKey []byte `yaml:"privKey"`
-	Nonce   []byte `yaml:"nonce"`
+	PrivKey string `yaml:"privKey"`
+	Nonce   string `yaml:"nonce"`
 }
 
 // EncrypterDecrypter is interaface for encrypter and decrypter
@@ -35,7 +37,7 @@ type EncrypterDecrypter interface {
 func NewEncrypterDecrypter(conf Config) (EncrypterDecrypter, error) {
 	switch conf.Type {
 	case TypeAESGCM:
-		return newAESGCM(conf.PrivKey, conf.Nonce)
+		return newAESGCM([]byte(conf.PrivKey), []byte(conf.Nonce))
 	default:
 		return nil, fmt.Errorf("invalid type: %v", conf.Type)
 	}
@@ -44,11 +46,11 @@ func NewEncrypterDecrypter(conf Config) (EncrypterDecrypter, error) {
 // Writer defines encryption writer
 type Writer struct {
 	ed EncrypterDecrypter
-	w  io.Writer
+	w  fullreadwrite.Writer
 }
 
 // NewWriter creates new encryption writer
-func NewWriter(w io.Writer, conf Config) (*Writer, error) {
+func NewWriter(w fullreadwrite.Writer, conf Config) (*Writer, error) {
 	ed, err := NewEncrypterDecrypter(conf)
 	if err != nil {
 		return nil, err
@@ -60,9 +62,14 @@ func NewWriter(w io.Writer, conf Config) (*Writer, error) {
 }
 
 // Writers implements io.Writer interface
-func (w *Writer) Write(plain []byte) (int, error) {
+func (w Writer) Write(plain []byte) (int, error) {
 	encrypted := w.ed.Encrypt(plain)
 	return w.w.Write(encrypted)
+}
+
+func (w Writer) WriteFull(plain []byte) fullreadwrite.WriteResponse {
+	encrypted := w.ed.Encrypt(plain)
+	return w.w.WriteFull(encrypted)
 }
 
 // Reader defines encryption reader.
@@ -99,4 +106,8 @@ func (r *Reader) Read(plain []byte) (int, error) {
 
 	copy(plain, decrypted)
 	return len(decrypted), nil
+}
+
+func (r *Reader) ReadFull(data []byte) ([]byte, error) {
+	return r.ed.Decrypt(data)
 }
