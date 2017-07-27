@@ -1,9 +1,9 @@
-package rpc
+package grpc
 
 import (
 	"golang.org/x/net/context"
 
-	pb "github.com/zero-os/0-stor/server/api/rpc/store"
+	pb "github.com/zero-os/0-stor/server/api/grpc/store"
 	"github.com/zero-os/0-stor/server/db"
 )
 

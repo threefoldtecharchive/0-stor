@@ -14,7 +14,7 @@ import (
 	"github.com/zero-os/0-stor/server/config"
 	"github.com/zero-os/0-stor/server/db/badger"
 	"github.com/zero-os/0-stor/goraml"
-	"github.com/zero-os/0-stor/server/api/rpc"
+	"github.com/zero-os/0-stor/server/api/grpc"
 )
 
 const version = "0.0.1"
@@ -84,7 +84,7 @@ func main() {
 			log.Fatal(err.Error())
 		}
 
-		srv, err := rpc.New("localhost:8080")
+		srv, err := grpc.New("localhost:8080")
 		if err != nil {
 			log.Fatalln(err)
 		}
