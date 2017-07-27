@@ -7,7 +7,7 @@ import (
 	"github.com/codegangsta/cli"
 	"github.com/zero-os/0-stor/server/config"
 	"github.com/zero-os/0-stor/server/db/badger"
-	"github.com/zero-os/0-stor/goraml"
+	"github.com/zero-os/0-stor/server/goraml"
 	"github.com/zero-os/0-stor/server/routes"
 
 	"os"

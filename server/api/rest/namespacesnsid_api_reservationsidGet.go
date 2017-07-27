@@ -2,7 +2,7 @@ package rest
 
 import (
 	"encoding/json"
-	"github.com/zero-os/0-stor/goraml/librairies/reservation"
+	"github.com/zero-os/0-stor/server/goraml/librairies/reservation"
 	"net/http"
 )
 

@@ -3,7 +3,7 @@ package rest
 import (
 
 	"gopkg.in/validator.v2"
-	"github.com/zero-os/0-stor/goraml/librairies/reservation"
+	"github.com/zero-os/0-stor/server/goraml/librairies/reservation"
 )
 
 type NamespacesNsidReservationsPostRespBody struct {

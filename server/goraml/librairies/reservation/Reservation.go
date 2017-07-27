@@ -1,8 +1,8 @@
 package reservation
 
 import (
-	"github.com/zero-os/0-stor/goraml"
 	"gopkg.in/validator.v2"
+	"github.com/zero-os/0-stor/server/goraml"
 )
 
 type Reservation struct {

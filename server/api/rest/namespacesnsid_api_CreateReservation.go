@@ -3,7 +3,7 @@ package rest
 import (
 	"encoding/json"
 	"net/http"
-	"github.com/zero-os/0-stor/goraml/librairies/reservation"
+	"github.com/zero-os/0-stor/server/goraml/librairies/reservation"
 )
 
 // CreateReservation is the handler for POST /namespaces/{nsid}/reservations
