@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-pushd store
+pushd server
     echo "Run tests"
     go get ./...
     bash codecov.sh
