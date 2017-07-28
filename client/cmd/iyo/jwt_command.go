@@ -9,6 +9,7 @@ import (
 	"github.com/zero-os/0-stor/client/itsyouonline"
 )
 
+// JWTPublicKey is JWT public key of the server
 var JWTPublicKey *ecdsa.PublicKey
 
 const (

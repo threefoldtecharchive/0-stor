@@ -3,7 +3,7 @@ package distribution
 import (
 	"fmt"
 
-	"github.com/zero-os/0-stor/client/fullreadwrite"
+	"github.com/zero-os/0-stor/client/lib/block"
 	"github.com/zero-os/0-stor/client/lib/hash"
 	"github.com/zero-os/0-stor/client/meta"
 	"github.com/zero-os/0-stor/client/stor"
@@ -67,7 +67,8 @@ func (sd StorDistributor) Write(data []byte) (int, error) {
 	return len(data), nil
 }
 
-func (sd StorDistributor) WriteFull(data []byte) (wc fullreadwrite.WriteResponse) {
+// WriteBlock implements block.Writer interface
+func (sd StorDistributor) WriteBlock(data []byte) (wc block.WriteResponse) {
 	key := sd.hasher.Hash(data)
 	encoded, err := sd.enc.Encode(data)
 	if err != nil {
@@ -99,6 +100,7 @@ type StorRestorer struct {
 	storClients []stor.Client
 }
 
+// NewStorRestorer creates new StorRestorer
 func NewStorRestorer(conf Config, shards []string, org, namespace string) (*StorRestorer, error) {
 	// stor clients
 	storClients, err := createStorClients(shards, org, namespace, "")
@@ -117,9 +119,9 @@ func NewStorRestorer(conf Config, shards []string, org, namespace string) (*Stor
 	}, nil
 }
 
-// ReadFull implements fullreadwrite.Reader
+// ReadBlock implements block.Reader
 // The input is raw metadata
-func (sr StorRestorer) ReadFull(rawMeta []byte) ([]byte, error) {
+func (sr StorRestorer) ReadBlock(rawMeta []byte) ([]byte, error) {
 	// decode the meta
 	meta, err := meta.Decode(rawMeta)
 	if err != nil {

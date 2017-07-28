@@ -2,12 +2,11 @@ package config
 
 import (
 	"fmt"
-	"io"
 
 	"gopkg.in/validator.v2"
 	"gopkg.in/yaml.v2"
 
-	"github.com/zero-os/0-stor/client/fullreadwrite"
+	"github.com/zero-os/0-stor/client/lib/block"
 	"github.com/zero-os/0-stor/client/lib/chunker"
 	"github.com/zero-os/0-stor/client/lib/compress"
 	"github.com/zero-os/0-stor/client/lib/distribution"
@@ -27,14 +26,15 @@ type Pipe struct {
 	Config interface{} `yaml:"config"`
 }
 
-func (p Pipe) CreateReader(rd io.Reader, shards []string, org, namespace string) (fullreadwrite.Reader, error) {
+// CreateBlockReader creates a block reader
+func (p Pipe) CreateBlockReader(shards []string, org, namespace string) (block.Reader, error) {
 	switch p.Type {
 	case compressStr:
 		conf := p.Config.(compress.Config)
-		return compress.NewReader(conf, rd)
+		return compress.NewReader(conf)
 	case encryptStr:
 		conf := p.Config.(encrypt.Config)
-		return encrypt.NewReader(rd, conf)
+		return encrypt.NewReader(conf)
 	case distributionStr:
 		conf := p.Config.(distribution.Config)
 		return distribution.NewStorRestorer(conf, shards, org, namespace)
@@ -43,41 +43,25 @@ func (p Pipe) CreateReader(rd io.Reader, shards []string, org, namespace string)
 	}
 }
 
-func (p Pipe) CreateWriter(w fullreadwrite.Writer, shards []string, org, namespace string) (fullreadwrite.Writer, error) {
+// CreateBlockWriter creates block writer
+func (p Pipe) CreateBlockWriter(w block.Writer, shards []string, org, namespace string) (block.Writer, error) {
 	switch p.Type {
 	case chunkerStr:
-		panic("chunker is not supported by pipe.CreateWriter")
+		return nil, fmt.Errorf("chunker is not supported by pipe.CreateWriter")
 	case compressStr:
-		return p.createCompressWriter(w)
+		conf := p.Config.(compress.Config)
+		return compress.NewWriter(conf, w)
 	case distributionStr:
-		return p.createStorDistributor(shards, org, namespace)
+		conf := p.Config.(distribution.Config)
+		return distribution.NewStorDistributor(conf, shards, org, namespace)
 	case encryptStr:
-		return p.createEncryptWriter(w)
+		conf := p.Config.(encrypt.Config)
+		return encrypt.NewWriter(w, conf)
 	case hashStr:
-		panic("hasher is not supported by pipe.CreateWriter")
+		return nil, fmt.Errorf("hasher is not supported by pipe.CreateBlockteWriter")
 	default:
 		return nil, fmt.Errorf("invalid type:%v", p.Type)
 	}
-}
-
-func (p Pipe) createCompressWriter(w fullreadwrite.Writer) (fullreadwrite.Writer, error) {
-	conf := p.Config.(compress.Config)
-	return compress.NewWriter(conf, w)
-}
-
-func (p Pipe) createEncryptWriter(w fullreadwrite.Writer) (*encrypt.Writer, error) {
-	conf := p.Config.(encrypt.Config)
-	return encrypt.NewWriter(w, conf)
-}
-
-func (p Pipe) createHashWriter(w io.Writer) (*hash.Writer, error) {
-	conf := p.Config.(hash.Config)
-	return hash.NewWriter(w, conf)
-}
-
-func (p Pipe) createStorDistributor(shards []string, org, namespace string) (*distribution.StorDistributor, error) {
-	conf := p.Config.(distribution.Config)
-	return distribution.NewStorDistributor(conf, shards, org, namespace)
 }
 
 // set p.Config to proper type.

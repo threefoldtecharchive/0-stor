@@ -41,12 +41,9 @@ func (c *Client) Store(key, val []byte) (string, error) {
 	return obj.Id, nil
 }
 
+// Get gets data from 0-stor server
 func (c *Client) Get(key []byte) ([]byte, error) {
-	return c.GetWithStringKey(string(key))
-}
-
-func (c *Client) GetWithStringKey(key string) ([]byte, error) {
-	obj, resp, err := c.client.Namespaces.GetObject(key, c.nsid, nil, nil)
+	obj, resp, err := c.client.Namespaces.GetObject(string(key), c.nsid, nil, nil)
 	if err != nil {
 		return nil, err
 	}

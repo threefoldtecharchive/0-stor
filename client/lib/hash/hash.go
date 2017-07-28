@@ -26,11 +26,13 @@ type Hasher struct {
 	engine hashEngine
 }
 
+// Writer defines hash writer
 type Writer struct {
 	w      io.Writer
 	hasher *Hasher
 }
 
+// NewWriter creates new hash writer
 func NewWriter(w io.Writer, conf Config) (*Writer, error) {
 	hasher, err := NewHasher(conf)
 	if err != nil {
@@ -42,6 +44,7 @@ func NewWriter(w io.Writer, conf Config) (*Writer, error) {
 	}, nil
 }
 
+// Write implements io.Writer interface
 func (w Writer) Write(p []byte) (int, error) {
 	hashed := w.hasher.Hash(p)
 	return w.w.Write(hashed)

@@ -3,9 +3,8 @@ package compress
 import (
 	"compress/gzip"
 	"fmt"
-	"io"
 
-	"github.com/zero-os/0-stor/client/fullreadwrite"
+	"github.com/zero-os/0-stor/client/lib/block"
 )
 
 // Compressor/decompressor type
@@ -35,7 +34,7 @@ type Config struct {
 }
 
 // NewWriter returns a new Writer. Writes to the returned writer are compressed and written to w.
-func NewWriter(c Config, w fullreadwrite.Writer) (fullreadwrite.Writer, error) {
+func NewWriter(c Config, w block.Writer) (block.Writer, error) {
 	switch c.Type {
 	case TypeSnappy:
 		return newSnappyWriter(w), nil
@@ -56,16 +55,17 @@ func NewWriter(c Config, w fullreadwrite.Writer) (fullreadwrite.Writer, error) {
 }
 
 // NewReader returns a new Reader that decompresses from r
-func NewReader(c Config, r io.Reader) (fullreadwrite.Reader, error) {
+func NewReader(c Config) (block.Reader, error) {
 	switch c.Type {
 	case TypeSnappy:
-		return newSnappyReader(r), nil
+		return newSnappyReader(), nil
 
-	case TypeGzip:
-		return newGzipReader(r)
 		/*
-			case TypeLz4:
-				return newLz4Reader(r), nil
+			case TypeGzip:
+				return newGzipReader(r)
+
+					case TypeLz4:
+						return newLz4Reader(r), nil
 		*/
 	default:
 		return nil, fmt.Errorf("unsupported decompressor type:%v", c.Type)

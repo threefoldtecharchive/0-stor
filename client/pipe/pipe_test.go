@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/zero-os/0-stor/client/config"
-	"github.com/zero-os/0-stor/client/fullreadwrite"
+	"github.com/zero-os/0-stor/client/lib/block"
 	"github.com/zero-os/0-stor/client/lib/compress"
 	"github.com/zero-os/0-stor/client/lib/encrypt"
 )
@@ -41,16 +41,16 @@ func TestRoundTrip(t *testing.T) {
 	rand.Read(data)
 
 	// write it
-	finalWriter := fullreadwrite.NewBytesBuffer()
+	finalWriter := block.NewBytesBuffer()
 
-	pw, err := conf.CreatePipeWriter(finalWriter)
+	pw, err := NewWritePipe(&conf, finalWriter)
 	assert.Nil(t, err)
 
-	_, err = pw.Write(data)
-	assert.Nil(t, err)
+	resp := pw.WriteBlock(data)
+	assert.Nil(t, resp.Err)
 
 	// read it
-	rp, err := NewReadPipe(conf)
+	rp, err := NewReadPipe(&conf)
 	assert.Nil(t, err)
 
 	readResult, err := rp.ReadFull(finalWriter.Bytes())

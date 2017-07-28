@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/zero-os/0-stor/client/fullreadwrite"
+	"github.com/zero-os/0-stor/client/lib/block"
 	"github.com/zero-os/0-stor/client/lib/compress"
 	"github.com/zero-os/0-stor/client/lib/encrypt"
 )
@@ -56,29 +56,29 @@ func testPipeWriter(t *testing.T, compressType int) {
 	data := make([]byte, 4096)
 	rand.Read(data)
 
-	finalWriter := fullreadwrite.NewBytesBuffer()
+	finalWriter := block.NewBytesBuffer()
 
-	pw, err := conf.CreatePipeWriter(finalWriter)
+	pw, err := conf.CreateBlockWriterPipe(finalWriter)
 	assert.Nil(t, err)
 
-	resp := pw.WriteFull(data)
+	resp := pw.WriteBlock(data)
 	assert.Nil(t, resp.Err)
 
 	// compare with manual writer
 	resultManual := func() []byte {
 		// (1) compress it
-		bufComp := fullreadwrite.NewBytesBuffer()
+		bufComp := block.NewBytesBuffer()
 		compressor, err := compress.NewWriter(compressConf, bufComp)
 		assert.Nil(t, err)
-		_, err = compressor.Write(data)
-		assert.Nil(t, err)
+		resp := compressor.WriteBlock(data)
+		assert.Nil(t, resp.Err)
 
 		// (2) encrypt it
-		bufEncryp := fullreadwrite.NewBytesBuffer()
+		bufEncryp := block.NewBytesBuffer()
 		encrypter, err := encrypt.NewWriter(bufEncryp, encryptConf)
 		assert.Nil(t, err)
-		_, err = encrypter.Write(bufComp.Bytes())
-		assert.Nil(t, err)
+		resp = encrypter.WriteBlock(bufComp.Bytes())
+		assert.Nil(t, resp.Err)
 
 		return bufEncryp.Bytes()
 	}()

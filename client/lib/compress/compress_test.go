@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/zero-os/0-stor/client/fullreadwrite"
+	"github.com/zero-os/0-stor/client/lib/block"
 )
 
 // TestRoundTrip tests that compress and uncompress is the identity
@@ -34,24 +34,24 @@ func testRoundTrip(t *testing.T, conf Config) {
 	payload := make([]byte, 4096)
 	rand.Read(payload)
 
-	buf := fullreadwrite.NewBytesBuffer()
+	buf := block.NewBytesBuffer()
 
 	// create writer
 	w, err := NewWriter(conf, buf)
 	assert.Nil(t, err)
 
 	// compress by write to the writer
-	_, err = w.Write(payload)
-	assert.Nil(t, err)
+	resp := w.WriteBlock(payload)
+	assert.Nil(t, resp.Err)
 
 	// create reader
-	r, err := NewReader(conf, buf)
+	r, err := NewReader(conf)
 	if !assert.Nil(t, err) {
 		return
 	}
 
 	// decompress by read from the reader
-	b, err := r.ReadFull(buf.Bytes())
+	b, err := r.ReadBlock(buf.Bytes())
 	if !assert.Nil(t, err) {
 		return
 	}

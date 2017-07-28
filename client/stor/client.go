@@ -8,7 +8,6 @@ import (
 type Client interface {
 	Store(key, val []byte) (storKey string, err error)
 	Get(key []byte) (val []byte, err error)
-	GetWithStringKey(key string) (val []byte, err error)
 }
 
 // NewClient creates new client, it currently simply returns the REsT client.

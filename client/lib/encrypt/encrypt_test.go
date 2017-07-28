@@ -1,13 +1,12 @@
 package encrypt
 
 import (
-	"bytes"
 	"crypto/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/zero-os/0-stor/client/fullreadwrite"
+	"github.com/zero-os/0-stor/client/lib/block"
 )
 
 func TestRoundTrip(t *testing.T) {
@@ -30,13 +29,13 @@ func testRoundTrip(t *testing.T, conf Config) {
 	plain := []byte("hello world")
 
 	// encrypt
-	buf := fullreadwrite.NewBytesBuffer()
+	buf := block.NewBytesBuffer()
 
 	w, err := NewWriter(buf, conf)
 	assert.Nil(t, err)
 
-	_, err = w.Write(plain)
-	assert.Nil(t, err)
+	resp := w.WriteBlock(plain)
+	assert.Nil(t, resp.Err)
 
 	// decrypt ag
 	ag, err := newAESGCM([]byte(conf.PrivKey), []byte(conf.Nonce))
@@ -47,12 +46,10 @@ func testRoundTrip(t *testing.T, conf Config) {
 	assert.Equal(t, plain, dag)
 
 	// decrypt
-	reader := bytes.NewReader(buf.Bytes())
-	r, err := NewReader(reader, conf)
+	r, err := NewReader(conf)
 	assert.Nil(t, err)
 
-	decrypted := make([]byte, len(plain))
-	_, err = r.Read(decrypted)
+	decrypted, err := r.ReadBlock(buf.Bytes())
 	assert.Nil(t, err)
 
 	assert.Equal(t, plain, decrypted)

@@ -6,8 +6,6 @@ import (
 
 	"gopkg.in/validator.v2"
 	"gopkg.in/yaml.v2"
-
-	"github.com/zero-os/0-stor/client/fullreadwrite"
 )
 
 const (
@@ -83,30 +81,4 @@ func (conf *Config) Write(w io.Writer) error {
 
 	_, err = w.Write(b)
 	return err
-}
-
-func (conf *Config) CreatePipeWriter(finalWriter fullreadwrite.Writer) (fullreadwrite.Writer, error) {
-	nextWriter := finalWriter
-
-	for i := len(conf.Pipes) - 1; i >= 0; i-- {
-		pipe := conf.Pipes[i]
-		w, err := pipe.CreateWriter(nextWriter, conf.Shards, conf.Organization, conf.Namespace)
-		if err != nil {
-			return nil, err
-		}
-		nextWriter = w
-	}
-	return nextWriter, nil
-}
-
-func (conf *Config) CreateAllReaders() ([]fullreadwrite.Reader, error) {
-	var readers []fullreadwrite.Reader
-	for _, pipe := range conf.Pipes {
-		ar, err := pipe.CreateReader(nil, conf.Shards, conf.Organization, conf.Namespace)
-		if err != nil {
-			return nil, err
-		}
-		readers = append([]fullreadwrite.Reader{ar}, readers...)
-	}
-	return readers, nil
 }
