@@ -18,7 +18,11 @@ type Client struct {
 func NewClient(addr, org, namespace, iyoJWTToken string) *Client {
 	client := client.NewThe_0_Stor()
 	client.BaseURI = addr
-	client.AuthHeader = "Bearer " + iyoJWTToken
+
+	if iyoJWTToken != "" {
+		client.AuthHeader = "Bearer " + iyoJWTToken
+	}
+
 	return &Client{
 		client: client,
 		nsid:   org + "." + namespace,

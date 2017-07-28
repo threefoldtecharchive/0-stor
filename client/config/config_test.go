@@ -71,8 +71,6 @@ func TestWrite(t *testing.T) {
 	conf := Config{
 		Organization: "gig",
 		Namespace:    "thedisk",
-		IyoClientID:  "abc",
-		IyoSecret:    "def",
 		Shards:       []string{"http://127.0.0.1:12345", "http://127.0.0.1:12346"},
 		MetaShards:   []string{"127.0.0.1:2379"},
 		Pipes:        []Pipe{pipe1},

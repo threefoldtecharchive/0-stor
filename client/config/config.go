@@ -32,8 +32,6 @@ var (
 type Config struct {
 	Organization string   `yaml:"organization" validate:"nonzero"`
 	Namespace    string   `yaml:"namespace" validate:"nonzero"`
-	IyoClientID  string   `yaml:"iyo_client_id" validate:"nonzero"`
-	IyoSecret    string   `yaml:"iyo_secret" validate:"nonzero"`
 	Shards       []string `yaml:"shards" validate:"nonzero"` // 0-stor shards
 	MetaShards   []string `yaml:"meta_shards"`
 	Pipes        []Pipe   `yaml:"pipes" validate:"nonzero"`

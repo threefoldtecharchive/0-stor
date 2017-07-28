@@ -4,7 +4,6 @@ import (
 	"os"
 
 	"github.com/zero-os/0-stor/client/config"
-	"github.com/zero-os/0-stor/client/itsyouonline"
 	"github.com/zero-os/0-stor/client/lib/block"
 	"github.com/zero-os/0-stor/client/meta"
 	"github.com/zero-os/0-stor/client/pipe"
@@ -13,7 +12,6 @@ import (
 // Client defines 0-stor client
 type Client struct {
 	conf       *config.Config
-	iyoClient  *itsyouonline.Client
 	metaCli    *meta.Client
 	storWriter block.Writer
 	storReader block.Reader
@@ -30,9 +28,6 @@ func New(confFile string) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	// create IYO client
-	iyoClient := itsyouonline.NewClient(conf.Organization, conf.IyoClientID, conf.IyoSecret)
 
 	// stor writer
 	storWriter, err := pipe.NewWritePipe(conf, nil)
@@ -54,7 +49,6 @@ func New(confFile string) (*Client, error) {
 	return &Client{
 		conf:       conf,
 		metaCli:    metaCli,
-		iyoClient:  iyoClient,
 		storWriter: storWriter,
 		storReader: storReader,
 	}, nil

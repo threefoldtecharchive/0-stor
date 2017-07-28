@@ -3,6 +3,7 @@ package distribution
 import (
 	"fmt"
 
+	"github.com/zero-os/0-stor/client/itsyouonline"
 	"github.com/zero-os/0-stor/client/lib/block"
 	"github.com/zero-os/0-stor/client/lib/hash"
 	"github.com/zero-os/0-stor/client/meta"
@@ -26,7 +27,7 @@ func NewStorDistributor(conf Config, shards []string, org, namespace string) (*S
 	}
 
 	// stor clients
-	storClients, err := createStorClients(shards, org, namespace, "")
+	storClients, err := createStorClients(conf, shards, org, namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +104,7 @@ type StorRestorer struct {
 // NewStorRestorer creates new StorRestorer
 func NewStorRestorer(conf Config, shards []string, org, namespace string) (*StorRestorer, error) {
 	// stor clients
-	storClients, err := createStorClients(shards, org, namespace, "")
+	storClients, err := createStorClients(conf, shards, org, namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -144,14 +145,31 @@ func (sr StorRestorer) ReadBlock(rawMeta []byte) ([]byte, error) {
 	return decoded, err
 }
 
-func createStorClients(shards []string, org, namespace, iyoJWTClient string) ([]stor.Client, error) {
+func createStorClients(conf Config, shards []string, org, namespace string) ([]stor.Client, error) {
 	var scs []stor.Client
+	var token string
+	var err error
+
+	// create IYO JWT token
+	if conf.withIYoCredentials() {
+		token, err = createJWTToken(conf, org, namespace)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// create stor clients
 	for _, shard := range shards {
-		storClient, err := stor.NewClient(shard, org, namespace, iyoJWTClient)
+		storClient, err := stor.NewClient(shard, org, namespace, token)
 		if err != nil {
 			return nil, err
 		}
 		scs = append(scs, storClient)
 	}
 	return scs, nil
+}
+
+func createJWTToken(conf Config, org, namespace string) (string, error) {
+	iyoClient := itsyouonline.NewClient(org, conf.IyoClientID, conf.IyoSecret)
+	return iyoClient.CreateJWT(org+"."+namespace, conf.iyoPerm())
 }
