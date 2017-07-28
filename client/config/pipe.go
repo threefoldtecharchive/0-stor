@@ -46,8 +46,6 @@ func (p Pipe) CreateBlockReader(shards []string, org, namespace string) (block.R
 // CreateBlockWriter creates block writer
 func (p Pipe) CreateBlockWriter(w block.Writer, shards []string, org, namespace string) (block.Writer, error) {
 	switch p.Type {
-	case chunkerStr:
-		return nil, fmt.Errorf("chunker is not supported by pipe.CreateWriter")
 	case compressStr:
 		conf := p.Config.(compress.Config)
 		return compress.NewWriter(conf, w)
@@ -57,10 +55,8 @@ func (p Pipe) CreateBlockWriter(w block.Writer, shards []string, org, namespace 
 	case encryptStr:
 		conf := p.Config.(encrypt.Config)
 		return encrypt.NewWriter(w, conf)
-	case hashStr:
-		return nil, fmt.Errorf("hasher is not supported by pipe.CreateBlockteWriter")
 	default:
-		return nil, fmt.Errorf("invalid type:%v", p.Type)
+		return nil, fmt.Errorf("unsupported type:%v", p.Type)
 	}
 }
 

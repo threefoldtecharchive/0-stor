@@ -1,7 +1,7 @@
 package compress
 
 import (
-	"crypto/rand"
+	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -16,9 +16,9 @@ func TestRoundTrip(t *testing.T) {
 		name string
 		typ  string
 	}{
-		//{"gzip", TypeGzip},
+		{"gzip", TypeGzip},
 		{"snappy", TypeSnappy},
-		//{"lz4", TypeLz4},
+		{"lz4", TypeLz4},
 	}
 
 	for _, test := range tests {
@@ -31,8 +31,10 @@ func TestRoundTrip(t *testing.T) {
 }
 
 func testRoundTrip(t *testing.T, conf Config) {
-	payload := make([]byte, 4096)
-	rand.Read(payload)
+	payload := make([]byte, 4096*4096)
+	for i := 0; i < len(payload); i++ {
+		payload[i] = 100
+	}
 
 	buf := block.NewBytesBuffer()
 
@@ -57,5 +59,7 @@ func testRoundTrip(t *testing.T, conf Config) {
 	}
 
 	// compare decompressed with original payload
-	assert.Equal(t, payload, b)
+	if bytes.Compare(payload, b) != 0 {
+		t.Fatalf("decompressed(%v) != data(%v)", len(b), len(payload))
+	}
 }

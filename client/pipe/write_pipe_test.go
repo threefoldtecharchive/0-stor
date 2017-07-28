@@ -1,4 +1,4 @@
-package config
+package pipe
 
 import (
 	"crypto/rand"
@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/zero-os/0-stor/client/config"
 	"github.com/zero-os/0-stor/client/lib/block"
 	"github.com/zero-os/0-stor/client/lib/compress"
 	"github.com/zero-os/0-stor/client/lib/encrypt"
@@ -14,11 +15,11 @@ import (
 func TestPipeWriter(t *testing.T) {
 	tests := []struct {
 		name         string
-		compressType int
+		compressType string
 	}{
-		//{"gzip", compress.TypeGzip},
 		{"snappy", compress.TypeSnappy},
-		//{"lz4", compress.TypeLz4},
+		{"gzip", compress.TypeGzip},
+		{"lz4", compress.TypeLz4},
 	}
 
 	for _, test := range tests {
@@ -28,7 +29,7 @@ func TestPipeWriter(t *testing.T) {
 	}
 }
 
-func testPipeWriter(t *testing.T, compressType int) {
+func testPipeWriter(t *testing.T, compressType string) {
 	compressConf := compress.Config{
 		Type: compressType,
 	}
@@ -38,16 +39,16 @@ func testPipeWriter(t *testing.T, compressType int) {
 		Nonce:   "123456789012",
 	}
 
-	conf := Config{
-		Pipes: []Pipe{
-			Pipe{
+	conf := config.Config{
+		Pipes: []config.Pipe{
+			config.Pipe{
 				Name:   "pipe1",
-				Type:   compressStr,
+				Type:   "compress",
 				Config: compressConf,
 			},
-			Pipe{
+			config.Pipe{
 				Name:   "type2",
-				Type:   encryptStr,
+				Type:   "encrypt",
 				Config: encryptConf,
 			},
 		},
@@ -58,7 +59,7 @@ func testPipeWriter(t *testing.T, compressType int) {
 
 	finalWriter := block.NewBytesBuffer()
 
-	pw, err := conf.CreateBlockWriterPipe(finalWriter)
+	pw, err := NewWritePipe(&conf, finalWriter)
 	assert.Nil(t, err)
 
 	resp := pw.WriteBlock(data)

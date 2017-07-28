@@ -5,21 +5,23 @@ import (
 	"compress/gzip"
 	"io"
 	"io/ioutil"
+
+	"github.com/zero-os/0-stor/client/lib/block"
 )
 
 type gzipWriter struct {
-	w     io.Writer
+	w     block.Writer
 	level int
 }
 
-func newGzipWriter(w io.Writer, level int) *gzipWriter {
+func newGzipWriter(w block.Writer, level int) *gzipWriter {
 	return &gzipWriter{
 		w:     w,
 		level: level,
 	}
 }
 
-func (gw gzipWriter) Write(p []byte) (int, error) {
+func (gw gzipWriter) WriteBlock(p []byte) block.WriteResponse {
 	buf := new(bytes.Buffer)
 	written, err := func() (int, error) {
 		w, err := gzip.NewWriterLevel(buf, gw.level)
@@ -46,28 +48,24 @@ func (gw gzipWriter) Write(p []byte) (int, error) {
 		return written, w.Close()
 	}()
 	if err != nil {
-		return written, err
+		return block.WriteResponse{
+			Written: written,
+			Err:     err,
+		}
 	}
-	return gw.w.Write(buf.Bytes())
+	return gw.w.WriteBlock(buf.Bytes())
 }
 
 type gzipReader struct {
 	*gzip.Reader
-	rd io.Reader
 }
 
-func newGzipReader(rd io.Reader) (*gzipReader, error) {
-	/*gr, err := gzip.NewReader(rd)
-	if err != nil {
-		return nil, err
-	}*/
-	return &gzipReader{
-		//Reader: gr,
-		rd: rd,
-	}, nil
+func newGzipReader() (*gzipReader, error) {
+	return &gzipReader{}, nil
 }
 
-func (gr gzipReader) ReadFull(data []byte) ([]byte, error) {
+// ReadBlock implements block.Reader
+func (gr gzipReader) ReadBlock(data []byte) ([]byte, error) {
 	br := bytes.NewReader(data)
 	rd, err := gzip.NewReader(br)
 	if err != nil {

@@ -12,9 +12,29 @@ import (
 	"github.com/zero-os/0-stor/client/lib/encrypt"
 )
 
+// TestRoundTrip test that read pipe can decode back
+// the output of write pipe
 func TestRoundTrip(t *testing.T) {
+	tests := []struct {
+		name         string
+		compressType string
+	}{
+		{"snappy", compress.TypeSnappy},
+		{"gzip", compress.TypeGzip},
+		{"lz4", compress.TypeLz4},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			testRoundTrip(t, test.compressType)
+		})
+	}
+
+}
+
+func testRoundTrip(t *testing.T, compressType string) {
 	compressConf := compress.Config{
-		Type: compress.TypeSnappy,
+		Type: compressType,
 	}
 	encryptConf := encrypt.Config{
 		Type:    encrypt.TypeAESGCM,

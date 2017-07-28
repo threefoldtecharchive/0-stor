@@ -38,15 +38,15 @@ func NewWriter(c Config, w block.Writer) (block.Writer, error) {
 	case TypeSnappy:
 		return newSnappyWriter(w), nil
 
-	/*case TypeGzip:
-	if c.Level == 0 {
-		c.Level = DefaultCompression
-	}
+	case TypeGzip:
+		if c.Level == 0 {
+			c.Level = DefaultCompression
+		}
 
-	return newGzipWriter(w, c.Level), nil
-	*/
-	//case TypeLz4:
-	//	return newLz4Writer(w), nil
+		return newGzipWriter(w, c.Level), nil
+
+	case TypeLz4:
+		return newLz4Writer(w), nil
 
 	default:
 		return nil, fmt.Errorf("unsupported compressor type:%v", c.Type)
@@ -59,13 +59,11 @@ func NewReader(c Config) (block.Reader, error) {
 	case TypeSnappy:
 		return newSnappyReader(), nil
 
-		/*
-			case TypeGzip:
-				return newGzipReader(r)
+	case TypeGzip:
+		return newGzipReader()
 
-					case TypeLz4:
-						return newLz4Reader(r), nil
-		*/
+	case TypeLz4:
+		return newLz4Reader(), nil
 	default:
 		return nil, fmt.Errorf("unsupported decompressor type:%v", c.Type)
 	}

@@ -1,47 +1,70 @@
 package compress
 
 import (
+	"bytes"
 	"io"
 
 	"github.com/pierrec/lz4"
+
+	"github.com/zero-os/0-stor/client/lib/block"
 )
 
 type lz4Writer struct {
-	w io.Writer
+	w block.Writer
 }
 
-func newLz4Writer(w io.Writer) *lz4Writer {
+func newLz4Writer(w block.Writer) *lz4Writer {
 	return &lz4Writer{
 		w: w,
 	}
 }
 
-func (lw lz4Writer) Write(p []byte) (int, error) {
-	var dst []byte
+func (lw lz4Writer) WriteBlock(data []byte) block.WriteResponse {
+	buf := bytes.NewBuffer(nil)
 
-	n, err := lz4.CompressBlock(p, dst, 0)
+	rd := bytes.NewReader(data)
+
+	comp := lz4.NewWriter(buf)
+	comp.Header.BlockDependency = true
+
+	// compress the data
+	n, err := io.Copy(comp, rd)
 	if err != nil {
-		return n, err
+		return block.WriteResponse{
+			Written: int(n),
+			Err:     err,
+		}
 	}
-	return lw.w.Write(dst)
+
+	// flush and close the compressor
+	if err := comp.Close(); err != nil {
+		return block.WriteResponse{
+			Written: int(n),
+			Err:     err,
+		}
+	}
+
+	// return the valuo of our output buffer and a possible error
+	return lw.w.WriteBlock(buf.Bytes())
 }
 
 // lz4Reader wraps lz4.Reader to conform to Decompressor interface
 type lz4Reader struct {
-	*lz4.Reader
 }
 
-func newLz4Reader(r io.Reader) *lz4Reader {
-	return &lz4Reader{
-		Reader: lz4.NewReader(r),
+func newLz4Reader() *lz4Reader {
+	return &lz4Reader{}
+}
+
+func (lr *lz4Reader) ReadBlock(data []byte) ([]byte, error) {
+	br := bytes.NewReader(data)
+	rd := lz4.NewReader(br)
+
+	buf := new(bytes.Buffer)
+
+	_, err := io.Copy(buf, rd)
+	if err != nil {
+		return nil, err
 	}
-}
-
-func (lr *lz4Reader) Close() error {
-	return nil
-}
-
-func (lr *lz4Reader) Reset(r io.Reader) error {
-	lr.Reader.Reset(r)
-	return nil
+	return buf.Bytes(), nil
 }
