@@ -1,9 +1,14 @@
 #!/bin/bash
 set -e
 pushd server
-    echo "Run tests"
+    echo "Run server tests"
     go get ./...
     bash codecov.sh
+popd
+pushd client
+	echo "Run client test"
+	go get -t -v ./...
+	go test ./...
 popd
 echo "Generate docs"
 pushd specs/raml
