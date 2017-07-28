@@ -33,8 +33,8 @@ func NewReadPipe(conf *config.Config) (*ReadPipe, error) {
 	}, nil
 }
 
-// ReadFull passes the data to the pipes
-func (rp ReadPipe) ReadFull(data []byte) ([]byte, error) {
+// ReadBlock passes the data to the pipes
+func (rp ReadPipe) ReadBlock(data []byte) ([]byte, error) {
 	var err error
 	curData := data
 
