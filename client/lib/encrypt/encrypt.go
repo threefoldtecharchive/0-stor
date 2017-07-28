@@ -9,8 +9,7 @@ import (
 
 // Encryption type
 const (
-	_ = iota
-	TypeAESGCM
+	TypeAESGCM = "aes_gcm"
 )
 
 var (
@@ -20,7 +19,7 @@ var (
 
 // Config defines EncrypterDecrypter config
 type Config struct {
-	Type    int    `yaml:"type"`
+	Type    string `yaml:"type"`
 	PrivKey string `yaml:"privKey"`
 	Nonce   string `yaml:"nonce"`
 }

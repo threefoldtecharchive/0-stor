@@ -14,7 +14,7 @@ import (
 func TestRoundTrip(t *testing.T) {
 	tests := []struct {
 		name string
-		typ  int
+		typ  string
 	}{
 		//{"gzip", TypeGzip},
 		{"snappy", TypeSnappy},

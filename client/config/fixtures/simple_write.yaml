@@ -11,5 +11,5 @@ pipes:
 - name: pipe1
   type: compress
   config:
-    type: 1
+    type: snappy
     level: 0

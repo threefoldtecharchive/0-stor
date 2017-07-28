@@ -7,17 +7,16 @@ import (
 
 // Hash Type
 const (
-	_ = iota
-	TypeBlake2
-	TypeSHA256
-	TypeMD5
+	TypeBlake2 = "blake2_256"
+	TypeSHA256 = "sha_256"
+	TypeMD5    = "md5"
 )
 
 type hashEngine func([]byte) []byte
 
 // Config defines hasher configuration
 type Config struct {
-	Type int
+	Type string
 }
 
 // Hasher is object that produces hash according to it's type

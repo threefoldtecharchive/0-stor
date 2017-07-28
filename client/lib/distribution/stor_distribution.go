@@ -32,7 +32,7 @@ func NewStorDistributor(conf Config, shards []string, org, namespace string) (*S
 	}
 
 	// encoder
-	enc, err := NewEncoder(conf.K, conf.M)
+	enc, err := NewEncoder(conf.Data, conf.Parity)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +108,7 @@ func NewStorRestorer(conf Config, shards []string, org, namespace string) (*Stor
 		return nil, err
 	}
 
-	dec, err := NewDecoder(conf.K, conf.M)
+	dec, err := NewDecoder(conf.Data, conf.Parity)
 	if err != nil {
 		return nil, err
 	}

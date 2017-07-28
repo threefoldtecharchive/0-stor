@@ -9,10 +9,9 @@ import (
 
 // Compressor/decompressor type
 const (
-	_ = iota
-	TypeSnappy
-	TypeGzip
-	TypeLz4
+	TypeSnappy = "snappy"
+	TypeGzip   = "gzip"
+	TypeLz4    = "lz4"
 )
 
 // Compression level, only apply for gzip
@@ -26,7 +25,7 @@ const (
 // Config define compressor and decompressor configuration
 type Config struct {
 	// Compressor type : TypeSnappy, TypeGzip
-	Type int `yaml:"type"`
+	Type string `yaml:"type"`
 
 	// Compression level : only supported for gzip
 	// Leave it blank for default value

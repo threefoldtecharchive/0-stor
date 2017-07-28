@@ -14,8 +14,8 @@ func TestDistributeRestore(t *testing.T) {
 		dataLen = 4096
 	)
 	conf := Config{
-		K: 4,
-		M: 2,
+		Data:   4,
+		Parity: 2,
 	}
 
 	var writers []io.Writer
@@ -41,7 +41,7 @@ func TestDistributeRestore(t *testing.T) {
 
 	for i := 0; i < conf.NumPieces(); i++ {
 		var reader io.Reader
-		if i < conf.M {
+		if i < conf.Parity {
 			// simulate losing pieces here
 			// we can lost up to `m` pieces
 			reader = bytes.NewReader(nil)
@@ -70,8 +70,8 @@ func TestDistributeDecode(t *testing.T) {
 		dataLen = 4096
 	)
 	conf := Config{
-		K: 4,
-		M: 2,
+		Data:   4,
+		Parity: 2,
 	}
 
 	var writers []io.Writer
@@ -96,7 +96,7 @@ func TestDistributeDecode(t *testing.T) {
 	decodedChunks := make([][]byte, conf.NumPieces())
 	for i := 0; i < conf.NumPieces(); i++ {
 
-		if i < conf.M {
+		if i < conf.Parity {
 			// simulate losing pieces here
 			// we can lost up to `m` pieces
 			continue
@@ -105,7 +105,7 @@ func TestDistributeDecode(t *testing.T) {
 		copy(decodedChunks[i], buffs[i].Bytes())
 	}
 
-	dec, err := NewDecoder(conf.K, conf.M)
+	dec, err := NewDecoder(conf.Data, conf.Parity)
 	decoded, err := dec.Decode(decodedChunks, len(data))
 	assert.Nil(t, err)
 
