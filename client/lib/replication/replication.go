@@ -1,15 +1,16 @@
 package replication
 
 import (
-	"io"
 	"sync"
+
+	"github.com/zero-os/0-stor/client/lib/block"
 )
 
 // A Writer is created by taking one input and specifying multiple outputs.
 // All the data that comes in are replicated on all the configured outputs.
 type Writer struct {
 	async   bool
-	writers []io.Writer
+	writers []block.Writer
 }
 
 // Config defines replication's configuration
@@ -19,7 +20,7 @@ type Config struct {
 
 // NewWriter creates new writer.
 // The replication will be done in async way if async = true.
-func NewWriter(writers []io.Writer, conf Config) *Writer {
+func NewWriter(writers []block.Writer, conf Config) *Writer {
 	return &Writer{
 		async:   conf.Async,
 		writers: writers,
@@ -27,55 +28,50 @@ func NewWriter(writers []io.Writer, conf Config) *Writer {
 }
 
 // Write writes data to underlying writer
-func (w *Writer) Write(data []byte) (int, error) {
+func (w *Writer) WriteBlock(data []byte) block.WriteResponse {
 	if w.async {
 		return w.writeAsync(data)
 	}
 	return w.writeSync(data)
 }
 
-func (w *Writer) writeAsync(data []byte) (int, error) {
+func (w *Writer) writeAsync(data []byte) (resp block.WriteResponse) {
 	var wg sync.WaitGroup
 	var mux sync.Mutex
-	var errs []error
-	var written int
 
 	wg.Add(len(w.writers))
 
 	for _, writer := range w.writers {
-		go func(writer io.Writer) {
+		go func(writer block.Writer) {
 			defer wg.Done()
 
-			n, err := writer.Write(data)
+			curResp := writer.WriteBlock(data)
 
 			mux.Lock()
 			defer mux.Unlock()
 
-			written += n
+			resp.Written += curResp.Written
 
-			if err != nil {
-				errs = append(errs, err)
+			if curResp.Err != nil {
+				resp.Err = curResp.Err
+				return
 			}
 		}(writer)
 	}
 
 	wg.Wait()
 
-	if len(errs) > 0 {
-		return written, Error{errs: errs}
-	}
-	return written, nil
+	return
 }
 
-func (w *Writer) writeSync(data []byte) (int, error) {
-	var written int
-
+func (w *Writer) writeSync(data []byte) (resp block.WriteResponse) {
 	for _, writer := range w.writers {
-		n, err := writer.Write(data)
-		written += n
-		if err != nil {
-			return written, err
+		curResp := writer.WriteBlock(data)
+		resp.Written += curResp.Written
+		if curResp.Err != nil {
+			resp.Err = curResp.Err
+			return
 		}
 	}
-	return written, nil
+	return
 }
