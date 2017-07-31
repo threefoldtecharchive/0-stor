@@ -55,6 +55,9 @@ func (p Pipe) CreateBlockWriter(w block.Writer, shards []string, org, namespace 
 	case encryptStr:
 		conf := p.Config.(encrypt.Config)
 		return encrypt.NewWriter(w, conf)
+	case hashStr:
+		conf := p.Config.(hash.Config)
+		return hash.NewWriter(w, conf)
 	default:
 		return nil, fmt.Errorf("unsupported type:%v", p.Type)
 	}

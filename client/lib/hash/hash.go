@@ -2,7 +2,8 @@ package hash
 
 import (
 	"fmt"
-	"io"
+
+	"github.com/zero-os/0-stor/client/lib/block"
 )
 
 // Hash Type
@@ -27,12 +28,12 @@ type Hasher struct {
 
 // Writer defines hash writer
 type Writer struct {
-	w      io.Writer
+	w      block.Writer
 	hasher *Hasher
 }
 
 // NewWriter creates new hash writer
-func NewWriter(w io.Writer, conf Config) (*Writer, error) {
+func NewWriter(w block.Writer, conf Config) (*Writer, error) {
 	hasher, err := NewHasher(conf)
 	if err != nil {
 		return nil, err
@@ -43,10 +44,10 @@ func NewWriter(w io.Writer, conf Config) (*Writer, error) {
 	}, nil
 }
 
-// Write implements io.Writer interface
-func (w Writer) Write(p []byte) (int, error) {
+// WriteBlock implements block.Writer interface
+func (w Writer) WriteBlock(p []byte) block.WriteResponse {
 	hashed := w.hasher.Hash(p)
-	return w.w.Write(hashed)
+	return w.w.WriteBlock(hashed)
 }
 
 // NewHasher creates new hasher

@@ -10,6 +10,7 @@ import (
 	"github.com/zero-os/0-stor/client/lib/block"
 	"github.com/zero-os/0-stor/client/lib/compress"
 	"github.com/zero-os/0-stor/client/lib/encrypt"
+	"github.com/zero-os/0-stor/client/lib/hash"
 )
 
 func TestPipeWriter(t *testing.T) {
@@ -38,6 +39,9 @@ func testPipeWriter(t *testing.T, compressType string) {
 		PrivKey: "12345678901234567890123456789012",
 		Nonce:   "123456789012",
 	}
+	hashConf := hash.Config{
+		Type: hash.TypeBlake2,
+	}
 
 	conf := config.Config{
 		Pipes: []config.Pipe{
@@ -47,9 +51,14 @@ func testPipeWriter(t *testing.T, compressType string) {
 				Config: compressConf,
 			},
 			config.Pipe{
-				Name:   "type2",
+				Name:   "pipe2",
 				Type:   "encrypt",
 				Config: encryptConf,
+			},
+			config.Pipe{
+				Name:   "pipe3",
+				Type:   "hash",
+				Config: hashConf,
 			},
 		},
 	}
@@ -60,7 +69,9 @@ func testPipeWriter(t *testing.T, compressType string) {
 	finalWriter := block.NewBytesBuffer()
 
 	pw, err := NewWritePipe(&conf, finalWriter)
-	assert.Nil(t, err)
+	if !assert.Nil(t, err) {
+		return
+	}
 
 	resp := pw.WriteBlock(data)
 	assert.Nil(t, resp.Err)
@@ -81,7 +92,14 @@ func testPipeWriter(t *testing.T, compressType string) {
 		resp = encrypter.WriteBlock(bufComp.Bytes())
 		assert.Nil(t, resp.Err)
 
-		return bufEncryp.Bytes()
+		// (3) hash it
+		bufHash := block.NewBytesBuffer()
+		hasher, err := hash.NewWriter(bufHash, hashConf)
+		assert.Nil(t, err)
+		resp = hasher.WriteBlock(bufEncryp.Bytes())
+		assert.Nil(t, resp.Err)
+
+		return bufHash.Bytes()
 	}()
 
 	assert.Equal(t, resultManual, finalWriter.Bytes())
