@@ -3,6 +3,8 @@
 Client library is a set of libraries that can all be chain together to create a pipeline
 that will process data as it goes through.
 
+[godoc](https://godoc.org/github.com/zero-os/0-stor/client/lib)
+
 # Example
 
 compress

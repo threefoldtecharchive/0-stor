@@ -9,7 +9,6 @@ import (
 )
 
 func main() {
-	log.Printf("args=%v", os.Args)
 	if len(os.Args) != 4 && len(os.Args) != 5 {
 		log.Println("usage:")
 		log.Println("./cli conf_file upload file_name")
@@ -35,7 +34,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("%v failed: %v", command, err)
 	}
-	log.Println("Everything looks OK")
+	log.Println("OK")
 }
 
 func uploadFile(c *client.Client, fileName string) error {
@@ -43,6 +42,7 @@ func uploadFile(c *client.Client, fileName string) error {
 	if err != nil {
 		return err
 	}
+	log.Printf("0-stor key = %v\n", fileName)
 	return c.Store([]byte(fileName), b)
 }
 
