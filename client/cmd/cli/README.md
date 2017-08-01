@@ -6,6 +6,12 @@ Big file need to be splitted using `chunker` package.
 
 ## Example
 
+To use this `cli`, you need to modify the itsyou.online credentials:
+- organization
+- namespace
+- client ID
+- client secret
+
 ### upload file
 
 ```
