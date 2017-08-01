@@ -3,17 +3,15 @@ package compress
 import (
 	"compress/gzip"
 	"fmt"
-	"io"
 
-	"github.com/zero-os/0-stor/client/fullreadwrite"
+	"github.com/zero-os/0-stor/client/lib/block"
 )
 
 // Compressor/decompressor type
 const (
-	_ = iota
-	TypeSnappy
-	TypeGzip
-	TypeLz4
+	TypeSnappy = "snappy"
+	TypeGzip   = "gzip"
+	TypeLz4    = "lz4"
 )
 
 // Compression level, only apply for gzip
@@ -27,7 +25,7 @@ const (
 // Config define compressor and decompressor configuration
 type Config struct {
 	// Compressor type : TypeSnappy, TypeGzip
-	Type int `yaml:"type"`
+	Type string `yaml:"type"`
 
 	// Compression level : only supported for gzip
 	// Leave it blank for default value
@@ -35,20 +33,20 @@ type Config struct {
 }
 
 // NewWriter returns a new Writer. Writes to the returned writer are compressed and written to w.
-func NewWriter(c Config, w fullreadwrite.Writer) (fullreadwrite.Writer, error) {
+func NewWriter(c Config, w block.Writer) (block.Writer, error) {
 	switch c.Type {
 	case TypeSnappy:
 		return newSnappyWriter(w), nil
 
-	/*case TypeGzip:
-	if c.Level == 0 {
-		c.Level = DefaultCompression
-	}
+	case TypeGzip:
+		if c.Level == 0 {
+			c.Level = DefaultCompression
+		}
 
-	return newGzipWriter(w, c.Level), nil
-	*/
-	//case TypeLz4:
-	//	return newLz4Writer(w), nil
+		return newGzipWriter(w, c.Level), nil
+
+	case TypeLz4:
+		return newLz4Writer(w), nil
 
 	default:
 		return nil, fmt.Errorf("unsupported compressor type:%v", c.Type)
@@ -56,17 +54,16 @@ func NewWriter(c Config, w fullreadwrite.Writer) (fullreadwrite.Writer, error) {
 }
 
 // NewReader returns a new Reader that decompresses from r
-func NewReader(c Config, r io.Reader) (fullreadwrite.Reader, error) {
+func NewReader(c Config) (block.Reader, error) {
 	switch c.Type {
 	case TypeSnappy:
-		return newSnappyReader(r), nil
+		return newSnappyReader(), nil
 
 	case TypeGzip:
-		return newGzipReader(r)
-		/*
-			case TypeLz4:
-				return newLz4Reader(r), nil
-		*/
+		return newGzipReader()
+
+	case TypeLz4:
+		return newLz4Reader(), nil
 	default:
 		return nil, fmt.Errorf("unsupported decompressor type:%v", c.Type)
 	}

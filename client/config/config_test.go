@@ -29,7 +29,7 @@ func TestDecode(t *testing.T) {
 	p1 := conf.Pipes[0]
 	compressConf, ok := p1.Config.(compress.Config)
 	assert.True(t, ok)
-	assert.Equal(t, 1, compressConf.Type)
+	assert.Equal(t, compress.TypeSnappy, compressConf.Type)
 
 	p2 := conf.Pipes[1]
 	chunkerConf, ok := p2.Config.(chunker.Config)
@@ -39,17 +39,17 @@ func TestDecode(t *testing.T) {
 	p3 := conf.Pipes[2]
 	distConf, ok := p3.Config.(distribution.Config)
 	assert.True(t, ok)
-	assert.Equal(t, 1, distConf.K)
+	assert.Equal(t, 1, distConf.Data)
 
 	p4 := conf.Pipes[3]
 	encConf, ok := p4.Config.(encrypt.Config)
 	assert.True(t, ok)
-	assert.Equal(t, 1, encConf.Type)
+	assert.Equal(t, encrypt.TypeAESGCM, encConf.Type)
 
 	p5 := conf.Pipes[4]
 	hConf, ok := p5.Config.(hash.Config)
 	assert.True(t, ok)
-	assert.Equal(t, 1, hConf.Type)
+	assert.Equal(t, hash.TypeBlake2, hConf.Type)
 
 	p6 := conf.Pipes[5]
 	rConf, ok := p6.Config.(replication.Config)
@@ -61,7 +61,7 @@ func TestDecode(t *testing.T) {
 func TestWrite(t *testing.T) {
 	// construct the config
 	confPipe1 := compress.Config{
-		Type: 1,
+		Type: compress.TypeSnappy,
 	}
 	pipe1 := Pipe{
 		Name:   "pipe1",
@@ -71,8 +71,6 @@ func TestWrite(t *testing.T) {
 	conf := Config{
 		Organization: "gig",
 		Namespace:    "thedisk",
-		IyoClientID:  "abc",
-		IyoSecret:    "def",
 		Shards:       []string{"http://127.0.0.1:12345", "http://127.0.0.1:12346"},
 		MetaShards:   []string{"127.0.0.1:2379"},
 		Pipes:        []Pipe{pipe1},

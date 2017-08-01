@@ -20,7 +20,7 @@ func TestHash(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		typ      int
+		typ      string
 		expected []byte
 	}{
 		{"md5", TypeMD5, expectedMd5[:]},
@@ -34,7 +34,7 @@ func TestHash(t *testing.T) {
 	}
 }
 
-func testHash(t *testing.T, data, expected []byte, typ int) {
+func testHash(t *testing.T, data, expected []byte, typ string) {
 	hasher, err := NewHasher(Config{
 		Type: typ,
 	})

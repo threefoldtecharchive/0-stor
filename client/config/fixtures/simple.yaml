@@ -1,7 +1,5 @@
 organization: mordor
 namespace: thedisk
-iyo_client_id: 12345
-iyo_secret: 56789
 shards:
     - http://127.0.0.1:12345
     - http://127.0.0.1:12346
@@ -10,7 +8,7 @@ pipes:
       type: compress
       action: write
       config:
-          type: 1
+          type: snappy
 
     - name: pipe2
       type: chunker
@@ -22,13 +20,14 @@ pipes:
       type: distribution
       action: write
       config:
-          k: 1
+          data: 1
+          parity: 0
 
     - name: pipe4
       type: encrypt 
       action: write
       config:
-          type: 1
+          type: aes_gcm
           privKey: ab345678901234567890123456789012
           nonce: 123456789012
 
@@ -36,7 +35,7 @@ pipes:
       type: hash
       action: write
       config:
-          type: 1
+          type: blake2_256
     - name: pipe6
       type: replication
       action: write

@@ -1,20 +1,23 @@
-package fullreadwrite
+package block
 
 import (
 	"bytes"
 )
 
+// BytesBuffer wraps bytes.Buffer to conform to block.Writer interface
 type BytesBuffer struct {
 	*bytes.Buffer
 }
 
+// NewBytesBuffer creates new BytesBuffer
 func NewBytesBuffer() *BytesBuffer {
 	return &BytesBuffer{
 		Buffer: new(bytes.Buffer),
 	}
 }
 
-func (bb *BytesBuffer) WriteFull(p []byte) WriteResponse {
+// WriteBlock implements block.Writer interface
+func (bb *BytesBuffer) WriteBlock(p []byte) WriteResponse {
 	n, err := bb.Buffer.Write(p)
 	return WriteResponse{
 		Written: n,

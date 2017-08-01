@@ -1,4 +1,4 @@
-package config
+package pipe
 
 import (
 	"crypto/rand"
@@ -6,19 +6,21 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/zero-os/0-stor/client/fullreadwrite"
+	"github.com/zero-os/0-stor/client/config"
+	"github.com/zero-os/0-stor/client/lib/block"
 	"github.com/zero-os/0-stor/client/lib/compress"
 	"github.com/zero-os/0-stor/client/lib/encrypt"
+	"github.com/zero-os/0-stor/client/lib/hash"
 )
 
 func TestPipeWriter(t *testing.T) {
 	tests := []struct {
 		name         string
-		compressType int
+		compressType string
 	}{
-		//{"gzip", compress.TypeGzip},
 		{"snappy", compress.TypeSnappy},
-		//{"lz4", compress.TypeLz4},
+		{"gzip", compress.TypeGzip},
+		{"lz4", compress.TypeLz4},
 	}
 
 	for _, test := range tests {
@@ -28,7 +30,7 @@ func TestPipeWriter(t *testing.T) {
 	}
 }
 
-func testPipeWriter(t *testing.T, compressType int) {
+func testPipeWriter(t *testing.T, compressType string) {
 	compressConf := compress.Config{
 		Type: compressType,
 	}
@@ -37,18 +39,26 @@ func testPipeWriter(t *testing.T, compressType int) {
 		PrivKey: "12345678901234567890123456789012",
 		Nonce:   "123456789012",
 	}
+	hashConf := hash.Config{
+		Type: hash.TypeBlake2,
+	}
 
-	conf := Config{
-		Pipes: []Pipe{
-			Pipe{
+	conf := config.Config{
+		Pipes: []config.Pipe{
+			config.Pipe{
 				Name:   "pipe1",
-				Type:   compressStr,
+				Type:   "compress",
 				Config: compressConf,
 			},
-			Pipe{
-				Name:   "type2",
-				Type:   encryptStr,
+			config.Pipe{
+				Name:   "pipe2",
+				Type:   "encrypt",
 				Config: encryptConf,
+			},
+			config.Pipe{
+				Name:   "pipe3",
+				Type:   "hash",
+				Config: hashConf,
 			},
 		},
 	}
@@ -56,31 +66,40 @@ func testPipeWriter(t *testing.T, compressType int) {
 	data := make([]byte, 4096)
 	rand.Read(data)
 
-	finalWriter := fullreadwrite.NewBytesBuffer()
+	finalWriter := block.NewBytesBuffer()
 
-	pw, err := conf.CreatePipeWriter(finalWriter)
-	assert.Nil(t, err)
+	pw, err := NewWritePipe(&conf, finalWriter)
+	if !assert.Nil(t, err) {
+		return
+	}
 
-	resp := pw.WriteFull(data)
+	resp := pw.WriteBlock(data)
 	assert.Nil(t, resp.Err)
 
 	// compare with manual writer
 	resultManual := func() []byte {
 		// (1) compress it
-		bufComp := fullreadwrite.NewBytesBuffer()
+		bufComp := block.NewBytesBuffer()
 		compressor, err := compress.NewWriter(compressConf, bufComp)
 		assert.Nil(t, err)
-		_, err = compressor.Write(data)
-		assert.Nil(t, err)
+		resp := compressor.WriteBlock(data)
+		assert.Nil(t, resp.Err)
 
 		// (2) encrypt it
-		bufEncryp := fullreadwrite.NewBytesBuffer()
+		bufEncryp := block.NewBytesBuffer()
 		encrypter, err := encrypt.NewWriter(bufEncryp, encryptConf)
 		assert.Nil(t, err)
-		_, err = encrypter.Write(bufComp.Bytes())
-		assert.Nil(t, err)
+		resp = encrypter.WriteBlock(bufComp.Bytes())
+		assert.Nil(t, resp.Err)
 
-		return bufEncryp.Bytes()
+		// (3) hash it
+		bufHash := block.NewBytesBuffer()
+		hasher, err := hash.NewWriter(bufHash, hashConf)
+		assert.Nil(t, err)
+		resp = hasher.WriteBlock(bufEncryp.Bytes())
+		assert.Nil(t, resp.Err)
+
+		return bufHash.Bytes()
 	}()
 
 	assert.Equal(t, resultManual, finalWriter.Bytes())

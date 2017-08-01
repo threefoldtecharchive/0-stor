@@ -1,12 +1,12 @@
 package compress
 
 import (
-	"crypto/rand"
+	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/zero-os/0-stor/client/fullreadwrite"
+	"github.com/zero-os/0-stor/client/lib/block"
 )
 
 // TestRoundTrip tests that compress and uncompress is the identity
@@ -14,11 +14,11 @@ import (
 func TestRoundTrip(t *testing.T) {
 	tests := []struct {
 		name string
-		typ  int
+		typ  string
 	}{
-		//{"gzip", TypeGzip},
+		{"gzip", TypeGzip},
 		{"snappy", TypeSnappy},
-		//{"lz4", TypeLz4},
+		{"lz4", TypeLz4},
 	}
 
 	for _, test := range tests {
@@ -31,31 +31,35 @@ func TestRoundTrip(t *testing.T) {
 }
 
 func testRoundTrip(t *testing.T, conf Config) {
-	payload := make([]byte, 4096)
-	rand.Read(payload)
+	payload := make([]byte, 4096*4096)
+	for i := 0; i < len(payload); i++ {
+		payload[i] = 100
+	}
 
-	buf := fullreadwrite.NewBytesBuffer()
+	buf := block.NewBytesBuffer()
 
 	// create writer
 	w, err := NewWriter(conf, buf)
 	assert.Nil(t, err)
 
 	// compress by write to the writer
-	_, err = w.Write(payload)
-	assert.Nil(t, err)
+	resp := w.WriteBlock(payload)
+	assert.Nil(t, resp.Err)
 
 	// create reader
-	r, err := NewReader(conf, buf)
+	r, err := NewReader(conf)
 	if !assert.Nil(t, err) {
 		return
 	}
 
 	// decompress by read from the reader
-	b, err := r.ReadFull(buf.Bytes())
+	b, err := r.ReadBlock(buf.Bytes())
 	if !assert.Nil(t, err) {
 		return
 	}
 
 	// compare decompressed with original payload
-	assert.Equal(t, payload, b)
+	if bytes.Compare(payload, b) != 0 {
+		t.Fatalf("decompressed(%v) != data(%v)", len(b), len(payload))
+	}
 }

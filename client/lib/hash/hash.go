@@ -2,22 +2,22 @@ package hash
 
 import (
 	"fmt"
-	"io"
+
+	"github.com/zero-os/0-stor/client/lib/block"
 )
 
 // Hash Type
 const (
-	_ = iota
-	TypeBlake2
-	TypeSHA256
-	TypeMD5
+	TypeBlake2 = "blake2_256"
+	TypeSHA256 = "sha_256"
+	TypeMD5    = "md5"
 )
 
 type hashEngine func([]byte) []byte
 
 // Config defines hasher configuration
 type Config struct {
-	Type int
+	Type string
 }
 
 // Hasher is object that produces hash according to it's type
@@ -26,12 +26,14 @@ type Hasher struct {
 	engine hashEngine
 }
 
+// Writer defines hash writer
 type Writer struct {
-	w      io.Writer
+	w      block.Writer
 	hasher *Hasher
 }
 
-func NewWriter(w io.Writer, conf Config) (*Writer, error) {
+// NewWriter creates new hash writer
+func NewWriter(w block.Writer, conf Config) (*Writer, error) {
 	hasher, err := NewHasher(conf)
 	if err != nil {
 		return nil, err
@@ -42,9 +44,10 @@ func NewWriter(w io.Writer, conf Config) (*Writer, error) {
 	}, nil
 }
 
-func (w Writer) Write(p []byte) (int, error) {
+// WriteBlock implements block.Writer interface
+func (w Writer) WriteBlock(p []byte) block.WriteResponse {
 	hashed := w.hasher.Hash(p)
-	return w.w.Write(hashed)
+	return w.w.WriteBlock(hashed)
 }
 
 // NewHasher creates new hasher

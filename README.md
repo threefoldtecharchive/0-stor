@@ -7,19 +7,25 @@ Single device object store
 
 [link to group on telegram](https://t.me/joinchat/BwOvOw2-K4AN7p9VZckpFw)
 
-# Installation
+# Server
+
+## Installation
 
 ```
 go get -u github.com/zero-os/0-stor/server
 ```
 
-# Running HTTP server
+## Running HTTP server
 ```
 cd github.com/zero-os/0-stor/server/
 go build
 ./server
 ```
 
+
+# Client
+
+More info about client can be found on [client](./client) directory.
 
 # Documentation
 
