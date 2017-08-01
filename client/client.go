@@ -1,8 +1,6 @@
 package client
 
 import (
-	"os"
-
 	"github.com/zero-os/0-stor/client/config"
 	"github.com/zero-os/0-stor/client/lib/block"
 	"github.com/zero-os/0-stor/client/meta"
@@ -18,17 +16,7 @@ type Client struct {
 }
 
 // New creates new client
-func New(confFile string) (*Client, error) {
-	// read config
-	f, err := os.Open(confFile)
-	if err != nil {
-		return nil, err
-	}
-	conf, err := config.NewFromReader(f)
-	if err != nil {
-		return nil, err
-	}
-
+func New(conf *config.Config) (*Client, error) {
 	// stor writer
 	storWriter, err := pipe.NewWritePipe(conf, nil)
 	if err != nil {
