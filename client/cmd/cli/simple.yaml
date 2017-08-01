@@ -1,11 +1,9 @@
-organization: mordor
-namespace: thedisk
-iyo_client_id: 12345
-iyo_secret: 56789
-shards:
+organization: mordor_0stor                          # itsyou.online organization name
+namespace: thedisk                                  # itsyou.online namespace
+shards:                                             # the address(es) of 0-stor server
     - http://127.0.0.1:12345
     - http://127.0.0.1:12346
-meta_shards:
+meta_shards:                                        # the address(es) of etcd server
     - http://127.0.0.1:2379
 pipes:
     - name: pipe1
@@ -26,3 +24,7 @@ pipes:
       config:
           data: 1
           parity: 1
+          stor_perm_write: true
+          stor_perm_read: true
+          iyo_client_id: abcde                      # itsyou.online client iD
+          iyo_secret: efgh                          # itsyou.online client secret
