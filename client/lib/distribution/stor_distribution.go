@@ -171,5 +171,5 @@ func createStorClients(conf Config, shards []string, org, namespace string) ([]s
 
 func createJWTToken(conf Config, org, namespace string) (string, error) {
 	iyoClient := itsyouonline.NewClient(org, conf.IyoClientID, conf.IyoSecret)
-	return iyoClient.CreateJWT(org+"."+namespace, conf.iyoPerm())
+	return iyoClient.CreateJWT(namespace, conf.iyoPerm())
 }
