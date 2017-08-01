@@ -31,7 +31,7 @@ The knowledge of how the data are layout is the responsiility of the client. All
 
 ## Namespaces concept
 We leverage ItsYou.online organization feature to create namespaces on the 0-stor.
-There is not API to create namespaces, instead any member of an organization that has a name following the format: `myorg_0stor.mynamespace` will have access to the namespace called `myorg_0stor_mynamespace`.  
+There is not API to create namespaces, instead any member of an organization that has a name following the format: `myorg.0stor.mynamespace` will have access to the namespace called `myorg_0stor_mynamespace`.  
 Since IYO organization name are unique, we avoid colision and problems in namespaces.
 
 ### ACL
