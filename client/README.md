@@ -12,12 +12,25 @@ Example
 ```go
 import (
 	"log"
+	"os"
 
 	"github.com/zero-os/0-stor/client"
+	"github.com/zero-os/0-stor/client/config"
 )
 
 func main() {
-	client, err := client.New("./simple.yaml")
+	f, err := os.Open("./simple.yaml")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	conf, err := config.NewFromReader(f)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+
+	client, err := client.New(conf)
 	if err != nil {
 		log.Fatal(err)
 	}

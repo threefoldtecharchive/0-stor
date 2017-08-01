@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/zero-os/0-stor/client"
+	"github.com/zero-os/0-stor/client/config"
 )
 
 func main() {
@@ -18,7 +19,19 @@ func main() {
 	confFile := os.Args[1]
 	command := os.Args[2]
 
-	c, err := client.New(confFile)
+	// read config
+	f, err := os.Open(confFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	conf, err := config.NewFromReader(f)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// create client
+	c, err := client.New(conf)
 	if err != nil {
 		log.Fatalf("failed to create client: %v", err)
 	}
