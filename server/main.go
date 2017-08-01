@@ -1,14 +1,11 @@
 package main
 
 import (
-	"net/http"
-
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
 	"github.com/zero-os/0-stor/server/config"
-	"github.com/zero-os/0-stor/server/db/badger"
 	"github.com/zero-os/0-stor/server/goraml"
-	"github.com/zero-os/0-stor/server/routes"
+	"github.com/zero-os/0-stor/server/storserver"
 
 	"os"
 	"os/signal"
@@ -79,30 +76,28 @@ func main() {
 	app.Action = func(c *cli.Context) {
 		log.Infoln(app.Name, "version", app.Version)
 
-		db, err := badger.New(settings.DB.Dirs.Data, settings.DB.Dirs.Meta)
-		if err != nil {
-			log.Fatal(err.Error())
-		}
-
 		// if err := ensureStoreStat(settings.DB.Dirs.Data, db); err != nil {
 		// 	log.Fatalf("Error checking server stats : %v", err)
 		// }
 
-		r := routes.GetRouter(db)
+		server, err := storserver.New(settings.DB.Dirs.Data, settings.DB.Dirs.Meta)
+		if err != nil {
+			log.Fatal(err.Error())
+		}
 
 		sigChan := make(chan os.Signal, 1)
 		signal.Notify(sigChan, syscall.SIGINT)
 
-		go func() {
-			log.Infof("Server listening on %s\n", settings.BindAddress)
-			if err := http.ListenAndServe(settings.BindAddress, r); err != nil {
-				log.Fatal(err.Error())
-			}
-		}()
+		_, err = server.Listen(settings.BindAddress)
+		if err != nil {
+			log.Fatal(err.Error())
+		}
+		log.Infof("Server listening on %s\n", settings.BindAddress)
 
 		<-sigChan // block on signal handler
 		log.Println("Gracefully closing 0-stor")
-		db.Close()
+		server.Close()
+
 		os.Exit(0)
 	}
 
