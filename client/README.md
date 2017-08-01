@@ -28,6 +28,8 @@ func main() {
 	client.Store([]byte("the_key"), data)
 }
 
+```
+
 ## Configuration 
 
 Configuration file example can be found on [simple.yaml](./cmd/cli/simple.yaml).

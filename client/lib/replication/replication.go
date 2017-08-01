@@ -38,6 +38,7 @@ func (w *Writer) WriteBlock(data []byte) block.WriteResponse {
 func (w *Writer) writeAsync(data []byte) (resp block.WriteResponse) {
 	var wg sync.WaitGroup
 	var mux sync.Mutex
+	var errs []error
 
 	wg.Add(len(w.writers))
 
@@ -53,13 +54,17 @@ func (w *Writer) writeAsync(data []byte) (resp block.WriteResponse) {
 			resp.Written += curResp.Written
 
 			if curResp.Err != nil {
-				resp.Err = curResp.Err
+				errs = append(errs, curResp.Err)
 				return
 			}
 		}(writer)
 	}
 
 	wg.Wait()
+
+	if len(errs) > 0 {
+		resp.Err = Error{errs: errs}
+	}
 
 	return
 }

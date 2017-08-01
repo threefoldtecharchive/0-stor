@@ -18,6 +18,7 @@ func TestDistributeRestore(t *testing.T) {
 		Parity: 2,
 	}
 
+	// create list of writers
 	var writers []io.Writer
 	var buffs []*bytes.Buffer
 	for i := 0; i < conf.NumPieces(); i++ {
