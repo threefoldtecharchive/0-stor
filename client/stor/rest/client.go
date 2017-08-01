@@ -25,7 +25,7 @@ func NewClient(addr, org, namespace, iyoJWTToken string) *Client {
 
 	return &Client{
 		client: client,
-		nsid:   org + "." + namespace,
+		nsid:   namespace,
 	}
 }
 
