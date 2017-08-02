@@ -52,7 +52,7 @@ func (c *Client) Store(key, payload []byte) error {
 	if resp.Meta == nil {
 		return nil
 	}
-	return c.metaCli.Put(string(key), *resp.Meta)
+	return c.metaCli.Put(string(key), resp.Meta)
 }
 
 // Get fetch data for given key

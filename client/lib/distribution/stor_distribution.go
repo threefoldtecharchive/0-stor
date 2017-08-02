@@ -86,11 +86,12 @@ func (sd StorDistributor) WriteBlock(data []byte) (wc block.WriteResponse) {
 		}
 	}
 	wc.Written = len(data)
-	wc.Meta = &meta.Meta{
-		Key:    []byte(storKey),
-		Size:   uint64(len(data)),
-		Shards: sd.shards,
+	metadata, err := meta.New([]byte(storKey), uint64(len(data)), sd.shards)
+	if err != nil {
+		wc.Err = err
+		return
 	}
+	wc.Meta = metadata
 	return
 }
 
@@ -133,7 +134,12 @@ func (sr StorRestorer) ReadBlock(rawMeta []byte) ([]byte, error) {
 
 	// read all chunks from stor.Clients
 	for i, sc := range sr.storClients {
-		data, err := sc.Get(meta.Key)
+		key, err := meta.Key()
+		if err != nil {
+			return nil, err
+		}
+
+		data, err := sc.Get(key)
 		if err != nil {
 		} else {
 			chunks[i] = data
@@ -141,7 +147,7 @@ func (sr StorRestorer) ReadBlock(rawMeta []byte) ([]byte, error) {
 	}
 
 	// decode
-	decoded, err := sr.dec.Decode(chunks, int(meta.Size))
+	decoded, err := sr.dec.Decode(chunks, int(meta.Size()))
 	return decoded, err
 }
 

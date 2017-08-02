@@ -32,7 +32,7 @@ func (c *Client) Close() {
 }
 
 // Put stores meta to metadata server
-func (c *Client) Put(key string, meta Meta) error {
+func (c *Client) Put(key string, meta *Meta) error {
 	buf := new(bytes.Buffer)
 	if err := meta.Encode(buf); err != nil {
 		return err
