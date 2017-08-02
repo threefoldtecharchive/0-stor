@@ -9,12 +9,14 @@ import (
 	"github.com/zero-os/0-stor/server/api/rest"
 	"net/http"
 	"github.com/zero-os/0-stor/server/db"
+	//"fmt"
+	//"sort"
 	"fmt"
 	"sort"
 )
 
 func TestCreateObject(t *testing.T) {
-	url, db, clean := getTestAPI(t)
+	url, database, iyoOrganization, iyoClient, permissions, clean := getTestAPI(t)
 	defer clean()
 
 	// Trying to create invalid object. (size > 1mB)
@@ -45,17 +47,32 @@ func TestCreateObject(t *testing.T) {
 	}
 	err := json.NewEncoder(body).Encode(obj)
 	require.NoError(t, err)
-	resp, err := http.Post(url+"/namespaces/mynamespace/objects", "application/json", body)
+
+	err = iyoClient.CreateNamespace("namespace1")
+	require.NoError(t, err)
+
+	token, err := iyoClient.CreateJWT("namespace1", permissions["write"])
+	require.NoError(t, err)
+
+	nsid :=iyoOrganization+ "_0stor_namespace1"
+	client := &http.Client{}
+	req, _ := http.NewRequest("POST", url+"/namespaces/" + nsid+"/objects", body)
+	req.Header.Set("Authorization", token)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := client.Do(req)
+
 	require.NoError(t, err)
 
 	require.Equal(t, http.StatusCreated, resp.StatusCode)
-	exists, err := db.Exists([]byte("mynamespace:myobject"))
+	exists, err := database.Exists([]byte(nsid+":myobject"))
 	require.NoError(t, err)
 	assert.True(t, exists)
 }
 
 func TestGetObject(t *testing.T){
-	url, database, clean := getTestAPI(t)
+	url, database, iyoOrganization, iyoClient, permissions, clean := getTestAPI(t)
+
 	defer clean()
 
 	// create an object.
@@ -67,9 +84,23 @@ func TestGetObject(t *testing.T){
 	b, err := obj.Encode()
 	require.NoError(t, err)
 
-	err = database.Set([]byte("mynamespace:myobject"), b)
+	nsid := iyoOrganization+ "_0stor_namespace1"
+	err = database.Set([]byte(nsid + ":myobject"), b)
 
-	resp, err := http.Get(url+"/namespaces/mynamespace/objects/myobject")
+	err = iyoClient.CreateNamespace("namespace1")
+	require.NoError(t, err)
+
+	token, err := iyoClient.CreateJWT("namespace1", permissions["read"])
+	require.NoError(t, err)
+
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", url+"/namespaces/" + nsid+ "/objects/myobject", nil)
+	require.NoError(t, err)
+
+	req.Header.Set("Authorization", token)
+
+	resp, err := client.Do(req)
+
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -80,18 +111,27 @@ func TestGetObject(t *testing.T){
 	require.Equal(t, result.Id, "myobject")
 	require.Equal(t, result.Data, string(obj.Data))
 
-	resp, err = http.Get(url+"/namespaces/mynamespace/objects/myobject2")
+
+
+	req, err = http.NewRequest("GET", url+"/namespaces/" + nsid + "/objects/object2", nil)
+	require.NoError(t, err)
+	req.Header.Set("Authorization", token)
+	resp, err = client.Do(req)
+
 	require.NoError(t, err)
 	require.Equal(t, http.StatusNotFound, resp.StatusCode)
 }
 
 func TestListObjects(t *testing.T){
-	url, database, clean := getTestAPI(t)
+	url, database, iyoOrganization, iyoClient, permissions, clean := getTestAPI(t)
 	defer clean()
+
+	nsid := iyoOrganization+ "_0stor_namespace1"
 
 	objects := []string{"obj1", "obj2", "obj3"}
 	for _, label := range objects {
-		key := fmt.Sprintf("%s:%s", "namespace", label)
+
+		key := fmt.Sprintf("%s:%s", nsid, label)
 
 		obj := db.Object{
 			Data: []byte("********************************abcdef"),
@@ -103,8 +143,18 @@ func TestListObjects(t *testing.T){
 		err = database.Set([]byte(key), b)
 	}
 
+	err := iyoClient.CreateNamespace("namespace1")
+	require.NoError(t, err)
 
-	resp, err := http.Get(url+"/namespaces/namespace/objects")
+	token, err := iyoClient.CreateJWT("namespace1", permissions["read"])
+	require.NoError(t, err)
+
+	client := &http.Client{}
+	req, _ := http.NewRequest("GET", url +"/namespaces/"+ nsid + "/objects", nil)
+	req.Header.Set("Authorization", token)
+
+	resp, err := client.Do(req)
+
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -117,8 +167,10 @@ func TestListObjects(t *testing.T){
 }
 
 func TestDeleteObject(t *testing.T){
-	url, database, clean := getTestAPI(t)
+	url, database, iyoOrganization, iyoClient, permissions, clean := getTestAPI(t)
 	defer clean()
+
+	nsid := iyoOrganization+ "_0stor_namespace1"
 
 	// create an object.
 
@@ -129,14 +181,29 @@ func TestDeleteObject(t *testing.T){
 	b, err := obj.Encode()
 	require.NoError(t, err)
 
-	err = database.Set([]byte("mynamespace:myobject"), b)
+	err = database.Set([]byte(nsid + ":myobject"), b)
 
-	resp, err := http.Get(url+"/namespaces/mynamespace/objects/myobject")
+	err = iyoClient.CreateNamespace("namespace1")
+	require.NoError(t, err)
+
+	token, err := iyoClient.CreateJWT("namespace1", permissions["all"])
+	require.NoError(t, err)
+
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", url+"/namespaces/" + nsid + "/objects/myobject", nil)
+	require.NoError(t, err)
+
+	req.Header.Set("Authorization", token)
+
+	resp, err := client.Do(req)
+
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
-	req, err := http.NewRequest("DELETE", url+"/namespaces/mynamespace/objects/myobject",  &bytes.Buffer{})
+	req, err = http.NewRequest("DELETE", url+"/namespaces/" + nsid +"/objects/myobject",  &bytes.Buffer{})
 	req.Header.Add("Content-Type", "application/json")
+	req.Header.Set("Authorization", token)
+
 	require.NoError(t, err)
 	cli := http.DefaultClient
 

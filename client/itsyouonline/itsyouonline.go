@@ -50,7 +50,7 @@ func (c *Client) CreateJWT(namespace string, perm Permission) (string, error) {
 	}
 
 	// build scopes query
-	scopes := perm.scopes(c.org, namespace)
+	scopes := perm.scopes(c.org, "0stor" + "." + namespace)
 	if len(scopes) == 0 {
 		return "", errNoPermission
 	}
@@ -92,7 +92,7 @@ func (c *Client) CreateNamespace(namespace string) error {
 	}
 
 	// create namespace org
-	namespaceID := c.org + "." + namespace
+	namespaceID := c.org + "." + "0stor"
 	org := itsyouonline.Organization{
 		Globalid: namespaceID,
 	}
@@ -100,6 +100,20 @@ func (c *Client) CreateNamespace(namespace string) error {
 	if err != nil {
 		return fmt.Errorf("code=%v, err=%v", resp.StatusCode, err)
 	}
+
+
+	// cretate 0stor suborganization
+
+	org = itsyouonline.Organization{
+		Globalid: namespaceID + "." + namespace,
+	}
+	_, resp, err = c.iyoClient.Organizations.CreateNewSubOrganization(namespaceID, org, nil, nil)
+
+	if err != nil {
+		return fmt.Errorf("code=%v, err=%v", resp.StatusCode, err)
+	}
+
+	namespaceID = namespaceID + "." + namespace
 
 	// create permission org
 	perm := Permission{
@@ -111,7 +125,7 @@ func (c *Client) CreateNamespace(namespace string) error {
 		org := itsyouonline.Organization{
 			Globalid: namespaceID + "." + perm,
 		}
-		_, resp, err := c.iyoClient.Organizations.CreateNewSubOrganization(namespaceID, org, nil, nil)
+		_, resp, err := c.iyoClient.Organizations.CreateNewSubOrganization(namespaceID , org, nil, nil)
 		if err != nil {
 			return fmt.Errorf("code=%v, err=%v", resp.StatusCode, err)
 		}
