@@ -20,22 +20,18 @@ func NewObjectManager(namespace string, db db.DB) *ObjectManager {
 }
 
 func objKey(namespace string, key []byte) []byte {
-	// k := make([]byte, len(namespace)+len(key))
-	// copy(k, []byte(namespace))
-	// copy(k, key)
-	// return k
 	return []byte(fmt.Sprintf("%s:%s", namespace, key))
 }
 
-func (mgr *ObjectManager) Set(key []byte, data []byte, referenceList [160][]byte) error {
+// Set saved an object into the key-value store as a blob of bytes
+func (mgr *ObjectManager) Set(key []byte, data []byte, referenceList []string) error {
 	obj := db.NewObjet()
 	obj.Data = data
 	for i := range referenceList {
-		copy(obj.ReferenceList[i][:], referenceList[i])
+		copy(obj.ReferenceList[i][:], []byte(referenceList[i]))
 	}
 
 	b, err := obj.Encode()
-
 	if err != nil {
 		return err
 	}
@@ -48,12 +44,11 @@ func (mgr *ObjectManager) Set(key []byte, data []byte, referenceList [160][]byte
 func (mgr *ObjectManager) List(start, count int) ([][]byte, error) {
 	prefix := fmt.Sprintf("%s:", mgr.namespace)
 	keys, err := mgr.db.List([]byte(prefix))
-
 	if err != nil {
 		return nil, err
 	}
-	// remove namespace prefix
 
+	// remove namespace prefix
 	for i := range keys {
 		keys[i] = keys[i][len(mgr.namespace)+1:]
 	}
@@ -72,10 +67,9 @@ func (mgr *ObjectManager) Get(key []byte) (*db.Object, error) {
 }
 
 func (mgr *ObjectManager) Delete(key []byte) error {
-	// Probably not needed, will be done by scrubing and referenceList
-	return nil
+	return mgr.db.Delete(objKey(mgr.namespace, key))
 }
 
 func (mgr *ObjectManager) Exists(key []byte) (bool, error) {
-	return mgr.db.Exists(key)
+	return mgr.db.Exists(objKey(mgr.namespace, key))
 }

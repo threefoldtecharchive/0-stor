@@ -3,17 +3,17 @@ package rest
 import (
 	"crypto/ecdsa"
 	"fmt"
-	log "github.com/Sirupsen/logrus"
 	"net/http"
 	"strings"
 
+	log "github.com/Sirupsen/logrus"
+
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
 	"github.com/zero-os/0-stor/server/db"
 	"github.com/zero-os/0-stor/server/manager"
-	"github.com/pkg/errors"
 )
-
 
 // Oauth2itsyouonlineMiddleware is oauth2 middleware for itsyouonline
 type Oauth2itsyouonlineMiddleware struct {
@@ -37,10 +37,10 @@ MHYwEAYHKoZIzj0CAQYFK4EEACIDYgAES5X8XrfKdx9gYayFITc89wad4usrk0n2
 // NewOauth2itsyouonlineMiddlewarecreate new Oauth2itsyouonlineMiddleware struct
 func NewOauth2itsyouonlineMiddleware(db db.DB) *Oauth2itsyouonlineMiddleware {
 	om := Oauth2itsyouonlineMiddleware{
-		describedBy:"headers",
-		field: "Authorization",
-		url: oauth2ServerUrl,
-		db: db,
+		describedBy: "headers",
+		field:       "Authorization",
+		url:         oauth2ServerUrl,
+		db:          db,
 	}
 
 	if len(oauth2ServerPublicKey) > 0 {
@@ -55,10 +55,10 @@ func NewOauth2itsyouonlineMiddleware(db db.DB) *Oauth2itsyouonlineMiddleware {
 
 // CheckScopes checks whether user has needed scopes
 func (om *Oauth2itsyouonlineMiddleware) CheckPermissions(expectedScopes []string, userScopes []string) bool {
-	for _, scope := range userScopes{
+	for _, scope := range userScopes {
 		scope = strings.Replace(scope, "user:memberof:", "", 1)
-		for _, expected := range expectedScopes{
-			if scope == expected{
+		for _, expected := range expectedScopes {
+			if scope == expected {
 				return true
 			}
 		}
@@ -66,10 +66,10 @@ func (om *Oauth2itsyouonlineMiddleware) CheckPermissions(expectedScopes []string
 	return false
 }
 
-func (om *Oauth2itsyouonlineMiddleware) ValidateNsid(nsid string) error{
+func (om *Oauth2itsyouonlineMiddleware) ValidateNsid(nsid string) error {
 
 	// subOrg_0stor_org i.e first_0stor_gig
-	if strings.Count(nsid, "_0stor_") != 1 ||  strings.HasSuffix(nsid, "_0stor_"){
+	if strings.Count(nsid, "_0stor_") != 1 || strings.HasSuffix(nsid, "_0stor_") {
 		err := fmt.Sprintf("Invalid nsid %s", nsid)
 		log.Info(err)
 		return errors.New(err)
@@ -78,13 +78,13 @@ func (om *Oauth2itsyouonlineMiddleware) ValidateNsid(nsid string) error{
 	return nil
 }
 
-func (om *Oauth2itsyouonlineMiddleware) GetExpectedScopes(r *http.Request, nsid string) ([]string, error){
+func (om *Oauth2itsyouonlineMiddleware) GetExpectedScopes(r *http.Request, nsid string) ([]string, error) {
 	permissions := map[string]string{
-		"GET": "read",
-		"POST": "write",
+		"GET":    "read",
+		"POST":   "write",
 		"DELETE": "delete",
-		"PUT" : "write",
-		"HEAD": "read",
+		"PUT":    "write",
+		"HEAD":   "read",
 	}
 
 	perm, OK := permissions[r.Method]
@@ -102,7 +102,6 @@ func (om *Oauth2itsyouonlineMiddleware) GetExpectedScopes(r *http.Request, nsid 
 		adminScope,
 	}, nil
 }
-
 
 // Handler return HTTP handler representation of this middleware
 func (om *Oauth2itsyouonlineMiddleware) Handler(next http.Handler) http.Handler {
@@ -126,12 +125,12 @@ func (om *Oauth2itsyouonlineMiddleware) Handler(next http.Handler) http.Handler 
 
 		nsid, OK := mux.Vars(r)["nsid"]
 
-		if !OK{
+		if !OK {
 			w.WriteHeader(400)
 			return
 		}
 
-		if err := om.ValidateNsid(nsid); err != nil{
+		if err := om.ValidateNsid(nsid); err != nil {
 			log.Errorln(err.Error())
 			w.WriteHeader(400)
 			return
@@ -139,20 +138,19 @@ func (om *Oauth2itsyouonlineMiddleware) Handler(next http.Handler) http.Handler 
 
 		expectedScope, err := om.GetExpectedScopes(r, nsid)
 
-		if err != nil{
+		if err != nil {
 			log.Errorln(err.Error())
 			w.WriteHeader(400)
 			return
 		}
 
-		log.Infof("[IYO] Expected scope : %v", expectedScope)
-
 		if len(oauth2ServerPublicKey) > 0 {
 			userScopes, err := om.checkJWTGetScope(accessToken)
-			log.Infof("[IYO] User scopes : %v", userScopes)
 
 			if err != nil {
-				log.Infof(err.Error())
+				log.Errorln(err.Error())
+				log.Errorf("[IYO] User scopes : %v", userScopes)
+				log.Errorf("[IYO] Expected scope : %v", expectedScope)
 				w.WriteHeader(403)
 				return
 			}
@@ -166,7 +164,7 @@ func (om *Oauth2itsyouonlineMiddleware) Handler(next http.Handler) http.Handler 
 
 			// Create namespace if not exists
 
-			if err := manager.NewNamespaceManager(om.db).Create(nsid); err != nil{
+			if err := manager.NewNamespaceManager(om.db).Create(nsid); err != nil {
 				w.WriteHeader(500)
 				return
 

@@ -56,6 +56,12 @@ func main() {
 			Value:       ".db/meta",
 			Destination: &settings.DB.Dirs.Meta,
 		},
+		cli.StringFlag{
+			Name:        "interface",
+			Usage:       "type of server, can be rest or grpc",
+			Value:       "rest",
+			Destination: &settings.ServerType,
+		},
 	}
 
 	app.Before = func(c *cli.Context) error {
@@ -70,6 +76,10 @@ func main() {
 		// input validator
 		validator.SetValidationFunc("multipleOf", goraml.MultipleOf)
 
+		if settings.ServerType != config.ServerTypeRest && settings.ServerType != config.ServerTypeGrpc {
+			log.Fatalf("%s is not a supported server interface\n", settings.ServerType)
+		}
+
 		return nil
 	}
 
@@ -79,20 +89,35 @@ func main() {
 		// if err := ensureStoreStat(settings.DB.Dirs.Data, db); err != nil {
 		// 	log.Fatalf("Error checking server stats : %v", err)
 		// }
+		var (
+			server storserver.StoreServer
+			err    error
+		)
 
-		server, err := storserver.New(settings.DB.Dirs.Data, settings.DB.Dirs.Meta)
-		if err != nil {
-			log.Fatal(err.Error())
+		switch settings.ServerType {
+		case config.ServerTypeRest:
+			server, err = storserver.NewRest(settings.DB.Dirs.Data, settings.DB.Dirs.Meta)
+			if err != nil {
+				log.Fatal(err.Error())
+			}
+		case config.ServerTypeGrpc:
+			server, err = storserver.NewGRPC(settings.DB.Dirs.Data, settings.DB.Dirs.Meta)
+			if err != nil {
+				log.Fatal(err.Error())
+			}
+		default:
+			log.Fatalf("%s is not a supported server interface\n", settings.ServerType)
 		}
 
 		sigChan := make(chan os.Signal, 1)
 		signal.Notify(sigChan, syscall.SIGINT)
 
-		_, err = server.Listen(settings.BindAddress)
+		addr, err := server.Listen(settings.BindAddress)
 		if err != nil {
 			log.Fatal(err.Error())
 		}
-		log.Infof("Server listening on %s\n", settings.BindAddress)
+		log.Infof("Server interface: %s", settings.ServerType)
+		log.Infof("Server listening on %s", addr)
 
 		<-sigChan // block on signal handler
 		log.Println("Gracefully closing 0-stor")

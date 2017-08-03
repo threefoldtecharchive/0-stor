@@ -31,13 +31,13 @@ func (api NamespacesAPI) CreateObject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mgr := manager.NewObjectManager(mux.Vars(r)["nsid"], api.db)
-	refList := [160][]byte{}
+	refList := make([]string, len(reqBody.ReferenceList))
 	if reqBody.ReferenceList == nil {
 		reqBody.ReferenceList = []ReferenceID{}
 	}
 
 	for i := range reqBody.ReferenceList {
-		refList[i] = []byte(reqBody.ReferenceList[i])
+		refList[i] = string(reqBody.ReferenceList[i])
 	}
 
 	if err := mgr.Set([]byte(reqBody.Id), []byte(reqBody.Data), refList); err != nil {

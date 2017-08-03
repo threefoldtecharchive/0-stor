@@ -8,11 +8,15 @@ import (
 	"io/ioutil"
 )
 
-const POLYNOMIAL = 0xD5828281
+const (
+	POLYNOMIAL  = 0xD5828281
+	RefIDCount  = 160
+	RefIDLenght = 16
+)
 
 // object is the data structure used to encode, decode object on the disk
 type Object struct {
-	ReferenceList [160][16]byte
+	ReferenceList [RefIDCount][RefIDLenght]byte
 	CRC           uint32
 	Data          []byte
 }
@@ -70,7 +74,6 @@ func (o *Object) Decode(b []byte) error {
 	if err != nil {
 		return err
 	}
-
 
 	// read the rest of the data from the read
 	o.Data, err = ioutil.ReadAll(r)

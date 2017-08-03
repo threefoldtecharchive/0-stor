@@ -1,18 +1,17 @@
 #!/bin/bash
-set -e
+set -ex
 pushd server
     echo "Run server tests"
-    go get ./...
     bash codecov.sh
 popd
 pushd client
 	echo "Run client test"
 	go get -t -v ./...
-	go test ./...
+	bash codecov.sh
 popd
 echo "Generate docs"
 pushd specs/raml
-    raml2html sdstor.raml > sdstor.html
+    raml2html -p sdstor.raml > sdstor.html
 popd
 echo "Install go-raml"
 pushd $GOPATH/src/github.com/Jumpscale/go-raml

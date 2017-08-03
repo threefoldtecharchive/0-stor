@@ -42,9 +42,9 @@ func (api NamespacesAPI) UpdateReferenceList(w http.ResponseWriter, r *http.Requ
 		}
 		return
 	}
-	refList := [160][]byte{}
+	refList := make([]string, len(reqBody))
 	for i := range reqBody {
-		refList[i] = []byte(reqBody[i])
+		refList[i] = string(reqBody[i])
 	}
 
 	if err := mgr.Set([]byte(key), obj.Data, refList); err != nil {

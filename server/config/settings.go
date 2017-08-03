@@ -7,6 +7,11 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
+var (
+    ServerTypeRest = "rest"
+    ServerTypeGrpc = "grpc"
+)
+
 type Settings struct {
 	DebugLog    bool   `json:"debug"`
 	BindAddress string `json:"bind"`
@@ -16,9 +21,9 @@ type Settings struct {
 			Meta string `json:"meta"`
 			Data string `json:"data"`
 		} `json:"dirs"`
-	} `json:db`
+	} `json:"db"`
 
-	JWTKey string `json:"jwt_key"`
+	ServerType string `json:"server_type"`
 }
 
 func (s *Settings) Load(path string) error {
