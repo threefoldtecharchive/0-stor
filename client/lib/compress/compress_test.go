@@ -43,8 +43,8 @@ func testRoundTrip(t *testing.T, conf Config) {
 	assert.Nil(t, err)
 
 	// compress by write to the writer
-	resp := w.WriteBlock(payload)
-	assert.Nil(t, resp.Err)
+	_, err = w.WriteBlock(nil, payload)
+	assert.Nil(t, err)
 
 	// create reader
 	r, err := NewReader(conf)

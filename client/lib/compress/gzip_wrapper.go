@@ -21,7 +21,7 @@ func newGzipWriter(w block.Writer, level int) *gzipWriter {
 	}
 }
 
-func (gw gzipWriter) WriteBlock(p []byte) block.WriteResponse {
+func (gw gzipWriter) WriteBlock(key, p []byte) (int, error) {
 	buf := new(bytes.Buffer)
 	written, err := func() (int, error) {
 		w, err := gzip.NewWriterLevel(buf, gw.level)
@@ -48,12 +48,9 @@ func (gw gzipWriter) WriteBlock(p []byte) block.WriteResponse {
 		return written, w.Close()
 	}()
 	if err != nil {
-		return block.WriteResponse{
-			Written: written,
-			Err:     err,
-		}
+		return written, err
 	}
-	return gw.w.WriteBlock(buf.Bytes())
+	return gw.w.WriteBlock(key, buf.Bytes())
 }
 
 type gzipReader struct {

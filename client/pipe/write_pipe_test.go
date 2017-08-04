@@ -63,6 +63,7 @@ func testPipeWriter(t *testing.T, compressType string) {
 		},
 	}
 
+	key := []byte("")
 	data := make([]byte, 4096)
 	rand.Read(data)
 
@@ -73,8 +74,8 @@ func testPipeWriter(t *testing.T, compressType string) {
 		return
 	}
 
-	resp := pw.WriteBlock(data)
-	assert.Nil(t, resp.Err)
+	_, err = pw.WriteBlock(key, data)
+	assert.Nil(t, err)
 
 	// compare with manual writer
 	resultManual := func() []byte {
@@ -82,22 +83,22 @@ func testPipeWriter(t *testing.T, compressType string) {
 		bufComp := block.NewBytesBuffer()
 		compressor, err := compress.NewWriter(compressConf, bufComp)
 		assert.Nil(t, err)
-		resp := compressor.WriteBlock(data)
-		assert.Nil(t, resp.Err)
+		_, err = compressor.WriteBlock(key, data)
+		assert.Nil(t, err)
 
 		// (2) encrypt it
 		bufEncryp := block.NewBytesBuffer()
 		encrypter, err := encrypt.NewWriter(bufEncryp, encryptConf)
 		assert.Nil(t, err)
-		resp = encrypter.WriteBlock(bufComp.Bytes())
-		assert.Nil(t, resp.Err)
+		_, err = encrypter.WriteBlock(key, bufComp.Bytes())
+		assert.Nil(t, err)
 
 		// (3) hash it
 		bufHash := block.NewBytesBuffer()
 		hasher, err := hash.NewWriter(bufHash, hashConf)
 		assert.Nil(t, err)
-		resp = hasher.WriteBlock(bufEncryp.Bytes())
-		assert.Nil(t, resp.Err)
+		_, err = hasher.WriteBlock(key, bufEncryp.Bytes())
+		assert.Nil(t, err)
 
 		return bufHash.Bytes()
 	}()

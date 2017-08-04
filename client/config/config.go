@@ -6,6 +6,8 @@ import (
 
 	"gopkg.in/validator.v2"
 	"gopkg.in/yaml.v2"
+
+	"github.com/zero-os/0-stor/client/stor"
 )
 
 const (
@@ -15,6 +17,8 @@ const (
 	encryptStr      = "encrypt"
 	hashStr         = "hash"
 	replicationStr  = "replication"
+	metaStr         = "meta"
+	storClientStr   = "stor_client"
 )
 
 var (
@@ -25,16 +29,18 @@ var (
 		hashStr:         struct{}{},
 		replicationStr:  struct{}{},
 		distributionStr: struct{}{},
+		metaStr:         struct{}{},
+		storClientStr:   struct{}{},
 	}
 )
 
 // Config defines 0-stor client config
 type Config struct {
-	Organization string   `yaml:"organization" validate:"nonzero"`
-	Namespace    string   `yaml:"namespace" validate:"nonzero"`
-	Shards       []string `yaml:"shards" validate:"nonzero"` // 0-stor shards
-	MetaShards   []string `yaml:"meta_shards"`
-	Pipes        []Pipe   `yaml:"pipes" validate:"nonzero"`
+	Organization string      `yaml:"organization" validate:"nonzero"`
+	Namespace    string      `yaml:"namespace" validate:"nonzero"`
+	StorClient   stor.Config `yaml:"stor_client,omitempty"`
+	MetaShards   []string    `yaml:"meta_shards"`
+	Pipes        []Pipe      `yaml:"pipes" validate:"nonzero"`
 }
 
 // NewFromReader creates Config from a reader

@@ -16,11 +16,13 @@ type Distributor struct {
 
 // Config defines distribution's configuration
 type Config struct {
-	Data           int  `yaml:"data"`             // number of data shards
-	Parity         int  `yaml:"parity"`           // number of parity shards
-	StorPermWrite  bool `yaml:"stor_perm_write"`  // 0-stor write permission
-	StorPermRead   bool `yaml:"stor_perm_read"`   // 0-stor read permission
-	StorPermDelete bool `yaml:"stor_perm_delete"` // 0-stor delete permission
+	Protocol       string   `yaml:"protocol" validate:"nonzero"` // rest or grpc
+	Shards         []string `yaml:"shards" validate:"nonzero"`   // 0-stor shards
+	Data           int      `yaml:"data"`                        // number of data shards
+	Parity         int      `yaml:"parity"`                      // number of parity shards
+	StorPermWrite  bool     `yaml:"stor_perm_write"`             // 0-stor write permission
+	StorPermRead   bool     `yaml:"stor_perm_read"`              // 0-stor read permission
+	StorPermDelete bool     `yaml:"stor_perm_delete"`            // 0-stor delete permission
 
 	// Do not use IYO JWT token if one of IYO client ID / secret is empty
 	IyoClientID string `yaml:"iyo_client_id"`

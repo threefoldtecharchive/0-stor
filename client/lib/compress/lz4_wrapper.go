@@ -19,7 +19,7 @@ func newLz4Writer(w block.Writer) *lz4Writer {
 	}
 }
 
-func (lw lz4Writer) WriteBlock(data []byte) block.WriteResponse {
+func (lw lz4Writer) WriteBlock(key, data []byte) (int, error) {
 	buf := bytes.NewBuffer(nil)
 
 	rd := bytes.NewReader(data)
@@ -30,22 +30,16 @@ func (lw lz4Writer) WriteBlock(data []byte) block.WriteResponse {
 	// compress the data
 	n, err := io.Copy(comp, rd)
 	if err != nil {
-		return block.WriteResponse{
-			Written: int(n),
-			Err:     err,
-		}
+		return int(n), err
 	}
 
 	// flush and close the compressor
 	if err := comp.Close(); err != nil {
-		return block.WriteResponse{
-			Written: int(n),
-			Err:     err,
-		}
+		return int(n), err
 	}
 
 	// return the valuo of our output buffer and a possible error
-	return lw.w.WriteBlock(buf.Bytes())
+	return lw.w.WriteBlock(key, buf.Bytes())
 }
 
 // lz4Reader wraps lz4.Reader to conform to Decompressor interface

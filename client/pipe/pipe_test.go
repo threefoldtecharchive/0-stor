@@ -57,6 +57,7 @@ func testRoundTrip(t *testing.T, compressType string) {
 		},
 	}
 
+	key := []byte("")
 	data := make([]byte, 4096)
 	rand.Read(data)
 
@@ -66,8 +67,8 @@ func testRoundTrip(t *testing.T, compressType string) {
 	pw, err := NewWritePipe(&conf, finalWriter)
 	assert.Nil(t, err)
 
-	resp := pw.WriteBlock(data)
-	assert.Nil(t, resp.Err)
+	_, err = pw.WriteBlock(key, data)
+	assert.Nil(t, err)
 
 	// read it
 	rp, err := NewReadPipe(&conf)

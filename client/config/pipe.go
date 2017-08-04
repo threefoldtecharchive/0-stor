@@ -13,6 +13,8 @@ import (
 	"github.com/zero-os/0-stor/client/lib/encrypt"
 	"github.com/zero-os/0-stor/client/lib/hash"
 	"github.com/zero-os/0-stor/client/lib/replication"
+	"github.com/zero-os/0-stor/client/meta"
+	"github.com/zero-os/0-stor/client/stor"
 )
 
 // Pipe defines each 0-stor client pipe
@@ -27,7 +29,7 @@ type Pipe struct {
 }
 
 // CreateBlockReader creates a block reader
-func (p Pipe) CreateBlockReader(shards []string, org, namespace string) (block.Reader, error) {
+func (p Pipe) CreateBlockReader(org, namespace string) (block.Reader, error) {
 	switch p.Type {
 	case compressStr:
 		conf := p.Config.(compress.Config)
@@ -37,29 +39,41 @@ func (p Pipe) CreateBlockReader(shards []string, org, namespace string) (block.R
 		return encrypt.NewReader(conf)
 	case distributionStr:
 		conf := p.Config.(distribution.Config)
-		return distribution.NewStorRestorer(conf, shards, org, namespace)
+		return distribution.NewStorRestorer(conf, org, namespace)
+	case metaStr:
+		conf := p.Config.(meta.Config)
+		return meta.NewReader(conf)
+	case storClientStr:
+		conf := p.Config.(stor.Config)
+		return stor.NewReader(conf, org, namespace)
 	default:
-		return nil, fmt.Errorf("invalid type:%v", p.Type)
+		return nil, fmt.Errorf("invalid reader type:%v", p.Type)
 	}
 }
 
 // CreateBlockWriter creates block writer
-func (p Pipe) CreateBlockWriter(w block.Writer, shards []string, org, namespace string) (block.Writer, error) {
+func (p Pipe) CreateBlockWriter(w block.Writer, org, namespace string) (block.Writer, error) {
 	switch p.Type {
 	case compressStr:
 		conf := p.Config.(compress.Config)
 		return compress.NewWriter(conf, w)
 	case distributionStr:
 		conf := p.Config.(distribution.Config)
-		return distribution.NewStorDistributor(conf, shards, org, namespace)
+		return distribution.NewStorDistributor(w, conf, org, namespace)
 	case encryptStr:
 		conf := p.Config.(encrypt.Config)
 		return encrypt.NewWriter(w, conf)
 	case hashStr:
 		conf := p.Config.(hash.Config)
 		return hash.NewWriter(w, conf)
+	case metaStr:
+		conf := p.Config.(meta.Config)
+		return meta.NewWriter(w, conf)
+	case storClientStr:
+		conf := p.Config.(stor.Config)
+		return stor.NewWriter(w, conf, org, namespace)
 	default:
-		return nil, fmt.Errorf("unsupported type:%v", p.Type)
+		return nil, fmt.Errorf("invalid writer type:%v", p.Type)
 	}
 }
 
@@ -114,8 +128,23 @@ func (p *Pipe) setConfigType() error {
 			return err
 		}
 		p.Config = conf
+
+	case metaStr:
+		var conf meta.Config
+		if err := yaml.Unmarshal(b, &conf); err != nil {
+			return err
+		}
+		p.Config = conf
+
+	case storClientStr:
+		var conf stor.Config
+		if err := yaml.Unmarshal(b, &conf); err != nil {
+			return err
+		}
+		p.Config = conf
+
 	default:
-		panic("invalid type:" + p.Type)
+		panic("invalid pipe type:" + p.Type)
 
 	}
 	return nil

@@ -30,9 +30,9 @@ func testReplication(t *testing.T, async bool) {
 	}
 
 	w := NewWriter(writers, Config{Async: async})
-	resp := w.WriteBlock(data)
-	assert.Nil(t, resp.Err)
-	assert.Equal(t, numWriter*len(data), resp.Written)
+	written, err := w.WriteBlock(nil, data)
+	assert.Nil(t, err)
+	assert.Equal(t, numWriter*len(data), written)
 	for i := 0; i < numWriter; i++ {
 		buff := writers[i].(*block.BytesBuffer)
 		assert.Equal(t, data, buff.Bytes())

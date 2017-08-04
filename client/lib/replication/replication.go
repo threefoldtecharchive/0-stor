@@ -28,17 +28,18 @@ func NewWriter(writers []block.Writer, conf Config) *Writer {
 }
 
 // Write writes data to underlying writer
-func (w *Writer) WriteBlock(data []byte) block.WriteResponse {
+func (w *Writer) WriteBlock(key, data []byte) (int, error) {
 	if w.async {
-		return w.writeAsync(data)
+		return w.writeAsync(key, data)
 	}
-	return w.writeSync(data)
+	return w.writeSync(key, data)
 }
 
-func (w *Writer) writeAsync(data []byte) (resp block.WriteResponse) {
+func (w *Writer) writeAsync(key, data []byte) (int, error) {
 	var wg sync.WaitGroup
 	var mux sync.Mutex
 	var errs []error
+	var written int
 
 	wg.Add(len(w.writers))
 
@@ -46,15 +47,15 @@ func (w *Writer) writeAsync(data []byte) (resp block.WriteResponse) {
 		go func(writer block.Writer) {
 			defer wg.Done()
 
-			curResp := writer.WriteBlock(data)
+			n, err := writer.WriteBlock(key, data)
 
 			mux.Lock()
 			defer mux.Unlock()
 
-			resp.Written += curResp.Written
+			written += n
 
-			if curResp.Err != nil {
-				errs = append(errs, curResp.Err)
+			if err != nil {
+				errs = append(errs, err)
 				return
 			}
 		}(writer)
@@ -63,20 +64,20 @@ func (w *Writer) writeAsync(data []byte) (resp block.WriteResponse) {
 	wg.Wait()
 
 	if len(errs) > 0 {
-		resp.Err = Error{errs: errs}
+		return written, Error{errs: errs}
 	}
 
-	return
+	return written, nil
 }
 
-func (w *Writer) writeSync(data []byte) (resp block.WriteResponse) {
+func (w *Writer) writeSync(key, data []byte) (int, error) {
+	var written int
 	for _, writer := range w.writers {
-		curResp := writer.WriteBlock(data)
-		resp.Written += curResp.Written
-		if curResp.Err != nil {
-			resp.Err = curResp.Err
-			return
+		n, err := writer.WriteBlock(key, data)
+		written += n
+		if err != nil {
+			return written, err
 		}
 	}
-	return
+	return written, nil
 }

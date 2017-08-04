@@ -17,10 +17,6 @@ func NewBytesBuffer() *BytesBuffer {
 }
 
 // WriteBlock implements block.Writer interface
-func (bb *BytesBuffer) WriteBlock(p []byte) WriteResponse {
-	n, err := bb.Buffer.Write(p)
-	return WriteResponse{
-		Written: n,
-		Err:     err,
-	}
+func (bb *BytesBuffer) WriteBlock(key, val []byte) (int, error) {
+	return bb.Buffer.Write(val)
 }

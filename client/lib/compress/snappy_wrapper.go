@@ -16,9 +16,9 @@ func newSnappyWriter(w block.Writer) *snappyWriter {
 	}
 }
 
-func (sw snappyWriter) WriteBlock(p []byte) block.WriteResponse {
-	encoded := snappy.Encode(nil, p)
-	return sw.w.WriteBlock(encoded)
+func (sw snappyWriter) WriteBlock(key, val []byte) (int, error) {
+	encoded := snappy.Encode(nil, val)
+	return sw.w.WriteBlock(key, encoded)
 }
 
 type snappyReader struct {

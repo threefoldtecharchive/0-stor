@@ -34,8 +34,8 @@ func testRoundTrip(t *testing.T, conf Config) {
 	w, err := NewWriter(buf, conf)
 	assert.Nil(t, err)
 
-	resp := w.WriteBlock(plain)
-	assert.Nil(t, resp.Err)
+	_, err = w.WriteBlock(nil, plain)
+	assert.Nil(t, err)
 
 	// decrypt ag
 	ag, err := newAESGCM([]byte(conf.PrivKey), []byte(conf.Nonce))

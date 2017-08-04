@@ -56,11 +56,11 @@ func uploadFile(c *client.Client, fileName string) error {
 		return err
 	}
 	log.Printf("0-stor key = %v\n", fileName)
-	return c.Store([]byte(fileName), b)
+	return c.Write([]byte(fileName), b)
 }
 
 func downloadFile(c *client.Client, key, resultFile string) error {
-	b, err := c.Get([]byte(key))
+	b, err := c.Read([]byte(key))
 	if err != nil {
 		return err
 	}

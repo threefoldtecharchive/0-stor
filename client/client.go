@@ -5,69 +5,65 @@ import (
 	"github.com/zero-os/0-stor/client/lib/block"
 	"github.com/zero-os/0-stor/client/meta"
 	"github.com/zero-os/0-stor/client/pipe"
+	"github.com/zero-os/0-stor/client/stor"
 )
 
 // Client defines 0-stor client
 type Client struct {
-	conf       *config.Config
-	metaCli    *meta.Client
+	conf *config.Config
+	stor.Client
+	metaCli *meta.Client
+
 	storWriter block.Writer
 	storReader block.Reader
 }
 
-// New creates new client
+// New creates new client from the given config
 func New(conf *config.Config) (*Client, error) {
 	// stor writer
-	storWriter, err := pipe.NewWritePipe(conf, nil)
+	storWriter, err := pipe.NewWritePipe(conf, block.NewNilWriter())
 	if err != nil {
 		return nil, err
 	}
 
+	// stor reader
 	storReader, err := pipe.NewReadPipe(conf)
 	if err != nil {
 		return nil, err
 	}
 
-	// meta client
-	metaCli, err := meta.NewClient(conf.MetaShards)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Client{
+	client := Client{
 		conf:       conf,
-		metaCli:    metaCli,
 		storWriter: storWriter,
 		storReader: storReader,
-	}, nil
+	}
 
+	if conf.StorClient.Shard != "" {
+		// 0-stor client
+		storClient, err := stor.NewClient(&conf.StorClient, conf.Organization, conf.Namespace)
+		if err != nil {
+			return nil, err
+		}
+		client.Client = storClient
+	}
+	if len(conf.MetaShards) > 0 {
+		// meta client
+		metaCli, err := meta.NewClient(conf.MetaShards)
+		if err != nil {
+			return nil, err
+		}
+		client.metaCli = metaCli
+	}
+	return &client, nil
 }
 
-// Store stores payload with key=key
-func (c *Client) Store(key, payload []byte) error {
-	resp := c.storWriter.WriteBlock(payload)
-	if resp.Err != nil {
-		return resp.Err
-	}
-	if resp.Meta == nil {
-		return nil
-	}
-	return c.metaCli.Put(string(key), resp.Meta)
+// Write writes the key-value to the configured pipes
+func (c *Client) Write(key, val []byte) error {
+	_, err := c.storWriter.WriteBlock(key, val)
+	return err
 }
 
-// Get fetch data for given key
-func (c *Client) Get(key []byte) ([]byte, error) {
-	// get the meta
-	meta, err := c.metaCli.Get(string(key))
-	if err != nil {
-		return nil, err
-	}
-
-	// decode the meta
-	metaBytes, err := meta.Bytes()
-	if err != nil {
-		return nil, err
-	}
-
-	return c.storReader.ReadBlock(metaBytes)
+// Read reads value with given key from the configured pipes
+func (c *Client) Read(key []byte) ([]byte, error) {
+	return c.storReader.ReadBlock(key)
 }

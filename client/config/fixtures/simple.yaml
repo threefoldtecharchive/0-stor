@@ -1,8 +1,9 @@
 organization: mordor
 namespace: thedisk
-shards:
-    - http://127.0.0.1:12345
-    - http://127.0.0.1:12346
+stor_client:
+    shards:
+        - http://127.0.0.1:12345
+        - http://127.0.0.1:12346
 pipes:
     - name: pipe1
       type: compress

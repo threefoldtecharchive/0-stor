@@ -13,7 +13,7 @@ type ReadPipe struct {
 func createAllBlockReaders(conf *config.Config) ([]block.Reader, error) {
 	var readers []block.Reader
 	for _, pipe := range conf.Pipes {
-		ar, err := pipe.CreateBlockReader(conf.Shards, conf.Organization, conf.Namespace)
+		ar, err := pipe.CreateBlockReader(conf.Organization, conf.Namespace)
 		if err != nil {
 			return nil, err
 		}

@@ -59,9 +59,9 @@ func NewWriter(w block.Writer, conf Config) (*Writer, error) {
 }
 
 // WriteBlock implements blockreadwrite.Writer interface
-func (w Writer) WriteBlock(plain []byte) block.WriteResponse {
+func (w Writer) WriteBlock(key, plain []byte) (int, error) {
 	encrypted := w.ed.Encrypt(plain)
-	return w.w.WriteBlock(encrypted)
+	return w.w.WriteBlock(key, encrypted)
 }
 
 // Reader defines encryption reader.

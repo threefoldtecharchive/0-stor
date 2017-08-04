@@ -17,7 +17,7 @@ func createBlockWriterPipe(conf *config.Config, finalWriter block.Writer) (block
 	// we create the writer from the end of pipe
 	for i := len(conf.Pipes) - 1; i >= 0; i-- {
 		pipe := conf.Pipes[i]
-		w, err := pipe.CreateBlockWriter(nextWriter, conf.Shards, conf.Organization, conf.Namespace)
+		w, err := pipe.CreateBlockWriter(nextWriter, conf.Organization, conf.Namespace)
 		if err != nil {
 			return nil, err
 		}
@@ -39,6 +39,6 @@ func NewWritePipe(conf *config.Config, finalWriter block.Writer) (*WritePipe, er
 }
 
 // WriteBlock implements block.Writer
-func (wp WritePipe) WriteBlock(p []byte) block.WriteResponse {
-	return wp.w.WriteBlock(p)
+func (wp WritePipe) WriteBlock(key, val []byte) (int, error) {
+	return wp.w.WriteBlock(key, val)
 }

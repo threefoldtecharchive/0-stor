@@ -18,16 +18,17 @@ type StorDistributor struct {
 	hasher      *hash.Hasher
 	storClients []stor.Client
 	shards      []string
+	w           block.Writer
 }
 
 // NewStorDistributor creates new StorDistributor
-func NewStorDistributor(conf Config, shards []string, org, namespace string) (*StorDistributor, error) {
-	if len(shards) < conf.NumPieces() {
-		return nil, fmt.Errorf("invalid number of shards=%v, expected=%v", len(shards), conf.NumPieces())
+func NewStorDistributor(w block.Writer, conf Config, org, namespace string) (*StorDistributor, error) {
+	if len(conf.Shards) < conf.NumPieces() {
+		return nil, fmt.Errorf("invalid number of shards=%v, expected=%v", len(conf.Shards), conf.NumPieces())
 	}
 
 	// stor clients
-	storClients, err := createStorClients(conf, shards, org, namespace)
+	storClients, err := createStorClients(conf, conf.Shards, org, namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +49,8 @@ func NewStorDistributor(conf Config, shards []string, org, namespace string) (*S
 		storClients: storClients,
 		enc:         enc,
 		hasher:      hasher,
-		shards:      shards,
+		shards:      conf.Shards,
+		w:           w,
 	}, nil
 }
 
@@ -61,38 +63,39 @@ func (sd StorDistributor) Write(data []byte) (int, error) {
 	}
 
 	for i, piece := range encoded {
-		if _, err = sd.storClients[i].Store(key, piece); err != nil {
+		if _, err = sd.storClients[i].ObjectCreate(key, piece, nil); err != nil {
 			return 0, err
 		}
 	}
 	return len(data), nil
 }
 
-// WriteBlock implements block.Writer interface
-func (sd StorDistributor) WriteBlock(data []byte) (wc block.WriteResponse) {
-	key := sd.hasher.Hash(data)
-	encoded, err := sd.enc.Encode(data)
+// WriteBlock implements block.Writer interface.
+func (sd StorDistributor) WriteBlock(key, value []byte) (int, error) {
+	hashedKey := sd.hasher.Hash(value)
+	encoded, err := sd.enc.Encode(value)
 	if err != nil {
-		wc.Err = err
-		return
+		return 0, err
 	}
 
-	var storKey string
 	for i, piece := range encoded {
-		storKey, err = sd.storClients[i].Store(key, piece)
+		_, err = sd.storClients[i].ObjectCreate(hashedKey, piece, nil)
 		if err != nil {
-			wc.Err = err
-			return
+			return 0, err
 		}
 	}
-	wc.Written = len(data)
-	metadata, err := meta.New([]byte(storKey), uint64(len(data)), sd.shards)
+
+	md, err := meta.New(hashedKey, uint64(len(value)), sd.shards)
 	if err != nil {
-		wc.Err = err
-		return
+		return 0, err
 	}
-	wc.Meta = metadata
-	return
+
+	mdBytes, err := md.Bytes()
+	if err != nil {
+		return 0, err
+	}
+
+	return sd.w.WriteBlock(key, mdBytes)
 }
 
 // StorRestorer defines distributor that get the data
@@ -103,9 +106,9 @@ type StorRestorer struct {
 }
 
 // NewStorRestorer creates new StorRestorer
-func NewStorRestorer(conf Config, shards []string, org, namespace string) (*StorRestorer, error) {
+func NewStorRestorer(conf Config, org, namespace string) (*StorRestorer, error) {
 	// stor clients
-	storClients, err := createStorClients(conf, shards, org, namespace)
+	storClients, err := createStorClients(conf, conf.Shards, org, namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -139,10 +142,11 @@ func (sr StorRestorer) ReadBlock(rawMeta []byte) ([]byte, error) {
 			return nil, err
 		}
 
-		data, err := sc.Get(key)
+		obj, err := sc.ObjectGet(key)
 		if err != nil {
+			return nil, err
 		} else {
-			chunks[i] = data
+			chunks[i] = obj.Value
 		}
 	}
 
@@ -165,8 +169,12 @@ func createStorClients(conf Config, shards []string, org, namespace string) ([]s
 	}
 
 	// create stor clients
+	storConf := stor.Config{
+		Protocol: conf.Protocol,
+	}
 	for _, shard := range shards {
-		storClient, err := stor.NewClient(shard, org, namespace, token)
+		storConf.Shard = shard
+		storClient, err := stor.NewClientWithToken(&storConf, org, namespace, token)
 		if err != nil {
 			return nil, err
 		}

@@ -45,9 +45,9 @@ func NewWriter(w block.Writer, conf Config) (*Writer, error) {
 }
 
 // WriteBlock implements block.Writer interface
-func (w Writer) WriteBlock(p []byte) block.WriteResponse {
-	hashed := w.hasher.Hash(p)
-	return w.w.WriteBlock(hashed)
+func (w Writer) WriteBlock(key, val []byte) (int, error) {
+	hashed := w.hasher.Hash(val)
+	return w.w.WriteBlock(key, hashed)
 }
 
 // NewHasher creates new hasher
