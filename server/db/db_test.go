@@ -9,8 +9,8 @@ import (
 )
 
 func TestObjectEncodeDecode(t *testing.T) {
-	obj := NewObjet()
-	obj.Data = make([]byte, 1024)
+	data := make([]byte, 1024)
+	obj := NewObject(data)
 
 	_, err := rand.Read(obj.Data)
 	require.NoError(t, err)
@@ -21,7 +21,7 @@ func TestObjectEncodeDecode(t *testing.T) {
 	b, err := obj.Encode()
 	require.NoError(t, err)
 
-	obj2 := NewObjet()
+	obj2 := NewObject(nil)
 	err = obj2.Decode(b)
 	require.NoError(t, err)
 

@@ -14,6 +14,12 @@ const (
 	RefIDLenght = 16
 )
 
+var tabPolynomial *crc32.Table
+
+func init() {
+	tabPolynomial = crc32.MakeTable(POLYNOMIAL)
+}
+
 // object is the data structure used to encode, decode object on the disk
 type Object struct {
 	ReferenceList [RefIDCount][RefIDLenght]byte
@@ -21,14 +27,14 @@ type Object struct {
 	Data          []byte
 }
 
-func NewObjet() *Object {
+func NewObject(data []byte) *Object {
 	return &Object{
-		Data: make([]byte, 0, 1024),
+		Data: data,
 	}
 }
 
 func (o *Object) Encode() ([]byte, error) {
-	o.CRC = crc32.Checksum([]byte(o.Data), crc32.MakeTable(POLYNOMIAL))
+	o.CRC = crc32.Checksum([]byte(o.Data), tabPolynomial)
 
 	var err error
 	buf := &bytes.Buffer{}
@@ -51,10 +57,6 @@ func (o *Object) Encode() ([]byte, error) {
 }
 
 func (o *Object) Decode(b []byte) error {
-	if o == nil {
-		o = NewObjet()
-	}
-
 	var err error
 	r := bytes.NewReader(b)
 

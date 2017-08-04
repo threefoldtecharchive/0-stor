@@ -25,8 +25,7 @@ func objKey(namespace string, key []byte) []byte {
 
 // Set saved an object into the key-value store as a blob of bytes
 func (mgr *ObjectManager) Set(key []byte, data []byte, referenceList []string) error {
-	obj := db.NewObjet()
-	obj.Data = data
+	obj := db.NewObject(data)
 	for i := range referenceList {
 		copy(obj.ReferenceList[i][:], []byte(referenceList[i]))
 	}
@@ -61,7 +60,7 @@ func (mgr *ObjectManager) Get(key []byte) (*db.Object, error) {
 		return nil, err
 	}
 
-	obj := db.NewObjet()
+	obj := db.NewObject(nil)
 	err = obj.Decode(b)
 	return obj, err
 }
