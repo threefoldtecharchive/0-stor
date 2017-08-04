@@ -3,8 +3,10 @@ package rest
 import (
 	"encoding/base64"
 	"fmt"
+	"net/http"
 
 	client "github.com/zero-os/0-stor/client/goraml"
+	"github.com/zero-os/0-stor/client/goraml/librairies/reservation"
 	"github.com/zero-os/0-stor/client/stor/common"
 )
 
@@ -46,9 +48,15 @@ func NewClient(addr, org, namespace, iyoJWTToken string) *Client {
 	}
 }
 
-// Namespace gets detail view about namespace
-func (c *Client) NamespaceGet() (common.Namespace, error) {
-	return common.Namespace{}, nil
+// NamespaceGet gets detail view about namespace
+func (c *Client) NamespaceGet() (*common.Namespace, error) {
+	ns, resp, err := c.client.Namespaces.GetNameSpace(c.nsid, nil, nil)
+
+	if err := checkRespCode2xxAndErr(err, resp); err != nil {
+		return nil, err
+	}
+
+	return newCommonNamespace(ns), nil
 }
 
 // ReservationList return a list of all the existing reservation
@@ -59,23 +67,52 @@ func (c *Client) ReservationList() ([]common.Reservation, error) {
 // ReservationCreate creates a reservation.
 // size is Storage size you want to reserve in MiB.
 // period is number of days the reservation is valid
-func (c *Client) ReservationCreate(size, period int) (common.Reservation, error) {
-	return common.Reservation{}, nil
+func (c *Client) ReservationCreate(size, period int64) (reserv *common.Reservation, reservToken string, dataToken string, err error) {
+	req := reservation.ReservationRequest{
+		Period: period,
+		Size:   size,
+	}
+
+	// call func
+	respObj, resp, err := c.client.Namespaces.CreateReservation(c.nsid, req, nil, nil)
+
+	err = checkRespCode2xxAndErr(err, resp)
+	if err != nil {
+		return
+	}
+
+	reserv = newCommonReservation(respObj.Reservation)
+	reservToken = respObj.ReservationToken
+	dataToken = respObj.DataAccessToken
+	return
 }
 
 // ReservationGet returns information about a reservation
-func (c *Client) ReservationGet(id []byte) (common.Reservation, error) {
-	return common.Reservation{}, nil
+func (c *Client) ReservationGet(id []byte) (*common.Reservation, error) {
+	return nil, nil
 }
 
 // ReservationUpdate renew an existing reservation
-func (c *Client) ReservationUpdate(id []byte, size, period int) error {
-	return nil
+func (c *Client) ReservationUpdate(id []byte, size, period int64) error {
+	req := reservation.ReservationRequest{
+		Period: period,
+		Size:   size,
+	}
+	resp, err := c.client.Namespaces.UpdateReservation(encodeID(id), c.nsid, req, nil, nil)
+
+	return checkRespCode2xxAndErr(err, resp)
 }
 
 // ObjectList lists keys of the object in the namespace
 func (c *Client) ObjectList(page, perPage int) ([]string, error) {
-	return nil, nil
+	qp := map[string]interface{}{
+		"page":     page,
+		"per_page": perPage,
+	}
+
+	ids, resp, err := c.client.Namespaces.ListObjects(c.nsid, nil, qp)
+
+	return ids, checkRespCode2xxAndErr(err, resp)
 }
 
 // ObjectCreate creates an object
@@ -87,24 +124,22 @@ func (c *Client) ObjectCreate(id, data []byte, refList []string) (*common.Object
 	}
 
 	obj, resp, err := c.client.Namespaces.CreateObject(c.nsid, obj, nil, nil)
-	if err != nil {
+
+	if err := checkRespCode2xxAndErr(err, resp); err != nil {
 		return nil, err
 	}
-	if resp.StatusCode < 200 && resp.StatusCode > 300 {
-		return nil, fmt.Errorf("invalid status code: %v", resp.StatusCode)
-	}
+
 	return newCommonObject(id, data, obj.ReferenceList), nil
 }
 
 // ObjectGet retrieve object from the store
 func (c *Client) ObjectGet(id []byte) (*common.Object, error) {
 	obj, resp, err := c.client.Namespaces.GetObject(encodeID(id), c.nsid, nil, nil)
-	if err != nil {
+
+	if err := checkRespCode2xxAndErr(err, resp); err != nil {
 		return nil, err
 	}
-	if resp.StatusCode < 200 && resp.StatusCode > 300 {
-		return nil, fmt.Errorf("invalid status code: %v", resp.StatusCode)
-	}
+
 	decodedData, err := decodeData(obj.Data)
 	if err != nil {
 		return nil, err
@@ -114,7 +149,8 @@ func (c *Client) ObjectGet(id []byte) (*common.Object, error) {
 
 // ObjectDelete delete object from the store
 func (c *Client) ObjectDelete(id []byte) error {
-	return nil
+	resp, err := c.client.Namespaces.DeleteObject(encodeID(id), c.nsid, nil, nil)
+	return checkRespCode2xxAndErr(err, resp)
 }
 
 // ObjectExist tests if an object with this id exists
@@ -124,16 +160,27 @@ func (c *Client) ObjectExist(id []byte) (bool, error) {
 
 // ReferenceUpdate updates reference list
 func (c *Client) ReferenceUpdate(id []byte, refList []string) error {
-	return nil
+	resp, err := c.client.Namespaces.UpdateReferenceList(encodeID(id), c.nsid, nil, nil)
+	return checkRespCode2xxAndErr(err, resp)
 }
 
-func newCommonObject(id, data []byte, refList []client.ReferenceID) *common.Object {
-	obj := &common.Object{
-		Key:   id,
-		Value: data,
+func checkRespCode2xxAndErr(err error, resp *http.Response) error {
+	return checkRespCodeErr(err, resp, 200, 300)
+}
+
+func checkRespCodeErr(err error, resp *http.Response, startCode, endCode int) error {
+	if err != nil {
+		return err
 	}
-	for _, ref := range refList {
-		obj.ReferenceList = append(obj.ReferenceList, string(ref))
+	if !checkRespCode(resp, startCode, endCode) {
+		return newRespCodeError(resp)
 	}
-	return obj
+	return nil
+}
+func newRespCodeError(resp *http.Response) error {
+	return fmt.Errorf("invalid resp code : %v", resp.StatusCode)
+}
+
+func checkRespCode(resp *http.Response, start, end int) bool {
+	return resp.StatusCode >= start && resp.StatusCode < end
 }

@@ -6,7 +6,7 @@ type Namespace struct {
 }
 
 type NamespaceStat struct {
-	NrObject            int64
+	NrObjects           int64
 	ReadRequestPerHour  int64
 	SpaceAvailable      float64
 	SpaceUsed           float64

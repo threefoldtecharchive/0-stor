@@ -5,12 +5,14 @@ import (
 	"github.com/zero-os/0-stor/client/meta"
 )
 
+// Writer is 0-stor client that implements block.Writer interface
 type Writer struct {
 	shards []string
 	client Client
 	w      block.Writer
 }
 
+// NewWriter creates new writer
 func NewWriter(w block.Writer, conf Config, org, namespace string) (*Writer, error) {
 	cli, err := NewClient(&conf, org, namespace)
 	if err != nil {
@@ -46,11 +48,13 @@ func (w *Writer) WriteBlock(key, val []byte) (int, error) {
 	return w.w.WriteBlock(key, mdBytes)
 }
 
+// Reader is 0-stor client that implements block.Reader interface
 type Reader struct {
 	client Client
 	w      block.Writer
 }
 
+// NewReader creates new Reader
 func NewReader(conf Config, org, namespace string) (*Reader, error) {
 	cli, err := NewClient(&conf, org, namespace)
 	if err != nil {
@@ -61,6 +65,7 @@ func NewReader(conf Config, org, namespace string) (*Reader, error) {
 	}, nil
 }
 
+// ReadBlock implements block.Reader
 func (r *Reader) ReadBlock(key []byte) ([]byte, error) {
 	obj, err := r.client.ObjectGet(key)
 	if err != nil {
