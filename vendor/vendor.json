@@ -1,0 +1,19 @@
+{
+	"comment": "",
+	"ignore": "",
+	"package": [
+		{
+			"checksumSHA1": "7FlXzijm3BV4PKbrUfdMVL/tOCw=",
+			"path": "github.com/itsyouonline/identityserver/clients/go/itsyouonline",
+			"revision": "20b2eb5d0b84f3853d4f07a9e75573f16df53942",
+			"revisionTime": "2017-08-04T09:07:57Z"
+		},
+		{
+			"checksumSHA1": "/yKDLVhCv5iO2ECuXKae4Gu8Klo=",
+			"path": "github.com/templexxx/reedsolomon",
+			"revision": "0a1f6992d698b8e97bd97cbbd51fdac317959741",
+			"revisionTime": "2017-07-25T13:49:12Z"
+		}
+	],
+	"rootPath": "github.com/zero-os/0-stor"
+}

@@ -41,6 +41,9 @@ type Config struct {
 	StorClient   stor.Config `yaml:"stor_client,omitempty"`
 	MetaShards   []string    `yaml:"meta_shards"`
 	Pipes        []Pipe      `yaml:"pipes" validate:"nonzero"`
+
+	IYOAppID  string `yaml:"iyo_app_id"`
+	IYOSecret string `yaml:"iyo_app_secret"`
 }
 
 // NewFromReader creates Config from a reader

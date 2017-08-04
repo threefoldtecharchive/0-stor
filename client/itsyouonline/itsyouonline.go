@@ -18,6 +18,15 @@ var (
 	errNoPermission = errors.New("no permission")
 )
 
+// NamespaceManager defines the interface to manage namespaces and permissions on ItsYouOnline
+type NamespaceManager interface {
+	CreateNamespace(namespace string) error
+	DeleteNamespace(namespace string) error
+	CreateJWT(namespace string, perm Permission) (string, error)
+	GivePermission(namespace, userID string, perm Permission) error
+	RemovePermission(namespace, userID string, perm Permission) error
+}
+
 // Client defines itsyouonline client which is designed to help 0-stor user.
 // It is not replacement for official itsyouonline client
 type Client struct {
@@ -50,7 +59,7 @@ func (c *Client) CreateJWT(namespace string, perm Permission) (string, error) {
 	}
 
 	// build scopes query
-	scopes := perm.scopes(c.org, "0stor" + "." + namespace)
+	scopes := perm.scopes(c.org, "0stor"+"."+namespace)
 	if len(scopes) == 0 {
 		return "", errNoPermission
 	}
@@ -82,9 +91,9 @@ func (c *Client) CreateJWT(namespace string, perm Permission) (string, error) {
 
 // CreateNamespace creates namespace as itsyouonline organization
 // It creates these organizations:
-// - org.namespace.read
-// - org.namespace.write
-// - org.namespace.write
+// - org.0stor.namespace.read
+// - org.0stor.namespace.write
+// - org.0stor.namespace.write
 func (c *Client) CreateNamespace(namespace string) error {
 	_, _, _, err := c.iyoClient.LoginWithClientCredentials(c.clientID, c.secret)
 	if err != nil {
@@ -100,7 +109,6 @@ func (c *Client) CreateNamespace(namespace string) error {
 	if err != nil {
 		return fmt.Errorf("code=%v, err=%v", resp.StatusCode, err)
 	}
-
 
 	// cretate 0stor suborganization
 
@@ -125,12 +133,97 @@ func (c *Client) CreateNamespace(namespace string) error {
 		org := itsyouonline.Organization{
 			Globalid: namespaceID + "." + perm,
 		}
-		_, resp, err := c.iyoClient.Organizations.CreateNewSubOrganization(namespaceID , org, nil, nil)
+		_, resp, err := c.iyoClient.Organizations.CreateNewSubOrganization(namespaceID, org, nil, nil)
 		if err != nil {
 			return fmt.Errorf("code=%v, err=%v", resp.StatusCode, err)
 		}
 	}
 	return nil
+}
+
+// DeleteNamespace delete the sub organiation the represent the namespace
+// It delete these sub organizations:
+// - org.0stor.namespace
+// - org.0stor.namespace.read
+// - org.0stor.namespace.write
+// - org.0stor.namespace.write
+func (c *Client) DeleteNamespace(namespace string) error {
+	_, _, _, err := c.iyoClient.LoginWithClientCredentials(c.clientID, c.secret)
+	if err != nil {
+		return fmt.Errorf("login failed: %v", err)
+	}
+
+	// create namespace org
+	resp, err := c.iyoClient.Organizations.DeleteOrganization(c.namespaceID(namespace), nil, nil)
+	if err != nil {
+		return fmt.Errorf("delete namespace failed: code=%v, err=%v", resp.StatusCode, err)
+	}
+
+	return nil
+}
+
+// GivePermission give a user some permission on a namespace
+func (c *Client) GivePermission(namespace, userID string, perm Permission) error {
+	_, _, _, err := c.iyoClient.LoginWithClientCredentials(c.clientID, c.secret)
+	if err != nil {
+		return fmt.Errorf("login failed: %v", err)
+	}
+
+	var org string
+	for _, perm := range perm.perms() {
+		if perm == "admin" {
+			org = c.namespaceID(namespace)
+		} else {
+			org = c.namespaceID(namespace) + "." + perm
+		}
+		user := itsyouonline.OrganizationsGlobalidMembersPostReqBody{Searchstring: userID}
+		_, resp, err := c.iyoClient.Organizations.AddOrganizationMember(org, user, nil, nil)
+		if err != nil {
+			return fmt.Errorf("give member permission failed: code=%v, err=%v", resp.StatusCode, err)
+		}
+		if resp.StatusCode != http.StatusCreated {
+			return fmt.Errorf("give member permission failed: code=%v", resp.StatusCode)
+		}
+	}
+
+	return nil
+}
+
+// RemovePermission remove some permission from a user on a namespace
+func (c *Client) RemovePermission(namespace, username string, perm Permission) error {
+	_, _, _, err := c.iyoClient.LoginWithClientCredentials(c.clientID, c.secret)
+	if err != nil {
+		return fmt.Errorf("login failed: %v", err)
+	}
+
+	var org string
+	for _, perm := range perm.perms() {
+		if perm == "admin" {
+			org = c.namespaceID(namespace)
+		} else {
+			org = c.namespaceID(namespace) + "." + perm
+		}
+		resp, err := c.iyoClient.Organizations.RemoveOrganizationMember(username, org, nil, nil)
+		if err != nil {
+			return fmt.Errorf("remove permission from member failed: code=%v, err=%v", resp.StatusCode, err)
+		}
+
+		// also remove pending invitation in case the user didn't accepted the invit yet
+		resp, err = c.iyoClient.Organizations.RemovePendingOrganizationInvitation(username, org, nil, nil)
+		if err != nil {
+			return fmt.Errorf("remove permission from member failed: code=%v, err=%v", resp.StatusCode, err)
+		}
+		if resp.StatusCode != http.StatusNoContent {
+			return fmt.Errorf("give member permission failed: code=%v", resp.StatusCode)
+		}
+
+	}
+
+	return nil
+}
+
+func (c *Client) namespaceID(namespace string) string {
+	return c.org + "." + "0stor" + "." + namespace
 }
 
 func buildQueryString(req *http.Request, qs map[string]interface{}) string {

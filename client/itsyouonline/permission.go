@@ -5,6 +5,7 @@ type Permission struct {
 	Read   bool
 	Write  bool
 	Delete bool
+	Admin  bool
 }
 
 func (p Permission) perms() []string {
@@ -18,6 +19,9 @@ func (p Permission) perms() []string {
 	if p.Delete {
 		perms = append(perms, "delete")
 	}
+	if p.Admin {
+		perms = append(perms, "admin")
+	}
 	return perms
 }
 
@@ -25,7 +29,11 @@ func (p Permission) scopes(org, namespace string) []string {
 	var scopes []string
 	scopePrefix := "user:memberof:" + org + "." + namespace + "."
 	for _, p := range p.perms() {
-		scopes = append(scopes, scopePrefix+p)
+		if p == "admin" {
+			scopes = append(scopes, scopePrefix)
+		} else {
+			scopes = append(scopes, scopePrefix+p)
+		}
 	}
 	return scopes
 }

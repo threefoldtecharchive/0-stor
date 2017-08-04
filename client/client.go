@@ -2,17 +2,22 @@ package client
 
 import (
 	"github.com/zero-os/0-stor/client/config"
+	"github.com/zero-os/0-stor/client/itsyouonline"
 	"github.com/zero-os/0-stor/client/lib/block"
 	"github.com/zero-os/0-stor/client/meta"
 	"github.com/zero-os/0-stor/client/pipe"
 	"github.com/zero-os/0-stor/client/stor"
 )
 
+var _ (stor.Client) = (*Client)(nil)                   // build time check that we implement stor.Client interface
+var _ (itsyouonline.NamespaceManager) = (*Client)(nil) // build time check that we implement stor.NamespaceManager interface
+
 // Client defines 0-stor client
 type Client struct {
-	conf *config.Config
-	stor.Client
-	metaCli *meta.Client
+	conf                          *config.Config
+	stor.Client                   // embeded type exposes all the method from stor.Client
+	metaCli                       *meta.Client
+	itsyouonline.NamespaceManager //implement the NamespaceManager interface
 
 	storWriter block.Writer
 	storReader block.Reader
@@ -54,6 +59,9 @@ func New(conf *config.Config) (*Client, error) {
 		}
 		client.metaCli = metaCli
 	}
+
+	client.NamespaceManager = itsyouonline.NewClient(conf.Organization, conf.IYOAppID, conf.IYOSecret)
+
 	return &client, nil
 }
 
