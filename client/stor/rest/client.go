@@ -42,7 +42,7 @@ func NewClient(addr, org, namespace, iyoJWTToken string) *Client {
 
 	return &Client{
 		client: client,
-		nsid:   namespace,
+		nsid:   org + "_0stor_" + namespace,
 	}
 }
 

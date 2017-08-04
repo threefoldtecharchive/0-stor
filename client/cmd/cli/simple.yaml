@@ -1,4 +1,4 @@
-organization: mordor_0stor                          # itsyou.online organization name
+organization: mordor                                # itsyou.online organization name
 namespace: thedisk                                  # itsyou.online namespace
 meta_shards:
     - http://127.0.0.1:2379                         # the address(es) of etcd server
