@@ -72,6 +72,8 @@ func TestWrite(t *testing.T) {
 		Organization: "gig",
 		Namespace:    "thedisk",
 		MetaShards:   []string{"127.0.0.1:2379"},
+		IYOAppID:     "abcd",
+		IYOSecret:    "defg",
 		Pipes:        []Pipe{pipe1},
 	}
 

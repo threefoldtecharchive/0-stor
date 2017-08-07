@@ -8,3 +8,5 @@ pipes:
   config:
     type: snappy
     level: 0
+iyo_app_id: abcd
+iyo_app_secret: defg
