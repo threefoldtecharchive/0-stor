@@ -25,6 +25,7 @@ type NamespaceManager interface {
 	CreateJWT(namespace string, perm Permission) (string, error)
 	GivePermission(namespace, userID string, perm Permission) error
 	RemovePermission(namespace, userID string, perm Permission) error
+	GetPermission(namespace, userID string) (Permission, error)
 }
 
 // Client defines itsyouonline client which is designed to help 0-stor user.
@@ -220,6 +221,87 @@ func (c *Client) RemovePermission(namespace, username string, perm Permission) e
 	}
 
 	return nil
+}
+
+// GetPermission retreive the permission a user has for a namespace
+func (c *Client) GetPermission(namespace, username string) (Permission, error) {
+	var (
+		permission = Permission{}
+		org        string
+	)
+
+	_, _, _, err := c.iyoClient.LoginWithClientCredentials(c.clientID, c.secret)
+	if err != nil {
+		return permission, fmt.Errorf("login failed: %v", err)
+	}
+
+	for _, perm := range []string{"read", "write", "delete", "admin"} {
+		if perm == "admin" {
+			org = c.namespaceID(namespace)
+		} else {
+			org = c.namespaceID(namespace) + "." + perm
+		}
+
+		invitations, resp, err := c.iyoClient.Organizations.GetInvitations(org, nil, nil)
+		if err != nil {
+			return permission, fmt.Errorf("Fail to retrieve user permission : %+v", err)
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			return permission, fmt.Errorf("Fail to retrieve user permission : status=%+v", resp.Status)
+		}
+
+		members, resp, err := c.iyoClient.Organizations.GetOrganizationUsers(org, nil, nil)
+		if err != nil {
+			return permission, fmt.Errorf("Fail to retrieve user permission : %+v", err)
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			return permission, fmt.Errorf("Fail to retrieve user permission : status=%+v", resp.Status)
+		}
+
+		switch perm {
+		case "read":
+			if hasPermision(username, members.Users, invitations) {
+				permission.Read = true
+			}
+		case "write":
+			if hasPermision(username, members.Users, invitations) {
+				permission.Write = true
+			}
+		case "delete":
+			if hasPermision(username, members.Users, invitations) {
+				permission.Delete = true
+			}
+		case "admin":
+			if hasPermision(username, members.Users, invitations) {
+				permission.Admin = true
+			}
+		}
+	}
+	return permission, nil
+}
+
+func hasPermision(target string, members []itsyouonline.OrganizationUser, invitations []itsyouonline.JoinOrganizationInvitation) bool {
+	return isMember(target, members) || isInvited(target, invitations)
+}
+
+func isMember(target string, list []itsyouonline.OrganizationUser) bool {
+	for _, v := range list {
+		if target == v.Username {
+			return true
+		}
+	}
+	return false
+}
+
+func isInvited(target string, invitations []itsyouonline.JoinOrganizationInvitation) bool {
+	for _, invit := range invitations {
+		if target == invit.User {
+			return true
+		}
+	}
+	return false
 }
 
 func (c *Client) namespaceID(namespace string) string {

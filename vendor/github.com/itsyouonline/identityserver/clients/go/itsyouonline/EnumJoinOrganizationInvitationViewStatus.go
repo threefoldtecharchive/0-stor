@@ -1,9 +1,0 @@
-package itsyouonline
-
-type EnumJoinOrganizationInvitationViewStatus string
-
-const (
-	EnumJoinOrganizationInvitationViewStatuspending  EnumJoinOrganizationInvitationViewStatus = "pending"
-	EnumJoinOrganizationInvitationViewStatusaccepted EnumJoinOrganizationInvitationViewStatus = "accepted"
-	EnumJoinOrganizationInvitationViewStatusrejected EnumJoinOrganizationInvitationViewStatus = "rejected"
-)

@@ -5,9 +5,9 @@ import (
 )
 
 type OrganizationUser struct {
-	Missingscopes []string   `json:"missingscopes" validate:"nonzero"`
-	Role          string     `json:"role" validate:"nonzero"`
-	User          MemberView `json:"user" validate:"nonzero"`
+	Missingscopes []string `json:"missingscopes" validate:"nonzero"`
+	Role          string   `json:"role" validate:"nonzero"`
+	Username      string   `json:"username" validate:"nonzero"`
 }
 
 func (s OrganizationUser) Validate() error {

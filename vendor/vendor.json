@@ -3,10 +3,10 @@
 	"ignore": "",
 	"package": [
 		{
-			"checksumSHA1": "7FlXzijm3BV4PKbrUfdMVL/tOCw=",
+			"checksumSHA1": "U/U1B6dnahclzBTSF2114dKQJkM=",
 			"path": "github.com/itsyouonline/identityserver/clients/go/itsyouonline",
-			"revision": "20b2eb5d0b84f3853d4f07a9e75573f16df53942",
-			"revisionTime": "2017-08-04T09:07:57Z"
+			"revision": "1078ce978ef7b1a72dc3c5d65728d0361c096166",
+			"revisionTime": "2017-08-07T12:25:24Z"
 		},
 		{
 			"checksumSHA1": "/yKDLVhCv5iO2ECuXKae4Gu8Klo=",
