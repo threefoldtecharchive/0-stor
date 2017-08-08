@@ -20,7 +20,7 @@ To use this `cli`, you need to modify the itsyou.online credentials:
 
 upload file and use the `file_name` as 0-stor key
 
-`conf_file` is the configuration file. See `simple.yaml` here for the example
+`conf_file` is the configuration file. See `config.yaml` here for the example
 
 ### download file
 
@@ -30,4 +30,4 @@ upload file and use the `file_name` as 0-stor key
 
 Get value with key=`key` from 0-stor server and write it to `result_file_name`
 
-`conf_file` is the configuration file. See `simple.yaml` here for the example
+`conf_file` is the configuration file. See `config.yaml` here for the example

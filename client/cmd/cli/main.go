@@ -21,7 +21,7 @@ func main() {
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "conf",
-			Value: "demo.yaml",
+			Value: "config.yaml",
 			Usage: "path to the configuration file",
 		},
 	}
@@ -30,13 +30,12 @@ func main() {
 		cl, err = getClient(c)
 		return err
 	}
-
 	app.Commands = []cli.Command{
-		cli.Command{
+		{
 			Name:  "file",
 			Usage: "Command to upload/download files",
 			Subcommands: []cli.Command{
-				cli.Command{
+				{
 					Name:  "upload",
 					Usage: "upload a file. e.g: cli file upload myfile",
 					Action: func(c *cli.Context) error {
@@ -45,6 +44,7 @@ func main() {
 						}
 
 						fileName := c.Args().First()
+
 						b, err := ioutil.ReadFile(fileName)
 						if err != nil {
 							return cli.NewExitError(fmt.Errorf("can't read the file: %v", err), 1)
@@ -58,7 +58,7 @@ func main() {
 						return nil
 					},
 				},
-				cli.Command{
+				{
 					Name:  "download",
 					Usage: "download a file. e.g: cli file download myfile",
 					Action: func(c *cli.Context) error {
@@ -82,11 +82,11 @@ func main() {
 				},
 			},
 		},
-		cli.Command{
+		{
 			Name:  "namespace",
 			Usage: "Manage namespaces",
 			Subcommands: []cli.Command{
-				cli.Command{
+				{
 					Name:  "create",
 					Usage: "Create a namespace. e.g: 'cli namespace create mynamespace'",
 					Action: func(c *cli.Context) error {
@@ -104,7 +104,7 @@ func main() {
 					},
 				},
 
-				cli.Command{
+				{
 					Name:  "delete",
 					Usage: "Delete a namespace. e.g: 'cli namespace delete mynamespace'",
 					Action: func(c *cli.Context) error {
@@ -120,7 +120,7 @@ func main() {
 						return nil
 					},
 				},
-				cli.Command{
+				{
 					Name:  "set-acl",
 					Usage: "Set permission to a user",
 					Flags: []cli.Flag{
@@ -183,7 +183,7 @@ func main() {
 						return nil
 					},
 				},
-				cli.Command{
+				{
 					Name:  "get-acl",
 					Usage: "Get the permission of a user",
 					Flags: []cli.Flag{
@@ -216,7 +216,9 @@ func main() {
 		},
 	}
 
-	app.Run(os.Args)
+	if err := app.Run(os.Args); err != nil {
+		log.Fatal(err.Error())
+	}
 }
 func getClient(c *cli.Context) (*client.Client, error) {
 	// read config

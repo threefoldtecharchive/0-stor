@@ -215,7 +215,7 @@ import (
 )
 
 func main() {
-	f, err := os.Open("./simple.yaml")
+	f, err := os.Open("./config.yaml")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -253,7 +253,7 @@ func main() {
 
 ## Configuration 
 
-Configuration file example can be found on [simple.yaml](./cmd/cli/simple.yaml).
+Configuration file example can be found on [config.yaml](./cmd/cli/config.yaml).
 All configuration can be found on https://godoc.org/github.com/zero-os/0-stor/client/config
 
 ## Libraries

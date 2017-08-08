@@ -17,7 +17,7 @@ import (
 )
 
 func TestDecode(t *testing.T) {
-	f, err := os.Open("./fixtures/simple.yaml")
+	f, err := os.Open("./fixtures/config.yaml")
 	assert.Nil(t, err)
 
 	conf, err := NewFromReader(f)
