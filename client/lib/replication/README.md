@@ -1,11 +1,11 @@
 # Replication
 
-A replicater is created by taking one input and specifying multiple outputs. 
-All the data that comes in are replicated on all the configured outputs.
+- A replicater takes a chunk of data and list of multiple outputs.
+- Input chunk of data is then replicated on all the configured outputs.
 
 ## Example
 
-```
+```go
 	var writers []block.Writer
 	numWriter := 10
 	data := make([]byte, 4096)

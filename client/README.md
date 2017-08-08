@@ -9,22 +9,70 @@ API documentation : [https://godoc.org/github.com/zero-os/0-stor/client](https:/
 - REST (incomplete) : storing and retrieving data already supported
 - GRPC (todo)
 
-## Preprocessing pipe
+## Motivation
 
-We can process the data through configurable pipe before uploading it to 0-stor server.
+- Building a **secure** & **fast** object store with support for big files
 
-Supported processing pipes:
-- [compress](./lib/compress)
-- [encrypt](./lib/encrypt)
-- [split](./lib/chunker)
-- [distribution / erasure coding](./lib/distribution) : need to be in the end of write pipe or start of read pipe
-- [replication](./lib/replication) (TODO)
-- [chunker](./lib/chunker) : need to be in the start of write pipe or end of read pipe
+## Basic idea
+- Splitting a large file into smaller chunks.
+- Compress each chunk using one of [snappy](https://github.com/google/snappy), [lz4](https://github.com/lz4/lz4), or [gzip](http://www.gzip.org/) algorithms
+- Encrypt each chunk using Hash(content)
+    - Hash functions supported, sha256, [blake2](https://blake2.net/), md5
+    - Support for both symmetric & a symmetric encryption
+- Save each part in different 0-stor server
+- Replicate same chunk into different 0-stor servers
+- Save metadata about chunks and where they're in etcd server or other metadata db
+- Assemble smaller chunks for a file upon retrieval
+    - Get chunks location from metadata server
+    - Assemble file from chunks
 
-These components are not really for data processing, but can also be inserted into the pipe
-- [0-stor rest/grpc client](./stor) : will be added to the end of pipe automatically if there is no component which 
-  upload to 0-stor server
+## Important
+- 0stor server is JUST a simple key/value store
+- splitting, compression, encryption, and replication is the responsibility of client
 
+
+*Features**
+
+- [Erasure coding](http://smahesh.com/blog/2012/07/01/dummies-guide-to-erasure-coding/)
+
+**Metadata format**
+- Capnp format for the metadata:
+    ```
+    struct Metadata {
+        Size @0 :UInt64; # Size of the data in bytes
+        Epoch @1 :UInt64; # creation epoch
+        Key @2 :Data; # key used in the 0-stor
+        EncrKey @3 :Data; # Encryption key used to encrypt this file
+        Shard @4 :List(Text); # List of shard of the file. It's a url the 0-stor
+        Previous @5 :Data; # Key to the previous metadata entry
+        Next @6 :Data; # Key to the next metadata entry
+        ConfigPtr @7 :Data; # Key to the configuration used by the lib to set the data.
+    }
+
+    ```
+
+## Getting started
+- [Getting started](./cmd/cli/README.md)
+
+
+## Now into some technical details!
+
+**Pre processing of data**
+
+- Client does some preprocessing on each chunk of data before sending them to 0stor
+- This is achieved through configurable pipeline
+- Supported Data Preprocessing pipes:
+    - [chunker](./lib/chunker) need to be in the start of write pipe or end of read pipe
+    - [compression](./lib/compress/README.md)
+    - [Hasher](./lib/hash/README.md)
+    - [encryption](./lib/encrypt/README.md)
+    - [distribution / erasure coding](./lib/distribution/README.md) either at the end of write pipe or start of read pipe
+    - [replication](./lib/replication/README.md) @TODO
+
+**backend pipelines**
+- [0-stor rest/grpc client](./stor)
+    - write final into store using either REST or GRPC using
+    - will be added to the end of pipe automatically if there is no component to upload data to 0stor
 
 ## Plain 0-stor client
 
@@ -37,7 +85,7 @@ To run this example, you need to run:
 - 0-stor server at port 12346
 - etcd server at port 2379
 
-```
+```go
 package main
 
 import (
@@ -91,7 +139,7 @@ In below example, we create 0-stor client with four pipes:
 - distribution
 
 
-When we store the data, the data will be processed as follow: 
+When we store the data, the data will be processed as follow:
 plain data -> compress -> encrypt -> distribution/erasure encoding (which send to 0-stor server and write metadata)
 
 When we get the data from 0-stor, the reverse process will happen:
@@ -186,7 +234,7 @@ func main() {
 
 ```
 
-### Example using configuration file 
+### Example using configuration file
 
 ```go
 package main
@@ -236,7 +284,8 @@ func main() {
 
 ```
 
-## Configuration 
+
+## Configuration
 
 Configuration file example can be found on [config.yaml](./cmd/cli/config.yaml).
 All configuration can be found on https://godoc.org/github.com/zero-os/0-stor/client/config

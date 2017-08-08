@@ -20,7 +20,7 @@ The code is located in the [manager package](../../../server/manager)
 
 ## Service interface
 We currently support 2 server interfaces:
-- [rest](../../../server/api/rest)
-- [grpc]((../../../server/grpc)
+- [rest](/server/api/rest)
+- [grpc](/server/api/grpc)
 
 These two interfaces are implemented in the [api package](../../../server/api)

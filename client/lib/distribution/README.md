@@ -1,17 +1,21 @@
 # Distribution / Erasure Coding
+- Distribute chunks of data on cluster on a cluster of outputs/nodes
+- Using [Erasure coding](http://smahesh.com/blog/2012/07/01/dummies-guide-to-erasure-coding/) policy (N, K) policy (data and parity number) and a list of outputs where to distribute the generated n blocks.
+Input data is splitted into n blocks, and then written to the ouputs
 
-Creation takes the erasure coding policy (data and parity number) and a list of outputs where to distribute the generated n blocks.
-Input data is splitted into n blocks, and then written to the ouputs. This component is most probably going to be the last one of the pipeline.
+- We've 2 types of distributors in client
+    - Generic distribution
+        - input/output are io.Reader/io.Writer
+    - Stor Distribution
+        - Save a chunks of data in 0stor cluster
+        - Save metadata about all chunks of file and where they are in a configuration server such as [etcd server](https://github.com/coreos/etcd)
+        - If we are using [chunker](../lib/chunker) pipeline, then we probably need to use  [metadata pipeline](../meta/README.md)
+        in order to save all needed info/metadata to reconstruct file back from chunks into [etcd server](https://github.com/coreos/etcd)
 
-There are two kind of distribution:
-- distribution (Distributor & Restorer) : the input/output is io.Reader/io.Writer
-- stor distribution (StorDistributor & StorRestorer) : the input/output is 0-stor client
+## Example (Using Generic distribution)
+- no pipelines
 
-stor distribution is the one going to be used in pipeline.
-
-## Example
-
-```
+```go
 	conf := Config{
 		Data:   4,
 		Parity: 2,
@@ -57,7 +61,3 @@ stor distribution is the one going to be used in pipeline.
 		log.Fatalf("restore failed")
 	}
 ```
-
-## example of stor distribution
-
-The example can be found in [cli example](../../cmd/cli)

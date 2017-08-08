@@ -1,13 +1,12 @@
-# Encrypt
+## Encrypt
 
-Will supports for both symetric and asymetric encryption.
-Creation of an encrypter takes the required key(s).
-
-Encryption supported:
-- AES GCM
+- encrypt/decrypt the input data.
+- Supports Asymmetric & Symmetric algorithms
+- Currently Supported encryption algorithms:
+    - AES GCM
 
 ## Example
-```
+```go
 	privKey := make([]byte, aesGcmKeySize)
 	nonce := make([]byte, aesGcmNonceSize)
 	rand.Read(privKey)

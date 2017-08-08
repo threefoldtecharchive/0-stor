@@ -1,16 +1,14 @@
-# Compress
+## Compress
 
-Compress/decompress the input data.
-
-Compression supported:
-
-- snappy
-- gzip
-- lz4
+- Compress/decompress the input data.
+- Supported compression algorithms:
+    - [snappy](https://github.com/google/snappy)
+    - gzip
+    - [lz4](https://github.com/lz4/lz4)
 
 ## example
 
-```
+```golang
 	payload := make([]byte, 4096*4096)
 	for i := 0; i < len(payload); i++ {
 		payload[i] = 100
