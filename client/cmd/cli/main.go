@@ -27,7 +27,10 @@ func main() {
 	app.Before = func(c *cli.Context) error {
 		var err error
 		cl, err = getClient(c)
-		return err
+		if err != nil {
+			return cli.NewExitError(err, 1)
+		}
+		return nil
 	}
 	app.Commands = []cli.Command{
 		{
@@ -97,7 +100,7 @@ func main() {
 
 						namespace := c.Args().First()
 						if err := cl.CreateNamespace(namespace); err != nil {
-							return cli.NewExitError(fmt.Errorf("need to give the name of the namespace to create"), 1)
+							return cli.NewExitError(fmt.Errorf("creation of namespace %s failed: %v", namespace, err), 1)
 						}
 						fmt.Printf("Namespace %s created\n", namespace)
 
@@ -235,7 +238,7 @@ func getClient(c *cli.Context) (*client.Client, error) {
 
 	conf, err := config.NewFromReader(f)
 	if err != nil {
-		log.Fatal(err)
+		return nil, fmt.Errorf("failed to create itsyou.online client: %v", err)
 	}
 
 	// create client
