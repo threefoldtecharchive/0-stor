@@ -5,8 +5,7 @@ pushd server
     bash codecov.sh
 popd
 pushd client
-	echo "Run client test"
-	go get -t -v ./...
+    echo "Run client test"
 	bash codecov.sh
 popd
 echo "Generate docs"
