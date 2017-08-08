@@ -4,9 +4,6 @@ description: "0-Stor REST API"
 version: 0.0.1
 mediaType: application/json
 
-uses:
-  reservation: https://raw.githubusercontent.com/Jumpscale-Cockpit/raml-definitions/master/librairies/reservation.raml
-
 securitySchemes:
   itsyouonline:
     description: |
@@ -161,13 +158,6 @@ securedBy: [ itsyouonline : { scopes: ["user:memberof:store.namespace"] } ]
             type: Namespace
         404:
           description: Namespace not found
-    /reservations:
-      securedBy: [ reservation.reservationToken , itsyouonline : { scopes: ["user:memberof:store.namespace"] }]
-      description: |
-        Management of the reservation for this namespace
-      type: reservation.reservableCollection
-      /{id}:
-        type: reservation.reservableMember
     /objects:
       get:
         securedBy: [ itsyouonline : { scopes: ["user:memberof:store.namespace.read"] }]
