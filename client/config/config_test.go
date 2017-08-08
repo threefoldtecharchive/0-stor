@@ -87,5 +87,6 @@ func TestWrite(t *testing.T) {
 	fixture, err := ioutil.ReadFile("./fixtures/simple_write.yaml")
 	assert.Nil(t, err)
 
+	ioutil.WriteFile("/tmp/petok", buf.Bytes(), 0666)
 	assert.Equal(t, string(fixture), string(buf.Bytes()))
 }

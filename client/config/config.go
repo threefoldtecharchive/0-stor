@@ -36,14 +36,16 @@ var (
 
 // Config defines 0-stor client config
 type Config struct {
-	Organization string      `yaml:"organization" validate:"nonzero"`
-	Namespace    string      `yaml:"namespace" validate:"nonzero"`
-	StorClient   stor.Config `yaml:"stor_client,omitempty"`
-	MetaShards   []string    `yaml:"meta_shards"`
-	Pipes        []Pipe      `yaml:"pipes" validate:"nonzero"`
+	Organization string `yaml:"organization" validate:"nonzero"`
+	Namespace    string `yaml:"namespace" validate:"nonzero"`
+	Protocol     string `yaml:"protocol" validate:"nonzero"` // rest or grpc
 
 	IYOAppID  string `yaml:"iyo_app_id"`
 	IYOSecret string `yaml:"iyo_app_secret"`
+
+	Shards     []string `yaml:"shards" validate:"nonzero"` // 0-stor shards
+	MetaShards []string `yaml:"meta_shards"`
+	Pipes      []Pipe   `yaml:"pipes"`
 }
 
 // NewFromReader creates Config from a reader
@@ -64,6 +66,8 @@ func NewFromReader(r io.Reader) (*Config, error) {
 	if err := validator.Validate(conf); err != nil {
 		return nil, err
 	}
+
+	conf.CheckAppendStorClient()
 
 	// do post processing to each pipe
 	for i, pipe := range conf.Pipes {
@@ -88,4 +92,41 @@ func (conf *Config) Write(w io.Writer) error {
 
 	_, err = w.Write(b)
 	return err
+}
+
+func (conf *Config) ChunkerFirstPipe() bool {
+	if len(conf.Pipes) == 0 {
+		return false
+	}
+	return conf.Pipes[0].Type == chunkerStr
+}
+
+// CheckAppendStorClient checks if we need to add stor.Client in the pipe
+// append it if needed
+func (conf *Config) CheckAppendStorClient() {
+	if !conf.needStorClientInPipe() {
+		return
+	}
+	pipe := Pipe{
+		Type:   storClientStr,
+		Config: stor.Config{},
+	}
+	conf.Pipes = append(conf.Pipes, pipe)
+}
+
+// check if this config need stor.Client to be added
+// in the end of pipe
+// - pipe is empty
+// - no distribution, storClient, or replication specified
+func (conf *Config) needStorClientInPipe() bool {
+	if len(conf.Pipes) == 0 {
+		return true
+	}
+
+	for _, pipe := range conf.Pipes {
+		if pipe.Type == storClientStr || pipe.Type == distributionStr {
+			return false
+		}
+	}
+	return true
 }

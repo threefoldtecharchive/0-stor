@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"io"
 
 	"gopkg.in/validator.v2"
 	"gopkg.in/yaml.v2"
@@ -13,7 +14,7 @@ import (
 	"github.com/zero-os/0-stor/client/lib/encrypt"
 	"github.com/zero-os/0-stor/client/lib/hash"
 	"github.com/zero-os/0-stor/client/lib/replication"
-	"github.com/zero-os/0-stor/client/meta"
+	mb "github.com/zero-os/0-stor/client/meta/block"
 	"github.com/zero-os/0-stor/client/stor"
 )
 
@@ -29,7 +30,9 @@ type Pipe struct {
 }
 
 // CreateBlockReader creates a block reader
-func (p Pipe) CreateBlockReader(org, namespace string) (block.Reader, error) {
+func (p Pipe) CreateBlockReader(shards, metaShards []string, proto, org, namespace,
+	iyoAppID, iyoAppSecret string) (block.Reader, error) {
+
 	switch p.Type {
 	case compressStr:
 		conf := p.Config.(compress.Config)
@@ -39,27 +42,35 @@ func (p Pipe) CreateBlockReader(org, namespace string) (block.Reader, error) {
 		return encrypt.NewReader(conf)
 	case distributionStr:
 		conf := p.Config.(distribution.Config)
-		return distribution.NewStorRestorer(conf, org, namespace)
+		return distribution.NewStorRestorer(conf, shards, metaShards, proto, org, namespace, iyoAppID, iyoAppSecret)
 	case metaStr:
-		conf := p.Config.(meta.Config)
-		return meta.NewReader(conf)
+		conf := p.Config.(mb.Config)
+		return mb.NewReader(conf, metaShards)
+	case chunkerStr:
+		conf := p.Config.(chunker.Config)
+		return chunker.NewBlockReader(conf, metaShards)
 	case storClientStr:
-		conf := p.Config.(stor.Config)
-		return stor.NewReader(conf, org, namespace)
+		conf := stor.Config{
+			Protocol:    proto,
+			IyoClientID: iyoAppID,
+			IyoSecret:   iyoAppSecret,
+		}
+		return stor.NewReader(conf, shards, metaShards, org, namespace)
 	default:
 		return nil, fmt.Errorf("invalid reader type:%v", p.Type)
 	}
 }
 
 // CreateBlockWriter creates block writer
-func (p Pipe) CreateBlockWriter(w block.Writer, org, namespace string) (block.Writer, error) {
+func (p Pipe) CreateBlockWriter(w block.Writer, shards, metaShards []string, proto, org, namespace,
+	iyoAppID, iyoAppSecret string, r io.Reader) (block.Writer, error) {
 	switch p.Type {
 	case compressStr:
 		conf := p.Config.(compress.Config)
 		return compress.NewWriter(conf, w)
 	case distributionStr:
 		conf := p.Config.(distribution.Config)
-		return distribution.NewStorDistributor(w, conf, org, namespace)
+		return distribution.NewStorDistributor(w, conf, shards, metaShards, proto, org, namespace, iyoAppID, iyoAppSecret)
 	case encryptStr:
 		conf := p.Config.(encrypt.Config)
 		return encrypt.NewWriter(w, conf)
@@ -67,11 +78,18 @@ func (p Pipe) CreateBlockWriter(w block.Writer, org, namespace string) (block.Wr
 		conf := p.Config.(hash.Config)
 		return hash.NewWriter(w, conf)
 	case metaStr:
-		conf := p.Config.(meta.Config)
-		return meta.NewWriter(w, conf)
+		conf := p.Config.(mb.Config)
+		return mb.NewWriter(w, conf, metaShards)
+	case chunkerStr:
+		conf := p.Config.(chunker.Config)
+		return chunker.NewBlockWriter(w, conf, metaShards, r)
 	case storClientStr:
-		conf := p.Config.(stor.Config)
-		return stor.NewWriter(w, conf, org, namespace)
+		conf := stor.Config{
+			Protocol:    proto,
+			IyoClientID: iyoAppID,
+			IyoSecret:   iyoAppSecret,
+		}
+		return stor.NewWriter(w, conf, shards, metaShards, org, namespace)
 	default:
 		return nil, fmt.Errorf("invalid writer type:%v", p.Type)
 	}
@@ -130,7 +148,7 @@ func (p *Pipe) setConfigType() error {
 		p.Config = conf
 
 	case metaStr:
-		var conf meta.Config
+		var conf mb.Config
 		if err := yaml.Unmarshal(b, &conf); err != nil {
 			return err
 		}

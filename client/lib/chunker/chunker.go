@@ -18,15 +18,19 @@ type Chunker struct {
 
 // Config defines chunker configuration
 type Config struct {
-	ChunkSize int `yaml:"chunkSize" validate:"min=0"`
+	ChunkSize int    `yaml:"chunkSize" validate:"min=0"`
+	DestPath  string `yaml:"-"`
 }
 
 // NewChunker creates chunker for given data and chunk size
-func NewChunker(data []byte, conf Config) *Chunker {
+func NewChunker(conf Config) *Chunker {
 	return &Chunker{
-		data:      data,
 		chunkSize: conf.ChunkSize,
 	}
+}
+
+func (c *Chunker) Chunk(data []byte) {
+	c.data = data
 }
 
 // Next return true if there is still chunk left

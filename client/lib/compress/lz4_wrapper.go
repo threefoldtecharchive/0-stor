@@ -7,6 +7,7 @@ import (
 	"github.com/pierrec/lz4"
 
 	"github.com/zero-os/0-stor/client/lib/block"
+	"github.com/zero-os/0-stor/client/meta"
 )
 
 type lz4Writer struct {
@@ -19,7 +20,7 @@ func newLz4Writer(w block.Writer) *lz4Writer {
 	}
 }
 
-func (lw lz4Writer) WriteBlock(key, data []byte) (int, error) {
+func (lw lz4Writer) WriteBlock(key, data []byte, md *meta.Meta) (*meta.Meta, error) {
 	buf := bytes.NewBuffer(nil)
 
 	rd := bytes.NewReader(data)
@@ -29,17 +30,18 @@ func (lw lz4Writer) WriteBlock(key, data []byte) (int, error) {
 
 	// compress the data
 	n, err := io.Copy(comp, rd)
+	md.SetSize(uint64(n))
 	if err != nil {
-		return int(n), err
+		return md, err
 	}
 
 	// flush and close the compressor
 	if err := comp.Close(); err != nil {
-		return int(n), err
+		return md, err
 	}
 
 	// return the valuo of our output buffer and a possible error
-	return lw.w.WriteBlock(key, buf.Bytes())
+	return lw.w.WriteBlock(key, buf.Bytes(), md)
 }
 
 // lz4Reader wraps lz4.Reader to conform to Decompressor interface

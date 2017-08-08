@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 
@@ -45,12 +44,12 @@ func main() {
 
 						fileName := c.Args().First()
 
-						b, err := ioutil.ReadFile(fileName)
+						f, err := os.Open(fileName)
 						if err != nil {
 							return cli.NewExitError(fmt.Errorf("can't read the file: %v", err), 1)
 						}
 
-						if err := cl.Write([]byte(fileName), b); err != nil {
+						if _, err := cl.WriteF([]byte(fileName), f); err != nil {
 							return cli.NewExitError(fmt.Errorf("upload failed : %v", err), 1)
 						}
 						fmt.Printf("file uploaded, key = %v\n", fileName)
@@ -68,11 +67,13 @@ func main() {
 
 						key := c.Args().Get(0)
 						output := c.Args().Get(1)
-						b, err := cl.Read([]byte(key))
+						fOutput, err := os.Create(output)
 						if err != nil {
-							return cli.NewExitError(fmt.Errorf("download file failed: %v", err), 1)
+							return cli.NewExitError(fmt.Errorf("can't create output file: %v", err), 1)
 						}
-						if err := ioutil.WriteFile(output, b, 0666); err != nil {
+
+						_, err = cl.ReadF([]byte(key), fOutput)
+						if err != nil {
 							return cli.NewExitError(fmt.Errorf("download file failed: %v", err), 1)
 						}
 						fmt.Printf("file downloaded to %s\n", output)

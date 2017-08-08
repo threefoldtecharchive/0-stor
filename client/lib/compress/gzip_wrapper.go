@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 
 	"github.com/zero-os/0-stor/client/lib/block"
+	"github.com/zero-os/0-stor/client/meta"
 )
 
 type gzipWriter struct {
@@ -21,7 +22,7 @@ func newGzipWriter(w block.Writer, level int) *gzipWriter {
 	}
 }
 
-func (gw gzipWriter) WriteBlock(key, p []byte) (int, error) {
+func (gw gzipWriter) WriteBlock(key, p []byte, md *meta.Meta) (*meta.Meta, error) {
 	buf := new(bytes.Buffer)
 	written, err := func() (int, error) {
 		w, err := gzip.NewWriterLevel(buf, gw.level)
@@ -47,10 +48,11 @@ func (gw gzipWriter) WriteBlock(key, p []byte) (int, error) {
 		}
 		return written, w.Close()
 	}()
+	md.SetSize(uint64(written))
 	if err != nil {
-		return written, err
+		return md, err
 	}
-	return gw.w.WriteBlock(key, buf.Bytes())
+	return gw.w.WriteBlock(key, buf.Bytes(), md)
 }
 
 type gzipReader struct {

@@ -4,12 +4,13 @@ import (
 	"crypto/rand"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/zero-os/0-stor/client/config"
 	"github.com/zero-os/0-stor/client/lib/block"
 	"github.com/zero-os/0-stor/client/lib/compress"
 	"github.com/zero-os/0-stor/client/lib/encrypt"
+	"github.com/zero-os/0-stor/client/meta"
 )
 
 // TestRoundTrip test that read pipe can decode back
@@ -64,17 +65,20 @@ func testRoundTrip(t *testing.T, compressType string) {
 	// write it
 	finalWriter := block.NewBytesBuffer()
 
-	pw, err := NewWritePipe(&conf, finalWriter)
-	assert.Nil(t, err)
+	pw, err := NewWritePipe(&conf, finalWriter, nil)
+	require.Nil(t, err)
 
-	_, err = pw.WriteBlock(key, data)
-	assert.Nil(t, err)
+	md, err := meta.New(key, 0, nil)
+	require.Nil(t, err)
+
+	_, err = pw.WriteBlock(key, data, md)
+	require.Nil(t, err)
 
 	// read it
 	rp, err := NewReadPipe(&conf)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	readResult, err := rp.ReadBlock(finalWriter.Bytes())
-	assert.Nil(t, err)
-	assert.Equal(t, data, readResult)
+	require.Nil(t, err)
+	require.Equal(t, data, readResult)
 }

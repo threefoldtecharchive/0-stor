@@ -60,13 +60,10 @@ type Client interface {
 
 // Config defines 0-stor client config
 type Config struct {
-	Protocol       string `yaml:"protocol"` // rest or grpc
-	Shard          string `yaml:"shard"`    // 0-stor server address
-	IyoClientID    string `yaml:"iyo_client_id"`
-	IyoSecret      string `yaml:"iyo_secret"`
-	StorPermWrite  bool   `yaml:"stor_perm_write"`  // 0-stor write permission
-	StorPermRead   bool   `yaml:"stor_perm_read"`   // 0-stor read permission
-	StorPermDelete bool   `yaml:"stor_perm_delete"` // 0-stor delete permission
+	Protocol    string `yaml:"protocol"` // rest or grpc
+	Shard       string `yaml:"shard"`    // 0-stor server address
+	IyoClientID string `yaml:"iyo_client_id"`
+	IyoSecret   string `yaml:"iyo_secret"`
 }
 
 // NewClient creates new 0-stor client
@@ -95,8 +92,8 @@ func getIyoJWTToken(conf *Config, org, namespace string) (string, error) {
 
 	iyoCli := itsyouonline.NewClient(org, conf.IyoClientID, conf.IyoSecret)
 	return iyoCli.CreateJWT(namespace, itsyouonline.Permission{
-		Read:   conf.StorPermRead,
-		Write:  conf.StorPermWrite,
-		Delete: conf.StorPermDelete,
+		Read:   true,
+		Write:  true,
+		Delete: true,
 	})
 }

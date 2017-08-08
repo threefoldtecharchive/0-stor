@@ -17,12 +17,13 @@ Supported processing pipes:
 - [compress](./lib/compress)
 - [encrypt](./lib/encrypt)
 - [split](./lib/chunker)
-- [distribution / erasure coding](./lib/distribution)
-- [replication](./lib/replication)
+- [distribution / erasure coding](./lib/distribution) : need to be in the end of write pipe or start of read pipe
+- [replication](./lib/replication) (TODO)
+- [chunker](./lib/chunker) : need to be in the start of write pipe or end of read pipe
 
 These components are not really for data processing, but can also be inserted into the pipe
-- [0-stor rest/grpc client](./stor)
-- [metadata client](./meta)
+- [0-stor rest/grpc client](./stor) : will be added to the end of pipe automatically if there is no component which 
+  upload to 0-stor server
 
 
 ## Plain 0-stor client
@@ -44,46 +45,41 @@ import (
 
 	"github.com/zero-os/0-stor/client"
 	"github.com/zero-os/0-stor/client/config"
-	"github.com/zero-os/0-stor/client/stor"
 )
 
 func main() {
 
-	storClientConf := stor.Config{
-		Protocol:      "rest",
-		Shard:         "http://127.0.0.1:12345",
-		StorPermWrite: true,
-		StorPermRead:  true,
-		IyoClientID:   "the_id",
-		IyoSecret:     "the_secret",
-	}
-
 	conf := config.Config{
-		Organization: "mordor_0stor",
+		Organization: "labhijau",
 		Namespace:    "thedisk",
-		StorClient:   storClientConf,
+		Protocol:     "rest",
+		Shards:       []string{"http://127.0.0.1:12345", "http://127.0.0.1:12346"},
+		MetaShards:   []string{"http://127.0.0.1:2379"},
+		IYOAppID:     "the_id",
+		IYOSecret:    "the_secret",
 	}
 	c, err := client.New(&conf)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	data := "hello 0-stor"
-	key := "hi guys"
+	data := []byte("hello 0-stor")
+	key := []byte("hi guys")
 
 	// stor to 0-stor
-	_, err = c.ObjectCreate(key, data, nil)
+	_, err = c.Write(key, data)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// write the meta
-	obj, err := c.ObjectGet(key)
+	// read the data
+	stored, err := c.Read(key)
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Printf("stored key=%v, val=%v\n", obj.Id, obj.Data)
+	log.Printf("stored data=%v\n", string(stored))
 }
+
 
 ```
 ## 0-stor client with configurable pipe
@@ -93,16 +89,13 @@ In below example, we create 0-stor client with four pipes:
 - compress
 - encrypt
 - distribution
-- meta
 
-We need the `meta` because `distribution` is going to encode the data and distribute it accross multiple servers.
-`meta` pipe will create the metadata which will be used to reconstruct the data
 
 When we store the data, the data will be processed as follow: 
-plain data -> compress -> encrypt -> distribution/erasure encoding (which send to 0-stor server) -> write metadata
+plain data -> compress -> encrypt -> distribution/erasure encoding (which send to 0-stor server and write metadata)
 
 When we get the data from 0-stor, the reverse process will happen:
-read metadata -> distribution/erasure decoding (which Get data from 0-stor) -> decrypt -> decompress -> plain data.
+distribution/erasure decoding (which read metdata & Get data from 0-stor) -> decrypt -> decompress -> plain data.
 
 To run this example, you need to run:
 - 0-stor server at port 12345
@@ -124,7 +117,6 @@ import (
 	"github.com/zero-os/0-stor/client/lib/compress"
 	"github.com/zero-os/0-stor/client/lib/distribution"
 	"github.com/zero-os/0-stor/client/lib/encrypt"
-	"github.com/zero-os/0-stor/client/meta"
 )
 
 func main() {
@@ -138,22 +130,17 @@ func main() {
 	}
 
 	distConf := distribution.Config{
-		Protocol:      "rest",
-		Data:          1,
-		Parity:        1,
-		Shards:        []string{"http://127.0.0.1:12345", "http://127.0.0.1:12346"},
-		StorPermWrite: true,
-		StorPermRead:  true,
-		IyoClientID:   "the_id",
-		IyoSecret:     "the_secret",
-	}
-	metaConf := meta.Config{
-		Shards: []string{"http://127.0.0.1:2379"},
+		Data:   1,
+		Parity: 1,
 	}
 
 	conf := config.Config{
-		Organization: "mordor_0stor",
+		Organization: "labhijau",
 		Namespace:    "thedisk",
+		Protocol:     "rest",
+		IYOAppID:     "the_id",
+		IYOSecret:    "the_secret",
+		Shards:       []string{"http://127.0.0.1:12345", "http://127.0.0.1:12346"},
 		MetaShards:   []string{"http://127.0.0.1:2379"},
 		Pipes: []config.Pipe{
 			config.Pipe{
@@ -172,12 +159,6 @@ func main() {
 				Type:   "distribution",
 				Config: distConf,
 			},
-
-			config.Pipe{
-				Name:   "pipe4",
-				Type:   "meta",
-				Config: metaConf,
-			},
 		},
 	}
 	c, err := client.New(&conf)
@@ -185,27 +166,31 @@ func main() {
 		log.Fatal(err)
 	}
 
-	data := []byte("hello 0-stor")
-	key := []byte("hello")
+	data := []byte("Hi you!")
+	key := []byte("how low can you go")
 
 	// stor to 0-stor
-	err = c.Write(key, data)
+	_, err = c.Write(key, data)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// write the meta
+	// get the value
 	stored, err := c.Read(key)
 	if err != nil {
 		log.Fatal(err)
 	}
 	log.Printf("stored value=%v\n", string(stored))
 }
+
+
 ```
 
 ### Example using configuration file 
 
 ```go
+package main
+
 import (
 	"log"
 	"os"
@@ -225,29 +210,29 @@ func main() {
 		log.Fatal(err)
 	}
 
-
 	client, err := client.New(conf)
 	if err != nil {
 		log.Fatal(err)
 	}
-	
+
 	data := []byte("hello 0-stor")
 	key := []byte("hello")
 
 	// stor to 0-stor
-	err = c.Write(key, data)
+	_, err = client.Write(key, data)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// write the meta
-	stored, err := c.Read(key)
+	// read data
+	stored, err := client.Read(key)
 	if err != nil {
 		log.Fatal(err)
 	}
 	log.Printf("stored value=%v\n", string(stored))
 
 }
+
 
 ```
 

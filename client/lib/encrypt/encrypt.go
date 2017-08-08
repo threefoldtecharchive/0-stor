@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/zero-os/0-stor/client/lib/block"
+	"github.com/zero-os/0-stor/client/meta"
 )
 
 // Encryption type
@@ -59,9 +60,10 @@ func NewWriter(w block.Writer, conf Config) (*Writer, error) {
 }
 
 // WriteBlock implements blockreadwrite.Writer interface
-func (w Writer) WriteBlock(key, plain []byte) (int, error) {
+func (w Writer) WriteBlock(key, plain []byte, md *meta.Meta) (*meta.Meta, error) {
 	encrypted := w.ed.Encrypt(plain)
-	return w.w.WriteBlock(key, encrypted)
+	md.SetSize(uint64(len(encrypted)))
+	return w.w.WriteBlock(key, encrypted, md)
 }
 
 // Reader defines encryption reader.

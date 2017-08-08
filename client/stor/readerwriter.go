@@ -6,70 +6,86 @@ import (
 )
 
 // Writer is 0-stor client that implements block.Writer interface
+// It writes to random server first and then try all other
+// servers if it failed
 type Writer struct {
-	shards []string
-	client Client
-	w      block.Writer
+	sc      *ShardsClient
+	metaCli *meta.Client
+	w       block.Writer
 }
 
 // NewWriter creates new writer
-func NewWriter(w block.Writer, conf Config, org, namespace string) (*Writer, error) {
-	cli, err := NewClient(&conf, org, namespace)
+func NewWriter(w block.Writer, conf Config, shards, metaShards []string, org, namespace string) (*Writer, error) {
+	sc, err := NewShardsClient(conf, shards, org, namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	metaCli, err := meta.NewClient(metaShards)
 	if err != nil {
 		return nil, err
 	}
 	return &Writer{
-		shards: []string{conf.Shard},
-		client: cli,
-		w:      w,
+		w:       w,
+		sc:      sc,
+		metaCli: metaCli,
 	}, nil
 }
 
 // WriteBlock implements block.Writer.WriteBlock interface
 // It creates object in 0-stor server with given key as id and value as data.
 // It write the key-metadata to the underlying writer
-func (w *Writer) WriteBlock(key, val []byte) (int, error) {
-	_, err := w.client.ObjectCreate(key, val, nil)
+func (w *Writer) WriteBlock(key, val []byte, md *meta.Meta) (*meta.Meta, error) {
+	var err error
+
+	md, err = w.sc.ObjectCreate(key, val, nil)
 	if err != nil {
-		return 0, err
+		return md, err
 	}
 
-	// write metadata to the underlying writer
-	md, err := meta.New(key, uint64(len(val)), w.shards)
-	if err != nil {
-		return 0, err
+	// write metadata to the meta client &  underlying writer
+	if err := w.metaCli.Put(string(key), md); err != nil {
+		return md, err
 	}
 
 	mdBytes, err := md.Bytes()
 	if err != nil {
-		return 0, err
+		return md, err
 	}
 
-	return w.w.WriteBlock(key, mdBytes)
+	return w.w.WriteBlock(key, mdBytes, md)
 }
 
 // Reader is 0-stor client that implements block.Reader interface
 type Reader struct {
-	client Client
-	w      block.Writer
+	metaCli *meta.Client
+	sc      *ShardsClient
 }
 
 // NewReader creates new Reader
-func NewReader(conf Config, org, namespace string) (*Reader, error) {
-	cli, err := NewClient(&conf, org, namespace)
+func NewReader(conf Config, shards, metaShards []string, org, namespace string) (*Reader, error) {
+	sc, err := NewShardsClient(conf, shards, org, namespace)
 	if err != nil {
 		return nil, err
 	}
+
+	metaCli, err := meta.NewClient(metaShards)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Reader{
-		client: cli,
+		sc:      sc,
+		metaCli: metaCli,
 	}, nil
 }
 
 // ReadBlock implements block.Reader
+// the key is metadata key
 func (r *Reader) ReadBlock(key []byte) ([]byte, error) {
-	obj, err := r.client.ObjectGet(key)
+	md, err := r.metaCli.Get(string(key))
 	if err != nil {
 		return nil, err
 	}
-	return obj.Value, nil
+	return r.sc.ObjectGet(md)
 }

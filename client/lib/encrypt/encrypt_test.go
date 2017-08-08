@@ -4,9 +4,10 @@ import (
 	"crypto/rand"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/zero-os/0-stor/client/lib/block"
+	"github.com/zero-os/0-stor/client/meta"
 )
 
 func TestRoundTrip(t *testing.T) {
@@ -32,25 +33,28 @@ func testRoundTrip(t *testing.T, conf Config) {
 	buf := block.NewBytesBuffer()
 
 	w, err := NewWriter(buf, conf)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
-	_, err = w.WriteBlock(nil, plain)
-	assert.Nil(t, err)
+	md, err := meta.New(nil, 0, nil)
+	require.Nil(t, err)
+
+	_, err = w.WriteBlock(nil, plain, md)
+	require.Nil(t, err)
 
 	// decrypt ag
 	ag, err := newAESGCM([]byte(conf.PrivKey), []byte(conf.Nonce))
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	dag, err := ag.Decrypt(buf.Bytes())
-	assert.Nil(t, err)
-	assert.Equal(t, plain, dag)
+	require.Nil(t, err)
+	require.Equal(t, plain, dag)
 
 	// decrypt
 	r, err := NewReader(conf)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	decrypted, err := r.ReadBlock(buf.Bytes())
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
-	assert.Equal(t, plain, decrypted)
+	require.Equal(t, plain, decrypted)
 }

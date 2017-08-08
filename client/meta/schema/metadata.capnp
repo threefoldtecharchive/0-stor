@@ -27,4 +27,7 @@ struct Metadata {
 	
 	configPtr @7 :Data;
 	# Key to the configuration used by the lib to set the data.
+
+	numOfChunks @8:UInt64;
+	# number of chunks
 }

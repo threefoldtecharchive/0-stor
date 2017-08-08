@@ -4,6 +4,7 @@ import (
 	"github.com/golang/snappy"
 
 	"github.com/zero-os/0-stor/client/lib/block"
+	"github.com/zero-os/0-stor/client/meta"
 )
 
 type snappyWriter struct {
@@ -16,9 +17,10 @@ func newSnappyWriter(w block.Writer) *snappyWriter {
 	}
 }
 
-func (sw snappyWriter) WriteBlock(key, val []byte) (int, error) {
+func (sw snappyWriter) WriteBlock(key, val []byte, md *meta.Meta) (*meta.Meta, error) {
 	encoded := snappy.Encode(nil, val)
-	return sw.w.WriteBlock(key, encoded)
+	md.SetSize(uint64(len(encoded)))
+	return sw.w.WriteBlock(key, encoded, md)
 }
 
 type snappyReader struct {

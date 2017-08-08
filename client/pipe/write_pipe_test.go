@@ -4,13 +4,14 @@ import (
 	"crypto/rand"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/zero-os/0-stor/client/config"
 	"github.com/zero-os/0-stor/client/lib/block"
 	"github.com/zero-os/0-stor/client/lib/compress"
 	"github.com/zero-os/0-stor/client/lib/encrypt"
 	"github.com/zero-os/0-stor/client/lib/hash"
+	"github.com/zero-os/0-stor/client/meta"
 )
 
 func TestPipeWriter(t *testing.T) {
@@ -69,39 +70,39 @@ func testPipeWriter(t *testing.T, compressType string) {
 
 	finalWriter := block.NewBytesBuffer()
 
-	pw, err := NewWritePipe(&conf, finalWriter)
-	if !assert.Nil(t, err) {
-		return
-	}
+	pw, err := NewWritePipe(&conf, finalWriter, nil)
+	require.Nil(t, err)
 
-	_, err = pw.WriteBlock(key, data)
-	assert.Nil(t, err)
+	md, err := meta.New(key, 0, nil)
+	require.Nil(t, err)
+	_, err = pw.WriteBlock(key, data, md)
+	require.Nil(t, err)
 
 	// compare with manual writer
 	resultManual := func() []byte {
 		// (1) compress it
 		bufComp := block.NewBytesBuffer()
 		compressor, err := compress.NewWriter(compressConf, bufComp)
-		assert.Nil(t, err)
-		_, err = compressor.WriteBlock(key, data)
-		assert.Nil(t, err)
+		require.Nil(t, err)
+		_, err = compressor.WriteBlock(key, data, md)
+		require.Nil(t, err)
 
 		// (2) encrypt it
 		bufEncryp := block.NewBytesBuffer()
 		encrypter, err := encrypt.NewWriter(bufEncryp, encryptConf)
-		assert.Nil(t, err)
-		_, err = encrypter.WriteBlock(key, bufComp.Bytes())
-		assert.Nil(t, err)
+		require.Nil(t, err)
+		_, err = encrypter.WriteBlock(key, bufComp.Bytes(), md)
+		require.Nil(t, err)
 
 		// (3) hash it
 		bufHash := block.NewBytesBuffer()
 		hasher, err := hash.NewWriter(bufHash, hashConf)
-		assert.Nil(t, err)
-		_, err = hasher.WriteBlock(key, bufEncryp.Bytes())
-		assert.Nil(t, err)
+		require.Nil(t, err)
+		_, err = hasher.WriteBlock(key, bufEncryp.Bytes(), md)
+		require.Nil(t, err)
 
 		return bufHash.Bytes()
 	}()
 
-	assert.Equal(t, resultManual, finalWriter.Bytes())
+	require.Equal(t, resultManual, finalWriter.Bytes())
 }

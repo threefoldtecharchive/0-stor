@@ -7,13 +7,14 @@ import (
 
 // ReadPipe represents pipe of readers
 type ReadPipe struct {
-	readers []block.Reader
+	Readers []block.Reader
 }
 
 func createAllBlockReaders(conf *config.Config) ([]block.Reader, error) {
 	var readers []block.Reader
 	for _, pipe := range conf.Pipes {
-		ar, err := pipe.CreateBlockReader(conf.Organization, conf.Namespace)
+		ar, err := pipe.CreateBlockReader(conf.Shards, conf.MetaShards, conf.Protocol, conf.Organization,
+			conf.Namespace, conf.IYOAppID, conf.IYOSecret)
 		if err != nil {
 			return nil, err
 		}
@@ -29,7 +30,7 @@ func NewReadPipe(conf *config.Config) (*ReadPipe, error) {
 		return nil, err
 	}
 	return &ReadPipe{
-		readers: ars,
+		Readers: ars,
 	}, nil
 }
 
@@ -38,7 +39,7 @@ func (rp ReadPipe) ReadBlock(data []byte) ([]byte, error) {
 	var err error
 	curData := data
 
-	for _, rd := range rp.readers {
+	for _, rd := range rp.Readers {
 		curData, err = rd.ReadBlock(curData)
 		if err != nil {
 			return nil, err

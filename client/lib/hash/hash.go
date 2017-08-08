@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/zero-os/0-stor/client/lib/block"
+	"github.com/zero-os/0-stor/client/meta"
 )
 
 // Hash Type
@@ -45,9 +46,10 @@ func NewWriter(w block.Writer, conf Config) (*Writer, error) {
 }
 
 // WriteBlock implements block.Writer interface
-func (w Writer) WriteBlock(key, val []byte) (int, error) {
+func (w Writer) WriteBlock(key, val []byte, md *meta.Meta) (*meta.Meta, error) {
 	hashed := w.hasher.Hash(val)
-	return w.w.WriteBlock(key, hashed)
+	md.SetSize(uint64(len(hashed)))
+	return w.w.WriteBlock(key, hashed, md)
 }
 
 // NewHasher creates new hasher

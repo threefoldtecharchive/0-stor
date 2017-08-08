@@ -15,7 +15,8 @@ func TestChunkerEven(t *testing.T) {
 	}
 
 	data := make([]byte, dataLen)
-	c := NewChunker(data, conf)
+	c := NewChunker(conf)
+	c.Chunk(data)
 	testSplitterEven(t, c, dataLen, conf.ChunkSize)
 }
 
@@ -49,7 +50,8 @@ func TestChunkerNotEven(t *testing.T) {
 
 	data := make([]byte, dataLen)
 
-	c := NewChunker(data, conf)
+	c := NewChunker(conf)
+	c.Chunk(data)
 	testSplitterNotEven(t, c, dataLen, conf.ChunkSize)
 }
 

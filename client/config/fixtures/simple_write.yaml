@@ -1,5 +1,9 @@
 organization: gig
 namespace: thedisk
+protocol: ""
+iyo_app_id: abcd
+iyo_app_secret: defg
+shards: []
 meta_shards:
 - 127.0.0.1:2379
 pipes:
@@ -8,5 +12,3 @@ pipes:
   config:
     type: snappy
     level: 0
-iyo_app_id: abcd
-iyo_app_secret: defg

@@ -5,8 +5,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/zero-os/0-stor/client/lib/block"
+	"github.com/zero-os/0-stor/client/meta"
 )
 
 func TestReplication(t *testing.T) {
@@ -29,10 +31,13 @@ func testReplication(t *testing.T, async bool) {
 		writers = append(writers, block.NewBytesBuffer())
 	}
 
+	md, err := meta.New(nil, 0, nil)
+	require.Nil(t, err)
+
 	w := NewWriter(writers, Config{Async: async})
-	written, err := w.WriteBlock(nil, data)
+	md, err = w.WriteBlock(nil, data, md)
 	assert.Nil(t, err)
-	assert.Equal(t, numWriter*len(data), written)
+	assert.Equal(t, numWriter*len(data), int(md.Size()))
 	for i := 0; i < numWriter; i++ {
 		buff := writers[i].(*block.BytesBuffer)
 		assert.Equal(t, data, buff.Bytes())

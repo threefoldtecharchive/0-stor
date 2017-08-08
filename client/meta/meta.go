@@ -61,6 +61,24 @@ func (m Meta) Bytes() ([]byte, error) {
 	return buf.Bytes(), err
 }
 
+// GetShardsSlice returns shards as go string slice
+// instead of in canpnp format
+func (m Meta) GetShardsSlice() ([]string, error) {
+	var shards []string
+	shardList, err := m.Shard()
+	if err != nil {
+		return nil, err
+	}
+	for i := 0; i < shardList.Len(); i++ {
+		shard, err := shardList.At(i)
+		if err != nil {
+			return nil, err
+		}
+		shards = append(shards, shard)
+	}
+	return shards, nil
+}
+
 // DecodeReader decodes from given io.Reader and returns
 // the parsed Meta
 func DecodeReader(rd io.Reader) (*Meta, error) {

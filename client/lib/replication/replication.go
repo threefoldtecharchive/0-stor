@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/zero-os/0-stor/client/lib/block"
+	"github.com/zero-os/0-stor/client/meta"
 )
 
 // A Writer is created by taking one input and specifying multiple outputs.
@@ -28,14 +29,14 @@ func NewWriter(writers []block.Writer, conf Config) *Writer {
 }
 
 // Write writes data to underlying writer
-func (w *Writer) WriteBlock(key, data []byte) (int, error) {
+func (w *Writer) WriteBlock(key, data []byte, md *meta.Meta) (*meta.Meta, error) {
 	if w.async {
-		return w.writeAsync(key, data)
+		return w.writeAsync(key, data, md)
 	}
-	return w.writeSync(key, data)
+	return w.writeSync(key, data, md)
 }
 
-func (w *Writer) writeAsync(key, data []byte) (int, error) {
+func (w *Writer) writeAsync(key, data []byte, md *meta.Meta) (*meta.Meta, error) {
 	var wg sync.WaitGroup
 	var mux sync.Mutex
 	var errs []error
@@ -47,12 +48,12 @@ func (w *Writer) writeAsync(key, data []byte) (int, error) {
 		go func(writer block.Writer) {
 			defer wg.Done()
 
-			n, err := writer.WriteBlock(key, data)
+			md, err := writer.WriteBlock(key, data, md)
 
 			mux.Lock()
 			defer mux.Unlock()
 
-			written += n
+			written += int(md.Size())
 
 			if err != nil {
 				errs = append(errs, err)
@@ -63,21 +64,24 @@ func (w *Writer) writeAsync(key, data []byte) (int, error) {
 
 	wg.Wait()
 
+	md.SetSize(uint64(written))
 	if len(errs) > 0 {
-		return written, Error{errs: errs}
+		return md, Error{errs: errs}
 	}
 
-	return written, nil
+	return md, nil
 }
 
-func (w *Writer) writeSync(key, data []byte) (int, error) {
+func (w *Writer) writeSync(key, data []byte, md *meta.Meta) (*meta.Meta, error) {
 	var written int
 	for _, writer := range w.writers {
-		n, err := writer.WriteBlock(key, data)
-		written += n
+		md, err := writer.WriteBlock(key, data, md)
+		written += int(md.Size())
 		if err != nil {
-			return written, err
+			md.SetSize(uint64(written))
+			return md, err
 		}
 	}
-	return written, nil
+	md.SetSize(uint64(written))
+	return md, nil
 }
