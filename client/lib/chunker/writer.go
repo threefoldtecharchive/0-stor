@@ -46,7 +46,6 @@ func (bw *BlockWriter) WriteBlock(key, val []byte, md *meta.Meta) (*meta.Meta, e
 		fmt.Printf("write key=%v \n", string(chunkKey(key, n)))
 		md, err = bw.w.WriteBlock(chunkKey(key, n), data, md)
 		if err != nil {
-			md.SetSize(uint64(totWritten))
 			return md, err
 		}
 		totWritten += int(md.Size())
