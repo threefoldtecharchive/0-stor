@@ -5,6 +5,7 @@ package meta
 import (
 	"bytes"
 	"io"
+	"time"
 
 	"zombiezen.com/go/capnproto2"
 
@@ -32,20 +33,15 @@ func New(key []byte, size uint64, shards []string) (*Meta, error) {
 	md.SetKey(key)
 	md.SetSize(size)
 
-	// set shards
-	shardList, err := md.NewShard(int32(len(shards)))
-	if err != nil {
-		return nil, err
-	}
-	for i, shard := range shards {
-		shardList.Set(i, shard)
-	}
-	md.SetShard(shardList)
-
-	return &Meta{
+	meta := &Meta{
 		Metadata: md,
 		msg:      msg,
-	}, nil
+	}
+	if err := meta.SetShardSlice(shards); err != nil {
+		return nil, err
+	}
+	meta.SetEpochNow()
+	return meta, nil
 }
 
 // Encode encodes the meta to capnp format
@@ -59,6 +55,25 @@ func (m Meta) Bytes() ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := m.Encode(buf)
 	return buf.Bytes(), err
+}
+
+// SetEpochNow set epoch to current unix time in nanosecond
+func (m *Meta) SetEpochNow() {
+	m.SetEpoch(uint64(time.Now().UnixNano()))
+}
+
+// SetShardSlice set shards with Go slice
+// instead of capnp list
+func (m *Meta) SetShardSlice(shards []string) error {
+	shardList, err := m.NewShard(int32(len(shards)))
+	if err != nil {
+		return err
+	}
+	for i, shard := range shards {
+		shardList.Set(i, shard)
+	}
+	m.SetShard(shardList)
+	return nil
 }
 
 // GetShardsSlice returns shards as go string slice

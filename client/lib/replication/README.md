@@ -3,6 +3,17 @@
 - A replicater takes a chunk of data and list of multiple outputs.
 - Input chunk of data is then replicated on all the configured outputs.
 
+## Replication in pipe
+
+The replication can be added in the pipe with this config
+
+```go
+conf := Config {
+	Async: true,	// if true, do the replication in async way
+	Number: 3, 		// number of replications to create. 0 means to all servers
+}
+```
+
 ## Example
 
 ```go

@@ -124,7 +124,7 @@ func (conf *Config) needStorClientInPipe() bool {
 	}
 
 	for _, pipe := range conf.Pipes {
-		if pipe.Type == storClientStr || pipe.Type == distributionStr {
+		if pipe.Type == storClientStr || pipe.Type == distributionStr || pipe.Type == replicationStr {
 			return false
 		}
 	}

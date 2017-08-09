@@ -43,6 +43,9 @@ func (p Pipe) CreateBlockReader(shards, metaShards []string, proto, org, namespa
 	case distributionStr:
 		conf := p.Config.(distribution.Config)
 		return distribution.NewStorRestorer(conf, shards, metaShards, proto, org, namespace, iyoAppID, iyoAppSecret)
+	case replicationStr:
+		conf := p.Config.(replication.Config)
+		return replication.NewStorReader(conf, shards, metaShards, org, namespace, iyoAppID, iyoAppSecret, proto)
 	case metaStr:
 		conf := p.Config.(mb.Config)
 		return mb.NewReader(conf, metaShards)
@@ -71,6 +74,9 @@ func (p Pipe) CreateBlockWriter(w block.Writer, shards, metaShards []string, pro
 	case distributionStr:
 		conf := p.Config.(distribution.Config)
 		return distribution.NewStorDistributor(w, conf, shards, metaShards, proto, org, namespace, iyoAppID, iyoAppSecret)
+	case replicationStr:
+		conf := p.Config.(replication.Config)
+		return replication.NewStorWriter(w, conf, shards, metaShards, org, namespace, iyoAppID, iyoAppSecret, proto)
 	case encryptStr:
 		conf := p.Config.(encrypt.Config)
 		return encrypt.NewWriter(w, conf)
