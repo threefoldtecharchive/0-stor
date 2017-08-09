@@ -17,11 +17,7 @@ import (
 	"github.com/zero-os/0-stor/server/db"
 	"github.com/zero-os/0-stor/server/db/badger"
 	"github.com/zero-os/0-stor/server/manager"
-	"github.com/zero-os/0-stor/server/test"
 )
-
-// We can't test the List method in here since it uses stream.
-// the test for the list method is located in the integration test at "github.com/zero-os/0-stor/server/test/grpc"
 
 func getTestObjectAPI(t *testing.T) (*ObjectAPI, func()) {
 	tmpDir, err := ioutil.TempDir("", "0stortest")
@@ -38,6 +34,33 @@ func getTestObjectAPI(t *testing.T) (*ObjectAPI, func()) {
 	}
 
 	return NewObjectAPI(db), clean
+}
+
+func populateDB(t *testing.T, db db.DB) (string, [][]byte) {
+	label := "testnamespace"
+
+	nsMgr := manager.NewNamespaceManager(db)
+	objMgr := manager.NewObjectManager(label, db)
+	err := nsMgr.Create(label)
+	require.NoError(t, err)
+
+	bufList := make([][]byte, 10)
+
+	for i := 0; i < 10; i++ {
+		bufList[i] = make([]byte, 1024*1024)
+		_, err = rand.Read(bufList[i])
+		require.NoError(t, err)
+
+		refList := []string{
+			"user1", "user2",
+		}
+		key := fmt.Sprintf("testkey%d", i)
+
+		err = objMgr.Set([]byte(key), bufList[i], refList)
+		require.NoError(t, err)
+	}
+
+	return label, bufList
 }
 
 func TestCreateObject(t *testing.T) {
@@ -79,7 +102,7 @@ func TestGetObject(t *testing.T) {
 	api, clean := getTestObjectAPI(t)
 	defer clean()
 
-	label, bufList := test.PopulateDB(t, api.db)
+	label, bufList := populateDB(t, api.db)
 
 	t.Run("valid", func(t *testing.T) {
 
@@ -109,11 +132,31 @@ func TestGetObject(t *testing.T) {
 	})
 }
 
+// func TestListObject(t *testing.T) {
+// 	api, clean := getTestObjectAPI(t)
+// 	defer clean()
+
+// 	label, bufList := populateDB(t, api.db)
+
+// 	req := &pb.ListObjectsRequest{Label: label}
+// 	resp, err := api.List(context.TODO, req)
+// 	require.NoError(t, err)
+
+// 	ids := resp.GetIds()
+// 	sort.Strings(ids)
+
+// 	assert.Equal(t, len(bufList), len(ids))
+// 	for i := 0; i < 10; i++ {
+// 		key := fmt.Sprintf("testkey%d", i)
+// 		assert.Equal(t, key, ids[i])
+// 	}
+// }
+
 func TestExistsObject(t *testing.T) {
 	api, clean := getTestObjectAPI(t)
 	defer clean()
 
-	label, bufList := test.PopulateDB(t, api.db)
+	label, bufList := populateDB(t, api.db)
 
 	for i := 0; i < len(bufList); i++ {
 		key := fmt.Sprintf("testkey%d", i)
@@ -145,7 +188,7 @@ func TestDeleteObject(t *testing.T) {
 	api, clean := getTestObjectAPI(t)
 	defer clean()
 
-	label, _ := test.PopulateDB(t, api.db)
+	label, _ := populateDB(t, api.db)
 	objMgr := manager.NewObjectManager(label, api.db)
 
 	t.Run("valid", func(t *testing.T) {

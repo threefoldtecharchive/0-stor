@@ -16,13 +16,20 @@ type NamespaceAPI struct {
 }
 
 func NewNamespaceAPI(db db.DB) *NamespaceAPI {
-	return &NamespaceAPI{db: db}
+	return &NamespaceAPI{
+		db: db,
+	}
 }
 
 func (api *NamespaceAPI) Get(ctx context.Context, req *pb.GetNamespaceRequest) (*pb.GetNamespaceReply, error) {
+	label := req.GetLabel()
+
+	if err := validateJWT(ctx, MethodAdmin, label); err != nil {
+		return nil, err
+	}
+
 	mgr := manager.NewNamespaceManager(api.db)
 
-	label := req.GetLabel()
 	count, err := mgr.Count(label)
 	if err != nil {
 		return nil, err

@@ -3,8 +3,9 @@ package stats
 import (
 	"time"
 
-	"github.com/paulbellamy/ratecounter"
 	"sync"
+
+	"github.com/paulbellamy/ratecounter"
 )
 
 var lock = sync.RWMutex{}
@@ -68,6 +69,8 @@ func IncrWrite(label string) {
 
 // Rate return the numer of request per hour for a namespace
 func Rate(label string) (read, write int64) {
+	lock.RLock()
+	defer lock.RUnlock()
 	stat, ok := golbalNamespaceStat[label]
 	if !ok {
 		AddNamespace(label)

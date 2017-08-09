@@ -29,7 +29,8 @@ func getTestNamespaceAPI(t *testing.T) (*NamespaceAPI, func()) {
 		os.RemoveAll(tmpDir)
 	}
 
-	return NewNamespaceAPI(db), clean
+	api := NewNamespaceAPI(db)
+	return api, clean
 }
 
 func TestGetNamespace(t *testing.T) {

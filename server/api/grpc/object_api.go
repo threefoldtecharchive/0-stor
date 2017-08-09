@@ -3,6 +3,8 @@ package grpc
 import (
 	"bytes"
 
+	log "github.com/Sirupsen/logrus"
+
 	"golang.org/x/net/context"
 
 	pb "github.com/zero-os/0-stor/grpc_store"
@@ -18,7 +20,9 @@ type ObjectAPI struct {
 }
 
 func NewObjectAPI(db db.DB) *ObjectAPI {
-	return &ObjectAPI{db: db}
+	return &ObjectAPI{
+		db: db,
+	}
 }
 
 func (api *ObjectAPI) Create(ctx context.Context, req *pb.CreateObjectRequest) (*pb.CreateObjectReply, error) {
@@ -26,6 +30,10 @@ func (api *ObjectAPI) Create(ctx context.Context, req *pb.CreateObjectRequest) (
 
 	// increase request counter
 	go stats.IncrWrite(label)
+
+	if err := validateJWT(ctx, MethodWrite, label); err != nil {
+		return nil, err
+	}
 
 	obj := req.GetObject()
 
@@ -44,6 +52,11 @@ func (api *ObjectAPI) List(req *pb.ListObjectsRequest, stream pb.ObjectManager_L
 
 	// increase rate counter
 	go stats.IncrRead(label)
+
+	if err := validateJWT(stream.Context(), MethodRead, label); err != nil {
+		log.Debugln("validated failed", err)
+		return err
+	}
 
 	mgr := manager.NewObjectManager(label, api.db)
 
@@ -68,6 +81,10 @@ func (api *ObjectAPI) List(req *pb.ListObjectsRequest, stream pb.ObjectManager_L
 func (api *ObjectAPI) Get(ctx context.Context, req *pb.GetObjectRequest) (*pb.GetObjectReply, error) {
 	label, key := req.GetLabel(), req.GetKey()
 
+	if err := validateJWT(ctx, MethodRead, label); err != nil {
+		return nil, err
+	}
+
 	// increase rate counter
 	go stats.IncrRead(label)
 
@@ -91,6 +108,10 @@ func (api *ObjectAPI) Exists(ctx context.Context, req *pb.ExistsObjectRequest) (
 	// increase rate counter
 	go stats.IncrRead(label)
 
+	if err := validateJWT(ctx, MethodRead, label); err != nil {
+		return nil, err
+	}
+
 	mgr := manager.NewObjectManager(label, api.db)
 
 	exists, err := mgr.Exists([]byte(key))
@@ -108,6 +129,10 @@ func (api *ObjectAPI) Delete(ctx context.Context, req *pb.DeleteObjectRequest) (
 
 	// increase rate counter
 	go stats.IncrWrite(label)
+
+	if err := validateJWT(ctx, MethodDelete, label); err != nil {
+		return nil, err
+	}
 
 	mgr := manager.NewObjectManager(label, api.db)
 

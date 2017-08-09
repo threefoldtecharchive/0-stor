@@ -30,7 +30,7 @@ func (p Permission) scopes(org, namespace string) []string {
 	scopePrefix := "user:memberof:" + org + "." + namespace + "."
 	for _, p := range p.perms() {
 		if p == "admin" {
-			scopes = append(scopes, scopePrefix)
+			scopes = append(scopes, scopePrefix[:len(scopePrefix)-1])
 		} else {
 			scopes = append(scopes, scopePrefix+p)
 		}
