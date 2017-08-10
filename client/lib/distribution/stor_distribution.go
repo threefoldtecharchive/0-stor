@@ -111,8 +111,7 @@ func (sd StorDistributor) WriteBlock(key, value []byte, md *meta.Meta) (*meta.Me
 		return md, Error{errs: errs}
 	}
 
-	md, err = meta.New(hashedKey, uint64(len(value)), sd.shards)
-	if err != nil {
+	if err := sd.updateMeta(md, hashedKey, len(value), sd.shards); err != nil {
 		return md, err
 	}
 
@@ -126,6 +125,15 @@ func (sd StorDistributor) WriteBlock(key, value []byte, md *meta.Meta) (*meta.Me
 	}
 
 	return sd.w.WriteBlock(key, mdBytes, md)
+}
+
+func (sd StorDistributor) updateMeta(md *meta.Meta, key []byte, size int, shards []string) error {
+	if err := md.SetKey(key); err != nil {
+		return err
+	}
+	md.SetSize(uint64(size))
+	md.SetEpochNow()
+	return md.SetShardSlice(shards)
 }
 
 // StorRestorer defines distributor that get the data
