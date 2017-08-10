@@ -3,8 +3,11 @@ package stor
 import (
 	"fmt"
 
+	grpc0 "google.golang.org/grpc"
+
 	"github.com/zero-os/0-stor/client/itsyouonline"
 	"github.com/zero-os/0-stor/client/stor/common"
+	"github.com/zero-os/0-stor/client/stor/grpc"
 	"github.com/zero-os/0-stor/client/stor/rest"
 )
 
@@ -78,8 +81,17 @@ func NewClient(conf *Config, org, namespace string) (Client, error) {
 // NewClientWithToken creates new client with the given token
 func NewClientWithToken(conf *Config, org, namespace, iyoJWTToken string) (Client, error) {
 	switch conf.Protocol {
+
 	case ProtoRest:
 		return rest.NewClient(conf.Shard, org, namespace, iyoJWTToken), nil
+
+	case ProtoGrpc:
+		conn, err := grpc0.Dial(conf.Shard, grpc0.WithInsecure())
+		if err != nil {
+			return nil, err
+		}
+		return grpc.New(conn, org, namespace, iyoJWTToken), nil
+
 	default:
 		return nil, fmt.Errorf("unsupported/invalid 0-stor protocol: %v", conf.Protocol)
 	}
@@ -92,6 +104,7 @@ func getIyoJWTToken(conf *Config, org, namespace string) (string, error) {
 
 	iyoCli := itsyouonline.NewClient(org, conf.IyoClientID, conf.IyoSecret)
 	return iyoCli.CreateJWT(namespace, itsyouonline.Permission{
+		Admin:  true,
 		Read:   true,
 		Write:  true,
 		Delete: true,

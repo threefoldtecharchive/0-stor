@@ -72,3 +72,26 @@ func (mgr *ObjectManager) Delete(key []byte) error {
 func (mgr *ObjectManager) Exists(key []byte) (bool, error) {
 	return mgr.db.Exists(objKey(mgr.namespace, key))
 }
+
+func (mgr *ObjectManager) UpdateReferenceList(key []byte, refList []string) error {
+	b, err := mgr.db.Get(key)
+	if err != nil {
+		return err
+	}
+
+	obj := db.NewObject(nil)
+	if err = obj.Decode(b); err != nil {
+		return err
+	}
+
+	for i := range refList {
+		copy(obj.ReferenceList[i][:], []byte(refList[i]))
+	}
+
+	b, err = obj.Encode()
+	if err != nil {
+		return err
+	}
+
+	return mgr.db.Set(key, b)
+}

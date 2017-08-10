@@ -3,8 +3,6 @@ package grpc
 import (
 	"bytes"
 
-	log "github.com/Sirupsen/logrus"
-
 	"golang.org/x/net/context"
 
 	pb "github.com/zero-os/0-stor/grpc_store"
@@ -54,7 +52,6 @@ func (api *ObjectAPI) List(req *pb.ListObjectsRequest, stream pb.ObjectManager_L
 	go stats.IncrRead(label)
 
 	if err := validateJWT(stream.Context(), MethodRead, label); err != nil {
-		log.Debugln("validated failed", err)
 		return err
 	}
 
@@ -71,7 +68,7 @@ func (api *ObjectAPI) List(req *pb.ListObjectsRequest, stream pb.ObjectManager_L
 			return err
 		}
 
-		if err := stream.Send(grpcObj(string(key), obj)); err != nil {
+		if err := stream.Send(grpcObj(key, obj)); err != nil {
 			return nil
 		}
 	}
@@ -143,8 +140,24 @@ func (api *ObjectAPI) Delete(ctx context.Context, req *pb.DeleteObjectRequest) (
 	return &pb.DeleteObjectReply{}, nil
 }
 
+func (api *ObjectAPI) UpdateReferenceList(ctx context.Context, req *pb.UpdateReferenceListRequest) (*pb.UpdateReferenceListReply, error) {
+	label, key, refList := req.GetLabel(), req.GetKey(), req.GetReferenceList()
+
+	// increase rate counter
+	go stats.IncrWrite(label)
+
+	if err := validateJWT(ctx, MethodWrite, label); err != nil {
+		return nil, err
+	}
+
+	mgr := manager.NewObjectManager(label, api.db)
+	err := mgr.UpdateReferenceList(key, refList)
+
+	return &pb.UpdateReferenceListReply{}, err
+}
+
 // grpcObj convert a db.Object to a pb.Object
-func grpcObj(key string, in *db.Object) (out *pb.Object) {
+func grpcObj(key []byte, in *db.Object) (out *pb.Object) {
 	out = &pb.Object{
 		Key:           key,
 		Value:         in.Data,

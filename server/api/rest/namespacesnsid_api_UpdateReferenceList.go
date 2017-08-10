@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/zero-os/0-stor/server/db"
 	"github.com/zero-os/0-stor/server/manager"
 )
 
@@ -33,23 +32,15 @@ func (api NamespacesAPI) UpdateReferenceList(w http.ResponseWriter, r *http.Requ
 
 	mgr := manager.NewObjectManager(namespace, api.db)
 
-	obj, err := mgr.Get(key)
-	if err != nil {
-		if err == db.ErrNotFound {
-			jsonError(w, err, http.StatusNotFound)
-		} else {
-			jsonError(w, err, http.StatusInternalServerError)
-		}
-		return
-	}
 	refList := make([]string, len(reqBody))
 	for i := range reqBody {
 		refList[i] = string(reqBody[i])
 	}
 
-	if err := mgr.Set([]byte(key), obj.Data, refList); err != nil {
+	if err := mgr.UpdateReferenceList(key, refList); err != nil {
 		jsonError(w, err, http.StatusInternalServerError)
 		return
+
 	}
 
 	w.Header().Set("Content-Type", "application/json")

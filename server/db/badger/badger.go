@@ -58,7 +58,7 @@ func (b BadgerDB) Delete(key []byte) error {
 }
 
 func (b BadgerDB) Set(key []byte, val []byte) error {
-	err := b.KV.Set([]byte(key), val)
+	err := b.KV.Set([]byte(key), val, 0x00)
 	if err != nil {
 		log.Errorln(err.Error())
 	}

@@ -62,7 +62,7 @@ func TestListObject(t *testing.T) {
 			}
 
 			objNr++
-			key := fmt.Sprintf("testkey%d", i)
+			key := []byte(fmt.Sprintf("testkey%d", i))
 			assert.Equal(t, key, obj.GetKey())
 			assert.Equal(t, bufList[i], obj.GetValue())
 		}

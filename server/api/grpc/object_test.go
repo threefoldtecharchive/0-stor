@@ -81,7 +81,7 @@ func TestCreateObject(t *testing.T) {
 	req := &pb.CreateObjectRequest{
 		Label: label,
 		Object: &pb.Object{
-			Key:           "testkey",
+			Key:           []byte("testkey"),
 			Value:         buf,
 			ReferenceList: []string{"user1", "user2"},
 		},
@@ -105,10 +105,10 @@ func TestGetObject(t *testing.T) {
 	label, bufList := populateDB(t, api.db)
 
 	t.Run("valid", func(t *testing.T) {
-
+		key := []byte("testkey0")
 		req := &pb.GetObjectRequest{
 			Label: label,
-			Key:   "testkey0",
+			Key:   key,
 		}
 
 		resp, err := api.Get(context.Background(), req)
@@ -116,7 +116,7 @@ func TestGetObject(t *testing.T) {
 
 		obj := resp.GetObject()
 
-		assert.Equal(t, "testkey0", obj.GetKey())
+		assert.Equal(t, key, obj.GetKey())
 		assert.Equal(t, bufList[0], obj.GetValue())
 		assert.Equal(t, []string{"user1", "user2"}, obj.GetReferenceList())
 	})
@@ -124,33 +124,13 @@ func TestGetObject(t *testing.T) {
 	t.Run("non existing", func(t *testing.T) {
 		req := &pb.GetObjectRequest{
 			Label: label,
-			Key:   "notexistingkey",
+			Key:   []byte("notexistingkey"),
 		}
 
 		_, err := api.Get(context.Background(), req)
 		assert.Equal(t, db.ErrNotFound, err)
 	})
 }
-
-// func TestListObject(t *testing.T) {
-// 	api, clean := getTestObjectAPI(t)
-// 	defer clean()
-
-// 	label, bufList := populateDB(t, api.db)
-
-// 	req := &pb.ListObjectsRequest{Label: label}
-// 	resp, err := api.List(context.TODO, req)
-// 	require.NoError(t, err)
-
-// 	ids := resp.GetIds()
-// 	sort.Strings(ids)
-
-// 	assert.Equal(t, len(bufList), len(ids))
-// 	for i := 0; i < 10; i++ {
-// 		key := fmt.Sprintf("testkey%d", i)
-// 		assert.Equal(t, key, ids[i])
-// 	}
-// }
 
 func TestExistsObject(t *testing.T) {
 	api, clean := getTestObjectAPI(t)
@@ -163,7 +143,7 @@ func TestExistsObject(t *testing.T) {
 		t.Run(key, func(t *testing.T) {
 			req := &pb.ExistsObjectRequest{
 				Label: label,
-				Key:   key,
+				Key:   []byte(key),
 			}
 
 			resp, err := api.Exists(context.Background(), req)
@@ -175,7 +155,7 @@ func TestExistsObject(t *testing.T) {
 	t.Run("non exists", func(t *testing.T) {
 		req := &pb.ExistsObjectRequest{
 			Label: label,
-			Key:   "nonexists",
+			Key:   []byte("nonexists"),
 		}
 
 		resp, err := api.Exists(context.Background(), req)
@@ -194,7 +174,7 @@ func TestDeleteObject(t *testing.T) {
 	t.Run("valid", func(t *testing.T) {
 		req := &pb.DeleteObjectRequest{
 			Label: label,
-			Key:   "testkey1",
+			Key:   []byte("testkey1"),
 		}
 
 		_, err := api.Delete(context.Background(), req)
@@ -209,7 +189,7 @@ func TestDeleteObject(t *testing.T) {
 	t.Run("non exists", func(t *testing.T) {
 		req := &pb.DeleteObjectRequest{
 			Label: label,
-			Key:   "nonexists",
+			Key:   []byte("nonexists"),
 		}
 
 		_, err := api.Delete(context.Background(), req)

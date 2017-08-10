@@ -35,7 +35,7 @@ message Namespace {
 // }
 
 message Object {
-    string key = 1;
+    bytes key = 1;
     bytes value = 2;
     repeated string referenceList = 3;
     // map<string, string> tags = 3;
@@ -113,7 +113,7 @@ message CreateObjectReply {}
 
 message ExistsObjectRequest {
     string Label = 1;
-    string key = 2;
+    bytes key = 2;
 }
 message ExistsObjectReply {
     bool exists = 1;
@@ -121,7 +121,7 @@ message ExistsObjectReply {
 
 message GetObjectRequest {
     string Label = 1;
-    string key = 2;
+    bytes key = 2;
 }
 message GetObjectReply {
     Object object = 2;
@@ -129,9 +129,17 @@ message GetObjectReply {
 
 message DeleteObjectRequest {
     string Label = 1;
-    string key = 2;
+    bytes key = 2;
 }
 message DeleteObjectReply {}
+
+message UpdateReferenceListRequest{
+    string label = 1;
+    bytes key = 2;
+    repeated string referenceList = 3;
+}
+
+message UpdateReferenceListReply {}
 
 service ObjectManager {
     rpc Create (CreateObjectRequest) returns (CreateObjectReply) {}
@@ -139,4 +147,5 @@ service ObjectManager {
     rpc Get (GetObjectRequest) returns (GetObjectReply) {}
     rpc Exists (ExistsObjectRequest) returns (ExistsObjectReply) {}
     rpc Delete (DeleteObjectRequest) returns (DeleteObjectReply) {}
+    rpc UpdateReferenceList(UpdateReferenceListRequest) returns (UpdateReferenceListReply) {}
 }
