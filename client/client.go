@@ -67,15 +67,14 @@ func New(conf *config.Config) (*Client, error) {
 }
 
 // WriteF writes the key with value taken from given io.Reader
-// it currently only support `chunker` as first pipe
-func (c *Client) WriteF(key []byte, r io.Reader) (*meta.Meta, error) {
+// it currently only support `chunker` as first pipe.
+// Metadata linked list will be build if prevKey is not nil.
+// prevMeta is previous metadata, to be used in case of user already has the prev meta.
+// So the client won't need to fetch it back from the metadata server.
+// prevKey still need to be set it prevMeta is set
+func (c *Client) WriteF(key []byte, r io.Reader, prevKey []byte, prevMeta *meta.Meta) (*meta.Meta, error) {
 	if !c.conf.ChunkerFirstPipe() {
 		return nil, errWriteFChunkerOnly
-	}
-
-	md, err := meta.New(key, 0, nil)
-	if err != nil {
-		return md, err
 	}
 
 	wp, err := pipe.NewWritePipe(c.conf, block.NewNilWriter(), r)
@@ -83,16 +82,48 @@ func (c *Client) WriteF(key []byte, r io.Reader) (*meta.Meta, error) {
 		return nil, err
 	}
 
-	return wp.WriteBlock(key, nil, md)
+	return c.doWrite(wp, key, nil, prevKey, prevMeta)
 }
 
 // Write writes the key-value to the configured pipes.
-func (c *Client) Write(key, val []byte) (*meta.Meta, error) {
+// Metadata linked list will be build if prevKey is not nil
+// prevMeta is previous metadata, to be used in case of user already has the prev meta.
+// So the client won't need to fetch it back from the metadata server.
+// prevKey still need to be set it prevMeta is set
+func (c *Client) Write(key, val []byte, prevKey []byte, prevMeta *meta.Meta) (*meta.Meta, error) {
+	return c.doWrite(c.storWriter, key, val, prevKey, prevMeta)
+}
+
+func (c *Client) doWrite(writer block.Writer, key, val []byte, prevKey []byte,
+	prevMd *meta.Meta) (*meta.Meta, error) {
+
+	var err error
+
+	if len(prevKey) > 0 && prevMd == nil {
+		// get the prev meta now than later
+		// to avoid making processing and then
+		// just found that prev meta is invalid
+		prevMd, err = c.metaCli.Get(string(prevKey))
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// create new metadata which we want to pass through
+	// to the pipe
 	md, err := meta.New(key, 0, nil)
 	if err != nil {
 		return md, err
 	}
-	return c.storWriter.WriteBlock(key, val, md)
+
+	// process the data through the pipe
+	md, err = writer.WriteBlock(key, val, md)
+	if err != nil {
+		return md, nil
+	}
+
+	return md, c.linkMeta(md, prevMd, key, prevKey)
+
 }
 
 // ReadF read the key and write the result to the given io.Writer
@@ -116,4 +147,28 @@ func (c *Client) ReadF(key []byte, w io.Writer) ([]byte, error) {
 // Read reads value with given key from the configured pipes.
 func (c *Client) Read(key []byte) ([]byte, error) {
 	return c.storReader.ReadBlock(key)
+}
+
+func (c *Client) linkMeta(curMd, prevMd *meta.Meta, curKey, prevKey []byte) error {
+	if len(prevKey) == 0 {
+		return nil
+	}
+
+	// point next key of previous meta to new meta
+	if err := prevMd.SetNext(curKey); err != nil {
+		return err
+	}
+
+	// point prev key of new meta to previous one
+	if err := curMd.SetPrevious(prevKey); err != nil {
+		return err
+	}
+
+	// update prev meta
+	if err := c.metaCli.Put(string(prevKey), prevMd); err != nil {
+		return err
+	}
+
+	// update new meta
+	return c.metaCli.Put(string(curKey), curMd)
 }

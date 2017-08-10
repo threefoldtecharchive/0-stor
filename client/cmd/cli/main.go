@@ -52,7 +52,7 @@ func main() {
 							return cli.NewExitError(fmt.Errorf("can't read the file: %v", err), 1)
 						}
 
-						if _, err := cl.WriteF([]byte(fileName), f); err != nil {
+						if _, err := cl.WriteF([]byte(fileName), f, nil, nil); err != nil {
 							return cli.NewExitError(fmt.Errorf("upload failed : %v", err), 1)
 						}
 						fmt.Printf("file uploaded, key = %v\n", fileName)

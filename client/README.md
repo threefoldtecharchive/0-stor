@@ -31,9 +31,11 @@ API documentation : [https://godoc.org/github.com/zero-os/0-stor/client](https:/
 - splitting, compression, encryption, and replication is the responsibility of client
 
 
-*Features**
+**Features**
 
 - [Erasure coding](http://smahesh.com/blog/2012/07/01/dummies-guide-to-erasure-coding/)
+
+## Metadata
 
 **Metadata format**
 - Capnp format for the metadata:
@@ -50,6 +52,12 @@ API documentation : [https://godoc.org/github.com/zero-os/0-stor/client](https:/
     }
 
     ```
+**metadata linked list**
+
+With `Previous` and `Next` fields in the metadata, we can build metadata linked list of sequential data
+such as transaction log/history and block chain.
+The linked list can then be used to walk over the data in forward or backward fashion.
+
 
 ## Getting started
 - [Getting started](./cmd/cli/README.md)
@@ -115,7 +123,7 @@ func main() {
 	key := []byte("hi guys")
 
 	// stor to 0-stor
-	_, err = c.Write(key, data)
+	_, err = c.Write(key, data, nil, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -218,7 +226,7 @@ func main() {
 	key := []byte("how low can you go")
 
 	// stor to 0-stor
-	_, err = c.Write(key, data)
+	_, err = c.Write(key, data, nil, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -267,7 +275,7 @@ func main() {
 	key := []byte("hello")
 
 	// stor to 0-stor
-	_, err = client.Write(key, data)
+	_, err = client.Write(key, data, nil, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
