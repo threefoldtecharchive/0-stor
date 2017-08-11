@@ -22,12 +22,11 @@ var (
 type Config struct {
 	Type    string `yaml:"type"`
 	PrivKey string `yaml:"privKey"`
-	Nonce   string `yaml:"nonce"`
 }
 
 // EncrypterDecrypter is interaface for encrypter and decrypter
 type EncrypterDecrypter interface {
-	Encrypt(plain []byte) []byte
+	Encrypt(plain []byte) ([]byte, error)
 	Decrypt(cipher []byte) (plain []byte, err error)
 }
 
@@ -35,7 +34,7 @@ type EncrypterDecrypter interface {
 func NewEncrypterDecrypter(conf Config) (EncrypterDecrypter, error) {
 	switch conf.Type {
 	case TypeAESGCM:
-		return newAESGCM([]byte(conf.PrivKey), []byte(conf.Nonce))
+		return newAESGCM([]byte(conf.PrivKey))
 	default:
 		return nil, fmt.Errorf("invalid type: %v", conf.Type)
 	}
@@ -61,7 +60,10 @@ func NewWriter(w block.Writer, conf Config) (*Writer, error) {
 
 // WriteBlock implements blockreadwrite.Writer interface
 func (w Writer) WriteBlock(key, plain []byte, md *meta.Meta) (*meta.Meta, error) {
-	encrypted := w.ed.Encrypt(plain)
+	encrypted, err := w.ed.Encrypt(plain)
+	if err != nil {
+		return nil, err
+	}
 	md.SetSize(uint64(len(encrypted)))
 	return w.w.WriteBlock(key, encrypted, md)
 }

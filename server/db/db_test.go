@@ -2,6 +2,7 @@ package db
 
 import (
 	"crypto/rand"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -45,4 +46,39 @@ func TestNamespaceEncodeDecode(t *testing.T) {
 	assert.Equal(t, ns.Label, ns2.Label, "label differs")
 	assert.Equal(t, ns.Reserved, ns2.Reserved, "reserved differs")
 
+}
+
+func TestStoreStatEncodeDecode(t *testing.T) {
+	stat := StoreStat{
+		SizeAvailable: 100,
+		SizeUsed:      45,
+	}
+
+	b, err := stat.Encode()
+	require.NoError(t, err, "fail to encode StoreStat")
+
+	stat2 := StoreStat{}
+	err = stat2.Decode(b)
+	require.NoError(t, err, "fail to decode StoreStat")
+
+	assert.Equal(t, stat, stat2, "two object should be the same")
+}
+
+func BenchmarkObjectEncode(b *testing.B) {
+	data := make([]byte, 1024)
+	obj := NewObject(data)
+
+	_, err := rand.Read(obj.Data)
+	require.NoError(b, err)
+
+	for i := range obj.ReferenceList {
+		copy(obj.ReferenceList[i][:], []byte(fmt.Sprintf("user%d", i)))
+	}
+
+	b.ResetTimer()
+	var x []byte
+	for i := 0; i < b.N; i++ {
+		x, err = obj.Encode()
+		_ = x
+	}
 }

@@ -40,7 +40,6 @@ func testRoundTrip(t *testing.T, compressType string) {
 	encryptConf := encrypt.Config{
 		Type:    encrypt.TypeAESGCM,
 		PrivKey: "12345678901234567890123456789012",
-		Nonce:   "123456789012",
 	}
 
 	conf := config.Config{

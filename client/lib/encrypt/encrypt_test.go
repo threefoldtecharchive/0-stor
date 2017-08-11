@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/zero-os/0-stor/client/lib/block"
@@ -13,17 +14,30 @@ import (
 func TestRoundTrip(t *testing.T) {
 	t.Run("aes gcm", func(t *testing.T) {
 		privKey := make([]byte, aesGcmKeySize)
-		nonce := make([]byte, aesGcmNonceSize)
 		rand.Read(privKey)
-		rand.Read(nonce)
 
 		conf := Config{
 			Type:    TypeAESGCM,
 			PrivKey: string(privKey),
-			Nonce:   string(nonce),
 		}
 		testRoundTrip(t, conf)
 	})
+}
+
+func TestNonce(t *testing.T) {
+	privKey := make([]byte, aesGcmKeySize)
+	plain := []byte("hello world")
+
+	rand.Read(privKey)
+	ag, err := newAESGCM(privKey)
+	require.NoError(t, err, "cant create encrypter ")
+
+	cipher1, err := ag.Encrypt(plain)
+	require.NoError(t, err, "fail to encrypt")
+	cipher2, err := ag.Encrypt(plain)
+	require.NoError(t, err, "fail to encrypt")
+
+	assert.NotEqual(t, cipher1, cipher2, "2 different call to Encrypt should produce different results")
 }
 
 func testRoundTrip(t *testing.T, conf Config) {
@@ -42,7 +56,7 @@ func testRoundTrip(t *testing.T, conf Config) {
 	require.Nil(t, err)
 
 	// decrypt ag
-	ag, err := newAESGCM([]byte(conf.PrivKey), []byte(conf.Nonce))
+	ag, err := newAESGCM([]byte(conf.PrivKey))
 	require.Nil(t, err)
 
 	dag, err := ag.Decrypt(buf.Bytes())

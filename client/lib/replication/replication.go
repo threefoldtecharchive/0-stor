@@ -72,10 +72,10 @@ func writeAsync(writers []block.Writer, key, data []byte, md *meta.Meta,
 		go func(writer block.Writer) {
 			defer wg.Done()
 
-			md, err := writer.WriteBlock(key, data, md)
-
 			mux.Lock()
 			defer mux.Unlock()
+			md, err := writer.WriteBlock(key, data, md)
+
 			// call the lock here to protect `errs` & `written` var
 			// which is global to this func
 
