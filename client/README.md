@@ -58,6 +58,8 @@ With `Previous` and `Next` fields in the metadata, we can build metadata linked 
 such as transaction log/history and block chain.
 The linked list can then be used to walk over the data in forward or backward fashion.
 
+Metadata linked list will be build if  user specify previous meta key when
+calling `Write` or `WriteF` methods.
 
 ## Getting started
 - [Getting started](./cmd/cli/README.md)
@@ -81,6 +83,21 @@ The linked list can then be used to walk over the data in forward or backward fa
 - [0-stor rest/grpc client](./stor)
     - write final into store using either REST or GRPC using
     - will be added to the end of pipe automatically if there is no component to upload data to 0stor
+
+**walk over the metadata**
+
+Thanks to our metadata linked list, we can walk over the linked list in forward and backward mode
+using `Walk` or `WalkBack` API.
+
+Those APIs returns `channel` of `WalkResult` which then can be iterated.
+The WalkResult consist of these fields:
+
+- key in metadata
+- the metadata
+- the data stored on 0-stor server
+- error if exist
+
+It can be used for example to reconstruct the stored sequential data.
 
 ## Plain 0-stor client
 

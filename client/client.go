@@ -34,6 +34,10 @@ func New(conf *config.Config) (*Client, error) {
 	// append stor client to the end of pipe if needed
 	conf.CheckAppendStorClient()
 
+	return newClient(conf)
+}
+
+func newClient(conf *config.Config) (*Client, error) {
 	// stor writer
 	storWriter, err := pipe.NewWritePipe(conf, block.NewNilWriter(), nil)
 	if err != nil {

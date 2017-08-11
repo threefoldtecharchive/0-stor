@@ -1,5 +1,6 @@
 #!/bin/bash
 set -ex
+
 pushd server
     echo "Run server tests"
     bash codecov.sh
