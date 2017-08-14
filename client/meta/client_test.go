@@ -11,11 +11,11 @@ import (
 )
 
 func TestRoundTrip(t *testing.T) {
-	etcdAddrs, cleanFunc, err := embedserver.New()
+	etcd, err := embedserver.New()
 	require.Nil(t, err)
-	defer cleanFunc()
+	defer etcd.Stop()
 
-	c, err := NewClient(etcdAddrs)
+	c, err := NewClient([]string{etcd.ListenAddr()})
 	require.Nil(t, err)
 
 	// prepare the data

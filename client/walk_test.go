@@ -46,9 +46,9 @@ func TestWalkBack(t *testing.T) {
 }
 
 func testWalk(t *testing.T, forward bool) {
-	etcdAddrs, cleanFunc, err := embedserver.New()
+	etcd, err := embedserver.New()
 	require.Nil(t, err)
-	defer cleanFunc()
+	defer etcd.Stop()
 
 	// client config
 	conf := config.Config{
@@ -56,7 +56,7 @@ func testWalk(t *testing.T, forward bool) {
 		Namespace:    "thedisk",
 		Protocol:     "rest",
 		Shards:       []string{"http://127.0.0.1:12345", "http://127.0.0.1:12346"},
-		MetaShards:   etcdAddrs,
+		MetaShards:   []string{etcd.ListenAddr()},
 		IYOAppID:     os.Getenv("iyo_client_id"),
 		IYOSecret:    os.Getenv("iyo_secret"),
 	}

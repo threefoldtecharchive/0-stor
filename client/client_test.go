@@ -81,15 +81,14 @@ func testIYOClient(t testing.TB) (*itsyouonline.Client, string, string, string) 
 }
 
 func TestRoundTripGRPC(t *testing.T) {
-	etcdAddrs, etcdClean, err := embedserver.New()
+	etcd, err := embedserver.New()
 	require.NoError(t, err, "fail to start embebed etcd server")
-	servers, serverClean := testGRPCServer(t, 4)
-	_, org, id, secret := testIYOClient(t)
+	defer etcd.Stop()
 
-	defer func() {
-		etcdClean()
-		serverClean()
-	}()
+	servers, serverClean := testGRPCServer(t, 4)
+	defer serverClean()
+
+	_, org, id, secret := testIYOClient(t)
 
 	shards := make([]string, len(servers))
 	for i, server := range servers {
@@ -101,7 +100,7 @@ func TestRoundTripGRPC(t *testing.T) {
 		Namespace:    "testnamespace",
 		Protocol:     "grpc",
 		Shards:       shards,
-		MetaShards:   etcdAddrs,
+		MetaShards:   []string{etcd.ListenAddr()},
 		IYOAppID:     id,
 		IYOSecret:    secret,
 	}
@@ -248,15 +247,14 @@ func TestRoundTripGRPC(t *testing.T) {
 }
 
 func BenchmarkDirectWriteGRPC(b *testing.B) {
-	etcdAddrs, etcdClean, err := embedserver.New()
+	etcd, err := embedserver.New()
 	require.NoError(b, err, "fail to start embebed etcd server")
-	servers, serverClean := testGRPCServer(b, 1)
-	_, org, id, secret := testIYOClient(b)
+	defer etcd.Stop()
 
-	defer func() {
-		etcdClean()
-		serverClean()
-	}()
+	servers, serverClean := testGRPCServer(b, 1)
+	defer serverClean()
+
+	_, org, id, secret := testIYOClient(b)
 
 	shards := make([]string, len(servers))
 	for i, server := range servers {
@@ -268,7 +266,7 @@ func BenchmarkDirectWriteGRPC(b *testing.B) {
 		Namespace:    "testnamespace",
 		Protocol:     "grpc",
 		Shards:       shards,
-		MetaShards:   etcdAddrs,
+		MetaShards:   []string{etcd.ListenAddr()},
 		IYOAppID:     id,
 		IYOSecret:    secret,
 	}
