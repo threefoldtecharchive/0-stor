@@ -39,8 +39,9 @@ func NewRest(data, meta string) (StoreServer, error) {
 func (s *restServer) Listen(addr string) (string, error) {
 	// user specify the port
 	// listen on that address
-	if !strings.HasSuffix(addr, ":0") || addr != "" {
+	if !strings.HasSuffix(addr, ":0") && addr != "" {
 		go http.ListenAndServe(addr, s.route)
+		s.addr = addr
 		return addr, nil
 	}
 
