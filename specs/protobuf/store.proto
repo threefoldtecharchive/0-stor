@@ -141,6 +141,22 @@ message UpdateReferenceListRequest{
 
 message UpdateReferenceListReply {}
 
+message CheckRequest {
+    string label = 1;
+    repeated string ids = 2;
+}
+
+message CheckResponse {
+    string id = 1;
+    Status status = 2;
+
+    enum Status {
+        ok = 0;
+        corrupted = 1;
+        missing = 2;
+  }
+}
+
 service ObjectManager {
     rpc Create (CreateObjectRequest) returns (CreateObjectReply) {}
     rpc List (ListObjectsRequest) returns (stream Object) {}
@@ -148,4 +164,5 @@ service ObjectManager {
     rpc Exists (ExistsObjectRequest) returns (ExistsObjectReply) {}
     rpc Delete (DeleteObjectRequest) returns (DeleteObjectReply) {}
     rpc UpdateReferenceList(UpdateReferenceListRequest) returns (UpdateReferenceListReply) {}
+    rpc Check(CheckRequest) returns (stream CheckResponse) {}
 }

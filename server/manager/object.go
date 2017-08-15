@@ -74,7 +74,7 @@ func (mgr *ObjectManager) Exists(key []byte) (bool, error) {
 }
 
 func (mgr *ObjectManager) UpdateReferenceList(key []byte, refList []string) error {
-	b, err := mgr.db.Get(key)
+	b, err := mgr.db.Get(objKey(mgr.namespace, key))
 	if err != nil {
 		return err
 	}
@@ -94,4 +94,32 @@ func (mgr *ObjectManager) UpdateReferenceList(key []byte, refList []string) erro
 	}
 
 	return mgr.db.Set(key, b)
+}
+
+type CheckStatus string
+
+var (
+	CheckStatusOK        CheckStatus = "ok"
+	CheckStatusCorrupted CheckStatus = "corrupted"
+	CheckStatusMissing   CheckStatus = "missing"
+)
+
+func (mgr *ObjectManager) Check(key []byte) (CheckStatus, error) {
+	b, err := mgr.db.Get(objKey(mgr.namespace, key))
+	if err != nil {
+		if err == db.ErrNotFound {
+			return CheckStatusMissing, nil
+		}
+		return "", err
+	}
+
+	obj := db.Object{}
+	if err := obj.Decode(b); err != nil {
+		return "", err
+	}
+
+	if obj.ValidCRC() {
+		return CheckStatusOK, nil
+	}
+	return CheckStatusCorrupted, nil
 }

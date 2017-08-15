@@ -216,3 +216,57 @@ func TestDeleteObject(t *testing.T) {
 	//require.NoError(t, err)
 	//require.False(t, exists)
 }
+
+func TestCheckObjects(t *testing.T) {
+	url, database, iyoOrganization, iyoClient, permissions, clean := getTestRestAPI(t)
+	defer clean()
+
+	nsid := iyoOrganization + "_0stor_namespace1"
+
+	objects := []string{"obj1", "obj2", "obj3"}
+	for _, label := range objects {
+
+		key := fmt.Sprintf("%s:%s", nsid, label)
+
+		obj := db.Object{
+			Data: []byte("********************************abcdef"),
+		}
+
+		b, err := obj.Encode()
+		require.NoError(t, err)
+
+		err = database.Set([]byte(key), b)
+	}
+
+	err := iyoClient.CreateNamespace("namespace1")
+	require.NoError(t, err)
+
+	token, err := iyoClient.CreateJWT("namespace1", permissions["read"])
+	require.NoError(t, err)
+
+	client := &http.Client{}
+	body := struct {
+		Ids []string `json:"ids"`
+	}{
+		Ids: []string{"obj1", "obj2", "obj3"},
+	}
+	buf := &bytes.Buffer{}
+	err = json.NewEncoder(buf).Encode(body)
+	require.NoError(t, err, "failt to encode request body")
+
+	req, _ := http.NewRequest("GET", url+"/namespaces/"+nsid+"/check", buf)
+	req.Header.Set("Authorization", token)
+
+	resp, err := client.Do(req)
+
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	result := []rest.CheckStatus{}
+	err = json.NewDecoder(resp.Body).Decode(&result)
+
+	require.Equal(t, len(result), 3)
+	for _, res := range result {
+		assert.Equal(t, rest.EnumCheckStatusStatusok, res.Status)
+	}
+}

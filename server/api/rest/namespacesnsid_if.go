@@ -12,7 +12,11 @@ import (
 )
 
 // NamespacesInterface is interface for /namespaces/{nsid} root endpoint
-type NamespacesInterface interface { // UpdateReferenceList is the handler for PUT /namespaces/{nsid}/objects/{id}/references
+type NamespacesInterface interface {
+	// Check the status of some objects
+	// This command let you investigate the status of your data. It will validate that the data on disk has not been corrupted
+	CheckObjects(http.ResponseWriter, *http.Request)
+	// UpdateReferenceList is the handler for PUT /namespaces/{nsid}/objects/{id}/references
 	// Update reference list.
 	// The reference list of the object will be update with the references from the request body
 	UpdateReferenceList(http.ResponseWriter, *http.Request)
@@ -48,16 +52,17 @@ type NamespacesInterface interface { // UpdateReferenceList is the handler for P
 // NamespacesInterfaceRoutes is routing for /namespaces/{nsid} root endpoint
 func NamespacesInterfaceRoutes(r *mux.Router, i NamespacesInterface, db db.DB) {
 
-	 iyo := NewOauth2itsyouonlineMiddleware(db).Handler
+	iyo := NewOauth2itsyouonlineMiddleware(db).Handler
 
-	 r.Handle("/namespaces/{nsid}/objects/{id}/references", alice.New(iyo).Then(http.HandlerFunc(i.UpdateReferenceList))).Methods("PUT")
-	 r.Handle("/namespaces/{nsid}/objects/{id}", alice.New(iyo).Then(http.HandlerFunc(i.DeleteObject))).Methods("DELETE")
-	 r.Handle("/namespaces/{nsid}/objects/{id}", alice.New(iyo).Then(http.HandlerFunc(i.GetObject))).Methods("GET")
-	 r.Handle("/namespaces/{nsid}/objects", alice.New(iyo).Then(http.HandlerFunc(i.ListObjects))).Methods("GET")
-	 r.Handle("/namespaces/{nsid}/objects", alice.New(iyo).Then(http.HandlerFunc(i.CreateObject))).Methods("POST")
-	 r.Handle("/namespaces/{nsid}/reservations/{id}", alice.New(iyo).Then(http.HandlerFunc(i.reservationsidGet))).Methods("GET")
-	 r.Handle("/namespaces/{nsid}/reservations/{id}", alice.New(iyo).Then(http.HandlerFunc(i.UpdateReservation))).Methods("PUT")
-	 r.Handle("/namespaces/{nsid}/reservations", alice.New(iyo).Then(http.HandlerFunc(i.ListReservations))).Methods("GET")
-	 r.Handle("/namespaces/{nsid}/reservations", alice.New(iyo).Then(http.HandlerFunc(i.CreateReservation))).Methods("POST")
-	 r.Handle("/namespaces/{nsid}", alice.New(iyo).Then(http.HandlerFunc(i.GetNameSpace))).Methods("GET")
+	r.Handle("/namespaces/{nsid}/objects/{id}/references", alice.New(iyo).Then(http.HandlerFunc(i.UpdateReferenceList))).Methods("PUT")
+	r.Handle("/namespaces/{nsid}/objects/{id}", alice.New(iyo).Then(http.HandlerFunc(i.DeleteObject))).Methods("DELETE")
+	r.Handle("/namespaces/{nsid}/objects/{id}", alice.New(iyo).Then(http.HandlerFunc(i.GetObject))).Methods("GET")
+	r.Handle("/namespaces/{nsid}/objects", alice.New(iyo).Then(http.HandlerFunc(i.ListObjects))).Methods("GET")
+	r.Handle("/namespaces/{nsid}/objects", alice.New(iyo).Then(http.HandlerFunc(i.CreateObject))).Methods("POST")
+	r.Handle("/namespaces/{nsid}/check", alice.New(iyo).Then(http.HandlerFunc(i.CheckObjects))).Methods("GET")
+	r.Handle("/namespaces/{nsid}/reservations/{id}", alice.New(iyo).Then(http.HandlerFunc(i.reservationsidGet))).Methods("GET")
+	r.Handle("/namespaces/{nsid}/reservations/{id}", alice.New(iyo).Then(http.HandlerFunc(i.UpdateReservation))).Methods("PUT")
+	r.Handle("/namespaces/{nsid}/reservations", alice.New(iyo).Then(http.HandlerFunc(i.ListReservations))).Methods("GET")
+	r.Handle("/namespaces/{nsid}/reservations", alice.New(iyo).Then(http.HandlerFunc(i.CreateReservation))).Methods("POST")
+	r.Handle("/namespaces/{nsid}", alice.New(iyo).Then(http.HandlerFunc(i.GetNameSpace))).Methods("GET")
 }

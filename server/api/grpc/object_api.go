@@ -156,6 +156,49 @@ func (api *ObjectAPI) UpdateReferenceList(ctx context.Context, req *pb.UpdateRef
 	return &pb.UpdateReferenceListReply{}, err
 }
 
+func (api *ObjectAPI) Check(req *pb.CheckRequest, stream pb.ObjectManager_CheckServer) error {
+	label, ids := req.GetLabel(), req.GetIds()
+
+	// increase rate counter
+	go stats.IncrWrite(label)
+
+	if err := validateJWT(stream.Context(), MethodRead, label); err != nil {
+		return err
+	}
+
+	mgr := manager.NewObjectManager(label, api.db)
+
+	for _, id := range ids {
+		status, err := mgr.Check([]byte(id))
+		if err != nil {
+			return err
+		}
+
+		if err := stream.Send(&pb.CheckResponse{
+			Id:     id,
+			Status: convertStatus(status),
+		}); err != nil {
+			return nil
+		}
+	}
+
+	return nil
+}
+
+// convertStatus convert manager.CheckStatus to pb.CheckResponse_Status
+func convertStatus(status manager.CheckStatus) pb.CheckResponse_Status {
+	switch status {
+	case manager.CheckStatusOK:
+		return pb.CheckResponse_OK
+	case manager.CheckStatusMissing:
+		return pb.CheckResponse_MISSING
+	case manager.CheckStatusCorrupted:
+		return pb.CheckResponse_CORRUPTED
+	default:
+		panic("unknown CheckStatus")
+	}
+}
+
 // grpcObj convert a db.Object to a pb.Object
 func grpcObj(key []byte, in *db.Object) (out *pb.Object) {
 	out = &pb.Object{

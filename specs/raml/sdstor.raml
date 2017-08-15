@@ -128,6 +128,16 @@ types:
         type: ReferenceID[]
         description: List of reference id using this object
 
+  CheckStatus:
+    properties:
+      id:
+        required: true
+        type: string
+        minLength: 1
+        maxLength: 128
+        pattern: ^\w+$
+      status:
+        enum: [ok, corrupted, missing]
 
   Error:
     properties:
@@ -228,3 +238,20 @@ securedBy: [ itsyouonline : { scopes: ["user:memberof:store.namespace"] } ]
               properties:
                 references:
                   type: ReferenceID[]
+    /check:
+       get:
+        securedBy: [ itsyouonline : { scopes: ["user:memberof:store.namespace.read"] }]
+        displayName: CheckObjects
+        description: |
+          Check the status of some objects
+          This command let you investigate the status of your data. It will validate that the data on disk has not been corrupted
+        body:
+          properties:
+            ids:
+              type: string[]
+              description: |
+                List of object ids you want to check.
+        responses:
+          200:
+            body:
+              type: CheckStatus[]

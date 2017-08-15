@@ -108,3 +108,71 @@ func TestListObject(t *testing.T) {
 		stream.CloseSend()
 	})
 }
+
+func TestCheckObject(t *testing.T) {
+	server, iyoCl, org, clean := getTestGRPCServer(t)
+
+	namespace := fmt.Sprintf("%s_0stor_testnamespace", org)
+	populateDB(t, namespace, server.DB())
+
+	err := iyoCl.CreateNamespace("testnamespace")
+	require.NoError(t, err, "fails to create the namespace on iyo")
+
+	// create client connection
+	conn, err := grpc.Dial(server.Addr(), grpc.WithInsecure())
+	require.NoError(t, err, "can't connect to the server")
+
+	defer func() {
+		conn.Close()
+		iyoCl.DeleteNamespace("testnamespace")
+		clean()
+	}()
+
+	cl := pb.NewObjectManagerClient(conn)
+	jwt, err := iyoCl.CreateJWT("testnamespace", itsyouonline.Permission{
+		Read: true,
+	})
+	require.NoError(t, err, "fail to generate jwt")
+
+	tt := []struct {
+		name           string
+		keys           []string
+		expectedStatus pb.CheckResponse_Status
+	}{
+		{
+			name:           "valid",
+			keys:           []string{"testkey1", "testkey2", "testkey3"},
+			expectedStatus: pb.CheckResponse_OK,
+		},
+		{
+			name:           "missing",
+			keys:           []string{"dontexsits"},
+			expectedStatus: pb.CheckResponse_MISSING,
+		},
+	}
+
+	for _, tc := range tt {
+		md := metadata.Pairs("authorization", jwt)
+		ctx := metadata.NewContext(context.Background(), md)
+
+		stream, err := cl.Check(ctx, &pb.CheckRequest{
+			Label: namespace,
+			Ids:   tc.keys,
+		})
+		require.NoError(t, err, "fail to send check request")
+
+		n := 0
+		for {
+			resp, err := stream.Recv()
+			if err == io.EOF {
+				break
+			}
+			require.NoError(t, err, "error during check response streaming")
+
+			assert.Equal(t, tc.expectedStatus, resp.GetStatus(), fmt.Sprintf("status should be %v", tc.expectedStatus))
+			n++
+		}
+
+		assert.Equal(t, len(tc.keys), n)
+	}
+}

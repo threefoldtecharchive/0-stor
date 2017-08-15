@@ -200,3 +200,36 @@ func TestDeleteObject(t *testing.T) {
 		assert.False(t, exists)
 	})
 }
+
+func TestCheckObject(t *testing.T) {
+	api, clean := getTestObjectAPI(t)
+	defer clean()
+
+	label, _ := populateDB(t, api.db)
+	objMgr := manager.NewObjectManager(label, api.db)
+
+	tt := []struct {
+		name           string
+		key            []byte
+		expectedStatus manager.CheckStatus
+	}{
+		{
+			name:           "valid",
+			key:            []byte("testkey1"),
+			expectedStatus: manager.CheckStatusOK,
+		},
+		{
+			name:           "missing",
+			key:            []byte("dontexsits"),
+			expectedStatus: manager.CheckStatusMissing,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			status, err := objMgr.Check(tc.key)
+			require.NoError(t, err, "failed to check status of %v", tc.key)
+			assert.Equal(t, tc.expectedStatus, status)
+		})
+	}
+}

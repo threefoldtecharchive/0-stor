@@ -81,3 +81,8 @@ func (o *Object) Decode(b []byte) error {
 	o.Data, err = ioutil.ReadAll(r)
 	return err
 }
+
+// ValidCRC compare the content of the data and the crc, return true if CRC match data, false otherwrise
+func (o *Object) ValidCRC() bool {
+	return crc32.Checksum([]byte(o.Data), tabPolynomial) == o.CRC
+}
