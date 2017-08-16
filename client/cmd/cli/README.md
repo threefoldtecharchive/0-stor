@@ -4,8 +4,7 @@ Simple cli to store file to 0-stor.
 
 ## Installation
 
-- Go into the directory ```client/cli```
-- Build cli client ```go build .```
+`go get -u github.com/zero-os/0-stor/client/cmd/cli`
 
 ## Configuration
 
