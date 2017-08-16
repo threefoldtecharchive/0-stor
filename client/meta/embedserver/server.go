@@ -1,13 +1,13 @@
 package embedserver
 
 import (
-	"fmt"
 	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
 
 	"github.com/coreos/etcd/embed"
+	"github.com/coreos/pkg/capnslog"
 )
 
 // Server is embedded metadata server
@@ -24,7 +24,6 @@ func (s *Server) Stop() {
 	s.etcd.Server.Stop()
 	<-s.etcd.Server.StopNotify()
 	s.etcd.Close()
-	fmt.Printf("remove All %v and %v\n", s.lpDir, s.lcDir)
 	os.RemoveAll(s.lpDir)
 	os.RemoveAll(s.lcDir)
 }
@@ -44,6 +43,7 @@ func New() (*Server, error) {
 	cfg := embed.NewConfig()
 	cfg.Dir = tmpDir
 
+	capnslog.SetGlobalLogLevel(capnslog.CRITICAL)
 	// listen client URL
 	// we use tmpDir as unix address because it is a simple
 	// yet valid way to generate random string
