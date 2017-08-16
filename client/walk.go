@@ -129,16 +129,8 @@ func (c *Client) walk(startKey []byte, fromEpoch, toEpoch uint64, next nextFunc,
 				continue
 			}
 
-			// get the object key from the meta
-			objKey, err := md.Key()
-			if err != nil {
-				wr.Error = err
-				wrCh <- wr
-				return
-			}
-
 			// get the object from 0-stor server
-			data, err := c.Read(objKey)
+			data, err := c.Read(key)
 			if err != nil {
 				wr.Error = err
 				wrCh <- wr
