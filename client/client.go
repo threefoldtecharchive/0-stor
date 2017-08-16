@@ -123,7 +123,7 @@ func (c *Client) doWrite(writer block.Writer, key, val []byte, prevKey []byte,
 	// process the data through the pipe
 	md, err = writer.WriteBlock(key, val, md)
 	if err != nil {
-		return md, nil
+		return md, err
 	}
 
 	return md, c.linkMeta(md, prevMd, key, prevKey)
