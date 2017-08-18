@@ -4,8 +4,13 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/coreos/etcd/clientv3"
+)
+
+const (
+	metaOpTimeout = 10 * time.Second
 )
 
 // Client defines client to store metadata
@@ -16,7 +21,9 @@ type Client struct {
 // NewClient creates new meta client
 func NewClient(shards []string) (*Client, error) {
 	cli, err := clientv3.New(clientv3.Config{
-		Endpoints: shards,
+		Endpoints:         shards,
+		DialTimeout:       metaOpTimeout,
+		DialKeepAliveTime: metaOpTimeout,
 	})
 	if err != nil {
 		return nil, err
@@ -37,13 +44,20 @@ func (c *Client) Put(key string, meta *Meta) error {
 	if err := meta.Encode(buf); err != nil {
 		return err
 	}
-	_, err := c.etcdClient.Put(context.TODO(), key, string(buf.Bytes()))
+
+	ctx, cancel := context.WithTimeout(context.Background(), metaOpTimeout)
+	defer cancel()
+
+	_, err := c.etcdClient.Put(ctx, key, string(buf.Bytes()))
 	return err
 }
 
 // Get fetch metadata from metadata server
 func (c *Client) Get(key string) (*Meta, error) {
-	resp, err := c.etcdClient.Get(context.TODO(), key)
+	ctx, cancel := context.WithTimeout(context.Background(), metaOpTimeout)
+	defer cancel()
+
+	resp, err := c.etcdClient.Get(ctx, key)
 	if err != nil {
 		return nil, err
 	}
