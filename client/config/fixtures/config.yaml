@@ -1,6 +1,8 @@
 organization: mordor
 namespace: thedisk
 protocol: rest
+iyo_app_id: 1234
+iyo_app_secret: 45678
 shards:
     - http://127.0.0.1:12345
     - http://127.0.0.1:12346

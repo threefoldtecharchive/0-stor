@@ -40,8 +40,8 @@ type Config struct {
 	Namespace    string `yaml:"namespace" validate:"nonzero"`
 	Protocol     string `yaml:"protocol" validate:"nonzero"` // rest or grpc
 
-	IYOAppID  string `yaml:"iyo_app_id"`
-	IYOSecret string `yaml:"iyo_app_secret"`
+	IYOAppID  string `yaml:"iyo_app_id" validate:"nonzero"`
+	IYOSecret string `yaml:"iyo_app_secret" validate:"nonzero"`
 
 	Shards     []string `yaml:"shards" validate:"nonzero"` // 0-stor shards
 	MetaShards []string `yaml:"meta_shards"`
