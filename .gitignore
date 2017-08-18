@@ -47,8 +47,5 @@ _testmain.go
 server/server
 coverage.txt
 
-server/cmds/grpc/grpc
-server/cmds/grpc/.db
-
-server/cmds/rest/rest
-server/cmds/rest/.db
+bin
+.db

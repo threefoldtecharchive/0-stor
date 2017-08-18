@@ -1,15 +1,8 @@
 package config
 
-import (
-	"encoding/json"
-	"os"
-
-	log "github.com/Sirupsen/logrus"
-)
-
 var (
-    ServerTypeRest = "rest"
-    ServerTypeGrpc = "grpc"
+	ServerTypeRest = "rest"
+	ServerTypeGrpc = "grpc"
 )
 
 type Settings struct {
@@ -24,22 +17,4 @@ type Settings struct {
 	} `json:"db"`
 
 	ServerType string `json:"server_type"`
-}
-
-func (s *Settings) Load(path string) error {
-	conf, err := os.Open(path)
-
-	defer conf.Close()
-
-	if err != nil {
-		log.Errorln(err.Error())
-		return err
-	}
-
-	if err := json.NewDecoder(conf).Decode(s); err != nil {
-		log.Errorln(err.Error())
-		return err
-	}
-
-	return nil
 }

@@ -24,21 +24,16 @@ const version = "0.0.1"
 
 func main() {
 	app := cli.NewApp()
-	app.Name = "0-stor"
+	app.Name = "zerostorserver"
+	app.Usage = "Generic object store used by zero-os"
+	app.Description = "Generic object store used by zero-os"
 	app.Version = version
 
 	log.SetFormatter(&log.TextFormatter{FullTimestamp: true})
 	log.SetOutput(os.Stdout)
 	settings := config.Settings{}
 
-	var configPath string
-
 	app.Flags = []cli.Flag{
-		cli.StringFlag{
-			Name:        "config, c",
-			Usage:       "Path to configuration file",
-			Destination: &configPath,
-		},
 		cli.BoolFlag{
 			Name:        "debug, d",
 			Usage:       "Enable debug logging",
@@ -71,10 +66,6 @@ func main() {
 	}
 
 	app.Before = func(c *cli.Context) error {
-		if configPath != "" {
-			settings.Load(configPath)
-		}
-
 		if settings.DebugLog {
 			log.SetLevel(log.DebugLevel)
 			log.Debug("Debug logging enabled")
