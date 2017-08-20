@@ -18,19 +18,19 @@ all: server cli
 cli: $(OUTPUT)
 ifeq ($(GOOS), darwin)
 	GOOS=$(GOOS) GOARCH=$(GOARCH) \
-		go build -ldflags '$(ldflags)' -o $(OUTPUT)/$@ ./client/cmd/cli
+		go build -ldflags '$(ldflags)' -o $(OUTPUT)/zerostorcli ./client/cmd/cli
 else
 	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) \
-		go build -ldflags '$(ldflags)' -o $(OUTPUT)/$@ ./client/cmd/cli
+		go build -ldflags '$(ldflags)' -o $(OUTPUT)/zerostorcli ./client/cmd/cli
 endif
 
 server: $(OUTPUT)
 ifeq ($(GOOS), darwin)
 	GOOS=$(GOOS) GOARCH=$(GOARCH) \
-		go build -o $(OUTPUT)/$@ ./server
+		go build -o $(OUTPUT)/zerostorserver ./server
 else
 	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) \
-		go build -ldflags '$(ldflags)' -o $(OUTPUT)/$@ ./server
+		go build -ldflags '$(ldflags)' -o $(OUTPUT)/zerostorserver ./server
 endif
 
 test: testserver testclient
