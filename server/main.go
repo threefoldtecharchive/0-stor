@@ -2,6 +2,11 @@ package main
 
 import (
 	"fmt"
+	"net/http"
+	_ "net/http/pprof"
+	"os"
+	"os/signal"
+	"syscall"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
@@ -12,10 +17,6 @@ import (
 	"github.com/zero-os/0-stor/server/goraml"
 	"github.com/zero-os/0-stor/server/manager"
 	"github.com/zero-os/0-stor/server/storserver"
-
-	"os"
-	"os/signal"
-	"syscall"
 
 	"gopkg.in/validator.v2"
 )
@@ -32,6 +33,7 @@ func main() {
 	log.SetFormatter(&log.TextFormatter{FullTimestamp: true})
 	log.SetOutput(os.Stdout)
 	settings := config.Settings{}
+	var profileAddr string
 
 	app.Flags = []cli.Flag{
 		cli.BoolFlag{
@@ -62,6 +64,12 @@ func main() {
 			Usage:       "type of server, can be rest or grpc",
 			Value:       "rest",
 			Destination: &settings.ServerType,
+		},
+		cli.StringFlag{
+			Name:        "profile-addr",
+			Usage:       "Enables profiling of this server as an http service",
+			Value:       "",
+			Destination: &profileAddr,
 		},
 	}
 
@@ -105,6 +113,15 @@ func main() {
 			}
 		default:
 			log.Fatalf("%s is not a supported server interface\n", settings.ServerType)
+		}
+
+		if profileAddr != "" {
+			go func() {
+				log.Infof("profiling enabled on %v", profileAddr)
+				if err := http.ListenAndServe(profileAddr, http.DefaultServeMux); err != nil {
+					log.Infof("Failed to enable profiling on %v, err:%v", profileAddr, err)
+				}
+			}()
 		}
 
 		sigChan := make(chan os.Signal, 1)
