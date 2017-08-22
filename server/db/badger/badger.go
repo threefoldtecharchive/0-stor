@@ -16,9 +16,15 @@ type BadgerDB struct {
 	// Config *config.Settings
 }
 
-// Constructor
+// New creates new badger DB with default options
 func New(data, meta string) (*BadgerDB, error) {
+	opts := badgerkv.DefaultOptions
+	opts.SyncWrites = true
+	return NewWithOpts(data, meta, opts)
+}
 
+// NewWithOpts creates new badger DB with own options
+func NewWithOpts(data, meta string, opts badgerkv.Options) (*BadgerDB, error) {
 	if err := os.MkdirAll(meta, 0774); err != nil {
 		log.Errorf("\t\tMeta dir: %v [ERROR]", meta)
 		return nil, err
@@ -29,10 +35,8 @@ func New(data, meta string) (*BadgerDB, error) {
 		return nil, err
 	}
 
-	opts := badgerkv.DefaultOptions
 	opts.Dir = meta
 	opts.ValueDir = data
-	opts.SyncWrites = true
 
 	kv, err := badgerkv.NewKV(&opts)
 
