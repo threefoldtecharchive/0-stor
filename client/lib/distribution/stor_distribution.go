@@ -91,29 +91,23 @@ func (sd StorDistributor) WriteBlock(key, value []byte, md *meta.Meta) (*meta.Me
 
 	var (
 		errs []error
-		cErr = make(chan error)
+		mux  sync.Mutex
 		wg   sync.WaitGroup
 	)
 
 	wg.Add(len(encoded))
 	for i, piece := range encoded {
-		go func(idx int, data []byte, cErr chan error) {
+		go func(idx int, data []byte) {
 			defer wg.Done()
-			_, err := sd.storClients[idx].ObjectCreate(hashedKey, data, nil)
-			if err != nil {
-				cErr <- err
+			if _, err := sd.storClients[idx].ObjectCreate(hashedKey, data, nil); err != nil {
+				mux.Lock()
+				errs = append(errs, err)
+				mux.Unlock()
 			}
-		}(i, piece, cErr)
+		}(i, piece)
 	}
 
-	go func(cErr chan error) {
-		for err := range cErr {
-			errs = append(errs, err)
-		}
-	}(cErr)
-
 	wg.Wait()
-	close(cErr)
 
 	if len(errs) > 0 {
 		return md, Error{errs: errs}
