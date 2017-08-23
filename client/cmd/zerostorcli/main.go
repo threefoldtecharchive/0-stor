@@ -13,6 +13,7 @@ import (
 
 func main() {
 	var cl *client.Client
+	var nsMgr itsyouonline.NamespaceManager
 
 	app := cli.NewApp()
 	app.Name = "0-stor cli"
@@ -24,18 +25,18 @@ func main() {
 			Usage: "path to the configuration file",
 		},
 	}
-	app.Before = func(c *cli.Context) error {
-		var err error
-		cl, err = getClient(c)
-		if err != nil {
-			return cli.NewExitError(err, 1)
-		}
-		return nil
-	}
 	app.Commands = []cli.Command{
 		{
 			Name:  "file",
 			Usage: "Command to upload/download files",
+			Before: func(c *cli.Context) error {
+				var err error
+				cl, err = getClient(c)
+				if err != nil {
+					return cli.NewExitError(err, 1)
+				}
+				return nil
+			},
 			Subcommands: []cli.Command{
 				{
 					Name:  "upload",
@@ -89,6 +90,14 @@ func main() {
 		{
 			Name:  "namespace",
 			Usage: "Manage namespaces",
+			Before: func(c *cli.Context) error {
+				var err error
+				nsMgr, err = getNamespaceManager(c)
+				if err != nil {
+					return cli.NewExitError(err, 1)
+				}
+				return nil
+			},
 			Subcommands: []cli.Command{
 				{
 					Name:  "create",
@@ -99,7 +108,7 @@ func main() {
 						}
 
 						namespace := c.Args().First()
-						if err := cl.CreateNamespace(namespace); err != nil {
+						if err := nsMgr.CreateNamespace(namespace); err != nil {
 							return cli.NewExitError(fmt.Errorf("creation of namespace %s failed: %v", namespace, err), 1)
 						}
 						fmt.Printf("Namespace %s created\n", namespace)
@@ -117,7 +126,7 @@ func main() {
 						}
 
 						namespace := c.Args().First()
-						if err := cl.DeleteNamespace(namespace); err != nil {
+						if err := nsMgr.DeleteNamespace(namespace); err != nil {
 							return cli.NewExitError(err, 1)
 						}
 						fmt.Printf("Namespace %s deleted\n", namespace)
@@ -156,7 +165,7 @@ func main() {
 					Action: func(c *cli.Context) error {
 						namespace := c.String("namespace")
 						user := c.String("user")
-						currentPermision, err := cl.GetPermission(namespace, user)
+						currentPermision, err := nsMgr.GetPermission(namespace, user)
 						if err != nil {
 							return cli.NewExitError(fmt.Errorf("fail to retrieve permission : %v", err), 1)
 						}
@@ -175,12 +184,12 @@ func main() {
 							Delete: currentPermision.Delete && !requestedPermission.Delete,
 							Admin:  currentPermision.Admin && !requestedPermission.Admin,
 						}
-						if err := cl.RemovePermission(namespace, user, toRemove); err != nil {
+						if err := nsMgr.RemovePermission(namespace, user, toRemove); err != nil {
 							return cli.NewExitError(err, 1)
 						}
 
 						// Give requested permission
-						if err := cl.GivePermission(namespace, user, requestedPermission); err != nil {
+						if err := nsMgr.GivePermission(namespace, user, requestedPermission); err != nil {
 							return cli.NewExitError(err, 1)
 						}
 
@@ -203,7 +212,7 @@ func main() {
 					Action: func(c *cli.Context) error {
 						namespace := c.String("namespace")
 						user := c.String("user")
-						perm, err := cl.GetPermission(namespace, user)
+						perm, err := nsMgr.GetPermission(namespace, user)
 						if err != nil {
 							return cli.NewExitError(fmt.Errorf("fail to retrieve permission : %v", err), 1)
 						}
@@ -225,22 +234,10 @@ func main() {
 	}
 }
 func getClient(c *cli.Context) (*client.Client, error) {
-	// read config
-	path := c.String("conf")
-	if path == "" {
-		return nil, fmt.Errorf("need to pass the path of the config file using --conf flag")
-	}
-
-	f, err := os.Open(path)
+	conf, err := readConfig(c)
 	if err != nil {
 		return nil, err
 	}
-
-	conf, err := config.NewFromReader(f)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create itsyou.online client: %v", err)
-	}
-
 	// create client
 	cl, err := client.New(conf)
 	if err != nil {
@@ -248,4 +245,28 @@ func getClient(c *cli.Context) (*client.Client, error) {
 	}
 
 	return cl, nil
+}
+
+func getNamespaceManager(c *cli.Context) (itsyouonline.NamespaceManager, error) {
+	conf, err := readConfig(c)
+	if err != nil {
+		return nil, err
+	}
+
+	return itsyouonline.NewClient(conf.Organization, conf.IYOAppID, conf.IYOSecret), nil
+}
+
+func readConfig(c *cli.Context) (*config.Config, error) {
+	// read config
+	path := c.String("conf")
+	if path == "" {
+		path = "config.yaml"
+	}
+
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+
+	return config.NewFromReader(f)
 }
