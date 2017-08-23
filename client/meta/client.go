@@ -34,8 +34,8 @@ func NewClient(shards []string) (*Client, error) {
 }
 
 // Close closes meta client, release all resources
-func (c *Client) Close() {
-	c.etcdClient.Close()
+func (c *Client) Close() error {
+	return c.etcdClient.Close()
 }
 
 // Put stores meta to metadata server

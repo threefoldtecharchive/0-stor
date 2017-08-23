@@ -70,6 +70,14 @@ func newClient(conf *config.Config) (*Client, error) {
 	return &client, nil
 }
 
+// Close the client
+func (c *Client) Close() error {
+	if c.metaCli != nil {
+		c.metaCli.Close()
+	}
+	return nil
+}
+
 // WriteF writes the key with value taken from given io.Reader
 // it currently only support `chunker` as first pipe.
 // Metadata linked list will be build if prevKey is not nil.
