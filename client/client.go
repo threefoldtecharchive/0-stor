@@ -81,10 +81,11 @@ func (c *Client) Close() error {
 // WriteF writes the key with value taken from given io.Reader
 // it currently only support `chunker` as first pipe.
 // Metadata linked list will be build if prevKey is not nil.
-// prevMeta is previous metadata, to be used in case of user already has the prev meta.
+// prevMeta is optional previous metadata, to be used in case of user already has the prev meta.
 // So the client won't need to fetch it back from the metadata server.
 // prevKey still need to be set it prevMeta is set
-func (c *Client) WriteF(key []byte, r io.Reader, prevKey []byte, prevMeta *meta.Meta) (*meta.Meta, error) {
+// initialMeta is optional metadata, if user want to set his own initial metadata for example set own epoch
+func (c *Client) WriteF(key []byte, r io.Reader, prevKey []byte, prevMeta, initialMeta *meta.Meta) (*meta.Meta, error) {
 	if !c.conf.ChunkerFirstPipe() {
 		return nil, errWriteFChunkerOnly
 	}
@@ -94,20 +95,21 @@ func (c *Client) WriteF(key []byte, r io.Reader, prevKey []byte, prevMeta *meta.
 		return nil, err
 	}
 
-	return c.doWrite(wp, key, nil, prevKey, prevMeta)
+	return c.doWrite(wp, key, nil, prevKey, prevMeta, initialMeta)
 }
 
 // Write writes the key-value to the configured pipes.
 // Metadata linked list will be build if prevKey is not nil
-// prevMeta is previous metadata, to be used in case of user already has the prev meta.
+// prevMeta is optional previous metadata, to be used in case of user already has the prev meta.
 // So the client won't need to fetch it back from the metadata server.
 // prevKey still need to be set it prevMeta is set
-func (c *Client) Write(key, val []byte, prevKey []byte, prevMeta *meta.Meta) (*meta.Meta, error) {
-	return c.doWrite(c.storWriter, key, val, prevKey, prevMeta)
+// initialMeta is optional metadata, if user want to set his own initial metadata for example set own epoch
+func (c *Client) Write(key, val []byte, prevKey []byte, prevMeta, initialMeta *meta.Meta) (*meta.Meta, error) {
+	return c.doWrite(c.storWriter, key, val, prevKey, prevMeta, initialMeta)
 }
 
 func (c *Client) doWrite(writer block.Writer, key, val []byte, prevKey []byte,
-	prevMd *meta.Meta) (*meta.Meta, error) {
+	prevMd *meta.Meta, md *meta.Meta) (*meta.Meta, error) {
 
 	var err error
 
@@ -123,9 +125,11 @@ func (c *Client) doWrite(writer block.Writer, key, val []byte, prevKey []byte,
 
 	// create new metadata which we want to pass through
 	// to the pipe
-	md, err := meta.New(key, 0, nil)
-	if err != nil {
-		return md, err
+	if md == nil {
+		md, err = meta.New(key, 0, nil)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// process the data through the pipe

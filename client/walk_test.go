@@ -91,7 +91,7 @@ func testWalk(t *testing.T, forward bool) {
 	var firstKey []byte
 
 	for i, key := range keys {
-		prevMd, err = cli.Write(key, vals[i], prevKey, prevMd)
+		prevMd, err = cli.Write(key, vals[i], prevKey, prevMd, nil)
 		prevKey = key
 		if len(firstKey) == 0 {
 			firstKey = key

@@ -221,7 +221,7 @@ func TestRoundTripGRPC(t *testing.T) {
 
 			// write data to the store
 			key := []byte("testkey")
-			meta, err := c.Write(key, data, nil, nil)
+			meta, err := c.Write(key, data, nil, nil, nil)
 			require.NoError(t, err, "fail to write data to the store")
 
 			// validate metadata
@@ -286,7 +286,7 @@ func BenchmarkDirectWriteGRPC(b *testing.B) {
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
 				key := []byte("testkey")
-				_, err := c.Write(key, data, nil, nil)
+				_, err := c.Write(key, data, nil, nil, nil)
 				require.NoError(b, err, "fail to write data to the store")
 			}
 		})
