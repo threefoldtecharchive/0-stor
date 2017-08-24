@@ -20,7 +20,7 @@ type StorWriter struct {
 }
 
 func NewStorWriter(w block.Writer, conf Config, shards, metaShards []string, org, namespace,
-	iyoClientID, iyoSecret, proto string) (*StorWriter, error) {
+	iyoToken, proto string) (*StorWriter, error) {
 	writers := make(map[string]block.Writer)
 
 	// create meta client
@@ -32,12 +32,10 @@ func NewStorWriter(w block.Writer, conf Config, shards, metaShards []string, org
 	// create writers for each shard
 	for _, shard := range shards {
 		storConf := stor.Config{
-			Protocol:    proto,
-			Shard:       shard,
-			IyoClientID: iyoClientID,
-			IyoSecret:   iyoSecret,
+			Protocol: proto,
+			Shard:    shard,
 		}
-		ssw, err := stor.NewSingleShardWriter(storConf, org, namespace)
+		ssw, err := stor.NewSingleShardWriter(storConf, org, namespace, iyoToken)
 		if err != nil {
 			return nil, err
 		}

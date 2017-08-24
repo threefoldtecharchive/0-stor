@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/zero-os/0-stor/client/itsyouonline"
 	"github.com/zero-os/0-stor/client/lib/block"
 	"github.com/zero-os/0-stor/client/lib/hash"
 	"github.com/zero-os/0-stor/client/meta"
@@ -25,14 +24,14 @@ type StorDistributor struct {
 
 // NewStorDistributor creates new StorDistributor
 func NewStorDistributor(w block.Writer, conf Config, shards, metaShards []string, proto,
-	org, namespace, iyoAppID, iyoAppSecret string) (*StorDistributor, error) {
+	org, namespace, iyoToken string) (*StorDistributor, error) {
 
 	if len(shards) < conf.NumPieces() {
 		return nil, fmt.Errorf("invalid number of shards=%v, expected=%v", len(shards), conf.NumPieces())
 	}
 
 	// stor clients
-	storClients, err := createStorClients(conf, shards, proto, org, namespace, iyoAppID, iyoAppSecret)
+	storClients, err := createStorClients(conf, shards, proto, org, namespace, iyoToken)
 	if err != nil {
 		return nil, err
 	}
@@ -141,21 +140,19 @@ func (sd StorDistributor) updateMeta(md *meta.Meta, key []byte, size int, shards
 // StorRestorer defines distributor that get the data
 // from 0-stor
 type StorRestorer struct {
-	conf         Config
-	proto        string
-	dec          *Decoder
-	storClients  map[string]stor.Client
-	jwtToken     string
-	org          string
-	namespace    string
-	iyoAppID     string
-	iyoAppSecret string
-	metaCli      *meta.Client
+	conf        Config
+	proto       string
+	dec         *Decoder
+	storClients map[string]stor.Client
+	jwtToken    string
+	org         string
+	namespace   string
+	metaCli     *meta.Client
 }
 
 // NewStorRestorer creates new StorRestorer
 func NewStorRestorer(conf Config, shards, metaShards []string, proto, org, namespace,
-	iyoAppID, iyoAppSecret string) (*StorRestorer, error) {
+	iyoToken string) (*StorRestorer, error) {
 
 	dec, err := NewDecoder(conf.Data, conf.Parity)
 	if err != nil {
@@ -168,15 +165,14 @@ func NewStorRestorer(conf Config, shards, metaShards []string, proto, org, names
 	}
 
 	sr := &StorRestorer{
-		conf:         conf,
-		proto:        proto,
-		storClients:  make(map[string]stor.Client),
-		dec:          dec,
-		org:          org,
-		namespace:    namespace,
-		iyoAppID:     iyoAppID,
-		iyoAppSecret: iyoAppSecret,
-		metaCli:      metaCli,
+		conf:        conf,
+		proto:       proto,
+		storClients: make(map[string]stor.Client),
+		dec:         dec,
+		org:         org,
+		namespace:   namespace,
+		metaCli:     metaCli,
+		jwtToken:    iyoToken,
 	}
 	return sr, sr.createStorClients(shards)
 }
@@ -256,15 +252,6 @@ func (sr StorRestorer) ReadBlock(metaKey []byte) ([]byte, error) {
 // create stor clients for given shards
 // the created client is stored and used for future use
 func (sr *StorRestorer) createStorClients(shards []string) error {
-	// create jwt token if needed
-	if sr.jwtToken == "" {
-		token, err := createJWTToken(sr.conf, sr.org, sr.namespace, sr.iyoAppID, sr.iyoAppSecret)
-		if err != nil {
-			return err
-		}
-		sr.jwtToken = token
-	}
-
 	// create shards if needed
 	for _, shard := range shards {
 		if _, exists := sr.storClients[shard]; exists {
@@ -281,12 +268,8 @@ func (sr *StorRestorer) createStorClients(shards []string) error {
 	return nil
 }
 
-func createStorClients(conf Config, shards []string, proto, org, namespace, iyoAppID, iyoAppSecret string) ([]stor.Client, error) {
-	token, err := createJWTToken(conf, org, namespace, iyoAppID, iyoAppSecret)
-	if err != nil {
-		return nil, err
-	}
-	return createStorClientsWithToken(conf, shards, proto, org, namespace, token)
+func createStorClients(conf Config, shards []string, proto, org, namespace, iyoToken string) ([]stor.Client, error) {
+	return createStorClientsWithToken(conf, shards, proto, org, namespace, iyoToken)
 }
 
 func createStorClientsWithToken(conf Config, shards []string, proto, org, namespace, token string) ([]stor.Client, error) {
@@ -305,17 +288,4 @@ func createStorClientsWithToken(conf Config, shards []string, proto, org, namesp
 		scs = append(scs, storClient)
 	}
 	return scs, nil
-}
-
-func createJWTToken(conf Config, org, namespace, iyoAppID, iyoAppSecret string) (string, error) {
-	if !withIYoCredentials(iyoAppID, iyoAppSecret) {
-		return "", nil
-	}
-
-	iyoClient := itsyouonline.NewClient(org, iyoAppID, iyoAppSecret)
-	return iyoClient.CreateJWT(namespace, itsyouonline.Permission{
-		Read:   true,
-		Write:  true,
-		Delete: true,
-	})
 }

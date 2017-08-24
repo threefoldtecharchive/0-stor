@@ -1,7 +1,6 @@
 package replication
 
 import (
-	"github.com/zero-os/0-stor/client/itsyouonline"
 	"github.com/zero-os/0-stor/client/meta"
 	"github.com/zero-os/0-stor/client/stor"
 	"github.com/zero-os/0-stor/client/stor/common"
@@ -18,19 +17,10 @@ type StorReader struct {
 }
 
 func NewStorReader(conf Config, shards, metaShards []string, org, namespace,
-	iyoClientID, iyoSecret, proto string) (*StorReader, error) {
+	iyoToken, proto string) (*StorReader, error) {
 
 	// create meta client
 	metaCli, err := meta.NewClient(metaShards)
-	if err != nil {
-		return nil, err
-	}
-
-	// get token
-	iyoClient := itsyouonline.NewClient(org, iyoClientID, iyoSecret)
-	iyoToken, err := iyoClient.CreateJWT(namespace, itsyouonline.Permission{
-		Read: true,
-	})
 	if err != nil {
 		return nil, err
 	}
