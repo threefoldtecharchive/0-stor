@@ -4,15 +4,15 @@ dist: trusty
 
 jobs:
   include:
-    - stage: client
+    - stage: tests
       go: 1.8
       install: skip
       script: cd client; bash codecov.sh
-    - stage: server
+    - stage: tests
       go: 1.8
       install: skip
       script: cd server; bash codecov.sh
-    - stage: goraml
+    - stage: tests
       go: 1.8
       install:
         - go get -u github.com/Jumpscale/go-raml
@@ -20,7 +20,7 @@ jobs:
           - go-raml server -l go --api-file-per-method --dir servertmp --ramlfile specs/raml/sdstor.raml --lib-root-urls https://raw.githubusercontent.com/Jumpscale-Cockpit/raml-definitions/master/ #validate raml server generation
           - go-raml client -l python --ramlfile specs/raml/sdstor.raml --dir clienttmp # validate client generation
 
-    - stage: docs
+    - stage: tests
       before_install:
           - sudo apt-get -qq update
           - sudo apt-get install -y npm
