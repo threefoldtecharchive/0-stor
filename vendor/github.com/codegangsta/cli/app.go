@@ -85,6 +85,12 @@ type App struct {
 	ErrWriter io.Writer
 	// Other custom info
 	Metadata map[string]interface{}
+	// Carries a function which returns app specific info.
+	ExtraInfo func() map[string]string
+	// CustomAppHelpTemplate the text template for app help topic.
+	// cli.go uses text/template to render templates. You can
+	// render custom help text by setting this variable.
+	CustomAppHelpTemplate string
 
 	didSetup bool
 }
@@ -234,7 +240,6 @@ func (a *App) Run(arguments []string) (err error) {
 	if a.Before != nil {
 		beforeErr := a.Before(context)
 		if beforeErr != nil {
-			fmt.Fprintf(a.Writer, "%v\n\n", beforeErr)
 			ShowAppHelp(context)
 			HandleExitCoder(beforeErr)
 			err = beforeErr
@@ -479,7 +484,9 @@ func (a Author) String() string {
 // it's an ActionFunc or a func with the legacy signature for Action, the func
 // is run!
 func HandleAction(action interface{}, context *Context) (err error) {
-	if a, ok := action.(func(*Context) error); ok {
+	if a, ok := action.(ActionFunc); ok {
+		return a(context)
+	} else if a, ok := action.(func(*Context) error); ok {
 		return a(context)
 	} else if a, ok := action.(func(*Context)); ok { // deprecated function signature
 		a(context)

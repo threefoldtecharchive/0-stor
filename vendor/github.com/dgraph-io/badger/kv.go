@@ -116,9 +116,9 @@ func (opt *Options) estimateSize(entry *Entry) int {
 type KV struct {
 	sync.RWMutex // Guards list of inmemory tables, not individual reads and writes.
 
-	dirLockGuard *y.DirectoryLockGuard
+	dirLockGuard *DirectoryLockGuard
 	// nil if Dir and ValueDir are the same
-	valueDirGuard *y.DirectoryLockGuard
+	valueDirGuard *DirectoryLockGuard
 
 	closer    *y.Closer
 	elog      trace.EventLog
@@ -140,6 +140,7 @@ type KV struct {
 
 var ErrInvalidDir error = errors.New("Invalid Dir, directory does not exist")
 var ErrValueLogSize error = errors.New("Invalid ValueLogFileSize, must be between 1MB and 1GB")
+var ErrExceedsMaxKeyValueSize error = errors.New("Key (value) size exceeded 1MB (1GB) limit")
 
 const (
 	kvWriteChCapacity = 1000
@@ -169,7 +170,7 @@ func NewKV(optParam *Options) (out *KV, err error) {
 		return nil, err
 	}
 
-	dirLockGuard, err := y.AcquireDirectoryLock(opt.Dir, lockFile)
+	dirLockGuard, err := AcquireDirectoryLock(opt.Dir, lockFile)
 	if err != nil {
 		return nil, err
 	}
@@ -178,9 +179,9 @@ func NewKV(optParam *Options) (out *KV, err error) {
 			_ = dirLockGuard.Release()
 		}
 	}()
-	var valueDirLockGuard *y.DirectoryLockGuard
+	var valueDirLockGuard *DirectoryLockGuard
 	if absValueDir != absDir {
-		valueDirLockGuard, err = y.AcquireDirectoryLock(opt.ValueDir, lockFile)
+		valueDirLockGuard, err = AcquireDirectoryLock(opt.ValueDir, lockFile)
 		if err != nil {
 			return nil, err
 		}
@@ -361,7 +362,7 @@ func (s *KV) Close() (err error) {
 	// and remove them completely, while the block / memtable writer is still
 	// trying to push stuff into the memtable. This will also resolve the value
 	// offset problem: as we push into memtable, we update value offsets there.
-	if s.mt.Size() > 0 {
+	if !s.mt.Empty() {
 		s.elog.Printf("Flushing memtable")
 		for {
 			pushedFlushTask := func() bool {
@@ -417,16 +418,16 @@ const (
 // in order to guarantee the file is visible (if the system crashes).  (See the man page for fsync,
 // or see https://github.com/coreos/etcd/issues/6368 for an example.)
 func syncDir(dir string) error {
-	f, err := os.Open(dir)
+	f, err := OpenDir(dir)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "While opening directory: %s.", dir)
 	}
 	err = f.Sync()
 	closeErr := f.Close()
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "While syncing directory: %s.", dir)
 	}
-	return closeErr
+	return errors.Wrapf(closeErr, "While closing directory: %s.", dir)
 }
 
 // getMemtables returns the current memtables and get references.
@@ -454,6 +455,10 @@ func (s *KV) getMemTables() ([]*skl.Skiplist, func()) {
 }
 
 func (s *KV) fillItem(item *KVItem) error {
+	if item.meta == 0 && item.vptr == nil {
+		item.val = nil // key not found
+		return nil
+	}
 	if (item.meta & BitDelete) != 0 {
 		// Tombstone encountered.
 		item.val = nil
@@ -750,7 +755,13 @@ func (s *KV) sendToWriteCh(entries []*Entry) []*request {
 	var reqs []*request
 	var size int64
 	var b *request
+	var bad []*Entry
 	for _, entry := range entries {
+		if len(entry.Key) > maxKeySize || len(entry.Value) > maxValueSize {
+			entry.Error = ErrExceedsMaxKeyValueSize
+			bad = append(bad, entry)
+			continue
+		}
 		if b == nil {
 			b = requestPool.Get().(*request)
 			b.Entries = b.Entries[:0]
@@ -773,10 +784,24 @@ func (s *KV) sendToWriteCh(entries []*Entry) []*request {
 		y.NumPuts.Add(int64(len(b.Entries)))
 		reqs = append(reqs, b)
 	}
+
+	if len(bad) > 0 {
+		b := requestPool.Get().(*request)
+		b.Entries = bad
+		b.Wg = sync.WaitGroup{}
+		b.Err = nil
+		b.Ptrs = nil
+		reqs = append(reqs, b)
+		y.NumBlockedPuts.Add(int64(len(bad)))
+	}
+
 	return reqs
 }
 
-// BatchSet applies a list of badger.Entry. Errors are set on each Entry individually.
+// BatchSet applies a list of badger.Entry. If a request level error occurs it
+// will be returned. Errors are also set on each Entry and must be checked
+// individually.
+//   Check(kv.BatchSet(entries))
 //   for _, e := range entries {
 //      Check(e.Error)
 //   }
@@ -794,9 +819,16 @@ func (s *KV) BatchSet(entries []*Entry) error {
 	return err
 }
 
-// BatchSetAsync is the asynchronous version of BatchSet. It accepts a callback function
-// which is called when all the sets are complete. Any error during execution is passed as an
-// argument to the callback function.
+// BatchSetAsync is the asynchronous version of BatchSet. It accepts a callback
+// function which is called when all the sets are complete. If a request level
+// error occurs, it will be passed back via the callback. The caller should
+// still check for errors set on each Entry individually.
+//   kv.BatchSetAsync(entries, func(err error)) {
+//      Check(err)
+//      for _, e := range entries {
+//         Check(e.Error)
+//      }
+//   }
 func (s *KV) BatchSetAsync(entries []*Entry, f func(error)) {
 	reqs := s.sendToWriteCh(entries)
 
@@ -809,7 +841,7 @@ func (s *KV) BatchSetAsync(entries []*Entry, f func(error)) {
 			}
 			requestPool.Put(req)
 		}
-		// All writes complete, lets call the callback function now.
+		// All writes complete, let's call the callback function now.
 		f(err)
 	}()
 }
@@ -822,7 +854,10 @@ func (s *KV) Set(key, val []byte, userMeta byte) error {
 		Value:    val,
 		UserMeta: userMeta,
 	}
-	return s.BatchSet([]*Entry{e})
+	if err := s.BatchSet([]*Entry{e}); err != nil {
+		return err
+	}
+	return e.Error
 }
 
 // SetAsync is the asynchronous version of Set. It accepts a callback function which is called
@@ -834,7 +869,17 @@ func (s *KV) SetAsync(key, val []byte, userMeta byte, f func(error)) {
 		Value:    val,
 		UserMeta: userMeta,
 	}
-	s.BatchSetAsync([]*Entry{e}, f)
+	s.BatchSetAsync([]*Entry{e}, func(err error) {
+		if err != nil {
+			f(err)
+			return
+		}
+		if e.Error != nil {
+			f(e.Error)
+			return
+		}
+		f(nil)
+	})
 }
 
 // SetIfAbsent sets value of key if key is not present.
@@ -977,7 +1022,7 @@ func (s *KV) ensureRoomForWrite() error {
 	var err error
 	s.Lock()
 	defer s.Unlock()
-	if s.mt.Size() < s.opt.MaxTableSize {
+	if s.mt.MemSize() < s.opt.MaxTableSize {
 		return nil
 	}
 
@@ -992,7 +1037,7 @@ func (s *KV) ensureRoomForWrite() error {
 		}
 
 		s.elog.Printf("Flushing memtable, mt.size=%d size of flushChan: %d\n",
-			s.mt.Size(), len(s.flushChan))
+			s.mt.MemSize(), len(s.flushChan))
 		// We manage to push this task. Let's modify imm.
 		s.imm = append(s.imm, s.mt)
 		s.mt = skl.NewSkiplist(arenaSize(&s.opt))

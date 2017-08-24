@@ -36,7 +36,6 @@ import (
 
 	"github.com/coreos/etcd/client"
 	"github.com/coreos/etcd/clientv3"
-	"github.com/coreos/etcd/embed"
 	"github.com/coreos/etcd/etcdserver"
 	"github.com/coreos/etcd/etcdserver/api/etcdhttp"
 	"github.com/coreos/etcd/etcdserver/api/v2http"
@@ -95,8 +94,6 @@ type ClusterConfig struct {
 	DiscoveryURL      string
 	UseGRPC           bool
 	QuotaBackendBytes int64
-	MaxTxnOps         uint
-	MaxRequestBytes   uint
 }
 
 type cluster struct {
@@ -228,8 +225,6 @@ func (c *cluster) mustNewMember(t *testing.T) *member {
 			peerTLS:           c.cfg.PeerTLS,
 			clientTLS:         c.cfg.ClientTLS,
 			quotaBackendBytes: c.cfg.QuotaBackendBytes,
-			maxTxnOps:         c.cfg.MaxTxnOps,
-			maxRequestBytes:   c.cfg.MaxRequestBytes,
 		})
 	m.DiscoveryURL = c.cfg.DiscoveryURL
 	if c.cfg.UseGRPC {
@@ -496,8 +491,6 @@ type memberConfig struct {
 	peerTLS           *transport.TLSInfo
 	clientTLS         *transport.TLSInfo
 	quotaBackendBytes int64
-	maxTxnOps         uint
-	maxRequestBytes   uint
 }
 
 // mustNewMember return an inited member with the given name. If peerTLS is
@@ -545,14 +538,6 @@ func mustNewMember(t *testing.T, mcfg memberConfig) *member {
 	m.ElectionTicks = electionTicks
 	m.TickMs = uint(tickDuration / time.Millisecond)
 	m.QuotaBackendBytes = mcfg.quotaBackendBytes
-	m.MaxTxnOps = mcfg.maxTxnOps
-	if m.MaxTxnOps == 0 {
-		m.MaxTxnOps = embed.DefaultMaxTxnOps
-	}
-	m.MaxRequestBytes = mcfg.maxRequestBytes
-	if m.MaxRequestBytes == 0 {
-		m.MaxRequestBytes = embed.DefaultMaxRequestBytes
-	}
 	m.AuthToken = "simple" // for the purpose of integration testing, simple token is enough
 	return m
 }
@@ -578,8 +563,6 @@ func (m *member) listenGRPC() error {
 func (m *member) electionTimeout() time.Duration {
 	return time.Duration(m.s.Cfg.ElectionTicks) * time.Millisecond
 }
-
-func (m *member) ID() types.ID { return m.s.ID() }
 
 func (m *member) DropConnections()    { m.grpcBridge.Reset() }
 func (m *member) PauseConnections()   { m.grpcBridge.Pause() }
@@ -643,7 +626,7 @@ func (m *member) Clone(t *testing.T) *member {
 func (m *member) Launch() error {
 	plog.Printf("launching %s (%s)", m.Name, m.grpcAddr)
 	var err error
-	if m.s, err = etcdserver.NewServer(m.ServerConfig); err != nil {
+	if m.s, err = etcdserver.NewServer(&m.ServerConfig); err != nil {
 		return fmt.Errorf("failed to initialize the etcd server: %v", err)
 	}
 	m.s.SyncTicker = time.NewTicker(500 * time.Millisecond)

@@ -323,7 +323,7 @@ func (l *lessor) closeRequireLeader() {
 		reqIdxs := 0
 		// find all required leader channels, close, mark as nil
 		for i, ctx := range ka.ctxs {
-			md, ok := metadata.FromOutgoingContext(ctx)
+			md, ok := metadata.FromContext(ctx)
 			if !ok {
 				continue
 			}
@@ -386,7 +386,7 @@ func (l *lessor) recvKeepAliveLoop() (gerr error) {
 		close(l.donec)
 		l.loopErr = gerr
 		for _, ka := range l.keepAlives {
-			ka.close()
+			ka.Close()
 		}
 		l.keepAlives = make(map[LeaseID]*keepAlive)
 		l.mu.Unlock()
@@ -467,7 +467,7 @@ func (l *lessor) recvKeepAlive(resp *pb.LeaseKeepAliveResponse) {
 	if karesp.TTL <= 0 {
 		// lease expired; close all keep alive channels
 		delete(l.keepAlives, karesp.ID)
-		ka.close()
+		ka.Close()
 		return
 	}
 
@@ -497,7 +497,7 @@ func (l *lessor) deadlineLoop() {
 		for id, ka := range l.keepAlives {
 			if ka.deadline.Before(now) {
 				// waited too long for response; lease may be expired
-				ka.close()
+				ka.Close()
 				delete(l.keepAlives, id)
 			}
 		}
@@ -539,7 +539,7 @@ func (l *lessor) sendKeepAliveLoop(stream pb.Lease_LeaseKeepAliveClient) {
 	}
 }
 
-func (ka *keepAlive) close() {
+func (ka *keepAlive) Close() {
 	close(ka.donec)
 	for _, ch := range ka.chs {
 		close(ch)

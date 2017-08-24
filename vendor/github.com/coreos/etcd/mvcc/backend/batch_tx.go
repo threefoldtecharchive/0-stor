@@ -22,7 +22,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	bolt "github.com/coreos/bbolt"
+	"github.com/boltdb/bolt"
 )
 
 type BatchTx interface {
@@ -44,13 +44,6 @@ type batchTx struct {
 
 	pending int
 }
-
-var nopLock sync.Locker = &nopLocker{}
-
-type nopLocker struct{}
-
-func (*nopLocker) Lock()   {}
-func (*nopLocker) Unlock() {}
 
 func (t *batchTx) UnsafeCreateBucket(name []byte) {
 	_, err := t.tx.CreateBucket(name)
@@ -88,34 +81,28 @@ func (t *batchTx) unsafePut(bucketName []byte, key []byte, value []byte, seq boo
 
 // UnsafeRange must be called holding the lock on the tx.
 func (t *batchTx) UnsafeRange(bucketName, key, endKey []byte, limit int64) ([][]byte, [][]byte) {
-	// nop lock since a write txn should already hold a lock over t.tx
-	k, v, err := unsafeRange(t.tx, bucketName, key, endKey, limit, nopLock)
+	k, v, err := unsafeRange(t.tx, bucketName, key, endKey, limit)
 	if err != nil {
 		plog.Fatal(err)
 	}
 	return k, v
 }
 
-func unsafeRange(tx *bolt.Tx, bucketName, key, endKey []byte, limit int64, l sync.Locker) (keys [][]byte, vs [][]byte, err error) {
-	l.Lock()
+func unsafeRange(tx *bolt.Tx, bucketName, key, endKey []byte, limit int64) (keys [][]byte, vs [][]byte, err error) {
 	bucket := tx.Bucket(bucketName)
 	if bucket == nil {
-		l.Unlock()
 		return nil, nil, fmt.Errorf("bucket %s does not exist", bucketName)
 	}
 	if len(endKey) == 0 {
-		v := bucket.Get(key)
-		l.Unlock()
-		if v != nil {
+		if v := bucket.Get(key); v != nil {
 			return append(keys, key), append(vs, v), nil
 		}
 		return nil, nil, nil
 	}
-	c := bucket.Cursor()
-	l.Unlock()
 	if limit <= 0 {
 		limit = math.MaxInt64
 	}
+	c := bucket.Cursor()
 	for ck, cv := c.Seek(key); ck != nil && bytes.Compare(ck, endKey) < 0; ck, cv = c.Next() {
 		vs = append(vs, cv)
 		keys = append(keys, ck)

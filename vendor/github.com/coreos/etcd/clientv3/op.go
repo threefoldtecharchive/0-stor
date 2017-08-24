@@ -23,7 +23,6 @@ const (
 	tRange opType = iota + 1
 	tPut
 	tDeleteRange
-	tTxn
 )
 
 var (
@@ -68,17 +67,9 @@ type Op struct {
 	// for put
 	val     []byte
 	leaseID LeaseID
-
-	// txn
-	cmps    []Cmp
-	thenOps []Op
-	elseOps []Op
 }
 
 // accesors / mutators
-
-func (op Op) IsTxn() bool              { return op.t == tTxn }
-func (op Op) Txn() ([]Cmp, []Op, []Op) { return op.cmps, op.thenOps, op.elseOps }
 
 // KeyBytes returns the byte slice holding the Op's key.
 func (op Op) KeyBytes() []byte { return op.key }
@@ -122,22 +113,6 @@ func (op Op) toRangeRequest() *pb.RangeRequest {
 	return r
 }
 
-func (op Op) toTxnRequest() *pb.TxnRequest {
-	thenOps := make([]*pb.RequestOp, len(op.thenOps))
-	for i, tOp := range op.thenOps {
-		thenOps[i] = tOp.toRequestOp()
-	}
-	elseOps := make([]*pb.RequestOp, len(op.elseOps))
-	for i, eOp := range op.elseOps {
-		elseOps[i] = eOp.toRequestOp()
-	}
-	cmps := make([]*pb.Compare, len(op.cmps))
-	for i := range op.cmps {
-		cmps[i] = (*pb.Compare)(&op.cmps[i])
-	}
-	return &pb.TxnRequest{Compare: cmps, Success: thenOps, Failure: elseOps}
-}
-
 func (op Op) toRequestOp() *pb.RequestOp {
 	switch op.t {
 	case tRange:
@@ -148,27 +123,12 @@ func (op Op) toRequestOp() *pb.RequestOp {
 	case tDeleteRange:
 		r := &pb.DeleteRangeRequest{Key: op.key, RangeEnd: op.end, PrevKv: op.prevKV}
 		return &pb.RequestOp{Request: &pb.RequestOp_RequestDeleteRange{RequestDeleteRange: r}}
-	case tTxn:
-		return &pb.RequestOp{Request: &pb.RequestOp_RequestTxn{RequestTxn: op.toTxnRequest()}}
 	default:
 		panic("Unknown Op")
 	}
 }
 
 func (op Op) isWrite() bool {
-	if op.t == tTxn {
-		for _, tOp := range op.thenOps {
-			if tOp.isWrite() {
-				return true
-			}
-		}
-		for _, tOp := range op.elseOps {
-			if tOp.isWrite() {
-				return true
-			}
-		}
-		return false
-	}
 	return op.t != tRange
 }
 
@@ -232,10 +192,6 @@ func OpPut(key, val string, opts ...OpOption) Op {
 		panic("unexpected createdNotify in put")
 	}
 	return ret
-}
-
-func OpTxn(cmps []Cmp, thenOps []Op, elseOps []Op) Op {
-	return Op{t: tTxn, cmps: cmps, thenOps: thenOps, elseOps: elseOps}
 }
 
 func opWatch(key string, opts ...OpOption) Op {

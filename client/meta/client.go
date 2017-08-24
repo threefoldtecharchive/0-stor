@@ -21,9 +21,8 @@ type Client struct {
 // NewClient creates new meta client
 func NewClient(shards []string) (*Client, error) {
 	cli, err := clientv3.New(clientv3.Config{
-		Endpoints:         shards,
-		DialTimeout:       metaOpTimeout,
-		DialKeepAliveTime: metaOpTimeout,
+		Endpoints:   shards,
+		DialTimeout: metaOpTimeout,
 	})
 	if err != nil {
 		return nil, err

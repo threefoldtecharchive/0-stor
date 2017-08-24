@@ -23,8 +23,7 @@ import (
 	"github.com/coreos/etcd/mvcc/mvccpb"
 )
 
-// non-const so modifiable by tests
-var (
+const (
 	// chanBufLen is the length of the buffered chan
 	// for sending out watched events.
 	// TODO: find a good buf value. 1024 is just a random one that
@@ -178,6 +177,21 @@ func (s *watchableStore) cancelWatcher(wa *watcher) {
 
 	watcherGauge.Dec()
 	s.mu.Unlock()
+}
+
+func (s *watchableStore) Restore(b backend.Backend) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	err := s.store.Restore(b)
+	if err != nil {
+		return err
+	}
+
+	for wa := range s.synced.watchers {
+		s.unsynced.watchers.add(wa)
+	}
+	s.synced = newWatcherGroup()
+	return nil
 }
 
 // syncWatchersLoop syncs the watcher in the unsynced map every 100ms.

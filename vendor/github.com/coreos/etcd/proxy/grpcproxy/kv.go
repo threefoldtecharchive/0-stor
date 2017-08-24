@@ -48,9 +48,8 @@ func (p *kvProxy) Range(ctx context.Context, r *pb.RangeRequest) (*pb.RangeRespo
 			cacheHits.Inc()
 			return nil, err
 		}
-
-		cachedMisses.Inc()
 	}
+	cachedMisses.Inc()
 
 	resp, err := p.kv.Do(ctx, RangeRequestToOp(r))
 	if err != nil {
@@ -100,16 +99,31 @@ func (p *kvProxy) txnToCache(reqs []*pb.RequestOp, resps []*pb.ResponseOp) {
 }
 
 func (p *kvProxy) Txn(ctx context.Context, r *pb.TxnRequest) (*pb.TxnResponse, error) {
-	op := TxnRequestToOp(r)
-	opResp, err := p.kv.Do(ctx, op)
+	txn := p.kv.Txn(ctx)
+	cmps := make([]clientv3.Cmp, len(r.Compare))
+	thenops := make([]clientv3.Op, len(r.Success))
+	elseops := make([]clientv3.Op, len(r.Failure))
+
+	for i := range r.Compare {
+		cmps[i] = (clientv3.Cmp)(*r.Compare[i])
+	}
+
+	for i := range r.Success {
+		thenops[i] = requestOpToOp(r.Success[i])
+	}
+
+	for i := range r.Failure {
+		elseops[i] = requestOpToOp(r.Failure[i])
+	}
+
+	resp, err := txn.If(cmps...).Then(thenops...).Else(elseops...).Commit()
+
 	if err != nil {
 		return nil, err
 	}
-	resp := opResp.Txn()
-
 	// txn may claim an outdated key is updated; be safe and invalidate
 	for _, cmp := range r.Compare {
-		p.cache.Invalidate(cmp.Key, cmp.RangeEnd)
+		p.cache.Invalidate(cmp.Key, nil)
 	}
 	// update any fetched keys
 	if resp.Succeeded {
@@ -153,10 +167,6 @@ func requestOpToOp(union *pb.RequestOp) clientv3.Op {
 		if tv.RequestDeleteRange != nil {
 			return DelRequestToOp(tv.RequestDeleteRange)
 		}
-	case *pb.RequestOp_RequestTxn:
-		if tv.RequestTxn != nil {
-			return TxnRequestToOp(tv.RequestTxn)
-		}
 	}
 	panic("unknown request")
 }
@@ -196,6 +206,9 @@ func PutRequestToOp(r *pb.PutRequest) clientv3.Op {
 	if r.IgnoreLease {
 		opts = append(opts, clientv3.WithIgnoreLease())
 	}
+	if r.PrevKv {
+		opts = append(opts, clientv3.WithPrevKV())
+	}
 	return clientv3.OpPut(string(r.Key), string(r.Value), opts...)
 }
 
@@ -208,20 +221,4 @@ func DelRequestToOp(r *pb.DeleteRangeRequest) clientv3.Op {
 		opts = append(opts, clientv3.WithPrevKV())
 	}
 	return clientv3.OpDelete(string(r.Key), opts...)
-}
-
-func TxnRequestToOp(r *pb.TxnRequest) clientv3.Op {
-	cmps := make([]clientv3.Cmp, len(r.Compare))
-	thenops := make([]clientv3.Op, len(r.Success))
-	elseops := make([]clientv3.Op, len(r.Failure))
-	for i := range r.Compare {
-		cmps[i] = (clientv3.Cmp)(*r.Compare[i])
-	}
-	for i := range r.Success {
-		thenops[i] = requestOpToOp(r.Success[i])
-	}
-	for i := range r.Failure {
-		elseops[i] = requestOpToOp(r.Failure[i])
-	}
-	return clientv3.OpTxn(cmps, thenops, elseops)
 }

@@ -46,7 +46,8 @@ func TestWrite(t *testing.T) {
 	dir, err := ioutil.TempDir("", "badger")
 	require.NoError(t, err)
 	defer os.RemoveAll(dir)
-	kv, _ := NewKV(getTestOptions(dir))
+	kv, err := NewKV(getTestOptions(dir))
+	require.NoError(t, err)
 	defer kv.Close()
 
 	var entries []*Entry
@@ -673,7 +674,7 @@ func TestDirNotExists(t *testing.T) {
 }
 
 func TestDeleteWithoutSyncWrite(t *testing.T) {
-	dir, err := ioutil.TempDir("/tmp", "badger")
+	dir, err := ioutil.TempDir("", "badger")
 	require.NoError(t, err)
 	defer os.RemoveAll(dir)
 	opt := new(Options)
@@ -706,7 +707,7 @@ func TestDeleteWithoutSyncWrite(t *testing.T) {
 }
 
 func TestSetIfAbsent(t *testing.T) {
-	dir, err := ioutil.TempDir("/tmp", "badger")
+	dir, err := ioutil.TempDir("", "badger")
 	opt := getTestOptions(dir)
 	kv, err := NewKV(opt)
 	require.NoError(t, err)
@@ -794,4 +795,81 @@ func TestPidFile(t *testing.T) {
 	_, err = NewKV(options)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "Another process is using this Badger database")
+}
+
+func TestBigKeyValuePairs(t *testing.T) {
+	dir, err := ioutil.TempDir("", "badger")
+	require.NoError(t, err)
+	defer os.RemoveAll(dir)
+
+	kv, err := NewKV(getTestOptions(dir))
+	require.NoError(t, err)
+
+	bigK := make([]byte, maxKeySize+1)
+	bigV := make([]byte, maxValueSize+1)
+	small := make([]byte, 10)
+
+	require.Equal(t, ErrExceedsMaxKeyValueSize, kv.Set(bigK, small, 0))
+	require.Equal(t, ErrExceedsMaxKeyValueSize, kv.Set(small, bigV, 0))
+
+	e1 := Entry{Key: small, Value: small}
+	e2 := Entry{Key: bigK, Value: bigV}
+	err = kv.BatchSet([]*Entry{&e1, &e2})
+	require.Nil(t, err)
+	require.Nil(t, e1.Error)
+	require.Equal(t, ErrExceedsMaxKeyValueSize, e2.Error)
+
+	// make sure e1 was actually set:
+	var item KVItem
+	require.NoError(t, kv.Get(small, &item))
+	require.Equal(t, item.Key(), small)
+	require.Equal(t, item.Value(), small)
+
+	require.NoError(t, kv.Close())
+}
+
+func TestIteratorPrefetchSize(t *testing.T) {
+	dir, err := ioutil.TempDir("", "badger")
+	require.NoError(t, err)
+	defer os.RemoveAll(dir)
+	kv, _ := NewKV(getTestOptions(dir))
+	defer kv.Close()
+
+	bkey := func(i int) []byte {
+		return []byte(fmt.Sprintf("%09d", i))
+	}
+	bval := func(i int) []byte {
+		return []byte(fmt.Sprintf("%025d", i))
+	}
+
+	n := 100
+	for i := 0; i < n; i++ {
+		if (i % 10) == 0 {
+			t.Logf("Put i=%d\n", i)
+		}
+		kv.Set(bkey(i), bval(i), byte(i%127))
+	}
+
+	getIteratorCount := func(prefetchSize int) int {
+		opt := IteratorOptions{}
+		opt.FetchValues = true
+		opt.PrefetchSize = prefetchSize
+
+		var count int
+		it := kv.NewIterator(opt)
+		{
+			t.Log("Starting first basic iteration")
+			for it.Rewind(); it.Valid(); it.Next() {
+				count++
+			}
+			require.EqualValues(t, n, count)
+		}
+		return count
+	}
+
+	var sizes = []int{-10, 0, 1, 10}
+	for _, size := range sizes {
+		c := getIteratorCount(size)
+		require.Equal(t, 100, c)
+	}
 }
