@@ -66,3 +66,7 @@ func (c *Client) Get(key string) (*Meta, error) {
 
 	return Decode(resp.Kvs[0].Value)
 }
+
+func (c *Client) Endpoints() []string {
+	return c.etcdClient.Endpoints()
+}
