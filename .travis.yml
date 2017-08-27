@@ -5,15 +5,15 @@ dist: trusty
 jobs:
   include:
     - stage: tests
-      go: 1.8
+      go: 1.9
       install: skip
       script: cd client; bash codecov.sh
     - stage: tests
-      go: 1.8
+      go: 1.9
       install: skip
       script: cd server; bash codecov.sh
     - stage: tests
-      go: 1.8
+      go: 1.9
       install:
         - go get -u github.com/Jumpscale/go-raml
       script:
