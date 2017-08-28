@@ -188,10 +188,10 @@
   revision = "53be0d36a84c2a886ca057d34b6aa4468df9ccb4"
 
 [[projects]]
+  branch = "master"
   name = "github.com/pierrec/lz4"
   packages = ["."]
-  revision = "5c9560bfa9ace2bf86080bf40d46b34ae44604df"
-  version = "v1.0"
+  revision = "5a3d2245f97fc249850e7802e3c01fad02a1c316"
 
 [[projects]]
   name = "github.com/pierrec/xxHash"
@@ -314,14 +314,14 @@
   revision = "eb3733d160e74a9c7e442f435eb3bea458e1d19f"
 
 [[projects]]
+  branch = "master"
   name = "zombiezen.com/go/capnproto2"
   packages = [".","encoding/text","internal/nodemap","internal/packed","internal/schema","internal/strquote","schemas"]
-  revision = "3861160a45cee04d3f3a0d886dccf57c8b014d66"
-  version = "v2.16.0"
+  revision = "ece6d3058bf14340051f059bfdf08885d8748639"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "7f8ab4aa53a7d8f052de9237469570872b5ae0d0f17cca8434662029863b8db7"
+  inputs-digest = "dafe38407c292e78baee97fab8d9da1bc9c4d0cc26b40f0eef81c9daf26effcc"
   solver-name = "gps-cdcl"
   solver-version = 1

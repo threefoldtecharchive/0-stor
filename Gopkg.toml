@@ -83,7 +83,7 @@
 
 [[constraint]]
   name = "github.com/pierrec/lz4"
-  version = "1.0.0"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/stretchr/testify"
@@ -115,4 +115,4 @@
 
 [[constraint]]
   name = "zombiezen.com/go/capnproto2"
-  version = "2.16.0"
+  branch = "master"
