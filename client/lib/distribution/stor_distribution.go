@@ -6,7 +6,6 @@ import (
 
 	"github.com/zero-os/0-stor/client/lib"
 	"github.com/zero-os/0-stor/client/lib/block"
-	"github.com/zero-os/0-stor/client/lib/hash"
 	"github.com/zero-os/0-stor/client/meta"
 	"github.com/zero-os/0-stor/client/stor"
 )
@@ -16,7 +15,6 @@ import (
 // It create one stor.Client for each shard
 type StorDistributor struct {
 	enc         *Encoder
-	hasher      *hash.Hasher
 	storClients []stor.Client
 	shards      []string
 	metaCli     *meta.Client
@@ -43,12 +41,6 @@ func NewStorDistributor(w block.Writer, conf Config, shards, metaShards []string
 		return nil, err
 	}
 
-	// hasher
-	hasher, err := hash.NewHasher(hash.Config{Type: hash.TypeBlake2})
-	if err != nil {
-		return nil, err
-	}
-
 	metaCli, err := meta.NewClient(metaShards)
 	if err != nil {
 		return nil, err
@@ -57,33 +49,15 @@ func NewStorDistributor(w block.Writer, conf Config, shards, metaShards []string
 	return &StorDistributor{
 		storClients: storClients,
 		enc:         enc,
-		hasher:      hasher,
 		shards:      shards,
 		metaCli:     metaCli,
 		w:           w,
 	}, nil
 }
 
-// Write implements io.Writer
-func (sd StorDistributor) Write(data []byte) (int, error) {
-	key := sd.hasher.Hash(data)
-	encoded, err := sd.enc.Encode(data)
-	if err != nil {
-		return 0, err
-	}
-
-	for i, piece := range encoded {
-		if _, err = sd.storClients[i].ObjectCreate(key, piece, nil); err != nil {
-			return 0, err
-		}
-	}
-	return len(data), nil
-}
-
 // WriteBlock implements block.Writer interface.
 // it also writes to the metadata server
 func (sd StorDistributor) WriteBlock(key, value []byte, md *meta.Meta) (*meta.Meta, error) {
-	hashedKey := sd.hasher.Hash(value)
 	encoded, err := sd.enc.Encode(value)
 	if err != nil {
 		return md, err
@@ -98,7 +72,7 @@ func (sd StorDistributor) WriteBlock(key, value []byte, md *meta.Meta) (*meta.Me
 	for i, piece := range encoded {
 		go func(idx int, data []byte) {
 			defer wg.Done()
-			if _, err := sd.storClients[idx].ObjectCreate(hashedKey, data, nil); err != nil {
+			if _, err := sd.storClients[idx].ObjectCreate(key, data, nil); err != nil {
 				shardErr.Add([]string{sd.shards[idx]}, lib.ShardType0Stor, err, 0)
 			}
 		}(i, piece)
@@ -110,7 +84,7 @@ func (sd StorDistributor) WriteBlock(key, value []byte, md *meta.Meta) (*meta.Me
 		return md, shardErr
 	}
 
-	if err := sd.updateMeta(md, hashedKey, len(value), sd.shards); err != nil {
+	if err := sd.updateMeta(md, len(value), sd.shards); err != nil {
 		return md, err
 	}
 
@@ -127,10 +101,7 @@ func (sd StorDistributor) WriteBlock(key, value []byte, md *meta.Meta) (*meta.Me
 	return sd.w.WriteBlock(key, mdBytes, md)
 }
 
-func (sd StorDistributor) updateMeta(md *meta.Meta, key []byte, size int, shards []string) error {
-	if err := md.SetKey(key); err != nil {
-		return err
-	}
+func (sd StorDistributor) updateMeta(md *meta.Meta, size int, shards []string) error {
 	md.SetSize(uint64(size))
 	return md.SetShardSlice(shards)
 }
