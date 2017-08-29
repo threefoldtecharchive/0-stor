@@ -11,6 +11,10 @@ import (
 	"github.com/zero-os/0-stor/client/itsyouonline"
 )
 
+var (
+	confFile string
+)
+
 func main() {
 	var cl *client.Client
 	var nsMgr itsyouonline.NamespaceManager
@@ -20,9 +24,10 @@ func main() {
 	app.Usage = "Interact with 0-stors"
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
-			Name:  "conf",
-			Value: "config.yaml",
-			Usage: "path to the configuration file",
+			Name:        "conf",
+			Value:       "config.yaml",
+			Usage:       "path to the configuration file",
+			Destination: &confFile,
 		},
 	}
 	app.Commands = []cli.Command{
@@ -234,7 +239,7 @@ func main() {
 	}
 }
 func getClient(c *cli.Context) (*client.Client, error) {
-	conf, err := readConfig(c)
+	conf, err := readConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -248,7 +253,7 @@ func getClient(c *cli.Context) (*client.Client, error) {
 }
 
 func getNamespaceManager(c *cli.Context) (itsyouonline.NamespaceManager, error) {
-	conf, err := readConfig(c)
+	conf, err := readConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -256,14 +261,9 @@ func getNamespaceManager(c *cli.Context) (itsyouonline.NamespaceManager, error) 
 	return itsyouonline.NewClient(conf.Organization, conf.IYOAppID, conf.IYOSecret), nil
 }
 
-func readConfig(c *cli.Context) (*config.Config, error) {
+func readConfig() (*config.Config, error) {
 	// read config
-	path := c.String("conf")
-	if path == "" {
-		path = "config.yaml"
-	}
-
-	f, err := os.Open(path)
+	f, err := os.Open(confFile)
 	if err != nil {
 		return nil, err
 	}
