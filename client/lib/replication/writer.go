@@ -58,7 +58,7 @@ func NewStorWriter(w block.Writer, conf Config, shards, metaShards []string, org
 // If number of failed shards is more than max failed allowed,
 // then the error contains the failed shards
 func (sw *StorWriter) WriteBlock(key, val []byte, md *meta.Meta) (*meta.Meta, error) {
-	var shardErr *lib.ShardError
+	var shardErr = &lib.ShardError{}
 	var okShards []string // list of OK shards
 
 	// get random shards

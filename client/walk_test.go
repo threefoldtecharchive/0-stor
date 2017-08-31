@@ -51,7 +51,7 @@ func testWalk(t *testing.T, forward bool) {
 	defer etcd.Stop()
 
 	// client config
-	conf := config.Config{
+	conf := &config.Config{
 		Organization: os.Getenv("iyo_organization"),
 		Namespace:    "thedisk",
 		Protocol:     "rest",
@@ -61,7 +61,7 @@ func testWalk(t *testing.T, forward bool) {
 		IYOSecret:    os.Getenv("iyo_secret"),
 	}
 
-	cli, err := newClient(&conf)
+	cli, err := getTestClient(conf)
 	require.Nil(t, err)
 
 	// override the storWriter and reader

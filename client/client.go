@@ -17,14 +17,14 @@ var (
 	errReadFChunkerOnly  = errors.New("ReadF only support chunker as first pipe")
 )
 
-var _ (itsyouonline.NamespaceManager) = (*Client)(nil) // build time check that we implement stor.NamespaceManager interface
+var _ (itsyouonline.IYOClient) = (*Client)(nil) // build time check that we implement itsyouonline.IYOClient interface
 
 // Client defines 0-stor client
 type Client struct {
-	conf                          *config.Config
-	iyoToken                      string
-	metaCli                       *meta.Client
-	itsyouonline.NamespaceManager //implement the NamespaceManager interface
+	conf     *config.Config
+	iyoToken string
+	metaCli  *meta.Client
+	iyoCl    itsyouonline.IYOClient
 
 	storWriter block.Writer
 	storReader block.Reader
@@ -32,15 +32,17 @@ type Client struct {
 
 // New creates new client from the given config
 func New(conf *config.Config) (*Client, error) {
+
+	iyoCl := itsyouonline.NewClient(conf.Organization, conf.IYOAppID, conf.IYOSecret)
+
+	return newClient(conf, iyoCl)
+}
+
+func newClient(conf *config.Config, iyoCl itsyouonline.IYOClient) (*Client, error) {
 	// append stor client to the end of pipe if needed
 	conf.CheckAppendStorClient()
 
-	return newClient(conf)
-}
-
-func newClient(conf *config.Config) (*Client, error) {
-	nsMgr := itsyouonline.NewClient(conf.Organization, conf.IYOAppID, conf.IYOSecret)
-	iyoToken, err := nsMgr.CreateJWT(conf.Namespace, itsyouonline.Permission{
+	iyoToken, err := iyoCl.CreateJWT(conf.Namespace, itsyouonline.Permission{
 		Write: true,
 		Read:  true,
 	})
@@ -61,11 +63,11 @@ func newClient(conf *config.Config) (*Client, error) {
 	}
 
 	client := Client{
-		conf:             conf,
-		iyoToken:         iyoToken,
-		storWriter:       storWriter,
-		storReader:       storReader,
-		NamespaceManager: nsMgr,
+		conf:       conf,
+		iyoToken:   iyoToken,
+		storWriter: storWriter,
+		storReader: storReader,
+		iyoCl:      iyoCl,
 	}
 
 	if len(conf.MetaShards) > 0 {
@@ -195,4 +197,23 @@ func (c *Client) linkMeta(curMd, prevMd *meta.Meta, curKey, prevKey []byte) erro
 
 	// update new meta
 	return c.metaCli.Put(string(curKey), curMd)
+}
+
+func (c *Client) CreateJWT(namespace string, perm itsyouonline.Permission) (string, error) {
+	return c.iyoCl.CreateJWT(namespace, perm)
+}
+func (c *Client) CreateNamespace(namespace string) error {
+	return c.iyoCl.CreateNamespace(namespace)
+}
+func (c *Client) DeleteNamespace(namespace string) error {
+	return c.iyoCl.DeleteNamespace(namespace)
+}
+func (c *Client) GivePermission(namespace, userID string, perm itsyouonline.Permission) error {
+	return c.iyoCl.GivePermission(namespace, userID, perm)
+}
+func (c *Client) RemovePermission(namespace, userID string, perm itsyouonline.Permission) error {
+	return c.iyoCl.RemovePermission(namespace, userID, perm)
+}
+func (c *Client) GetPermission(namespace, userID string) (itsyouonline.Permission, error) {
+	return c.iyoCl.GetPermission(namespace, userID)
 }

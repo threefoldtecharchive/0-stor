@@ -19,7 +19,7 @@ var (
 
 func main() {
 	var cl *client.Client
-	var nsMgr itsyouonline.NamespaceManager
+	var iyoCl itsyouonline.IYOClient
 	var key string
 
 	app := cli.NewApp()
@@ -138,7 +138,7 @@ func main() {
 			Usage: "Manage namespaces",
 			Before: func(c *cli.Context) error {
 				var err error
-				nsMgr, err = getNamespaceManager(c)
+				iyoCl, err = getNamespaceManager(c)
 				if err != nil {
 					return cli.NewExitError(err, 1)
 				}
@@ -154,7 +154,7 @@ func main() {
 						}
 
 						namespace := c.Args().First()
-						if err := nsMgr.CreateNamespace(namespace); err != nil {
+						if err := iyoCl.CreateNamespace(namespace); err != nil {
 							return cli.NewExitError(fmt.Errorf("creation of namespace %s failed: %v", namespace, err), 1)
 						}
 						fmt.Printf("Namespace %s created\n", namespace)
@@ -172,7 +172,7 @@ func main() {
 						}
 
 						namespace := c.Args().First()
-						if err := nsMgr.DeleteNamespace(namespace); err != nil {
+						if err := iyoCl.DeleteNamespace(namespace); err != nil {
 							return cli.NewExitError(err, 1)
 						}
 						fmt.Printf("Namespace %s deleted\n", namespace)
@@ -211,7 +211,7 @@ func main() {
 					Action: func(c *cli.Context) error {
 						namespace := c.String("namespace")
 						user := c.String("user")
-						currentPermision, err := nsMgr.GetPermission(namespace, user)
+						currentPermision, err := iyoCl.GetPermission(namespace, user)
 						if err != nil {
 							return cli.NewExitError(fmt.Errorf("fail to retrieve permission : %v", err), 1)
 						}
@@ -230,12 +230,12 @@ func main() {
 							Delete: currentPermision.Delete && !requestedPermission.Delete,
 							Admin:  currentPermision.Admin && !requestedPermission.Admin,
 						}
-						if err := nsMgr.RemovePermission(namespace, user, toRemove); err != nil {
+						if err := iyoCl.RemovePermission(namespace, user, toRemove); err != nil {
 							return cli.NewExitError(err, 1)
 						}
 
 						// Give requested permission
-						if err := nsMgr.GivePermission(namespace, user, requestedPermission); err != nil {
+						if err := iyoCl.GivePermission(namespace, user, requestedPermission); err != nil {
 							return cli.NewExitError(err, 1)
 						}
 
@@ -258,7 +258,7 @@ func main() {
 					Action: func(c *cli.Context) error {
 						namespace := c.String("namespace")
 						user := c.String("user")
-						perm, err := nsMgr.GetPermission(namespace, user)
+						perm, err := iyoCl.GetPermission(namespace, user)
 						if err != nil {
 							return cli.NewExitError(fmt.Errorf("fail to retrieve permission : %v", err), 1)
 						}
@@ -293,7 +293,7 @@ func getClient(c *cli.Context) (*client.Client, error) {
 	return cl, nil
 }
 
-func getNamespaceManager(c *cli.Context) (itsyouonline.NamespaceManager, error) {
+func getNamespaceManager(c *cli.Context) (itsyouonline.IYOClient, error) {
 	conf, err := readConfig()
 	if err != nil {
 		return nil, err

@@ -7,18 +7,26 @@ import (
 	"path"
 	"testing"
 
+	jwtgo "github.com/dgrijalva/jwt-go"
 	"github.com/zero-os/0-stor/client/lib/compress"
 	"github.com/zero-os/0-stor/client/lib/distribution"
 	"github.com/zero-os/0-stor/client/lib/encrypt"
 	"github.com/zero-os/0-stor/client/lib/replication"
 	"github.com/zero-os/0-stor/client/meta/embedserver"
+	"github.com/zero-os/0-stor/stubs"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/zero-os/0-stor/client/config"
-	"github.com/zero-os/0-stor/client/itsyouonline"
+	"github.com/zero-os/0-stor/server/jwt"
 	"github.com/zero-os/0-stor/server/storserver"
 )
+
+func TestMain(m *testing.M) {
+	log.SetLevel(log.DebugLevel)
+	os.Exit(m.Run())
+}
 
 // func testGRPCServer(t *testing.T, n int) (storserver.StoreServer, *itsyouonline.Client, string, func()) {
 func testGRPCServer(t testing.TB, n int) ([]storserver.StoreServer, func()) {
@@ -52,29 +60,30 @@ func testGRPCServer(t testing.TB, n int) ([]storserver.StoreServer, func()) {
 	return servers, clean
 }
 
-func testIYOClient(t testing.TB) (*itsyouonline.Client, string, string, string) {
-	iyoClientID := os.Getenv("iyo_client_id")
-	iyoSecret := os.Getenv("iyo_secret")
-	iyoOrganization := os.Getenv("iyo_organization")
+func getTestClient(conf *config.Config) (*Client, error) {
 
-	if iyoClientID == "" {
-		t.Error(t, "[iyo] Missing (iyo_client_id) environement variable")
+	pubKey, err := ioutil.ReadFile("../devcert/jwt_pub.pem")
+	if err != nil {
+		return nil, err
+	}
+	jwt.SetJWTPublicKey(string(pubKey))
 
+	b, err := ioutil.ReadFile("../devcert/jwt_key.pem")
+	if err != nil {
+		return nil, err
 	}
 
-	if iyoSecret == "" {
-		t.Error(t, "[iyo] Missing (iyo_secret) environement variable")
-
+	key, err := jwtgo.ParseECPrivateKeyFromPEM(b)
+	if err != nil {
+		return nil, err
 	}
 
-	if iyoOrganization == "" {
-		t.Error(t, "[iyo] Missing (iyo_organization) environement variable")
-
+	iyoCl, err := stubs.NewStubIYOClient("testorg", key)
+	if err != nil {
+		return nil, err
 	}
 
-	iyoClient := itsyouonline.NewClient(iyoOrganization, iyoClientID, iyoSecret)
-
-	return iyoClient, iyoOrganization, iyoClientID, iyoSecret
+	return newClient(conf, iyoCl)
 }
 
 func TestRoundTripGRPC(t *testing.T) {
@@ -85,21 +94,19 @@ func TestRoundTripGRPC(t *testing.T) {
 	servers, serverClean := testGRPCServer(t, 4)
 	defer serverClean()
 
-	_, org, id, secret := testIYOClient(t)
-
 	shards := make([]string, len(servers))
 	for i, server := range servers {
 		shards[i] = server.Addr()
 	}
 
 	conf := config.Config{
-		Organization: org,
+		Organization: "testorg",
 		Namespace:    "testnamespace",
 		Protocol:     "grpc",
 		Shards:       shards,
 		MetaShards:   []string{etcd.ListenAddr()},
-		IYOAppID:     id,
-		IYOSecret:    secret,
+		IYOAppID:     "id",
+		IYOSecret:    "secret",
 	}
 
 	tt := []struct {
@@ -277,7 +284,7 @@ func TestRoundTripGRPC(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 
 			conf.Pipes = tc.pipes
-			c, err := New(&conf)
+			c, err := getTestClient(&conf)
 			require.NoError(t, err, "fail to create client")
 
 			data := make([]byte, 1024*1024)
@@ -313,27 +320,25 @@ func BenchmarkDirectWriteGRPC(b *testing.B) {
 	servers, serverClean := testGRPCServer(b, 1)
 	defer serverClean()
 
-	_, org, id, secret := testIYOClient(b)
-
 	shards := make([]string, len(servers))
 	for i, server := range servers {
 		shards[i] = server.Addr()
 	}
 
 	conf := config.Config{
-		Organization: org,
+		Organization: "testorg",
 		Namespace:    "testnamespace",
 		Protocol:     "grpc",
 		Shards:       shards,
 		MetaShards:   []string{etcd.ListenAddr()},
-		IYOAppID:     id,
-		IYOSecret:    secret,
+		IYOAppID:     "id",
+		IYOSecret:    "secret",
 	}
 
 	for _, proto := range []string{"rest", "grpc"} {
 		b.Run(proto, func(b *testing.B) {
 			conf.Protocol = proto
-			c, err := New(&conf)
+			c, err := getTestClient(&conf)
 			require.NoError(b, err, "fail to create client")
 
 			data := make([]byte, 1024*1024)

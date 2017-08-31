@@ -1,15 +1,15 @@
-organization: mordor                                # itsyou.online organization name
+organization: zaibonstor                                # itsyou.online organization name
 namespace: thedisk                                  # itsyou.online namespace
-protocol: rest
-iyo_app_id: ancd
-iyo_app_secret: defg
+protocol: grpc
+iyo_app_id: KkF4sr2RYxquXY6eZ5m1kbsGSmRQ
+iyo_app_secret: fGTtw6XpagL13fVjNpIoA_JZZuAK
 
 shards:                                             # the address(es) of 0-stor server
-    - http://127.0.0.1:12345
-    - http://127.0.0.1:12346
-    - http://127.0.0.1:12347
+    - 127.0.0.1:12345
+    - 127.0.0.1:12346
+    - 127.0.0.1:12347
 meta_shards:
-    - http://127.0.0.1:2379                         # the address(es) of etcd server
+    - http://127.0.0.1:23790                         # the address(es) of etcd server
 
 pipes:
     - name: pipe0
@@ -23,12 +23,10 @@ pipes:
           type: snappy
 
     - name: pipe2
-      type: encrypt 
+      type: encrypt
       config:
           type: aes_gcm
           privKey: ab345678901234567890123456789012
-          nonce: 123456789012
-
 
     - name: pipe3
       type: distribution
