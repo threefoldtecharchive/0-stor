@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"github.com/urfave/cli"
 	"github.com/zero-os/0-stor/client"
@@ -15,7 +16,32 @@ import (
 
 var (
 	confFile string
+
+	// CommitHash represents the Git commit hash at built time
+	CommitHash string
+	// BuildDate represents the date when this tool suite was built
+	BuildDate string
 )
+
+func outputVersion() string {
+	// Tool Version
+	version := "Version: " + "1.1.0-alpha-8"
+
+	// Build (Git) Commit Hash
+	if CommitHash != "" {
+		version += "\r\nBuild: " + CommitHash
+		if BuildDate != "" {
+			version += " " + BuildDate
+		}
+	}
+
+	// Output version and runtime information
+	return fmt.Sprintf("%s\r\nRuntime: %s %s\r\n",
+		version,
+		runtime.Version(), // Go Version
+		runtime.GOOS,      // OS Name
+	)
+}
 
 func main() {
 	var cl *client.Client
@@ -23,6 +49,7 @@ func main() {
 	var key string
 
 	app := cli.NewApp()
+	app.Version = outputVersion()
 	app.Name = "0-stor cli"
 	app.Usage = "Interact with 0-stors"
 	app.Flags = []cli.Flag{

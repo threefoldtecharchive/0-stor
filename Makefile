@@ -11,14 +11,14 @@ BUILD_DATE = $(shell date +%FT%T%z)
 SERVER_PACKAGES = $(shell go list ./server/... | grep -v vendor)
 CLIENT_PACKAGES = $(shell go list ./client/... | grep -v vendor)
 
-ldflags = -extldflags "-static" -s -w
+ldflags = -extldflags "-static" -s -w -X main.CommitHash=$(COMMIT_HASH) -X main.BuildDate=$(BUILD_DATE)
 
 all: server cli
 
 cli: $(OUTPUT)
 ifeq ($(GOOS), darwin)
 	GOOS=$(GOOS) GOARCH=$(GOARCH) \
-		go build -ldflags '$(ldflags)' -o $(OUTPUT)/zerostorcli ./client/cmd/zerostorcli
+		go build -o $(OUTPUT)/zerostorcli ./client/cmd/zerostorcli
 else
 	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) \
 		go build -ldflags '$(ldflags)' -o $(OUTPUT)/zerostorcli ./client/cmd/zerostorcli
