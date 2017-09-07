@@ -10,7 +10,6 @@ import (
 
 	"github.com/urfave/cli"
 	"github.com/zero-os/0-stor/client"
-	"github.com/zero-os/0-stor/client/config"
 	"github.com/zero-os/0-stor/client/itsyouonline"
 )
 
@@ -94,12 +93,13 @@ func main() {
 						if err != nil {
 							return cli.NewExitError(fmt.Errorf("can't read the file: %v", err), 1)
 						}
+						defer f.Close()
 
 						if key == "" {
 							key = filepath.Base(fileName)
 						}
 
-						_, err = cl.WriteF([]byte(key), f, nil, nil, nil)
+						_, err = cl.WriteF([]byte(key), f)
 						if err != nil {
 							return cli.NewExitError(fmt.Errorf("upload failed : %v", err), 1)
 						}
@@ -122,10 +122,10 @@ func main() {
 							return cli.NewExitError(fmt.Errorf("can't create output file: %v", err), 1)
 						}
 
-						_, err = cl.ReadF([]byte(key), fOutput)
-						if err != nil {
+						if err := cl.ReadF([]byte(key), fOutput); err != nil {
 							return cli.NewExitError(fmt.Errorf("download file failed: %v", err), 1)
 						}
+
 						fmt.Printf("file downloaded to %s\n", output)
 
 						return nil
@@ -307,12 +307,12 @@ func main() {
 	}
 }
 func getClient(c *cli.Context) (*client.Client, error) {
-	conf, err := readConfig()
+	policy, err := readPolicy()
 	if err != nil {
 		return nil, err
 	}
 	// create client
-	cl, err := client.New(conf)
+	cl, err := client.New(policy)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create client: %v", err)
 	}
@@ -321,20 +321,20 @@ func getClient(c *cli.Context) (*client.Client, error) {
 }
 
 func getNamespaceManager(c *cli.Context) (itsyouonline.IYOClient, error) {
-	conf, err := readConfig()
+	policy, err := readPolicy()
 	if err != nil {
 		return nil, err
 	}
 
-	return itsyouonline.NewClient(conf.Organization, conf.IYOAppID, conf.IYOSecret), nil
+	return itsyouonline.NewClient(policy.Organization, policy.IYOAppID, policy.IYOSecret), nil
 }
 
-func readConfig() (*config.Config, error) {
+func readPolicy() (client.Policy, error) {
 	// read config
 	f, err := os.Open(confFile)
 	if err != nil {
-		return nil, err
+		return client.Policy{}, err
 	}
 
-	return config.NewFromReader(f)
+	return client.NewPolicyFromReader(f)
 }

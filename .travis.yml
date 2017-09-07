@@ -8,6 +8,7 @@ matrix:
         - sudo apt install git -y
         - pip3 install pyyaml
         - pip3 install git+https://github.com/gigforks/packet-python.git
+        - curl -s https://install.zerotier.com/ | sudo bash
       before_script:
         - bash test/prepare_testing_env/run_tests.sh before
       script:
@@ -20,14 +21,14 @@ matrix:
       dist: trusty
       go: 1.9
       install: skip
-      script: cd client; bash codecov.sh
+      script: make testserverrace
 
     - language: go
       sudo: true
       dist: trusty
       go: 1.9
       install: skip
-      script: cd server; bash codecov.sh
+      script: make testclientrace
 
     - language: go
       sudo: true

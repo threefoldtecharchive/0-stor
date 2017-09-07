@@ -33,21 +33,25 @@ else
 		go build -ldflags '$(ldflags)' -o $(OUTPUT)/zerostorserver ./server
 endif
 
+install: all
+	cp $(OUTPUT)/zerostorcli $(GOPATH)/bin/zerostorcli
+	cp $(OUTPUT)/zerostorserver $(GOPATH)/bin/zerostorserver
+
 test: testserver testclient
 
 testrace: testserverrace testclientrace
 
 testserver:
-	go test -timeout $(TIMEOUT) $(SERVER_PACKAGES)
+	go test -v -timeout $(TIMEOUT) $(SERVER_PACKAGES)
 
 testclient:
-	go test -timeout $(TIMEOUT) $(CLIENT_PACKAGES)
+	go test  -v -timeout $(TIMEOUT) $(CLIENT_PACKAGES)
 
 testserverrace:
-	go test -race -timeout $(TIMEOUT) $(SERVER_PACKAGES)
+	go test  -v -race -timeout $(TIMEOUT) $(SERVER_PACKAGES)
 
 testclientrace:
-	go test -race -timeout $(TIMEOUT) $(CLIENT_PACKAGES)
+	go test  -v -race -timeout $(TIMEOUT) $(CLIENT_PACKAGES)
 
 $(OUTPUT):
 	mkdir -p $(OUTPUT)
