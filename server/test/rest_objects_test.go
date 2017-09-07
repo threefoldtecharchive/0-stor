@@ -150,7 +150,7 @@ func TestListObjects(t *testing.T) {
 
 	require.Equal(t, len(result), 3)
 	sort.Strings(result)
-	require.Equal(t, result, objects)
+	require.EqualValues(t, objects, result)
 }
 
 func TestDeleteObject(t *testing.T) {

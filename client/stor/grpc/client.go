@@ -166,5 +166,5 @@ func (c *client) ReferenceUpdate(id []byte, refList []string) error {
 
 func ctxWithJWT(jwt string) context.Context {
 	md := metadata.Pairs("authorization", jwt)
-	return metadata.NewContext(context.Background(), md)
+	return metadata.NewOutgoingContext(context.Background(), md)
 }

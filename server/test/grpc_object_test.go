@@ -41,7 +41,7 @@ func TestListObject(t *testing.T) {
 		require.NoError(t, err, "fail to generate jwt")
 
 		md := metadata.Pairs("authorization", jwt)
-		ctx := metadata.NewContext(context.Background(), md)
+		ctx := metadata.NewOutgoingContext(context.Background(), md)
 
 		stream, err := cl.List(ctx, &pb.ListObjectsRequest{Label: namespace})
 		require.NoError(t, err, "can't send list request to server")
@@ -58,9 +58,9 @@ func TestListObject(t *testing.T) {
 			}
 
 			objNr++
-			key := []byte(fmt.Sprintf("testkey%d", i))
-			assert.Equal(t, key, obj.GetKey())
-			assert.Equal(t, bufList[i], obj.GetValue())
+			expectedValue, ok := bufList[string(obj.Key)]
+			require.True(t, ok, fmt.Sprintf("received key that was not present in db %s", obj.GetKey()))
+			assert.EqualValues(t, expectedValue, obj.GetValue())
 		}
 		assert.Equal(t, len(bufList), objNr)
 	})
@@ -72,7 +72,7 @@ func TestListObject(t *testing.T) {
 		require.NoError(t, err, "fail to generate jwt")
 
 		md := metadata.Pairs("authorization", jwt)
-		ctx := metadata.NewContext(context.Background(), md)
+		ctx := metadata.NewOutgoingContext(context.Background(), md)
 
 		stream, err := cl.List(ctx, &pb.ListObjectsRequest{Label: namespace})
 		require.NoError(t, err, "failed to call List")
@@ -97,7 +97,7 @@ func TestListObject(t *testing.T) {
 		require.NoError(t, err, "fail to generate jwt")
 
 		md := metadata.Pairs("authorization", jwt)
-		ctx := metadata.NewContext(context.Background(), md)
+		ctx := metadata.NewOutgoingContext(context.Background(), md)
 
 		stream, err := cl.List(ctx, &pb.ListObjectsRequest{Label: namespace})
 		require.NoError(t, err, "failed to call List")
@@ -147,7 +147,7 @@ func TestCheckObject(t *testing.T) {
 
 	for _, tc := range tt {
 		md := metadata.Pairs("authorization", jwt)
-		ctx := metadata.NewContext(context.Background(), md)
+		ctx := metadata.NewOutgoingContext(context.Background(), md)
 
 		stream, err := cl.Check(ctx, &pb.CheckRequest{
 			Label: namespace,

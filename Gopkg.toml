@@ -90,8 +90,8 @@
   version = "1.1.4"
 
 [[constraint]]
-  branch = "master"
   name = "github.com/templexxx/reedsolomon"
+  revision = "0a1f6992d698b8e97bd97cbbd51fdac317959741"
 
 [[constraint]]
   name = "github.com/urfave/cli"
@@ -103,7 +103,7 @@
 
 [[constraint]]
   name = "google.golang.org/grpc"
-  version = "1.5.2"
+  version = "=1.5.2"
 
 [[constraint]]
   branch = "v2"

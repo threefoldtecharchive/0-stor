@@ -44,7 +44,9 @@ func (mgr *ObjectManager) List(start, count int) ([][]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	for _, key := range keys {
+		fmt.Println(string(key))
+	}
 	// remove namespace prefix
 	for i := range keys {
 		keys[i] = keys[i][len(mgr.namespace)+1:]

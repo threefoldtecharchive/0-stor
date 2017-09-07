@@ -99,25 +99,26 @@ func getIYOClient(t testing.TB) (stubs.IYOClient, string) {
 	return jwtCreater, organization
 }
 
-func populateDB(t *testing.T, namespace string, db db.DB) [][]byte {
+func populateDB(t *testing.T, namespace string, db db.DB) map[string][]byte {
 	nsMgr := manager.NewNamespaceManager(db)
 	objMgr := manager.NewObjectManager(namespace, db)
 	err := nsMgr.Create(namespace)
 	require.NoError(t, err)
 
-	bufList := make([][]byte, 10)
+	bufList := make(map[string][]byte, 10)
 
 	for i := 0; i < 10; i++ {
-		bufList[i] = make([]byte, 1024*1024)
-		_, err = rand.Read(bufList[i])
+		key := fmt.Sprintf("testkey%d", i)
+		bufList[key] = make([]byte, 1024*1024)
+
+		_, err = rand.Read(bufList[key])
 		require.NoError(t, err)
 
 		refList := []string{
 			"user1", "user2",
 		}
-		key := fmt.Sprintf("testkey%d", i)
 
-		err = objMgr.Set([]byte(key), bufList[i], refList)
+		err = objMgr.Set([]byte(key), bufList[key], refList)
 		require.NoError(t, err)
 	}
 
