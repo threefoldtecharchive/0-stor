@@ -207,28 +207,26 @@ func (c *Client) writeFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMet
 			chunk.Size = uint64(len(block))
 		}
 
-		if c.policy.ReplicationMaxSize > 0 && len(block) <= c.policy.ReplicationMaxSize {
+		switch {
+		case c.policy.ReplicationEnabled(len(block)):
 			usedShards, err = c.replicateWrite(chunkKey, block, []string{})
 			if err != nil {
 				return nil, err
 			}
-			chunk.Size = uint64(len(block))
-
-		} else if c.policy.DistributionNr > 0 && c.policy.DistributionRedundancy > 0 {
+		case c.policy.DistributionEnabled():
 			usedShards, _, err = c.distributeWrite(chunkKey, block, []string{})
 			if err != nil {
 				return nil, err
 			}
-			chunk.Size = uint64(len(block))
-		} else {
+		default:
 			shard, err := c.writeRandom(chunkKey, block, []string{})
 			if err != nil {
 				return nil, err
 			}
 			usedShards = []string{shard}
-			chunk.Size = uint64(len(block))
 		}
 
+		chunk.Size = uint64(len(block))
 		chunk.Shards = usedShards
 		md.Chunks = append(md.Chunks, chunk)
 	}
@@ -295,21 +293,22 @@ func (c *Client) readFWithMeta(md *meta.Meta, w io.Writer) error {
 
 	for _, chunk := range md.Chunks {
 
-		if c.policy.ReplicationMaxSize > 0 && chunk.Size <= uint64(c.policy.ReplicationMaxSize) {
+		switch {
+		case c.policy.ReplicationEnabled(int(chunk.Size)):
 			block, err = c.replicateRead(chunk.Key, chunk.Shards)
 			if err != nil {
 				return err
 			}
-
-		} else if c.policy.DistributionNr > 0 && c.policy.DistributionRedundancy > 0 {
+		case c.policy.DistributionEnabled():
 			block, err = c.distributeRead(chunk.Key, int(chunk.Size), chunk.Shards)
 			if err != nil {
 				return err
 			}
-		} else {
+		default:
 			if len(chunk.Shards) <= 0 {
-				panic("metadata corrupted, can't have a chunk without shard")
+				return fmt.Errorf("metadata corrupted, can't have a chunk without shard")
 			}
+
 			block, err = c.read(chunk.Key, chunk.Shards[0])
 			if err != nil {
 				return err

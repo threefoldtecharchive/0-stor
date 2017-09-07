@@ -64,6 +64,17 @@ type Policy struct {
 	EncryptKey string `yaml:"encrypt_key"`
 }
 
+// ReplicationEnabled return true if replication is set to true and the blockSize is
+// smaller then ReplicationMaxSize
+func (p Policy) ReplicationEnabled(blockSize int) bool {
+	return p.ReplicationMaxSize > 0 && blockSize <= p.ReplicationMaxSize
+}
+
+// DistributionEnabled is a helper that check if the distribution is enable in the policy
+func (p Policy) DistributionEnabled() bool {
+	return p.DistributionNr > 0 && p.DistributionRedundancy > 0
+}
+
 // NewPolicyFromReader creates Policy from a reader
 func NewPolicyFromReader(r io.Reader) (Policy, error) {
 	policy := Policy{}
