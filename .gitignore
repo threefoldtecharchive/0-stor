@@ -48,8 +48,6 @@ server/server
 client/cmd/zerostorcli/zerostorcli
 coverage.txt
 
-utils/test_setup
-
 bin
 .db
 
