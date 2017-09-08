@@ -1,18 +1,9 @@
 ## Installation
 
-The server is go-getable :
+The server is go-getable:
 ```
-go get -u github.com/zero-os/0-stor/server
+go get -u github.com/zero-os/0-stor/cmd/zerostorserver
 ```
-This will create `$GOPATH/bin/server`
-
-
-Since server is not really explicty the recommended method to build is to use the makefile at the root of the repository
-
-```shell
-make server
-```
-This will create `$GOPATH/github.com/zero-os/0-stor/bin/zerostorserver`
 
 
 ## Running the server
