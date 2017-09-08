@@ -1,7 +1,7 @@
 What is 0-stor
 ==============
 
-- 0-stor is a simple object store where you can save/retrieve small files
+- 0-stor is a simple object store where you can save/retrieve files
 in an efficient manner.
 - It's designed to leverage the power of [Badger](https://github.com/dgraph-io/badger) A key value store
 that works very fast on SSD hard disks.You can read more about Badger [here](https://open.dgraph.io/post/badger/)
