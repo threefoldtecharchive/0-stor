@@ -1,4 +1,4 @@
-# 0-store test suite
+# 0-stor test suite
 
 ## Test suite architecture:
 ```bash
