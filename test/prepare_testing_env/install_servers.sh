@@ -17,7 +17,7 @@ start_etcd_server(){
 }
 
 start_zerostor_server(){
-    docker exec -it ${1} bash -c "tmux new -d -s zerostor /gopath/src/github.com/zero-os/0-stor/server/server"
+    docker exec -it ${1} bash -c "tmux new -d -s zerostorserver /gopath/src/github.com/zero-os/0-stor/server/server"
 }
 
 get_server_ip(){
