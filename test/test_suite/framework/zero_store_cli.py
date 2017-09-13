@@ -1,5 +1,5 @@
 from termcolor import colored
-import subprocess
+import subprocess, time
 
 
 class ZeroStoreCLI():

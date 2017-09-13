@@ -12,8 +12,6 @@ import os
 
 class TestcasesBase(TestCase):
     created_files_info = {}
-    uploaded_files_info = {}
-    downloaded_files_info = {}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -21,9 +19,11 @@ class TestcasesBase(TestCase):
         self.lg = self.utiles.logging
 
         self.zero_store_cli = ZeroStoreCLI()
-        gopath = os.environ.get('GOPATH', '/gopath')
-        self.default_config_path = '{gopath}/src/github.com/zero-os/0-stor/client/cmd/zerostorcli/config.yaml'.format(gopath=gopath)
 
+        self.default_config_path = config['main']['default_config_path']
+        # if not self.default_config_path:
+        #     gopath = os.environ.get('GOPATH', '/gopath')
+        #     self.default_config_path = '{gopath}/src/github.com/zero-os/0-stor/client/cmd/zerostorcli/config.yaml'.format(gopath=gopath)
         self.number_of_servers = int(config['main']['number_of_servers'])
         self.number_of_files = int(config['main']['number_of_files'])
 
@@ -36,10 +36,14 @@ class TestcasesBase(TestCase):
         self.upload_queue_result = queue.Queue()
         self.download_queue_result = queue.Queue()
 
+        self.uploaded_files_info = {}
+        self.downloaded_files_info = {}
+
     @classmethod
     def setUpClass(cls):
         self = cls()
         self.create_files(self.number_of_files)
+        print(' [*] DEFAULT CONFIG PATH : %s ' % config['main']['default_config_path'])
 
     def setUp(self):
         self._testID = self._testMethodName
@@ -50,16 +54,18 @@ class TestcasesBase(TestCase):
 
         signal.signal(signal.SIGALRM, timeout_handler)
         signal.alarm(600)
+        print('\n')
 
     def create_files(self, number_of_files):
         self.execute_shell_commands(cmd='rm -rf /tmp/upload; rm -rf /tmp/download')
         self.execute_shell_commands(cmd='mkdir -p /tmp/upload; mkdir -p /tmp/download')
         for i in range(0, number_of_files):
-            file_size = random.randint(1024, 1024 * 1024)
+            file_size = random.randint(1024, 10 * 1024)
             file_path = '/tmp/upload/upload_file_%d' % random.randint(1, 1000)
 
-            with open(file_path, 'w') as file:
-                file.write(str(random.randint(0, 9)) * file_size)
+            with open(file_path, 'wb') as file:
+                file.write(os.urandom(file_size))
+
             file_md5 = self.md5sum(file_path=file_path)
             TestcasesBase.created_files_info['id_%d' % i] = {'path': file_path,
                                                              'size': file_size,
@@ -177,8 +183,8 @@ class TestcasesBase(TestCase):
         for i in range(0, number_of_threads):
             thread = threading.Thread(target=self.writer_work)
             thread.start()
-            TestcasesBase.uploaded_files_info[jobs_queue[i]['id']]['thread'] = thread
-        return TestcasesBase.uploaded_files_info
+            self.uploaded_files_info[jobs_queue[i]['id']]['thread'] = thread
+        return self.uploaded_files_info
 
     def writer_work(self):
         while not self.writer_jobs.empty():
@@ -190,10 +196,10 @@ class TestcasesBase(TestCase):
         self.writer_jobs.put({'id': job_id,
                               'file_path': file_info['path'],
                               'config_path': config_path})
-        TestcasesBase.uploaded_files_info.update({job_id: {'path': file_info['path'],
-                                                           'config_path': config_path,
-                                                           'size': file_info['size'],
-                                                           'md5': file_info['md5']}})
+        self.uploaded_files_info.update({job_id: {'path': file_info['path'],
+                                                  'config_path': config_path,
+                                                  'size': file_info['size'],
+                                                  'md5': file_info['md5']}})
 
     def create_job_id(self, job_ids_list):
         while True:
@@ -205,19 +211,19 @@ class TestcasesBase(TestCase):
         """
             This method block into threads and update uploaded_file_info with key
         """
-        for job_id in TestcasesBase.uploaded_files_info:
-            thread = TestcasesBase.uploaded_files_info[job_id]['thread']
+        for job_id in self.uploaded_files_info:
+            thread = self.uploaded_files_info[job_id]['thread']
             thread.join()
             upload_queue_list = list(self.upload_queue_result.queue)
             for data in upload_queue_list:
                 if data['job_id'] == job_id:
-                    TestcasesBase.uploaded_files_info[job_id]['key'] = data['uploaded_key']
+                    self.uploaded_files_info[job_id]['key'] = data['uploaded_key']
                     break
             else:
-                TestcasesBase.uploaded_files_info[job_id]['key'] = 'ERROR! : upload_queue does not have this key'
+                self.uploaded_files_info[job_id]['key'] = 'ERROR! : upload_queue does not have this key'
 
     def default_reader(self):
-        return self.reader(uploaded_files_info=TestcasesBase.uploaded_files_info)
+        return self.reader(uploaded_files_info=self.uploaded_files_info)
 
     def reader(self, uploaded_files_info, number_of_threads=1):
         """
@@ -243,8 +249,8 @@ class TestcasesBase(TestCase):
         for i in range(0, number_of_threads):
             thread = threading.Thread(target=self.reader_work)
             thread.start()
-            TestcasesBase.downloaded_files_info[jobs_queue[i]['id']]['d_info']['thread'] = thread
-        return TestcasesBase.downloaded_files_info
+            self.downloaded_files_info[jobs_queue[i]['id']]['d_info']['thread'] = thread
+        return self.downloaded_files_info
 
     def reader_work(self):
         while not self.reader_jobs.empty():
@@ -257,35 +263,36 @@ class TestcasesBase(TestCase):
                               'key': uploader_file_info['key'],
                               'config_path': uploader_file_info['config_path'],
                               'result': '/tmp/download/' + str(job_id)})
-        TestcasesBase.downloaded_files_info.update({job_id: {'u_info': {'uploaded_job_id': uploader_job_id,
-                                                                        'key': uploader_file_info['key'],
-                                                                        'md5': uploader_file_info['md5'],
-                                                                        'size': uploader_file_info['size']},
-                                                             'd_info': {}
-                                                             }
-                                                    })
+        self.downloaded_files_info.update({job_id: {'u_info': {'uploaded_job_id': uploader_job_id,
+                                                               'key': uploader_file_info['key'],
+                                                               'md5': uploader_file_info['md5'],
+                                                               'size': uploader_file_info['size']},
+                                                    'd_info': {'md5': ''}
+                                                    }
+                                           })
 
     def get_download_files_paths_from_threads(self):
         """
             This method block into threads and update downloaded_files_info with result
         """
-        for job_id in TestcasesBase.downloaded_files_info:
-            thread = TestcasesBase.downloaded_files_info[job_id]['d_info']['thread']
+        for job_id in self.downloaded_files_info:
+            thread = self.downloaded_files_info[job_id]['d_info']['thread']
             thread.join()
-            dowhload_queue_list = list(self.download_queue_result.queue)
-            for data in dowhload_queue_list:
+            download_queue_list = list(self.download_queue_result.queue)
+            for data in download_queue_list:
                 if data['job_id'] == job_id:
                     if "ERROR" in data['downloaded_path']:
-                        TestcasesBase.downloaded_files_info[job_id]['d_info']['path'] = data['downloaded_path']
-                        TestcasesBase.downloaded_files_info[job_id]['d_info']['md5'] = '000000000000000000000000000000'
+                        self.downloaded_files_info[job_id]['d_info']['path'] = data['downloaded_path']
+                        self.downloaded_files_info[job_id]['d_info']['md5'] = 'There is no file!'
                     else:
-                        TestcasesBase.downloaded_files_info[job_id]['d_info']['path'] = data['downloaded_path']
-                        TestcasesBase.downloaded_files_info[job_id]['d_info']['md5'] = self.md5sum(
+                        self.downloaded_files_info[job_id]['d_info']['path'] = data['downloaded_path']
+                        self.downloaded_files_info[job_id]['d_info']['md5'] = self.md5sum(
                             file_path=data['downloaded_path'])
                     break
             else:
-                TestcasesBase.downloaded_files_info[job_id]['d_info'][
+                self.downloaded_files_info[job_id]['d_info'][
                     'path'] = 'ERROR! : download queue does not have this key'
+                self.downloaded_files_info[job_id]['md5'] = 'There is no file!'
 
     def check_md5(self, downloaded_files_info):
         print(colored(' [*] Compare downloaded files with uploaded files.', 'white'))
@@ -299,6 +306,8 @@ class TestcasesBase(TestCase):
                                                   'md5': downloaded_files_info[id]['u_info']['md5']
                                                   }
                                        }
+        if corrupted_files:
+            self.utiles.print_pretty_dict(dict=corrupted_files, color='red')
         return corrupted_files
 
     def get_random_file_to_upload(self):
@@ -314,6 +323,12 @@ class TestcasesBase(TestCase):
         # else:
         #     print(colored(" [*] OK.", 'green'))
         return out.decode('utf-8'), error.decode('utf-8')
+
+    def return_random_dict_elemnt(self, source_dict):
+        result = {}
+        random_key = random.choice(list(source_dict.keys()))
+        result[random_key] = source_dict[random_key]
+        return result
 
 
 class Utiles:
@@ -332,3 +347,11 @@ class Utiles:
     def print_pretty_dict(self, dict, color):
         print('\n')
         print(colored(json.dumps(dict, sort_keys=True, indent=4), color))
+
+    def get_random_size(self, type):
+        if type == 'small':
+            return 2 ** random.randint(4, 11)
+        elif type == 'medium':
+            return 2 ** random.randint(10, 14)
+        elif type == 'medium':
+            return 2 ** random.randint(14, 20)

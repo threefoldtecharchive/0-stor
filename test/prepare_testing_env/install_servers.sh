@@ -1,7 +1,7 @@
 NUMBER_OF_SERVERS=${1:-1}
 ZT_NT=$2
 ZT_TOKEN=$3
-ZERO_STORE_BRANCH=$4
+ZERO_STORE_SERVER_BRANCH=$4
 
 install_requirements(){
     apt update
@@ -17,7 +17,7 @@ start_etcd_server(){
 }
 
 start_zerostor_server(){
-    docker exec -it ${1} bash -c "tmux new -d -s zerostor /gopath/src/github.com/zero-os/0-stor/server/server"
+    docker exec -it ${1} bash -c "tmux new -d -s zerostorserver zerostorserver --interface grpc"
 }
 
 get_server_ip(){
@@ -43,7 +43,7 @@ docker start basic-image
 docker cp docker_script.sh basic-image:/docker_script.sh
 SSH_KEY=$(cat ~/.ssh/id_rsa.pub)
 docker exec -it basic-image bash -c "mkdir ~/.ssh && echo ${SSH_KEY} >> ~/.ssh/authorized_keys"
-docker exec -it basic-image bash -c "bash docker_script.sh ${ZERO_STORE_BRANCH}"
+docker exec -it basic-image bash -c "bash docker_script.sh ${ZERO_STORE_SERVER_BRANCH}"
 docker commit basic-image zerostorserver-image
 
 # create zerostor servers
@@ -58,6 +58,7 @@ do
     docker exec -d ${SERVER_NAME} bash -c "zerotier-one -d"; sleep 5
     join_zerotier_network ${SERVER_NAME}; sleep 5
     echo $(get_server_ip ${SERVER_NAME}) >> servers_ips
-    start_etcd_server ${SERVER_NAME}
     start_zerostor_server ${SERVER_NAME}
 done
+echo $(get_server_ip "zerostorserver-1") > etcd_ip
+start_etcd_server "zerostorserver-1"

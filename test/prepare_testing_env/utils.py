@@ -1,5 +1,6 @@
 import packet, yaml, sys, random, json, time, os, requests
 
+
 def create_zerotier_network():
     zt_token = os.environ['zerotier_token']
     session = requests.Session()
@@ -16,6 +17,7 @@ def create_zerotier_network():
     zerotier_network_id = response.json()['id']
     return zerotier_network_id
 
+
 def add_public_key():
     ssh_path = os.path.expanduser('~') + '/.ssh/id_rsa.pub'
     with open(ssh_path, 'r') as f:
@@ -24,6 +26,7 @@ def add_public_key():
     label = environment_id
     ssh_key = packet_manager.create_ssh_key(label=label, public_key=public_key)
     save_config(ssh_key_id=ssh_key.id)
+
 
 def create_new_device(hostname, plan, operating_system, facility):
     project = packet_manager.list_projects()[0]
@@ -34,6 +37,7 @@ def create_new_device(hostname, plan, operating_system, facility):
                                           facility=facility)
     return device
 
+
 def get_available_facility(plan):
     facilities = [x.code for x in packet_manager.list_facilities()]
     for facility in facilities:
@@ -42,24 +46,27 @@ def get_available_facility(plan):
     else:
         return None
 
+
 def delete_public_key(ssh_key_id):
     packet_manager.call_api('ssh-keys/%s' % ssh_key_id, type='DELETE')
 
+
 def delete_devices(device_id):
     packet_manager.call_api('devices/%s' % device_id, type='DELETE')
-    
-def update_config_file(servers_ips, iyo_client_id, iyo_secret, iyo_org, iyo_namespace):
+
+
+def update_config_file(servers_ips, iyo_client_id, iyo_secret, iyo_org, iyo_namespace, etcd_ip):
     config_path = '/gopath/src/github.com/zero-os/0-stor/client/cmd/zerostorcli/config.yaml'
     with open(config_path, 'r') as f:
         config = yaml.load(f)
 
-    config['shards'] = ['http://{}:8080'.format(x) for x in servers_ips]
-    config['meta_shards'] = ['http://{}:2379'.format(x) for x in servers_ips]
+    config['data_shards'] = ['{}:8080'.format(x) for x in servers_ips]
+    config['meta_shards'] = ['http://{}:2379'.format(etcd_ip)]
     config['iyo_app_id'] = iyo_client_id
     config['iyo_app_secret'] = iyo_secret
     config['organization'] = iyo_org
     config['namespace'] = iyo_namespace
-    config['protocol'] = 'rest'
+    config['protocol'] = 'grpc'
 
     with open(config_path, 'w') as f:
         yaml.dump(config, f, default_flow_style=False)
@@ -83,7 +90,7 @@ if __name__ == '__main__':
     action = sys.argv[1]
     environment_id = 'travis-zerostor-{}'.format(os.environ['TRAVIS_BUILD_NUMBER'])
     packet_manager = packet.Manager(auth_token=os.environ['packet_token'])
-    
+
     if action == 'create_network':
         zerotier_network_id = create_zerotier_network()
         print(zerotier_network_id)
@@ -127,7 +134,8 @@ if __name__ == '__main__':
         iyo_client_secret = sys.argv[4]
         iyo_organization = sys.argv[5]
         iyo_namespace = sys.argv[6]
-        update_config_file(servers_ips, iyo_client_id, iyo_client_secret, iyo_organization, iyo_namespace)
+        etcd_ip = sys.argv[7].splitlines()[0]
+        update_config_file(servers_ips, iyo_client_id, iyo_client_secret, iyo_organization, iyo_namespace, etcd_ip)
 
     elif action == 'teardown':
         config = read_config()

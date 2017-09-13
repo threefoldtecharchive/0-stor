@@ -1,4 +1,4 @@
-ZERO_STORE_BRANCH=$1
+ZERO_STORE_SERVER_BRANCH=$1
 
 install_requirements(){
     apt update
@@ -16,7 +16,7 @@ install_golang(){
 }
 
 install_etcd(){
-    ETCD_VER=v3.2.6
+    ETCD_VER=v3.2.7
     GOOGLE_URL=https://storage.googleapis.com/etcd
     GITHUB_URL=https://github.com/coreos/etcd/releases/download
     DOWNLOAD_URL=${GOOGLE_URL}
@@ -30,11 +30,13 @@ install_etcd(){
 }
 
 install_zerostor(){
-    go get -d github.com/zero-os/0-stor/server
-    cd /gopath/src/github.com/zero-os/0-stor/
-    git checkout ${ZERO_STORE_BRANCH}
-    cd server/
-    go build
+    go get -d github.com/zero-os/0-stor/cmd/zerostorserver
+    cd /gopath/src/github.com/zero-os/0-stor/cmd/zerostorserver
+    git checkout ${ZERO_STORE_SERVER_BRANCH}
+    git pull
+    go build .
+    chmod -R 777 /gopath
+    ln -sf /gopath/src/github.com/zero-os/0-stor/cmd/zerostorserver/zerostorserver /bin/zerostorserver
 }
 
 echo "[*] Installing Requirements"

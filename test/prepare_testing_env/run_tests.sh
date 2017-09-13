@@ -18,14 +18,17 @@ install_client(){
     echo "export PATH=/usr/local/go/bin:$PATH" >> ~/.bash_profile
 
     source ~/.bash_profile
-    go get -d github.com/zero-os/0-stor/client/cmd/zerostorcli
-    cd /gopath/src/github.com/zero-os/0-stor/client/cmd/zerostorcli
+    mkdir -p /gopath/src/github.com
+    cp -r /home/travis/build/zero-os /gopath/src/github.com
+    cd /gopath/src/github.com/zero-os/0-stor
     git checkout ${ZERO_STOR_CLIENT_BRANCH}
+    git pull
     echo " [*] Install zerostor client from branch : ${ZERO_STOR_CLIENT_BRANCH}"
-    go build .
+    make cli
     chmod -R 777 /gopath
-    ln -sf /gopath/src/github.com/zero-os/0-stor/client/cmd/zerostorcli/zerostorcli /bin/zerostorcli
+    ln -sf /gopath/src/github.com/zero-os/0-stor/bin/zerostorcli /bin/zerostorcli
     hash -r
+    zerostorcli --version
 }
 
 join_zerotier_network(){
@@ -64,11 +67,12 @@ if [ "$TRAVIS_EVENT_TYPE" == "cron" ] || [ "$TRAVIS_EVENT_TYPE" == "api" ]
 
             echo "[*] Create servers on packet machine"
             scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null test/prepare_testing_env/install_servers.sh test/prepare_testing_env/docker_script.sh root@${packet_machien_ip}:
-            ssh -t -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${packet_machien_ip} "bash install_servers.sh ${number_of_servers} ${zerotier_network} ${zerotier_token} ${ZERO_STORE_BRANCH}"
+            ssh -t -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${packet_machien_ip} "bash install_servers.sh ${number_of_servers} ${zerotier_network} ${zerotier_token} ${ZERO_STORE_SERVER_BRANCH}"
             servers_ips=$(ssh -t -oStrictHostKeyChecking=no root@${packet_machien_ip} cat servers_ips)
             echo "${servers_ips}"
-            python3 test/prepare_testing_env/utils.py update_config "${servers_ips}" ${iyo_client_id} ${iyo_secret} ${iyo_organization} ${iyo_namespace}
-            cat /gopath/src/github.com/zero-os/0-stor/client/cmd/zerostorcli/config.yaml
+            etcd_ip=$(ssh -t -oStrictHostKeyChecking=no root@${packet_machien_ip} cat etcd_ip)
+            python3 test/prepare_testing_env/utils.py update_config "${servers_ips}" ${iyo_client_id} ${iyo_secret} ${iyo_organization} ${iyo_namespace} ${etcd_ip}
+            cat /gopath/src/github.com/zero-os/0-stor/cmd/zerostorcli/config.yaml
 
             echo "[*] Install test suite's requirements"
             pip3 install -r test/prepare_testing_env/requirements.txt
@@ -77,7 +81,7 @@ if [ "$TRAVIS_EVENT_TYPE" == "cron" ] || [ "$TRAVIS_EVENT_TYPE" == "api" ]
 
             echo " [*] Execute test case"
             cat /gopath/src/github.com/zero-os/0-stor/client/cmd/zerostorcli/config.yaml
-            cd test && export PYTHONPATH='./' && nosetests-3.4 -vs $TEST_CASE --tc-file test_suite/config.ini --tc=main.number_of_servers:${number_of_servers} --tc=main.number_of_files:${number_of_files}
+            cd test && export PYTHONPATH='./' && nosetests-3.4 -vs $TEST_CASE --tc-file test_suite/config.ini --tc=main.number_of_servers:${number_of_servers} --tc=main.number_of_files:${number_of_files} --tc=main.default_config_path:${default_config_path}
 
         elif [ "$action" == "after" ]; then
             python3 test/prepare_testing_env/utils.py teardown

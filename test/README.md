@@ -42,3 +42,12 @@ pip3 install -r prepare_testing_env/requirements.txt
 export PYTHONPATH='./'
 nosetests-3.4 -vs test_suite/test_cases --tc-file test_suite/config.ini
 ```
+
+## Config file:
+There are three parameters in the config file which should be configured before the execution. If you trigger the test suite through the Travis, there are  Travis parameters to overwrite the default values of those parameter other wise, you can change them as a nosetests parameter.
+
+Example: 
+```bash
+nosetests-3.4 -vs test_suite/test_cases/basic_tests/test01_upload_download.py:UploadDownload.test001_upload_file --tc-file test_suite/config.ini --tc=main.number_of_files:60
+````
+This command will execute the test001_update_file test case with number_of_files=60
