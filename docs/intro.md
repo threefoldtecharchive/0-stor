@@ -5,9 +5,7 @@ What is 0-stor
 in an efficient manner.
 - It's designed to leverage the power of [Badger](https://github.com/dgraph-io/badger) A key value store
 that works very fast on SSD hard disks.You can read more about Badger [here](https://open.dgraph.io/post/badger/)
-- 0-stor provides 2 interfaces
-    - REST/HTTP interface
-    - [GRPC](https://grpc.io/) interface
+- 0-stor use [GRPC](https://grpc.io/)
 - 0-stor depends on [iyo](https://itsyou.online/) for:
     - Authentication & Authorization
     - Every 0-stor collection is tied to an existing [iyo](https://itsyou.online/) organization

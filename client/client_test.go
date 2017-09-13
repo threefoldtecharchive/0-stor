@@ -13,13 +13,13 @@ import (
 
 	jwtgo "github.com/dgrijalva/jwt-go"
 	"github.com/zero-os/0-stor/client/meta/embedserver"
+	"github.com/zero-os/0-stor/server"
 	"github.com/zero-os/0-stor/stubs"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/zero-os/0-stor/server/jwt"
-	"github.com/zero-os/0-stor/server/storserver"
 )
 
 func TestMain(m *testing.M) {
@@ -34,8 +34,8 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func testGRPCServer(t testing.TB, n int) ([]storserver.StoreServer, func()) {
-	servers := make([]storserver.StoreServer, n)
+func testGRPCServer(t testing.TB, n int) ([]server.StoreServer, func()) {
+	servers := make([]server.StoreServer, n)
 	dirs := make([]string, n)
 
 	for i := 0; i < n; i++ {
@@ -44,7 +44,7 @@ func testGRPCServer(t testing.TB, n int) ([]storserver.StoreServer, func()) {
 		require.NoError(t, err)
 		dirs[i] = tmpDir
 
-		server, err := storserver.NewGRPC(path.Join(tmpDir, "data"), path.Join(tmpDir, "meta"))
+		server, err := server.NewGRPC(path.Join(tmpDir, "data"), path.Join(tmpDir, "meta"))
 		require.NoError(t, err)
 
 		_, err = server.Listen("localhost:0")
@@ -101,7 +101,6 @@ func TestRoundTripGRPC(t *testing.T) {
 	policy := Policy{
 		Organization: "testorg",
 		Namespace:    "namespace1",
-		Protocol:     "grpc",
 		DataShards:   shards,
 		MetaShards:   []string{etcd.ListenAddr()},
 		IYOAppID:     "id",
@@ -276,7 +275,6 @@ func TestMultipleDownload(t *testing.T) {
 	policy := Policy{
 		Organization:           "testorg",
 		Namespace:              "namespace1",
-		Protocol:               "grpc",
 		DataShards:             shards,
 		MetaShards:             []string{etcd.ListenAddr()},
 		IYOAppID:               "id",
@@ -329,7 +327,6 @@ func TestConcurentWriteRead(t *testing.T) {
 	policy := Policy{
 		Organization:           "testorg",
 		Namespace:              "namespace1",
-		Protocol:               "grpc",
 		DataShards:             shards,
 		MetaShards:             []string{etcd.ListenAddr()},
 		IYOAppID:               "id",
@@ -401,7 +398,6 @@ func BenchmarkWriteFilesSizes(b *testing.B) {
 	policy := Policy{
 		Organization:           "testorg",
 		Namespace:              "namespace1",
-		Protocol:               "grpc",
 		DataShards:             shards,
 		MetaShards:             []string{etcd.ListenAddr()},
 		IYOAppID:               "id",
@@ -477,7 +473,7 @@ func BenchmarkWriteFilesSizes(b *testing.B) {
 // 	conf := config.Config{
 // 		Organization: "testorg",
 // 		Namespace:    "testnamespace",
-// 		Protocol:     "grpc",
+//
 // 		Shards:       shards,
 // 		MetaShards:   []string{etcd.ListenAddr()},
 // 		IYOAppID:     "id",
@@ -486,7 +482,6 @@ func BenchmarkWriteFilesSizes(b *testing.B) {
 
 // 	for _, proto := range []string{"rest", "grpc"} {
 // 		b.Run(proto, func(b *testing.B) {
-// 			conf.Protocol = proto
 // 			c, err := getTestClient(&conf)
 // 			require.NoError(b, err, "fail to create client")
 

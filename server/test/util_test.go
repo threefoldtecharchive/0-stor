@@ -4,22 +4,17 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io/ioutil"
-	"net/http/httptest"
 	"os"
 	"path"
 	"testing"
 
 	log "github.com/Sirupsen/logrus"
 	jwtgo "github.com/dgrijalva/jwt-go"
-	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/require"
-	"github.com/zero-os/0-stor/client/itsyouonline"
-	"github.com/zero-os/0-stor/server/api/rest"
+	"github.com/zero-os/0-stor/server"
 	"github.com/zero-os/0-stor/server/db"
-	"github.com/zero-os/0-stor/server/db/badger"
 	"github.com/zero-os/0-stor/server/jwt"
 	"github.com/zero-os/0-stor/server/manager"
-	"github.com/zero-os/0-stor/server/storserver"
 	"github.com/zero-os/0-stor/stubs"
 )
 
@@ -28,43 +23,11 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func getTestRestAPI(t *testing.T) (string, db.DB, string, stubs.IYOClient, map[string]itsyouonline.Permission, func()) {
-
+func getTestGRPCServer(t *testing.T) (server.StoreServer, stubs.IYOClient, string, func()) {
 	tmpDir, err := ioutil.TempDir("", "0stortest")
 	require.NoError(t, err)
 
-	db, err := badger.New(path.Join(tmpDir, "data"), path.Join(tmpDir, "meta"))
-	if err != nil {
-		require.NoError(t, err)
-	}
-
-	r := mux.NewRouter()
-	api := rest.NewNamespaceAPI(db)
-	rest.NamespacesInterfaceRoutes(r, api, db)
-	srv := httptest.NewServer(r)
-
-	clean := func() {
-		os.RemoveAll(tmpDir)
-		srv.Close()
-	}
-
-	iyoCl, organization := getIYOClient(t)
-
-	permissions := make(map[string]itsyouonline.Permission)
-
-	permissions["read"] = itsyouonline.Permission{Read: true}
-	permissions["all"] = itsyouonline.Permission{Read: true, Write: true, Delete: true}
-	permissions["write"] = itsyouonline.Permission{Write: true}
-	permissions["delete"] = itsyouonline.Permission{Delete: true}
-
-	return srv.URL, db, organization, iyoCl, permissions, clean
-}
-
-func getTestGRPCServer(t *testing.T) (storserver.StoreServer, stubs.IYOClient, string, func()) {
-	tmpDir, err := ioutil.TempDir("", "0stortest")
-	require.NoError(t, err)
-
-	server, err := storserver.NewGRPC(path.Join(tmpDir, "data"), path.Join(tmpDir, "meta"))
+	server, err := server.NewGRPC(path.Join(tmpDir, "data"), path.Join(tmpDir, "meta"))
 	require.NoError(t, err)
 
 	_, err = server.Listen("localhost:0")

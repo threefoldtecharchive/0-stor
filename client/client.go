@@ -74,7 +74,6 @@ func newClient(policy Policy, iyoCl itsyouonline.IYOClient) (*Client, error) {
 		cl, err := stor.NewClientWithToken(&stor.Config{
 			IyoClientID: policy.IYOAppID,
 			IyoSecret:   policy.IYOSecret,
-			Protocol:    policy.Protocol,
 			Shard:       shard,
 		}, policy.Organization, policy.Namespace, iyoToken)
 		if err != nil {
@@ -371,7 +370,7 @@ func (c *Client) replicateWrite(key, value []byte, referenceList []string) ([]st
 			go func(job *Job) {
 				defer wg.Done()
 
-				_, err := job.client.ObjectCreate(key, value, referenceList)
+				err := job.client.ObjectCreate(key, value, referenceList)
 				if err != nil {
 					log.Errorf("replication write: error writing to store %s: %v", job.shard, err)
 					shardErr.Add([]string{job.shard}, lib.ShardType0Stor, err, 0)
@@ -412,7 +411,7 @@ func (c *Client) replicateWrite(key, value []byte, referenceList []string) ([]st
 				return nil, err
 			}
 
-			_, err = cl.ObjectCreate(key, value, referenceList)
+			err = cl.ObjectCreate(key, value, referenceList)
 			if err != nil {
 				log.Errorf("replication write: error writing to store %s: %v", shard, err)
 				shardErr.Add([]string{shard}, lib.ShardType0Stor, err, 0)
@@ -521,7 +520,7 @@ func (c *Client) distributeWrite(key, value []byte, referenceList []string) ([]s
 
 			go func(job *Job) {
 				defer wg.Done()
-				_, err := job.client.ObjectCreate(key, job.part, referenceList)
+				err := job.client.ObjectCreate(key, job.part, referenceList)
 				if err != nil {
 					log.Errorf("error writing to stor: %v", err)
 					shardErr.Add([]string{job.shard}, lib.ShardType0Stor, err, 0)
@@ -618,7 +617,7 @@ func (c *Client) writeRandom(key, value []byte, referenceList []string) (string,
 
 		triedShards = append(triedShards, shard)
 
-		_, err = cl.ObjectCreate(key, value, referenceList)
+		err = cl.ObjectCreate(key, value, referenceList)
 		if err == nil {
 			return shard, nil
 		}
@@ -700,7 +699,6 @@ func (c *Client) getRandomStor(except []string) (stor.Client, string, error) {
 	cl, err := stor.NewClientWithToken(&stor.Config{
 		IyoClientID: c.policy.IYOAppID,
 		IyoSecret:   c.policy.IYOSecret,
-		Protocol:    c.policy.Protocol,
 		Shard:       shard,
 	}, c.policy.Organization, c.policy.Namespace, c.iyoToken)
 	if err != nil {
@@ -725,7 +723,6 @@ func (c *Client) getStor(shard string) (stor.Client, error) {
 	cl, err := stor.NewClientWithToken(&stor.Config{
 		IyoClientID: c.policy.IYOAppID,
 		IyoSecret:   c.policy.IYOSecret,
-		Protocol:    c.policy.Protocol,
 		Shard:       shard,
 	}, c.policy.Organization, c.policy.Namespace, c.iyoToken)
 	if err != nil {

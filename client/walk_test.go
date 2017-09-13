@@ -60,7 +60,6 @@ func testWalk(t *testing.T, forward bool) {
 	policy := Policy{
 		Organization: "testorg",
 		Namespace:    "thedisk",
-		Protocol:     "grpc",
 		DataShards:   dataShards,
 		MetaShards:   []string{etcd.ListenAddr()},
 		IYOAppID:     "id",

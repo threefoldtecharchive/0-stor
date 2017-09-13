@@ -28,15 +28,9 @@ GLOBAL OPTIONS:
    --bind value, -b value    Bind address (default: ":8080")
    --data value              Data directory (default: ".db/data")
    --meta value              Metadata directory (default: ".db/meta")
-   --interface value         type of server, can be rest or grpc (default: "rest")
    --help, -h                show help
    --version, -v             print the version
 
-```
-
-Start the server with REST listening on all interfaces and port 12345
-```shell
-./zerostorserver --bind :12345 --data /path/to/data --meta /path/to/meta --interface rest
 ```
 
 Start the server with grpc listening on all interfaces and port 12345

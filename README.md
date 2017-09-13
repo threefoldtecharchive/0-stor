@@ -30,20 +30,14 @@ Here are the options of the server:
    --bind value, -b value    Bind address (default: ":8080")
    --data value              Data directory (default: ".db/data")
    --meta value              Metadata directory (default: ".db/meta")
-   --interface value         type of server, can be rest or grpc (default: "rest")
    --help, -h                show help
    --version, -v             print the version
 
 ```
 
-Start the server with REST listening on all interfaces and port 12345
+Start the server with listening on all interfaces and port 12345
 ```shell
-./zerostorserver --bind :12345 --data /path/to/data --meta /path/to/meta --interface rest
-```
-
-Start the server with grpc listening on all interfaces and port 12345
-```shell
-./zerostorserver --bind :12345 --data /path/to/data --meta /path/to/meta --interface grpc
+./zerostorserver --bind :12345 --data /path/to/data --meta /path/to/meta
 ```
 ## Client
 
@@ -57,8 +51,6 @@ The client provide some basic storage primitives to process your data before sen
 - distribution/erasure coding
 
 All of these primitives are configurable and you can decide how your data will be processed before beeing send to the 0-stor.
-
-Both REST and grpc protocol are supported.
 
 ### Client API
 Client API documentation is on godoc

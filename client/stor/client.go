@@ -1,55 +1,38 @@
 package stor
 
 import (
-	"fmt"
-
-	grpc0 "google.golang.org/grpc"
-
 	"github.com/zero-os/0-stor/client/itsyouonline"
-	"github.com/zero-os/0-stor/client/stor/common"
-	"github.com/zero-os/0-stor/client/stor/grpc"
-	"github.com/zero-os/0-stor/client/stor/rest"
-)
-
-const (
-	// ProtoRest specifies that we want to use stor client with REST protocol.
-	// Because REST is not binary safe, the implementation need to encode/decode
-	// the data and nsid using base64.
-	// All decode/encode are handled by the implementation, user doesn't need
-	// to worry about it
-	ProtoRest = "rest"
-
-	// ProtoGrpc specifies that we want to use stor client with GRPC protocol
-	ProtoGrpc = "grpc"
+	pb "github.com/zero-os/0-stor/grpc_store"
+	"google.golang.org/grpc"
 )
 
 // Client defines client interface to talk with 0-stor server
 type Client interface {
 	// Namespace gets detail view about namespace
-	NamespaceGet() (*common.Namespace, error)
+	NamespaceGet() (*pb.Namespace, error)
 
 	// ReservationList return a list of all the existing reservation
-	ReservationList() ([]common.Reservation, error)
+	// ReservationList() ([]common.Reservation, error)
 
 	// ReservationCreate creates a reservation.
 	// size is Storage size you want to reserve in MiB.
 	// period is number of days the reservation is valid
-	ReservationCreate(size, period int64) (r *common.Reservation, dataToken string, reservationToken string, err error)
+	// ReservationCreate(size, period int64) (r *common.Reservation, dataToken string, reservationToken string, err error)
 
 	// ReservationGet returns information about a reservation
-	ReservationGet(id []byte) (*common.Reservation, error)
+	// ReservationGet(id []byte) (*common.Reservation, error)
 
 	// ReservationUpdate renew an existing reservation
-	ReservationUpdate(id []byte, size, period int64) error
+	// ReservationUpdate(id []byte, size, period int64) error
 
 	// ObjectList lists keys of the object in the namespace
 	ObjectList(page, perPage int) ([]string, error)
 
 	// ObjectCreate creates an object
-	ObjectCreate(id, data []byte, refList []string) (*common.Object, error)
+	ObjectCreate(id, data []byte, refList []string) error
 
 	// ObjectGet retrieve object from the store
-	ObjectGet(id []byte) (*common.Object, error)
+	ObjectGet(id []byte) (*pb.Object, error)
 
 	// ObjectDelete delete object from the store
 	ObjectDelete(id []byte) error
@@ -80,21 +63,11 @@ func NewClient(conf *Config, org, namespace string) (Client, error) {
 
 // NewClientWithToken creates new client with the given token
 func NewClientWithToken(conf *Config, org, namespace, iyoJWTToken string) (Client, error) {
-	switch conf.Protocol {
-
-	case ProtoRest:
-		return rest.NewClient(conf.Shard, org, namespace, iyoJWTToken), nil
-
-	case ProtoGrpc:
-		conn, err := grpc0.Dial(conf.Shard, grpc0.WithInsecure())
-		if err != nil {
-			return nil, err
-		}
-		return grpc.New(conn, org, namespace, iyoJWTToken), nil
-
-	default:
-		return nil, fmt.Errorf("unsupported/invalid 0-stor protocol: %v", conf.Protocol)
+	conn, err := grpc.Dial(conf.Shard, grpc.WithInsecure())
+	if err != nil {
+		return nil, err
 	}
+	return newGrpcClient(conn, org, namespace, iyoJWTToken), nil
 }
 
 func getIyoJWTToken(conf *Config, org, namespace string) (string, error) {

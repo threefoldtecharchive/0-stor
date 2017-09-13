@@ -1,6 +1,5 @@
 organization: mordor
 namespace: thedisk
-protocol: grpc
 iyo_app_id: "1234"
 iyo_app_secret: "45678"
 data_shards:

@@ -7,17 +7,17 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"server/goraml"
 	"syscall"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
 	units "github.com/docker/go-units"
+	"github.com/zero-os/0-stor/server"
 	"github.com/zero-os/0-stor/server/config"
 	"github.com/zero-os/0-stor/server/db/badger"
 	"github.com/zero-os/0-stor/server/disk"
-	"github.com/zero-os/0-stor/server/goraml"
 	"github.com/zero-os/0-stor/server/manager"
-	"github.com/zero-os/0-stor/server/storserver"
 
 	"gopkg.in/validator.v2"
 )
@@ -87,16 +87,16 @@ func main() {
 			Destination: &settings.DB.Dirs.Meta,
 		},
 		cli.StringFlag{
-			Name:        "interface",
-			Usage:       "type of server, can be rest or grpc",
-			Value:       "rest",
-			Destination: &settings.ServerType,
-		},
-		cli.StringFlag{
 			Name:        "profile-addr",
 			Usage:       "Enables profiling of this server as an http service",
 			Value:       "",
 			Destination: &profileAddr,
+		},
+		cli.BoolFlag{
+			Name:        "auth-diable",
+			Usage:       "disable JWT authentification",
+			Destination: &settings.AuthDisabled,
+			EnvVar:      "STOR_TESTING",
 		},
 	}
 
@@ -108,8 +108,9 @@ func main() {
 		// input validator
 		validator.SetValidationFunc("multipleOf", goraml.MultipleOf)
 
-		if settings.ServerType != config.ServerTypeRest && settings.ServerType != config.ServerTypeGrpc {
-			log.Fatalf("%s is not a supported server interface\n", settings.ServerType)
+		if settings.AuthDisabled {
+			server.DisableAuth()
+			log.Warning("!! Aunthentification disabled, don't use this mode for production!!!")
 		}
 
 		return nil
@@ -122,24 +123,9 @@ func main() {
 			log.Fatalln("Error computing store statistics: %v", err)
 		}
 
-		var (
-			server storserver.StoreServer
-			err    error
-		)
-
-		switch settings.ServerType {
-		case config.ServerTypeRest:
-			server, err = storserver.NewRest(settings.DB.Dirs.Data, settings.DB.Dirs.Meta)
-			if err != nil {
-				log.Fatal(err.Error())
-			}
-		case config.ServerTypeGrpc:
-			server, err = storserver.NewGRPC(settings.DB.Dirs.Data, settings.DB.Dirs.Meta)
-			if err != nil {
-				log.Fatal(err.Error())
-			}
-		default:
-			log.Fatalf("%s is not a supported server interface\n", settings.ServerType)
+		server, err := server.NewGRPC(settings.DB.Dirs.Data, settings.DB.Dirs.Meta)
+		if err != nil {
+			log.Fatal(err.Error())
 		}
 
 		if profileAddr != "" {
@@ -158,7 +144,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err.Error())
 		}
-		log.Infof("Server interface: %s", settings.ServerType)
+		log.Infof("Server interface: grpc")
 		log.Infof("Server listening on %s", addr)
 
 		<-sigChan // block on signal handler
