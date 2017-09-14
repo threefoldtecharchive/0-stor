@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
-	"server/goraml"
 	"syscall"
 
 	log "github.com/Sirupsen/logrus"
@@ -18,8 +17,6 @@ import (
 	"github.com/zero-os/0-stor/server/db/badger"
 	"github.com/zero-os/0-stor/server/disk"
 	"github.com/zero-os/0-stor/server/manager"
-
-	"gopkg.in/validator.v2"
 )
 
 var (
@@ -105,8 +102,6 @@ func main() {
 			log.SetLevel(log.DebugLevel)
 			log.Debug("Debug logging enabled")
 		}
-		// input validator
-		validator.SetValidationFunc("multipleOf", goraml.MultipleOf)
 
 		if settings.AuthDisabled {
 			log.Warning("!! Aunthentification disabled, don't use this mode for production!!!")
