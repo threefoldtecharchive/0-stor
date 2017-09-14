@@ -19,7 +19,6 @@ class TestcasesBase(TestCase):
         self.lg = self.utiles.logging
 
         self.zero_store_cli = ZeroStoreCLI()
-
         self.default_config_path = config['main']['default_config_path']
         # if not self.default_config_path:
         #     gopath = os.environ.get('GOPATH', '/gopath')

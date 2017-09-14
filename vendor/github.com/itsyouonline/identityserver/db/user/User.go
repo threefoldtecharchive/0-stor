@@ -3,6 +3,7 @@ package user
 import (
 	"errors"
 	"regexp"
+	"unicode"
 
 	"github.com/itsyouonline/identityserver/db"
 	"gopkg.in/mgo.v2/bson"
@@ -119,6 +120,20 @@ func ValidateUsername(username string) bool {
 	regex, _ := regexp.Compile(`^[a-z\d\-_\s]{2,30}$`)
 	matches := regex.FindAllString(username, 2)
 	return len(matches) == 1
+}
+
+func ValidateName(name string) bool {
+	if len(name) > 60 || len(name) < 2 {
+		return false
+	}
+	// This probably has terrible performance, but it'll have to do for now
+	regex, _ := regexp.Compile(`[a-z\-_'\s]`)
+	for _, r := range name {
+		if !(regex.Match([]byte{byte(r)}) || unicode.IsLetter(unicode.ToLower(r))) {
+			return false
+		}
+	}
+	return true
 }
 
 func ValidatePhoneNumber(phoneNumber string) bool {

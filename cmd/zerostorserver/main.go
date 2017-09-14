@@ -93,7 +93,7 @@ func main() {
 			Destination: &profileAddr,
 		},
 		cli.BoolFlag{
-			Name:        "auth-diable",
+			Name:        "auth-disable",
 			Usage:       "disable JWT authentification",
 			Destination: &settings.AuthDisabled,
 			EnvVar:      "STOR_TESTING",
@@ -109,7 +109,6 @@ func main() {
 		validator.SetValidationFunc("multipleOf", goraml.MultipleOf)
 
 		if settings.AuthDisabled {
-			server.DisableAuth()
 			log.Warning("!! Aunthentification disabled, don't use this mode for production!!!")
 		}
 
@@ -123,7 +122,7 @@ func main() {
 			log.Fatalln("Error computing store statistics: %v", err)
 		}
 
-		server, err := server.NewGRPC(settings.DB.Dirs.Data, settings.DB.Dirs.Meta)
+		server, err := server.New(settings.DB.Dirs.Data, settings.DB.Dirs.Meta, !settings.AuthDisabled)
 		if err != nil {
 			log.Fatal(err.Error())
 		}

@@ -30,12 +30,32 @@
                         <div layout="column">
                             <div layout="row" layout-align="space-between center">
                                 <md-input-container flex="45">
-                                    <label translate='user.views.namedialog.firstname'>First name</label>
-                                    <input ng-model="vm.firstname" required name="firstname" type="text">
+                                    <label for="firstname" translate='user.views.namedialog.firstname'>First name</label>
+                                    <input ng-model="vm.firstname" required name="firstname" type="text"
+                                        ng-maxlength="30" ng-minlength="2" ng-change="vm.resetValidation('firstname')">
+                                    <div ng-messages="signupform.firstname.$error">
+                                        <div ng-message="pattern,invalid_first_name" translate='invalid_first_name'>
+                                            Invalid first name. Only letters, -, _, '
+                                            and spaces are allowed. Names have a
+                                            length of 2 to 30 characters.
+                                        </div>
+                                        <div ng-message="minlength" translate="name_minlength">Name must contain at least 2 characters</div>
+                                        <div ng-message="maxlength" translate="name_maxlength">Name can contain at most 30 characters</div>
+                                    </div>
                                 </md-input-container>
                                 <md-input-container flex="45">
                                     <label translate='user.views.namedialog.lastname'>Last name</label>
-                                    <input ng-model="vm.lastname" required name="lastname" type="text">
+                                    <input ng-model="vm.lastname" required name="lastname" type="text"
+                                        ng-maxlength="30" ng-minlength="2" ng-change="vm.resetValidation('lastname')">
+                                    <div ng-messages="signupform.lastname.$error">
+                                        <div ng-message="pattern,invalid_last_name" translate='invalid_last_name'>
+                                            Invalid last name. Only letters, -, _, '
+                                            and spaces are allowed. Names have a
+                                            length of 2 to 30 characters.
+                                        </div>
+                                        <div ng-message="minlength" translate="name_minlength">Name must contain at least 2 characters</div>
+                                        <div ng-message="maxlength" translate="name_maxlength">Name can contain at most 30 characters</div>
+                                    </div>
                                 </md-input-container>
                             </div>
                             <telinput phonenumber="vm.sms" error="vm.phone.validationerrors"></telinput>

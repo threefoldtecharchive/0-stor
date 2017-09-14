@@ -62,8 +62,8 @@ func testWalk(t *testing.T, forward bool) {
 		Namespace:    "thedisk",
 		DataShards:   dataShards,
 		MetaShards:   []string{etcd.ListenAddr()},
-		IYOAppID:     "id",
-		IYOSecret:    "secret",
+		IYOAppID:     "",
+		IYOSecret:    "",
 	}
 
 	cli, err := getTestClient(policy)

@@ -54,7 +54,7 @@ func FindContracts(w http.ResponseWriter, r *http.Request, includedparty contrac
 	if startstr != "" {
 		start, err = strconv.Atoi(startstr)
 		if err != nil {
-			log.Error("ERROR while parsing start :\n", err)
+			log.Debug("Could not parse start: ", err)
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 			return
 		}
@@ -64,7 +64,7 @@ func FindContracts(w http.ResponseWriter, r *http.Request, includedparty contrac
 	if maxstr != "" {
 		max, err = strconv.Atoi(maxstr)
 		if err != nil {
-			log.Error("ERROR while parsing start :\n", err)
+			log.Debug("Could not parse max: ", err)
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 			return
 		}

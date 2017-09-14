@@ -11,28 +11,12 @@ import (
 	"testing"
 	"time"
 
-	jwtgo "github.com/dgrijalva/jwt-go"
 	"github.com/zero-os/0-stor/client/meta/embedserver"
 	"github.com/zero-os/0-stor/server"
-	"github.com/zero-os/0-stor/stubs"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/zero-os/0-stor/server/jwt"
 )
-
-func TestMain(m *testing.M) {
-	// configure the test jwt key
-	pubKey, err := ioutil.ReadFile("../devcert/jwt_pub.pem")
-	if err != nil {
-		panic(err)
-	}
-	jwt.SetJWTPublicKey(string(pubKey))
-
-	log.SetLevel(log.DebugLevel)
-	os.Exit(m.Run())
-}
 
 func testGRPCServer(t testing.TB, n int) ([]server.StoreServer, func()) {
 	servers := make([]server.StoreServer, n)
@@ -44,7 +28,7 @@ func testGRPCServer(t testing.TB, n int) ([]server.StoreServer, func()) {
 		require.NoError(t, err)
 		dirs[i] = tmpDir
 
-		server, err := server.NewGRPC(path.Join(tmpDir, "data"), path.Join(tmpDir, "meta"))
+		server, err := server.New(path.Join(tmpDir, "data"), path.Join(tmpDir, "meta"), false)
 		require.NoError(t, err)
 
 		_, err = server.Listen("localhost:0")
@@ -66,23 +50,7 @@ func testGRPCServer(t testing.TB, n int) ([]server.StoreServer, func()) {
 }
 
 func getTestClient(policy Policy) (*Client, error) {
-
-	b, err := ioutil.ReadFile("../devcert/jwt_key.pem")
-	if err != nil {
-		panic(err)
-	}
-
-	key, err := jwtgo.ParseECPrivateKeyFromPEM(b)
-	if err != nil {
-		panic(err)
-	}
-
-	iyoCl, err := stubs.NewStubIYOClient("testorg", key)
-	if err != nil {
-		panic(err)
-	}
-
-	return newClient(policy, iyoCl)
+	return newClient(policy, nil)
 }
 
 func TestRoundTripGRPC(t *testing.T) {
@@ -277,8 +245,8 @@ func TestMultipleDownload(t *testing.T) {
 		Namespace:              "namespace1",
 		DataShards:             shards,
 		MetaShards:             []string{etcd.ListenAddr()},
-		IYOAppID:               "id",
-		IYOSecret:              "secret",
+		IYOAppID:               "",
+		IYOSecret:              "",
 		BlockSize:              1024000,
 		Compress:               true,
 		Encrypt:                true,
@@ -329,8 +297,8 @@ func TestConcurentWriteRead(t *testing.T) {
 		Namespace:              "namespace1",
 		DataShards:             shards,
 		MetaShards:             []string{etcd.ListenAddr()},
-		IYOAppID:               "id",
-		IYOSecret:              "secret",
+		IYOAppID:               "",
+		IYOSecret:              "",
 		BlockSize:              1024 * 64,
 		Compress:               true,
 		Encrypt:                true,
@@ -400,8 +368,8 @@ func BenchmarkWriteFilesSizes(b *testing.B) {
 		Namespace:              "namespace1",
 		DataShards:             shards,
 		MetaShards:             []string{etcd.ListenAddr()},
-		IYOAppID:               "id",
-		IYOSecret:              "secret",
+		IYOAppID:               "",
+		IYOSecret:              "",
 		BlockSize:              1024 * 1024, // 1MiB
 		Compress:               true,
 		Encrypt:                true,

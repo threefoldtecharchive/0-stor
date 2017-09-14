@@ -29,6 +29,7 @@ func getTestNamespaceAPI(t *testing.T) (*NamespaceAPI, func()) {
 		os.RemoveAll(tmpDir)
 	}
 
+	disableAuth()
 	api := NewNamespaceAPI(db)
 	return api, clean
 }

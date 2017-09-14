@@ -568,5 +568,9 @@
     "verify": "Verify",
     "version": "Version",
     "username_or_phone": "Username or phone number",
-    "email_is_validated": "A validated email address can not be changed, only deleted."
+    "email_is_validated": "A validated email address can not be changed, only deleted.",
+    "invalid_first_name": "Invalid first name. Only letters, -, _, ' and spaces are allowed. Names have a length of 2 to 30 characters.",
+    "invalid_last_name": "Invalid last name. Only letters, -, _, ' and spaces are allowed. Names have a length of 2 to 30 characters.",
+    "name_minlength": "Name must contain at least 2 characters",
+    "name_maxlength": "Name can contain at most 30 characters"
 }

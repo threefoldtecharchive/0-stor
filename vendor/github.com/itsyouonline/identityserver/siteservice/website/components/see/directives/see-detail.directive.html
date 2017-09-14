@@ -1,8 +1,9 @@
-<div layout="row" layout-align="space-between none" ng-if="detailed">
+<div layout="row" layout-align="space-between none">
     <h2 style="margin: 0;">{{see.uniqueid}}</h2>
     <md-button class="md-primary md-secondary" aria-label="Toggle full history"
                translate-attr="{ 'aria-label': 'toggle_full_history' }"
-               ng-click="toggleFullHistory($event)">
+               ng-click="toggleFullHistory($event)"
+               ng-if="detailed">
         <span ng-if="!showFullHistory" translate='show_full_history'>Show full history</span>
         <span ng-if="showFullHistory" translate='hide_full_history'>Hide full history</span>
     </md-button>

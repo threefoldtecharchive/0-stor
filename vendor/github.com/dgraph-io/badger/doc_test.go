@@ -44,9 +44,10 @@ func Example() {
 		return
 	}
 	var val []byte
-	err := item.Value(func(v []byte) {
+	err := item.Value(func(v []byte) error {
 		val = make([]byte, len(v))
 		copy(val, v)
+		return nil
 	})
 	if err != nil {
 		fmt.Printf("Error while getting value for key: %q", key)
@@ -62,9 +63,10 @@ func Example() {
 			fmt.Printf("Error while getting key: %q", key)
 		}
 
-		err := item.Value(func(v []byte) {
+		err := item.Value(func(v []byte) error {
 			val = make([]byte, len(v))
 			copy(val, v)
+			return nil
 		})
 
 		if err != nil {
@@ -94,14 +96,18 @@ func Example() {
 
 // 	itrOpt := IteratorOptions{
 // 		PrefetchSize: 1000,
-// 		FetchValues:  true,
+// 		PrefetchValues:  true,
 // 		Reverse:      false,
 // 	}
 // 	itr := kv.NewIterator(itrOpt)
 // 	for itr.Rewind(); itr.Valid(); itr.Next() {
 // 		item := itr.Item()
 // 		item.Key()
-// 		item.Value()
+// 		var val []byte
+// 		err = item.Value(func(v []byte) {
+// 			val = make([]byte, len(v))
+// 			copy(val, v)
+// 		})
 // 	}
 // }
 

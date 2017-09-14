@@ -3,7 +3,6 @@ package server
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -57,15 +56,14 @@ func init() {
 	jwtCache = ccache.New(conf)
 }
 
-// DisableAuth disable JWT authentification for the server
+// disableAuth disable JWT authentification for the server
 // call this only during the bootstrap of the server.
-func DisableAuth() {
+func disableAuth() {
 	authEnabled = false
 }
 
 func validateJWT(ctx context.Context, method Method, label string) error {
-	isTesting, ok := os.LookupEnv("STOR_TESTING")
-	if ok && isTesting == "true" {
+	if !authEnabled {
 		return nil
 	}
 

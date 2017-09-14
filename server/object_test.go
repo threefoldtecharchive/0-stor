@@ -32,7 +32,7 @@ func getTestObjectAPI(t *testing.T) (*ObjectAPI, func()) {
 		db.Close()
 		os.RemoveAll(tmpDir)
 	}
-
+	disableAuth()
 	return NewObjectAPI(db), clean
 }
 

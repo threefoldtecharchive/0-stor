@@ -2600,7 +2600,11 @@ func (api UsersAPI) AddUserRegistryEntry(w http.ResponseWriter, r *http.Request)
 	err := mgr.UpsertRegistryEntry(username, "", registryEntry)
 
 	if err != nil {
-		log.Error(err.Error())
+		if err == registry.ErrUsernameAndGlobalIDAreMutuallyExclusive || err == registry.ErrUsernameOrGlobalIDRequired {
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+		log.Error("Error while creating new registry entry: ", err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}

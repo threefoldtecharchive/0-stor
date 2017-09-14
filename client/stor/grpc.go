@@ -24,14 +24,14 @@ type client struct {
 }
 
 // New create a grpc client for the 0-stor
-func newGrpcClient(conn *grpc.ClientConn, org, namespace, jwtToken string) *client {
+func newGrpcClient(conn *grpc.ClientConn, namespace, jwtToken string) *client {
 
 	return &client{
 		conn:             conn,
 		objService:       pb.NewObjectManagerClient(conn),
 		namespaceService: pb.NewNamespaceManagerClient(conn),
 		jwtToken:         jwtToken,
-		namespace:        fmt.Sprintf("%s_0stor_%s", org, namespace),
+		namespace:        namespace,
 	}
 }
 

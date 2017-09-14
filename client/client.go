@@ -46,20 +46,29 @@ type Client struct {
 
 // New creates new client from the given config
 func New(policy Policy) (*Client, error) {
-
-	iyoCl := itsyouonline.NewClient(policy.Organization, policy.IYOAppID, policy.IYOSecret)
+	var iyoCl itsyouonline.IYOClient
+	if policy.Organization != "" && policy.IYOAppID != "" && policy.IYOSecret != "" {
+		iyoCl = itsyouonline.NewClient(policy.Organization, policy.IYOAppID, policy.IYOSecret)
+	}
 
 	return newClient(policy, iyoCl)
 }
 
 func newClient(policy Policy, iyoCl itsyouonline.IYOClient) (*Client, error) {
-	iyoToken, err := iyoCl.CreateJWT(policy.Namespace, itsyouonline.Permission{
-		Write: true,
-		Read:  true,
-	})
-	if err != nil {
-		log.Error(err.Error())
-		return nil, err
+	var (
+		iyoToken string
+		err      error
+	)
+
+	if iyoCl != nil {
+		iyoToken, err = iyoCl.CreateJWT(policy.Namespace, itsyouonline.Permission{
+			Write: true,
+			Read:  true,
+		})
+		if err != nil {
+			log.Error(err.Error())
+			return nil, err
+		}
 	}
 
 	client := Client{
@@ -71,15 +80,11 @@ func newClient(policy Policy, iyoCl itsyouonline.IYOClient) (*Client, error) {
 
 	// instanciate stor client for each shards.
 	for _, shard := range policy.DataShards {
-		cl, err := stor.NewClientWithToken(&stor.Config{
-			IyoClientID: policy.IYOAppID,
-			IyoSecret:   policy.IYOSecret,
-			Shard:       shard,
-		}, policy.Organization, policy.Namespace, iyoToken)
+		// getStor keep the created stor in a map
+		_, err := client.getStor(shard)
 		if err != nil {
 			return nil, err
 		}
-		client.storClients[shard] = cl
 	}
 
 	// instanciate meta client
@@ -668,9 +673,6 @@ func (c *Client) getRandomStor(except []string) (stor.Client, string, error) {
 		return false
 	}
 
-	c.muStorClients.Lock()
-	defer c.muStorClients.Unlock()
-
 	possibleShards := []string{}
 	for _, shard := range c.policy.DataShards {
 		if !isIn(shard, except) {
@@ -689,23 +691,7 @@ func (c *Client) getRandomStor(except []string) (stor.Client, string, error) {
 
 	// TODO: find a way to invalidate some client if an error occurs with it
 
-	// first check if we don't already have a client to this shard loaded
-	cl, ok := c.storClients[shard]
-	if ok {
-		return cl, shard, nil
-	}
-
-	// if not create the client and put in cache
-	cl, err := stor.NewClientWithToken(&stor.Config{
-		IyoClientID: c.policy.IYOAppID,
-		IyoSecret:   c.policy.IYOSecret,
-		Shard:       shard,
-	}, c.policy.Organization, c.policy.Namespace, c.iyoToken)
-	if err != nil {
-		return nil, shard, err
-	}
-	c.storClients[shard] = cl
-
+	cl, err := c.getStor(shard)
 	return cl, shard, err
 }
 
@@ -720,17 +706,14 @@ func (c *Client) getStor(shard string) (stor.Client, error) {
 	}
 
 	// if not create the client and put in cache
-	cl, err := stor.NewClientWithToken(&stor.Config{
-		IyoClientID: c.policy.IYOAppID,
-		IyoSecret:   c.policy.IYOSecret,
-		Shard:       shard,
-	}, c.policy.Organization, c.policy.Namespace, c.iyoToken)
+	namespace := fmt.Sprintf("%s_0stor_%s", c.policy.Organization, c.policy.Namespace)
+	cl, err := stor.NewClient(shard, namespace, c.iyoToken)
 	if err != nil {
 		return nil, err
 	}
 	c.storClients[shard] = cl
 
-	return cl, err
+	return cl, nil
 }
 
 func (c *Client) CreateJWT(namespace string, perm itsyouonline.Permission) (string, error) {

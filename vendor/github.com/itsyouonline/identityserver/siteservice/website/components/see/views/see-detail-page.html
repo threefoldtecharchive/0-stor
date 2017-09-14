@@ -18,7 +18,7 @@
             <div class="loading-container" layout-align="center center" ng-if="vm.loading">
                 <md-progress-circular md-mode="indeterminate" md-diameter="50"></md-progress-circular>
             </div>
-            <see-detail see="vm.seeObject" detailed="true" show-full-history="isShowingFullHistory"
+            <see-detail see="vm.seeObject" detailed="true" show-full-history="vm.isShowingFullHistory"
                         toggle-full-history="vm.toggleFullHistory()"></see-detail>
         </md-card-content>
     </md-card>

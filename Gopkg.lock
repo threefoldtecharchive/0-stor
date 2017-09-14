@@ -71,7 +71,7 @@
   branch = "master"
   name = "github.com/dgraph-io/badger"
   packages = [".","options","protos","skl","table","y"]
-  revision = "de9a90f058064a76f04153a91a8b0f7125116085"
+  revision = "64df7f57d9ee20d7b28de4a3eea90bf8d7310a77"
 
 [[projects]]
   name = "github.com/dgrijalva/jwt-go"
@@ -131,7 +131,7 @@
   branch = "master"
   name = "github.com/itsyouonline/identityserver"
   packages = ["clients/go/itsyouonline","clients/go/itsyouonline/goraml"]
-  revision = "01863b33a062d98ef9580829f2e44418b213012f"
+  revision = "2479f0670e0e9933b744f4a82ca6a679b8211b8f"
 
 [[projects]]
   name = "github.com/jonboulle/clockwork"
@@ -209,7 +209,7 @@
   branch = "master"
   name = "github.com/prometheus/common"
   packages = ["expfmt","internal/bitbucket.org/ww/goautoneg","model"]
-  revision = "bc8b88226a1210b016e9993b1d75f858c9c8f778"
+  revision = "2f17f4a9d485bf34b4bfaccc273805040e4f86c8"
 
 [[projects]]
   branch = "master"
@@ -250,25 +250,25 @@
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["bcrypt","blowfish","ssh/terminal"]
-  revision = "81e90905daefcd6fd217b62423c0908922eadb30"
+  revision = "faadfbdc035307d901e69eea569f5dda451a3ee3"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/net"
   packages = ["context","http2","http2/hpack","idna","internal/timeseries","lex/httplex","trace"]
-  revision = "66aacef3dd8a676686c7ae3716979581e8b03c47"
+  revision = "b129b8e0fbeb39c8358e51a07ab6c50ad415e72e"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix","windows"]
-  revision = "9aade4d3a3b7e6d876cd3823ad20ec45fc035402"
+  revision = "062cd7e4e68206d8bab9b18396626e855c992658"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/text"
   packages = ["internal/gen","internal/triegen","internal/ucd","secure/bidirule","transform","unicode/bidi","unicode/cldr","unicode/norm","unicode/rangetable"]
-  revision = "bd91bbf73e9a4a801adbfb97133c992678533126"
+  revision = "acd49d43e9b95df46670431bf5c7ae59586daad8"
 
 [[projects]]
   branch = "master"

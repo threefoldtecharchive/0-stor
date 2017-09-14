@@ -1,7 +1,6 @@
 package stor
 
 import (
-	"github.com/zero-os/0-stor/client/itsyouonline"
 	pb "github.com/zero-os/0-stor/grpc_store"
 	"google.golang.org/grpc"
 )
@@ -46,40 +45,14 @@ type Client interface {
 
 // Config defines 0-stor client config
 type Config struct {
-	Protocol    string `yaml:"protocol"` // rest or grpc
-	Shard       string `yaml:"shard"`    // 0-stor server address
-	IyoClientID string `yaml:"iyo_client_id"`
-	IyoSecret   string `yaml:"iyo_secret"`
+	Shard string `yaml:"shard"` // 0-stor server address
 }
 
 // NewClient creates new 0-stor client
-func NewClient(conf *Config, org, namespace string) (Client, error) {
-	token, err := getIyoJWTToken(conf, org, namespace)
+func NewClient(addr, namespace, token string) (Client, error) {
+	conn, err := grpc.Dial(addr, grpc.WithInsecure())
 	if err != nil {
 		return nil, err
 	}
-	return NewClientWithToken(conf, org, namespace, token)
-}
-
-// NewClientWithToken creates new client with the given token
-func NewClientWithToken(conf *Config, org, namespace, iyoJWTToken string) (Client, error) {
-	conn, err := grpc.Dial(conf.Shard, grpc.WithInsecure())
-	if err != nil {
-		return nil, err
-	}
-	return newGrpcClient(conn, org, namespace, iyoJWTToken), nil
-}
-
-func getIyoJWTToken(conf *Config, org, namespace string) (string, error) {
-	if conf.IyoSecret == "" || conf.IyoClientID == "" {
-		return "", nil
-	}
-
-	iyoCli := itsyouonline.NewClient(org, conf.IyoClientID, conf.IyoSecret)
-	return iyoCli.CreateJWT(namespace, itsyouonline.Permission{
-		Admin:  true,
-		Read:   true,
-		Write:  true,
-		Delete: true,
-	})
+	return newGrpcClient(conn, namespace, token), nil
 }

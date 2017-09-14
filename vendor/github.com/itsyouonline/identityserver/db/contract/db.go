@@ -97,7 +97,7 @@ func (m *Manager) GetByIncludedParty(party *Party, start int, max int, includeEx
 	contracts = make([]Contract, 0)
 	query := bson.M{"parties.type": party.Type, "parties.name": party.Name}
 	if !includeExpired {
-		query["$or"] = []bson.M{bson.M{"expired": bson.M{"$lt": time.Now()}}, bson.M{"expired": nil}}
+		query["$and"] = []bson.M{bson.M{"expires": bson.M{"$gte": time.Now()}}, bson.M{"expired": nil}}
 	}
 	err = m.collection.Find(query).Skip(start).Limit(max).All(&contracts)
 	if err == mgo.ErrNotFound {

@@ -26,17 +26,22 @@ type grpcServer struct {
 	grpcServer *grpc.Server
 }
 
-// NewGRPC creates a grpc server with given DB data & meta directory
-func NewGRPC(data, meta string) (StoreServer, error) {
+// New creates a grpc server with given DB data & meta directory
+// if authEnabled is false, JWT authentification is disabled
+func New(data, meta string, authEnabled bool) (StoreServer, error) {
 	db, err := badger.New(data, meta)
 	if err != nil {
 		return nil, err
 	}
-	return NewGRPCWithDB(db)
+	return NewWithDB(db, authEnabled)
 }
 
-// NewGRPCWithDB creates a grpc server with given DB object
-func NewGRPCWithDB(db *badger.BadgerDB) (StoreServer, error) {
+// NewWithDB creates a grpc server with given DB object
+// if authEnabled is false, JWT authentification is disabled
+func NewWithDB(db *badger.BadgerDB, authEnabled bool) (StoreServer, error) {
+	if !authEnabled {
+		disableAuth()
+	}
 	s := &grpcServer{
 		db:         db,
 		grpcServer: grpc.NewServer(),

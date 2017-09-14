@@ -5,7 +5,7 @@ import "github.com/itsyouonline/identityserver/db/user"
 type Userview struct {
 	Addresses               []user.Address             `json:"addresses"`
 	BankAccounts            []user.BankAccount         `json:"bankaccounts"`
-	DigitalWallet           []user.DigitalAssetAddress `json:"bankaccounts"`
+	DigitalWallet           []user.DigitalAssetAddress `json:"digitalwallet"`
 	EmailAddresses          []user.EmailAddress        `json:"emailaddresses"`
 	ValidatedEmailAddresses []user.EmailAddress        `json:"validatedemailaddresses"`
 	Facebook                user.FacebookAccount       `json:"facebook"`

@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"gopkg.in/mgo.v2"
 
@@ -472,8 +473,29 @@ func (service *Service) ValidateInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check the users first name
+	if !user.ValidateName(strings.ToLower(data.Firstname)) {
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		writeErrorResponse(w, "invalid_first_name")
+		return
+	}
+	// Check the users last name
+	if !user.ValidateName(strings.ToLower(data.Lastname)) {
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		writeErrorResponse(w, "invalid_last_name")
+		return
+	}
+
 	counter := 0
-	username := strings.ToLower(data.Firstname) + "_" + strings.ToLower(data.Lastname) + "_"
+	var username string
+	for _, r := range data.Firstname {
+		username += string(unicode.ToLower(r))
+	}
+	username += "_"
+	for _, r := range data.Lastname {
+		username += string(unicode.ToLower(r))
+	}
+	username += "_"
 	userMgr := user.NewManager(r)
 
 	count, err := userMgr.GetPendingRegistrationsCount()
@@ -505,33 +527,18 @@ func (service *Service) ValidateInfo(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	username = username + strconv.Itoa(counter)
-	if !user.ValidateUsername(username) {
-		log.Debug("Invalid generated username: ", username)
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-		return
-	}
 
 	valid := user.ValidateEmailAddress(data.Email)
 	if !valid {
-		response := struct {
-			Error string `json:"error"`
-		}{
-			Error: "invalid_email_format",
-		}
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		json.NewEncoder(w).Encode(response)
+		writeErrorResponse(w, "invalid_email_format")
 		return
 	}
 
 	valid = user.ValidatePhoneNumber(data.Phone)
 	if !valid {
-		response := struct {
-			Error string `json:"error"`
-		}{
-			Error: "invalid_phonenumber",
-		}
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		json.NewEncoder(w).Encode(response)
+		writeErrorResponse(w, "invalid_phonenumber")
 		return
 	}
 
@@ -576,12 +583,7 @@ func (service *Service) ValidateInfo(w http.ResponseWriter, r *http.Request) {
 			log.Error("Error while saving the users password: ", err)
 			if err.Error() != "internal_error" {
 				w.WriteHeader(http.StatusUnprocessableEntity)
-				response := struct {
-					Error string `json:"error"`
-				}{
-					Error: "invalid_password",
-				}
-				json.NewEncoder(w).Encode(&response)
+				writeErrorResponse(w, "invalid_password")
 			} else {
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			}
@@ -677,4 +679,13 @@ func (service *Service) ResendValidationInfo(w http.ResponseWriter, r *http.Requ
 
 	sessions.Save(r, w)
 	w.WriteHeader(http.StatusOK)
+}
+
+func writeErrorResponse(w http.ResponseWriter, err string) {
+	response := struct {
+		Error string `json:"error"`
+	}{
+		Error: err,
+	}
+	json.NewEncoder(w).Encode(&response)
 }
