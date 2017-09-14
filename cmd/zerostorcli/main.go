@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"github.com/urfave/cli"
 	"github.com/zero-os/0-stor/client"
@@ -46,6 +47,7 @@ func main() {
 	var cl *client.Client
 	var iyoCl itsyouonline.IYOClient
 	var key string
+	var references string
 
 	app := cli.NewApp()
 	app.Version = outputVersion()
@@ -81,6 +83,11 @@ func main() {
 							Usage:       "key to use to store the file, if empty use the name of the file as key",
 							Destination: &key,
 						},
+						cli.StringFlag{
+							Name:        "reference, ref",
+							Usage:       "references for this file, split by comma for multiple values",
+							Destination: &references,
+						},
 					},
 					Action: func(c *cli.Context) error {
 						if len(c.Args()) < 1 {
@@ -99,7 +106,12 @@ func main() {
 							key = filepath.Base(fileName)
 						}
 
-						_, err = cl.WriteF([]byte(key), f)
+						var refList []string
+						if len(references) > 0 {
+							refList = strings.Split(references, ",")
+						}
+
+						_, err = cl.WriteF([]byte(key), f, refList)
 						if err != nil {
 							return cli.NewExitError(fmt.Errorf("upload failed : %v", err), 1)
 						}
@@ -122,11 +134,12 @@ func main() {
 							return cli.NewExitError(fmt.Errorf("can't create output file: %v", err), 1)
 						}
 
-						if err := cl.ReadF([]byte(key), fOutput); err != nil {
+						refList, err := cl.ReadF([]byte(key), fOutput)
+						if err != nil {
 							return cli.NewExitError(fmt.Errorf("download file failed: %v", err), 1)
 						}
 
-						fmt.Printf("file downloaded to %s\n", output)
+						fmt.Printf("file downloaded to %s. referenceList=%v\n", output, refList)
 
 						return nil
 					},

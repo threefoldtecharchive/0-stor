@@ -189,14 +189,14 @@ func TestRoundTripGRPC(t *testing.T) {
 			c, err := getTestClient(policy)
 			require.NoError(t, err, "fail to create client")
 
-			// data := []byte("1234567890")
 			data := make([]byte, 1024*4)
 			_, err = rand.Read(data)
+			refList := []string{"vdisk-1"}
 			require.NoError(t, err, "fail to read random data")
 
 			// write data to the store
 			key := []byte("testkey")
-			meta, err := c.Write(key, data)
+			meta, err := c.Write(key, data, refList)
 			require.NoError(t, err, "fail to write data to the store")
 
 			// validate metadata
@@ -213,13 +213,13 @@ func TestRoundTripGRPC(t *testing.T) {
 			// fmt.Println(string(b))
 
 			// read data back
-			dataRead, err := c.Read(key)
+			dataRead, refListRead, err := c.Read(key)
 			require.NoError(t, err, "fail to read data from the store")
 			if bytes.Compare(data, dataRead) != 0 {
 				t.Errorf("data read from store is not the same as original data")
 				t.Errorf("len original: %d len actual %d", len(data), len(dataRead))
 			}
-			// assert.Equal(t, data, dataRead)
+			require.Equal(t, refList, refListRead)
 		})
 	}
 }
@@ -266,14 +266,16 @@ func TestMultipleDownload(t *testing.T) {
 	_, err = rand.Read(data)
 	require.NoError(t, err, "fail to read random data")
 	key := []byte("testkey")
+	refList := []string{"vdisk-1"}
 
-	_, err = c.Write(key, data)
+	_, err = c.Write(key, data, refList)
 	require.NoError(t, err, "fail write data")
 
 	for i := 0; i < 100; i++ {
-		result, err := c.Read(key)
+		result, refListRead, err := c.Read(key)
 		require.NoError(t, err, "fail read data")
 		assert.Equal(t, data, result)
+		require.Equal(t, refList, refListRead)
 	}
 }
 
@@ -318,13 +320,15 @@ func TestConcurentWriteRead(t *testing.T) {
 		_, err = rand.Read(data)
 		require.NoError(t, err, "fail to read random data")
 		key := []byte(fmt.Sprintf("testkey-%d", i))
+		refList := []string{fmt.Sprintf("reflist-%d", i)}
 
-		_, err = c.Write(key, data)
+		_, err = c.Write(key, data, refList)
 		require.NoError(t, err, "fail write data")
 
-		result, err := c.Read(key)
+		result, refListResult, err := c.Read(key)
 		require.NoError(t, err, "fail read data")
-		assert.Equal(t, data, result, "data read is not same as data written")
+		require.Equal(t, data, result, "data read is not same as data written")
+		require.Equal(t, refList, refListResult, "refList read is not same as refList written")
 	}
 
 	// Seems we can't increased the number of concurent write more then around 32
@@ -410,7 +414,7 @@ func BenchmarkWriteFilesSizes(b *testing.B) {
 
 			for i := 0; i < b.N; i++ {
 				// write data to the store
-				_, err := c.Write(key, data)
+				_, err := c.Write(key, data, nil)
 				require.NoError(b, err, "fail to write data to the store")
 			}
 

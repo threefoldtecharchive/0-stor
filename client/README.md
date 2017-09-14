@@ -203,15 +203,16 @@ func main() {
 
 	data := []byte("hello 0-stor")
 	key := []byte("hello")
+	refList := []string("ref-1")
 
 	// stor to 0-stor
-	_, err = client.Write(key, data)
+	_, err = client.Write(key, data, refList)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// read data
-	stored, err := client.Read(key)
+	stored, storedRefList, err := client.Read(key)
 	if err != nil {
 		log.Fatal(err)
 	}

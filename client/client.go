@@ -11,17 +11,17 @@ import (
 
 	"github.com/zero-os/0-stor/client/lib"
 
-	"github.com/minio/blake2b-simd"
-	"github.com/zero-os/0-stor/client/lib/distribution"
-	"github.com/zero-os/0-stor/client/lib/encrypt"
-	"github.com/zero-os/0-stor/client/stor"
-
-	"github.com/golang/snappy"
 	"github.com/zero-os/0-stor/client/itsyouonline"
 	"github.com/zero-os/0-stor/client/lib/chunker"
+	"github.com/zero-os/0-stor/client/lib/distribution"
+	"github.com/zero-os/0-stor/client/lib/encrypt"
 	"github.com/zero-os/0-stor/client/meta"
+	"github.com/zero-os/0-stor/client/stor"
+	pb "github.com/zero-os/0-stor/grpc_store"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/golang/snappy"
+	"github.com/minio/blake2b-simd"
 )
 
 var (
@@ -118,12 +118,12 @@ func (c *Client) Close() error {
 }
 
 // Write write the value to the the 0-stors configured by the client policy
-func (c *Client) Write(key, value []byte) (*meta.Meta, error) {
-	return c.WriteWithMeta(key, value, nil, nil, nil)
+func (c *Client) Write(key, value []byte, refList []string) (*meta.Meta, error) {
+	return c.WriteWithMeta(key, value, nil, nil, nil, refList)
 }
 
-func (c *Client) WriteF(key []byte, r io.Reader) (*meta.Meta, error) {
-	return c.writeFWithMeta(key, r, nil, nil, nil)
+func (c *Client) WriteF(key []byte, r io.Reader, refList []string) (*meta.Meta, error) {
+	return c.writeFWithMeta(key, r, nil, nil, nil, refList)
 }
 
 // WriteWithMeta writes the key-value to the configured pipes.
@@ -132,16 +132,16 @@ func (c *Client) WriteF(key []byte, r io.Reader) (*meta.Meta, error) {
 // So the client won't need to fetch it back from the metadata server.
 // prevKey still need to be set it prevMeta is set
 // initialMeta is optional metadata, if user want to set his own initial metadata for example set own epoch
-func (c *Client) WriteWithMeta(key, val []byte, prevKey []byte, prevMeta, md *meta.Meta) (*meta.Meta, error) {
+func (c *Client) WriteWithMeta(key, val []byte, prevKey []byte, prevMeta, md *meta.Meta, refList []string) (*meta.Meta, error) {
 	r := bytes.NewReader(val)
-	return c.writeFWithMeta(key, r, prevKey, prevMeta, md)
+	return c.writeFWithMeta(key, r, prevKey, prevMeta, md, refList)
 }
 
-func (c *Client) WriteFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMeta, md *meta.Meta) (*meta.Meta, error) {
-	return c.writeFWithMeta(key, r, prevKey, prevMeta, md)
+func (c *Client) WriteFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMeta, md *meta.Meta, refList []string) (*meta.Meta, error) {
+	return c.writeFWithMeta(key, r, prevKey, prevMeta, md, refList)
 }
 
-func (c *Client) writeFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMeta, md *meta.Meta) (*meta.Meta, error) {
+func (c *Client) writeFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMeta, md *meta.Meta, refList []string) (*meta.Meta, error) {
 	var (
 		blockSize int
 		err       error
@@ -213,17 +213,17 @@ func (c *Client) writeFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMet
 
 		switch {
 		case c.policy.ReplicationEnabled(len(block)):
-			usedShards, err = c.replicateWrite(chunkKey, block, []string{})
+			usedShards, err = c.replicateWrite(chunkKey, block, refList)
 			if err != nil {
 				return nil, err
 			}
 		case c.policy.DistributionEnabled():
-			usedShards, _, err = c.distributeWrite(chunkKey, block, []string{})
+			usedShards, _, err = c.distributeWrite(chunkKey, block, refList)
 			if err != nil {
 				return nil, err
 			}
 		default:
-			shard, err := c.writeRandom(chunkKey, block, []string{})
+			shard, err := c.writeRandom(chunkKey, block, refList)
 			if err != nil {
 				return nil, err
 			}
@@ -244,54 +244,55 @@ func (c *Client) writeFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMet
 }
 
 // Read reads value with given key from the 0-stors configured by the client policy
-// it will first try to get the metadata associated with key from the Metadata servers
-func (c *Client) Read(key []byte) ([]byte, error) {
+// it will first try to get the metadata associated with key from the Metadata servers.
+// It returns the value and it's reference list
+func (c *Client) Read(key []byte) ([]byte, []string, error) {
 	md, err := c.metaCli.Get(string(key))
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	w := &bytes.Buffer{}
-	err = c.readFWithMeta(md, w)
+	refList, err := c.readFWithMeta(md, w)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return w.Bytes(), nil
+	return w.Bytes(), refList, nil
 }
 
 // ReadF similar as Read but write the data to w instead of returning a slice of bytes
-func (c *Client) ReadF(key []byte, w io.Writer) error {
+func (c *Client) ReadF(key []byte, w io.Writer) ([]string, error) {
 	md, err := c.metaCli.Get(string(key))
 	if err != nil {
-		return err
+		return nil, err
 	}
 	return c.readFWithMeta(md, w)
 
 }
 
 // ReadWithMeta reads the value described by md
-func (c *Client) ReadWithMeta(md *meta.Meta) ([]byte, error) {
+func (c *Client) ReadWithMeta(md *meta.Meta) ([]byte, []string, error) {
 	w := &bytes.Buffer{}
-	err := c.readFWithMeta(md, w)
+	refList, err := c.readFWithMeta(md, w)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return w.Bytes(), nil
+	return w.Bytes(), refList, nil
 }
 
-func (c *Client) readFWithMeta(md *meta.Meta, w io.Writer) error {
+func (c *Client) readFWithMeta(md *meta.Meta, w io.Writer) (refList []string, err error) {
 	var (
 		aesgm encrypt.EncrypterDecrypter
 		block []byte
-		err   error
+		obj   *pb.Object
 	)
 
 	if c.policy.Encrypt {
 		aesgm, err = encrypt.NewEncrypterDecrypter(encrypt.Config{PrivKey: c.policy.EncryptKey, Type: encrypt.TypeAESGCM})
 		if err != nil {
-			return err
+			return
 		}
 	}
 
@@ -299,50 +300,50 @@ func (c *Client) readFWithMeta(md *meta.Meta, w io.Writer) error {
 
 		switch {
 		case c.policy.ReplicationEnabled(int(chunk.Size)):
-			block, err = c.replicateRead(chunk.Key, chunk.Shards)
+			obj, err = c.replicateRead(chunk.Key, chunk.Shards)
 			if err != nil {
-				return err
+				return
 			}
 		case c.policy.DistributionEnabled():
-			block, err = c.distributeRead(chunk.Key, int(chunk.Size), chunk.Shards)
+			obj, err = c.distributeRead(chunk.Key, int(chunk.Size), chunk.Shards)
 			if err != nil {
-				return err
+				return
 			}
 		default:
 			if len(chunk.Shards) <= 0 {
-				return fmt.Errorf("metadata corrupted, can't have a chunk without shard")
+				err = fmt.Errorf("metadata corrupted, can't have a chunk without shard")
+				return
 			}
 
-			block, err = c.read(chunk.Key, chunk.Shards[0])
+			obj, err = c.read(chunk.Key, chunk.Shards[0])
 			if err != nil {
-				return err
+				return
 			}
 		}
+		block = obj.Value
+		refList = obj.ReferenceList
 
 		if c.policy.Compress {
 			block, err = snappy.Decode(nil, block)
 			if err != nil {
-				return err
+				return
 			}
 		}
 
 		if c.policy.Encrypt {
 			block, err = aesgm.Decrypt(block)
 			if err != nil {
-				return err
+				return
 			}
 		}
 
-		n, err := w.Write(block)
+		_, err = w.Write(block)
 		if err != nil {
-			return err
-		}
-		if n != len(block) {
-			panic("couldn't write to Writer")
+			return
 		}
 	}
 
-	return nil
+	return
 }
 
 func (c *Client) replicateWrite(key, value []byte, referenceList []string) ([]string, error) {
@@ -437,9 +438,9 @@ func (c *Client) replicateWrite(key, value []byte, referenceList []string) ([]st
 	return usedShards, nil
 }
 
-func (c *Client) replicateRead(key []byte, shards []string) ([]byte, error) {
+func (c *Client) replicateRead(key []byte, shards []string) (*pb.Object, error) {
 	wg := sync.WaitGroup{}
-	cVal := make(chan []byte)
+	cVal := make(chan *pb.Object)
 	cAllDone := make(chan struct{})
 	cQuit := make(chan struct{})
 
@@ -466,7 +467,7 @@ func (c *Client) replicateRead(key []byte, shards []string) ([]byte, error) {
 					log.Warningf("replication read, error reading from %s: %v", shard, err)
 					return
 				}
-				cVal <- obj.Value
+				cVal <- obj
 			}
 		}(shard)
 	}
@@ -486,6 +487,7 @@ func (c *Client) replicateRead(key []byte, shards []string) ([]byte, error) {
 	case val := <-cVal:
 		close(cQuit)
 		return val, nil
+
 	}
 }
 
@@ -568,8 +570,7 @@ func (c *Client) distributeWrite(key, value []byte, referenceList []string) ([]s
 	return usedShards, size, nil
 }
 
-func (c *Client) distributeRead(key []byte, originalSize int, shards []string) ([]byte, error) {
-	parts := make([][]byte, len(shards))
+func (c *Client) distributeRead(key []byte, originalSize int, shards []string) (*pb.Object, error) {
 
 	dec, err := distribution.NewDecoder(c.policy.DistributionNr, c.policy.DistributionRedundancy)
 	if err != nil {
@@ -577,8 +578,10 @@ func (c *Client) distributeRead(key []byte, originalSize int, shards []string) (
 	}
 
 	var (
-		wg       = sync.WaitGroup{}
-		shardErr = &lib.ShardError{}
+		wg           = sync.WaitGroup{}
+		shardErr     = &lib.ShardError{}
+		parts        = make([][]byte, len(shards))
+		refListSlice = make([][]string, len(shards))
 	)
 
 	wg.Add(len(shards))
@@ -599,6 +602,7 @@ func (c *Client) distributeRead(key []byte, originalSize int, shards []string) (
 				return
 			}
 			parts[i] = obj.Value
+			refListSlice[i] = obj.ReferenceList
 		}(i, shard)
 	}
 
@@ -608,7 +612,26 @@ func (c *Client) distributeRead(key []byte, originalSize int, shards []string) (
 		return nil, shardErr
 	}
 
-	return dec.Decode(parts, originalSize)
+	decoded, err := dec.Decode(parts, originalSize)
+	if err != nil {
+		return nil, err
+	}
+
+	// get non empty refList
+	// empty refList could be caused by shard error
+	var refList []string
+	for _, rl := range refListSlice {
+		if len(rl) > 0 {
+			refList = rl
+			break
+		}
+	}
+
+	return &pb.Object{
+		Key:           key,
+		Value:         decoded,
+		ReferenceList: refList,
+	}, nil
 }
 
 func (c *Client) writeRandom(key, value []byte, referenceList []string) (string, error) {
@@ -630,7 +653,7 @@ func (c *Client) writeRandom(key, value []byte, referenceList []string) (string,
 	}
 }
 
-func (c *Client) read(key []byte, shard string) ([]byte, error) {
+func (c *Client) read(key []byte, shard string) (*pb.Object, error) {
 	cl, err := c.getStor(shard)
 	if err != nil {
 		return nil, err
@@ -640,7 +663,7 @@ func (c *Client) read(key []byte, shard string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return obj.Value, nil
+	return obj, nil
 }
 
 func (c *Client) linkMeta(curMd, prevMd *meta.Meta, curKey, prevKey []byte) error {
