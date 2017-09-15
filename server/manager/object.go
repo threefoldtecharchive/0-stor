@@ -11,6 +11,13 @@ type ObjectManager struct {
 	namespace string
 }
 
+const (
+	_ = iota
+	RefListOpSet
+	RefListOpAppend
+	RefListOpRemove
+)
+
 func NewObjectManager(namespace string, db db.DB) *ObjectManager {
 	return &ObjectManager{
 		namespace: namespace,
@@ -73,7 +80,7 @@ func (mgr *ObjectManager) Exists(key []byte) (bool, error) {
 	return mgr.db.Exists(objKey(mgr.namespace, key))
 }
 
-func (mgr *ObjectManager) UpdateReferenceList(key []byte, refList []string) error {
+func (mgr *ObjectManager) UpdateReferenceList(key []byte, refList []string, op int) error {
 	b, err := mgr.db.Get(objKey(mgr.namespace, key))
 	if err != nil {
 		return err
@@ -84,8 +91,18 @@ func (mgr *ObjectManager) UpdateReferenceList(key []byte, refList []string) erro
 		return err
 	}
 
-	for i := range refList {
-		copy(obj.ReferenceList[i][:], []byte(refList[i]))
+	switch op {
+	case RefListOpSet:
+		err = obj.SetReferenceList(refList)
+	case RefListOpRemove:
+		err = obj.RemoveReferenceList(refList)
+	case RefListOpAppend:
+		err = obj.AppendReferenceList(refList)
+	default:
+		err = fmt.Errorf("invalid reference list operation")
+	}
+	if err != nil {
+		return err
 	}
 
 	b, err = obj.Encode()
@@ -93,7 +110,7 @@ func (mgr *ObjectManager) UpdateReferenceList(key []byte, refList []string) erro
 		return err
 	}
 
-	return mgr.db.Set(key, b)
+	return mgr.db.Set(objKey(mgr.namespace, key), b)
 }
 
 type CheckStatus string

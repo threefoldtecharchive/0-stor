@@ -163,6 +163,8 @@ service ObjectManager {
     rpc Get (GetObjectRequest) returns (GetObjectReply) {}
     rpc Exists (ExistsObjectRequest) returns (ExistsObjectReply) {}
     rpc Delete (DeleteObjectRequest) returns (DeleteObjectReply) {}
-    rpc UpdateReferenceList(UpdateReferenceListRequest) returns (UpdateReferenceListReply) {}
+    rpc SetReferenceList(UpdateReferenceListRequest) returns (UpdateReferenceListReply) {}
+    rpc AppendReferenceList(UpdateReferenceListRequest) returns (UpdateReferenceListReply) {}
+    rpc RemoveReferenceList(UpdateReferenceListRequest) returns (UpdateReferenceListReply) {}
     rpc Check(CheckRequest) returns (stream CheckResponse) {}
 }

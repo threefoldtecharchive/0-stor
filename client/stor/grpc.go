@@ -25,7 +25,6 @@ type client struct {
 
 // New create a grpc client for the 0-stor
 func newGrpcClient(conn *grpc.ClientConn, namespace, jwtToken string) *client {
-
 	return &client{
 		conn:             conn,
 		objService:       pb.NewObjectManagerClient(conn),
@@ -138,8 +137,8 @@ func (c *client) ObjectExist(id []byte) (bool, error) {
 	return resp.GetExists(), err
 }
 
-func (c *client) ReferenceUpdate(id []byte, refList []string) error {
-	_, err := c.objService.UpdateReferenceList(ctxWithJWT(c.jwtToken), &pb.UpdateReferenceListRequest{
+func (c *client) ReferenceSet(id []byte, refList []string) error {
+	_, err := c.objService.SetReferenceList(ctxWithJWT(c.jwtToken), &pb.UpdateReferenceListRequest{
 		Label:         c.namespace,
 		Key:           id,
 		ReferenceList: refList,
@@ -148,6 +147,25 @@ func (c *client) ReferenceUpdate(id []byte, refList []string) error {
 	return err
 }
 
+func (c *client) ReferenceAppend(id []byte, refList []string) error {
+	_, err := c.objService.AppendReferenceList(ctxWithJWT(c.jwtToken), &pb.UpdateReferenceListRequest{
+		Label:         c.namespace,
+		Key:           id,
+		ReferenceList: refList,
+	})
+
+	return err
+}
+
+func (c *client) ReferenceRemove(id []byte, refList []string) error {
+	_, err := c.objService.RemoveReferenceList(ctxWithJWT(c.jwtToken), &pb.UpdateReferenceListRequest{
+		Label:         c.namespace,
+		Key:           id,
+		ReferenceList: refList,
+	})
+
+	return err
+}
 func ctxWithJWT(jwt string) context.Context {
 	md := metadata.Pairs("authorization", jwt)
 	return metadata.NewOutgoingContext(context.Background(), md)

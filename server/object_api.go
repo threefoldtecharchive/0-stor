@@ -1,7 +1,7 @@
 package server
 
 import (
-	"bytes"
+	"fmt"
 
 	"golang.org/x/net/context"
 
@@ -34,6 +34,10 @@ func (api *ObjectAPI) Create(ctx context.Context, req *pb.CreateObjectRequest) (
 	}
 
 	obj := req.GetObject()
+
+	if len(obj.GetReferenceList()) > db.RefIDCount {
+		return &pb.CreateObjectReply{}, db.ErrReferenceListTooBig
+	}
 
 	mgr := manager.NewObjectManager(label, api.db)
 
@@ -92,11 +96,9 @@ func (api *ObjectAPI) Get(ctx context.Context, req *pb.GetObjectRequest) (*pb.Ge
 		return nil, err
 	}
 
-	resp := &pb.GetObjectReply{
+	return &pb.GetObjectReply{
 		Object: grpcObj(key, obj),
-	}
-
-	return resp, nil
+	}, nil
 }
 
 func (api *ObjectAPI) Exists(ctx context.Context, req *pb.ExistsObjectRequest) (*pb.ExistsObjectReply, error) {
@@ -140,7 +142,8 @@ func (api *ObjectAPI) Delete(ctx context.Context, req *pb.DeleteObjectRequest) (
 	return &pb.DeleteObjectReply{}, nil
 }
 
-func (api *ObjectAPI) UpdateReferenceList(ctx context.Context, req *pb.UpdateReferenceListRequest) (*pb.UpdateReferenceListReply, error) {
+//  SetReferenceList replace the complete reference list for the object
+func (api *ObjectAPI) SetReferenceList(ctx context.Context, req *pb.UpdateReferenceListRequest) (*pb.UpdateReferenceListReply, error) {
 	label, key, refList := req.GetLabel(), req.GetKey(), req.GetReferenceList()
 
 	// increase rate counter
@@ -150,12 +153,57 @@ func (api *ObjectAPI) UpdateReferenceList(ctx context.Context, req *pb.UpdateRef
 		return nil, err
 	}
 
+	if len(refList) > db.RefIDCount {
+		return nil, fmt.Errorf("too big reference list = %v", len(refList))
+	}
+
 	mgr := manager.NewObjectManager(label, api.db)
-	err := mgr.UpdateReferenceList(key, refList)
+	err := mgr.UpdateReferenceList(key, refList, manager.RefListOpSet)
 
 	return &pb.UpdateReferenceListReply{}, err
 }
 
+// AppendReferenceList adds some reference to the reference list of the object
+func (api *ObjectAPI) AppendReferenceList(ctx context.Context, req *pb.UpdateReferenceListRequest) (*pb.UpdateReferenceListReply, error) {
+	label, key, refList := req.GetLabel(), req.GetKey(), req.GetReferenceList()
+
+	// increase rate counter
+	go stats.IncrWrite(label)
+
+	if err := validateJWT(ctx, MethodWrite, label); err != nil {
+		return nil, err
+	}
+
+	if len(refList) > db.RefIDCount {
+		return nil, fmt.Errorf("too big reference list = %v", len(refList))
+	}
+
+	mgr := manager.NewObjectManager(label, api.db)
+	err := mgr.UpdateReferenceList(key, refList, manager.RefListOpAppend)
+
+	return &pb.UpdateReferenceListReply{}, err
+}
+
+// RemoveReferenceList remvoes some reference from the reference list of the object
+func (api *ObjectAPI) RemoveReferenceList(ctx context.Context, req *pb.UpdateReferenceListRequest) (*pb.UpdateReferenceListReply, error) {
+	label, key, refList := req.GetLabel(), req.GetKey(), req.GetReferenceList()
+
+	// increase rate counter
+	go stats.IncrWrite(label)
+
+	if err := validateJWT(ctx, MethodWrite, label); err != nil {
+		return nil, err
+	}
+
+	if len(refList) > db.RefIDCount {
+		return nil, fmt.Errorf("too big reference list = %v", len(refList))
+	}
+
+	mgr := manager.NewObjectManager(label, api.db)
+	err := mgr.UpdateReferenceList(key, refList, manager.RefListOpRemove)
+
+	return &pb.UpdateReferenceListReply{}, err
+}
 func (api *ObjectAPI) Check(req *pb.CheckRequest, stream pb.ObjectManager_CheckServer) error {
 	label, ids := req.GetLabel(), req.GetIds()
 
@@ -189,30 +237,21 @@ func (api *ObjectAPI) Check(req *pb.CheckRequest, stream pb.ObjectManager_CheckS
 func convertStatus(status manager.CheckStatus) pb.CheckResponse_Status {
 	switch status {
 	case manager.CheckStatusOK:
-		return pb.CheckResponse_OK
+		return pb.CheckResponse_ok
 	case manager.CheckStatusMissing:
-		return pb.CheckResponse_MISSING
+		return pb.CheckResponse_missing
 	case manager.CheckStatusCorrupted:
-		return pb.CheckResponse_CORRUPTED
+		return pb.CheckResponse_corrupted
 	default:
 		panic("unknown CheckStatus")
 	}
 }
 
 // grpcObj convert a db.Object to a pb.Object
-func grpcObj(key []byte, in *db.Object) (out *pb.Object) {
-	out = &pb.Object{
+func grpcObj(key []byte, in *db.Object) *pb.Object {
+	return &pb.Object{
 		Key:           key,
 		Value:         in.Data,
-		ReferenceList: make([]string, 0, db.RefIDCount),
+		ReferenceList: in.GetReferenceListStr(),
 	}
-
-	for i := range in.ReferenceList {
-		bRef := bytes.Trim(in.ReferenceList[i][:], "\x00")
-		if len(bRef) == 0 {
-			continue
-		}
-		out.ReferenceList = append(out.ReferenceList, string(bRef))
-	}
-	return
 }

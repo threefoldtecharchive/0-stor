@@ -136,12 +136,12 @@ func TestCheckObject(t *testing.T) {
 		{
 			name:           "valid",
 			keys:           []string{"testkey1", "testkey2", "testkey3"},
-			expectedStatus: pb.CheckResponse_OK,
+			expectedStatus: pb.CheckResponse_ok,
 		},
 		{
 			name:           "missing",
 			keys:           []string{"dontexsits"},
-			expectedStatus: pb.CheckResponse_MISSING,
+			expectedStatus: pb.CheckResponse_missing,
 		},
 	}
 

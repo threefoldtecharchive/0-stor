@@ -39,8 +39,12 @@ type Client interface {
 	// ObjectExist tests if an object with this id exists
 	ObjectExist(id []byte) (bool, error)
 
-	// ReferenceUpdate updates reference list
-	ReferenceUpdate(id []byte, refList []string) error
+	// ReferenceSet sets reference list
+	ReferenceSet(id []byte, refList []string) error
+
+	ReferenceRemove(id []byte, refList []string) error
+
+	ReferenceAppend(id []byte, refList []string) error
 }
 
 // Config defines 0-stor client config
