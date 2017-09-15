@@ -114,3 +114,6 @@ instance/
 
 bin
 .db
+
+# editors
+.vscode
