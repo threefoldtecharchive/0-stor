@@ -457,18 +457,17 @@ func (c *Client) replicateRead(key []byte, shards []string) (*pb.Object, error) 
 				log.Warningf("replication read, error getting client for %s: %v", shard, err)
 				return
 			}
+			obj, err := cl.ObjectGet(key)
+			if err != nil {
+				log.Warningf("replication read, error reading from %s: %v", shard, err)
+				return
+			}
 
 			select {
 			case <-cQuit:
-				return
-			default:
-				obj, err := cl.ObjectGet(key)
-				if err != nil {
-					log.Warningf("replication read, error reading from %s: %v", shard, err)
-					return
-				}
-				cVal <- obj
+			case cVal <- obj:
 			}
+			return
 		}(shard)
 	}
 
