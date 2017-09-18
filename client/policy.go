@@ -108,12 +108,12 @@ func (p Policy) validate() error {
 		return ErrZeroMetaShards
 	}
 
-	if p.ReplicationNr > 0 && p.ReplicationNr < len(p.DataShards) {
+	if p.ReplicationNr > len(p.DataShards) {
 		return ErrNotEnoughReplicationShards
 	}
 
 	distributionNr := (p.DistributionNr + p.DistributionRedundancy)
-	if distributionNr > 0 && distributionNr < len(p.DataShards) {
+	if distributionNr > len(p.DataShards) {
 		return ErrNotEnoughDistributionShards
 	}
 
