@@ -171,6 +171,27 @@ func main() {
 						return nil
 					},
 				},
+				{
+					Name:  "repair",
+					Usage: "Repair file",
+					Action: func(c *cli.Context) error {
+						if len(c.Args()) < 1 {
+							return cli.NewExitError(fmt.Errorf("need to give the key of the object to inspect"), 1)
+						}
+
+						key := c.Args().Get(0)
+						if key == "" {
+							return cli.NewExitError("key cannot be empty", 1)
+						}
+
+						if err := cl.Repair([]byte(key)); err != nil {
+							return cli.NewExitError(fmt.Sprintf("error during repair: %v", err), 1)
+						}
+
+						fmt.Println("file properly restored")
+						return nil
+					},
+				},
 			},
 		},
 		{

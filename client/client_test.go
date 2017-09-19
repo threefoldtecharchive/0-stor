@@ -523,6 +523,57 @@ func BenchmarkWriteFilesSizes(b *testing.B) {
 	}
 }
 
+func TestIssue225(t *testing.T) {
+	etcd, err := embedserver.New()
+	require.NoError(t, err, "fail to start embebed etcd server")
+	defer etcd.Stop()
+
+	servers, serverClean := testGRPCServer(t, 4)
+	defer serverClean()
+
+	shards := make([]string, len(servers))
+	for i, server := range servers {
+		shards[i] = server.Addr()
+	}
+
+	policy := Policy{
+		Organization:           "testorg",
+		Namespace:              "namespace1",
+		DataShards:             shards,
+		MetaShards:             []string{etcd.ListenAddr()},
+		IYOAppID:               "",
+		IYOSecret:              "",
+		BlockSize:              4096,
+		Compress:               true,
+		Encrypt:                true,
+		EncryptKey:             "cF0BFpIsljOS8UmaP8YRHRX0nBPVRVPw",
+		ReplicationNr:          4,
+		ReplicationMaxSize:     4096, //force to use distribution over replication
+		DistributionNr:         3,
+		DistributionRedundancy: 1,
+	}
+
+	c, err := getTestClient(policy)
+	require.NoError(t, err, "fail to create client")
+	defer c.Close()
+
+	data := make([]byte, 89817)
+
+	_, err = rand.Read(data)
+	require.NoError(t, err, "fail to read random data")
+	key := []byte("testkey")
+	refList := []string{"ref-1"}
+
+	_, err = c.Write(key, data, refList)
+	require.NoError(t, err, "fail write data")
+
+	result, resulRefList, err := c.Read(key)
+	require.NoError(t, err, "fail read data")
+	assert.Equal(t, data, result)
+	assert.Equal(t, refList, resulRefList)
+
+}
+
 // func BenchmarkDirectWriteGRPC(b *testing.B) {
 // 	etcd, err := embedserver.New()
 // 	require.NoError(b, err, "fail to start embebed etcd server")
