@@ -95,7 +95,7 @@ func (c *Client) repairReplicatedChunk(chunk *meta.Chunk) ([]string, error) {
 				cCorrupted <- shard
 				return
 			}
-			if len(status) < 1 || status[0].Status != CheckStatusOk {
+			if len(status) < 1 || CheckStatus(status[0].Status) != CheckStatusOk {
 				cCorrupted <- shard
 				return
 			}
