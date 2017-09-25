@@ -60,13 +60,13 @@ func (item *KVItem) Key() []byte {
 //
 // Remember to parse or copy it if you need to reuse it. DO NOT modify or
 // append to this slice; it would result in a panic.
-func (item *KVItem) Value(consumer func([]byte) error) error {
+func (item *KVItem) Value(consumer func([]byte)) error {
 	item.wg.Wait()
 	if item.status == prefetched {
 		if item.err != nil {
 			return item.err
 		}
-		return consumer(item.val)
+		consumer(item.val)
 	}
 	return item.kv.yieldItemValue(item, consumer)
 }
@@ -84,17 +84,20 @@ func (item *KVItem) hasValue() bool {
 }
 
 func (item *KVItem) prefetchValue() {
-	item.err = item.kv.yieldItemValue(item, func(val []byte) error {
+	item.err = item.kv.yieldItemValue(item, func(val []byte) {
 		if val == nil {
 			item.status = prefetched
-			return nil
+			return
 		}
-
 		buf := item.slice.Resize(len(val))
-		copy(buf, val)
+
+		// Check if we are using the same backing array,
+		// and avoid copying if that is the case.
+		if &buf[0] != &val[0] {
+			copy(buf, val)
+		}
 		item.val = buf
 		item.status = prefetched
-		return nil
 	})
 }
 
@@ -168,7 +171,7 @@ type IteratorOptions struct {
 
 // DefaultIteratorOptions contains default options when iterating over Badger key-value stores.
 var DefaultIteratorOptions = IteratorOptions{
-	PrefetchValues: true,
+	PrefetchValues: false,
 	PrefetchSize:   100,
 	Reverse:        false,
 }
