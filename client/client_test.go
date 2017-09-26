@@ -220,6 +220,14 @@ func TestRoundTripGRPC(t *testing.T) {
 				t.Errorf("len original: %d len actual %d", len(data), len(dataRead))
 			}
 			require.Equal(t, refList, refListRead)
+
+			//delete data
+			err = c.DeleteWithMeta(meta)
+			require.NoError(t, err, "failed to delete from the store")
+
+			// makes sure metadata is not exist anymore
+			_, err = c.metaCli.Get(string(key))
+			require.Error(t, err)
 		})
 	}
 }
