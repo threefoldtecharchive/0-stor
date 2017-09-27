@@ -15,6 +15,7 @@ var (
 	ErrUnsuportdProtocol           = fmt.Errorf("protocol specified not supported")
 	ErrNotEnoughReplicationShards  = fmt.Errorf("the number of replication number is bigger then the number of data shards")
 	ErrNotEnoughDistributionShards = fmt.Errorf("the number of distribution number is bigger then the number of data shards")
+	ErrReplicationMinimum          = fmt.Errorf("replication number has to be 2 minimum")
 	ErrNoEncryptionKey             = fmt.Errorf("encryption enabled, but encryption key is empty")
 )
 
@@ -117,6 +118,10 @@ func (p Policy) validate() error {
 
 	if p.ReplicationNr > 0 && p.ReplicationNr < len(p.DataShards) {
 		return ErrNotEnoughReplicationShards
+	}
+
+	if p.ReplicationNr == 1 {
+		return ErrReplicationMinimum
 	}
 
 	distributionNr := (p.DistributionNr + p.DistributionRedundancy)

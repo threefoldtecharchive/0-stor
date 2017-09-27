@@ -343,10 +343,6 @@ func (c *Client) readFWithMeta(md *meta.Meta, w io.Writer) error {
 
 func (c *Client) replicateWrite(key, value []byte, referenceList []string) ([]string, error) {
 
-	if c.policy.ReplicationNr <= 2 {
-		return nil, fmt.Errorf("replication number can't be lower then 2")
-	}
-
 	type Job struct {
 		client stor.Client
 		shard  string
