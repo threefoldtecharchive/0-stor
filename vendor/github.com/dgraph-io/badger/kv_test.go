@@ -18,9 +18,11 @@ package badger
 
 import (
 	"bytes"
+	"crypto/rand"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"regexp"
 	"sort"
 	"sync"
 	"testing"
@@ -37,18 +39,17 @@ func getTestOptions(dir string) *Options {
 	opt.LevelOneSize = 4 << 15 // Force more compaction.
 	opt.Dir = dir
 	opt.ValueDir = dir
-	opt.SyncWrites = true // Some tests seem to need this to pass.
-	opt.ValueGCThreshold = 0.8
 	return opt
 }
 
 func getItemValue(t *testing.T, item *KVItem) (val []byte) {
-	err := item.Value(func(v []byte) {
+	err := item.Value(func(v []byte) error {
 		if v == nil {
-			return
+			return nil
 		}
 		val = make([]byte, len(v))
 		copy(val, v)
+		return nil
 	})
 
 	if err != nil {
@@ -782,9 +783,10 @@ func BenchmarkExists(b *testing.B) {
 				b.Error(err)
 			}
 			var val []byte
-			err = item.Value(func(v []byte) {
+			err = item.Value(func(v []byte) error {
 				val = make([]byte, len(v))
 				copy(val, v)
+				return nil
 			})
 			if err != nil {
 				b.Error(err)
@@ -829,22 +831,23 @@ func TestBigKeyValuePairs(t *testing.T) {
 	require.NoError(t, err)
 	defer os.RemoveAll(dir)
 
-	kv, err := NewKV(getTestOptions(dir))
+	opt := getTestOptions(dir)
+	kv, err := NewKV(opt)
 	require.NoError(t, err)
 
 	bigK := make([]byte, maxKeySize+1)
-	bigV := make([]byte, maxValueSize+1)
+	bigV := make([]byte, opt.ValueLogFileSize+1)
 	small := make([]byte, 10)
 
-	require.Equal(t, ErrExceedsMaxKeyValueSize, kv.Set(bigK, small, 0))
-	require.Equal(t, ErrExceedsMaxKeyValueSize, kv.Set(small, bigV, 0))
+	require.Regexp(t, regexp.MustCompile("Key.*exceeded"), kv.Set(bigK, small, 0).Error())
+	require.Regexp(t, regexp.MustCompile("Value.*exceeded"), kv.Set(small, bigV, 0).Error())
 
 	e1 := Entry{Key: small, Value: small}
 	e2 := Entry{Key: bigK, Value: bigV}
 	err = kv.BatchSet([]*Entry{&e1, &e2})
 	require.Nil(t, err)
 	require.Nil(t, e1.Error)
-	require.Equal(t, ErrExceedsMaxKeyValueSize, e2.Error)
+	require.Regexp(t, regexp.MustCompile("Key.*exceeded"), e2.Error.Error())
 
 	// make sure e1 was actually set:
 	var item KVItem
@@ -937,4 +940,60 @@ func TestSetIfAbsentAsync(t *testing.T) {
 	}
 	require.Equal(t, n, count)
 	require.NoError(t, kv.Close())
+}
+
+func TestGetSetRace(t *testing.T) {
+	dir, err := ioutil.TempDir("", "badger")
+	require.NoError(t, err)
+	defer os.RemoveAll(dir)
+	kv, _ := NewKV(getTestOptions(dir))
+
+	data := make([]byte, 4096)
+	_, err = rand.Read(data)
+	require.NoError(t, err)
+
+	var (
+		numOp = 100
+		wg    sync.WaitGroup
+		keyCh = make(chan string)
+	)
+
+	// writer
+	wg.Add(1)
+	go func() {
+		defer func() {
+			wg.Done()
+			close(keyCh)
+		}()
+
+		for i := 0; i < numOp; i++ {
+			key := fmt.Sprintf("%d", i)
+			err = kv.Set([]byte(key), data, 0x00)
+			require.NoError(t, err)
+			keyCh <- key
+		}
+	}()
+
+	// reader
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		for key := range keyCh {
+			var item KVItem
+
+			err := kv.Get([]byte(key), &item)
+			require.NoError(t, err)
+
+			var val []byte
+			err = item.Value(func(v []byte) error {
+				val = make([]byte, len(v))
+				copy(val, v)
+				return nil
+			})
+			require.NoError(t, err)
+		}
+	}()
+
+	wg.Wait()
 }

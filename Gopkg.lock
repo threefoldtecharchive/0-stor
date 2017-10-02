@@ -68,9 +68,10 @@
   version = "v1.1.0"
 
 [[projects]]
+  branch = "master"
   name = "github.com/dgraph-io/badger"
   packages = [".","options","protos","skl","table","y"]
-  revision = "a3ac9e5df673e9ae586a8865c489b81c8df71b93"
+  revision = "7f945c8fffd35e73f278fc3f0bce9961398dc1e1"
 
 [[projects]]
   name = "github.com/dgrijalva/jwt-go"
@@ -314,6 +315,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "85928c06d187429e79ac008d674664ea8a1ca1040862dd7a451cc778ff5882e8"
+  inputs-digest = "151fe4b3ca9e146ed426ca56ed75eeda5845c2c2454990a42b8aa0682cb0b68f"
   solver-name = "gps-cdcl"
   solver-version = 1

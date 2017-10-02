@@ -48,34 +48,51 @@ const (
 	M               int64 = 1 << 20
 )
 
-// ErrRetry is returned when a log file containing the value is not found.
-// This usually indicates that it may have been garbage collected, and the
-// operation needs to be retried.
-var ErrRetry = errors.New("Unable to find log file. Please retry")
+var (
+	// ErrRetry is returned when a log file containing the value is not found.
+	// This usually indicates that it may have been garbage collected, and the
+	// operation needs to be retried.
+	ErrRetry = errors.New("Unable to find log file. Please retry")
 
-// ErrCasMismatch is returned when a CompareAndSet operation has failed due
-// to a counter mismatch.
-var ErrCasMismatch = errors.New("CompareAndSet failed due to counter mismatch")
+	// ErrCasMismatch is returned when a CompareAndSet operation has failed due
+	// to a counter mismatch.
+	ErrCasMismatch = errors.New("CompareAndSet failed due to counter mismatch")
 
-// ErrKeyExists is returned by SetIfAbsent metadata bit is set, but the
-// key already exists in the store.
-var ErrKeyExists = errors.New("SetIfAbsent failed since key already exists")
+	// ErrKeyExists is returned by SetIfAbsent metadata bit is set, but the
+	// key already exists in the store.
+	ErrKeyExists = errors.New("SetIfAbsent failed since key already exists")
 
-const (
-	maxKeySize   = 1 << 20
-	maxValueSize = 1 << 30
+	// ErrThresholdZero is returned if threshold is set to zero, and value log GC is called.
+	// In such a case, GC can't be run.
+	ErrThresholdZero = errors.New(
+		"Value log GC can't run because threshold is set to zero")
+
+	// ErrNoRewrite is returned if a call for value log GC doesn't result in a log file rewrite.
+	ErrNoRewrite = errors.New(
+		"Value log GC attempt didn't result in any cleanup")
+
+	// ErrRejected is returned if a value log GC is called either while another GC is running, or
+	// after KV::Close has been called.
+	ErrRejected = errors.New("Value log GC request rejected")
+
+	// ErrInvalidRequest is returned if the user request is invalid.
+	ErrInvalidRequest = errors.New("Invalid request")
 )
+
+const maxKeySize = 1 << 20
 
 type logFile struct {
 	path string
-	// This is a lock on the file descriptor's value and the file's existence.  Use shared
-	// ownership when reading/writing the file, use exclusive ownership to open/close the
-	// descriptor or remove the file.
-	fdLock sync.RWMutex
-	fd     *os.File
-	fid    uint32
-	mmap   []byte
-	size   uint32
+	// This is a lock on the log file. It guards the fd’s value, the file’s
+	// existence and the file’s memory map.
+	//
+	// Use shared ownership when reading/writing the file or memory map, use
+	// exclusive ownership to open/close the descriptor, unmap or remove the file.
+	lock sync.RWMutex
+	fd   *os.File
+	fid  uint32
+	fmap []byte
+	size uint32
 }
 
 // openReadOnly assumes that we have a write lock on logFile.
@@ -92,49 +109,42 @@ func (lf *logFile) openReadOnly() error {
 	}
 	lf.size = uint32(fi.Size())
 
-	lf.mmap, err = y.Mmap(lf.fd, false, fi.Size())
-	if err != nil {
+	if err = lf.mmap(fi.Size()); err != nil {
 		_ = lf.fd.Close()
 		return y.Wrapf(err, "Unable to map file")
 	}
-	err = y.Madvise(lf.mmap, false) // Disable readahead
-	if err != nil {
-		_ = lf.fd.Close()
-		return y.Wrapf(err, "madvise: Unable to disable readahead")
-	}
+
 	return nil
+}
+
+func (lf *logFile) mmap(size int64) (err error) {
+	lf.fmap, err = y.Mmap(lf.fd, false, size)
+	if err == nil {
+		err = y.Madvise(lf.fmap, false) // Disable readahead
+	}
+	return err
 }
 
 var errTooFewBytes = errors.New("Too few bytes read")
 
-// lf must be RLocked (or exclusively locked) if you call this.
-func (lf *logFile) read(p valuePointer, s *y.Slice) (buf []byte, err error) {
-	if s == nil {
-		s = new(y.Slice)
-	}
+// Acquire lock on mmap if you are calling this
+func (lf *logFile) read(p valuePointer) (buf []byte, err error) {
 	var nbr int64
-	offset := int64(p.Offset)
-	if len(lf.mmap) > 0 {
-		size := int64(len(lf.mmap))
-		valsz := int64(p.Len)
-		if offset >= size || offset+valsz > size {
-			err = y.ErrEOF
-		} else {
-			buf = lf.mmap[offset : offset+valsz]
-			nbr = valsz
-		}
+	offset := p.Offset
+	size := uint32(len(lf.fmap))
+	valsz := p.Len
+	if offset >= size || offset+valsz > size {
+		err = y.ErrEOF
 	} else {
-		buf = s.Resize(int(p.Len))
-		var n int
-		n, err = lf.fd.ReadAt(buf, offset)
-		nbr = int64(n)
+		buf = lf.fmap[offset : offset+valsz]
+		nbr = int64(valsz)
 	}
 	y.NumReads.Add(1)
 	y.NumBytesRead.Add(nbr)
 	return buf, err
 }
 
-func (lf *logFile) doneWriting() error {
+func (lf *logFile) doneWriting(offset uint32) error {
 	// Sync before acquiring lock.  (We call this from write() and thus know we have shared access
 	// to the fd.)
 	if err := lf.fd.Sync(); err != nil {
@@ -147,8 +157,16 @@ func (lf *logFile) doneWriting() error {
 	// If there's a benefit to reopening the file read-only, it might be on Windows.  I don't know
 	// what the benefit is.  Consider keeping the file read-write, or use fcntl to change
 	// permissions.
-	lf.fdLock.Lock()
-	defer lf.fdLock.Unlock()
+	lf.lock.Lock()
+	defer lf.lock.Unlock()
+	if err := y.Munmap(lf.fmap); err != nil {
+		return errors.Wrapf(err, "Unable to munmap value log: %q", lf.path)
+	}
+	// TODO: Confirm if we need to run a file sync after truncation.
+	// Truncation must run after unmapping, otherwise Windows would crap itself.
+	if err := lf.fd.Truncate(int64(offset)); err != nil {
+		return errors.Wrapf(err, "Unable to truncate file: %q", lf.path)
+	}
 	if err := lf.fd.Close(); err != nil {
 		return errors.Wrapf(err, "Unable to close value log: %q", lf.path)
 	}
@@ -167,7 +185,7 @@ type logEntry func(e Entry, vp valuePointer) error
 
 // iterate iterates over log file. It doesn't not allocate new memory for every kv pair.
 // Therefore, the kv pair is only valid for the duration of fn call.
-func (lf *logFile) iterate(offset uint32, fn logEntry) error {
+func (vlog *valueLog) iterate(lf *logFile, offset uint32, fn logEntry) error {
 	_, err := lf.fd.Seek(int64(offset), io.SeekStart)
 	if err != nil {
 		return y.Wrap(err)
@@ -198,7 +216,7 @@ func (lf *logFile) iterate(offset uint32, fn logEntry) error {
 		var e Entry
 		e.offset = recordOffset
 		h.Decode(hbuf[:])
-		if h.klen > maxKeySize || h.vlen > maxValueSize {
+		if h.klen > maxKeySize {
 			truncate = true
 			break
 		}
@@ -263,7 +281,8 @@ func (lf *logFile) iterate(offset uint32, fn logEntry) error {
 		}
 	}
 
-	if truncate {
+	if truncate && len(lf.fmap) == 0 {
+		// Only truncate if the file isn't mmaped. Otherwise, Windows would puke.
 		if err := lf.fd.Truncate(int64(recordOffset)); err != nil {
 			return err
 		}
@@ -351,7 +370,7 @@ func (vlog *valueLog) rewrite(f *logFile) error {
 		return nil
 	}
 
-	err := f.iterate(0, func(e Entry, vp valuePointer) error {
+	err := vlog.iterate(f, 0, func(e Entry, vp valuePointer) error {
 		return fe(e)
 	})
 	if err != nil {
@@ -367,6 +386,7 @@ func (vlog *valueLog) rewrite(f *logFile) error {
 	elog.Printf("Processed %d entries in total", count)
 
 	elog.Printf("Removing fid: %d", f.fid)
+	var deleteFileNow bool
 	// Entries written to LSM. Remove the older file now.
 	{
 		vlog.filesLock.Lock()
@@ -375,18 +395,62 @@ func (vlog *valueLog) rewrite(f *logFile) error {
 			vlog.filesLock.Unlock()
 			return errors.Errorf("Unable to find fid: %d", f.fid)
 		}
-		delete(vlog.filesMap, f.fid)
+		if vlog.numActiveIterators == 0 {
+			delete(vlog.filesMap, f.fid)
+			deleteFileNow = true
+		} else {
+			vlog.filesToBeDeleted = append(vlog.filesToBeDeleted, f.fid)
+		}
 		vlog.filesLock.Unlock()
 	}
 
-	// Exclusively lock the file so that there are no readers before closing/destroying it
-	f.fdLock.Lock()
-	rem := vlog.fpath(f.fid)
-	f.fd.Close() // close file previous to remove it
-	f.fdLock.Unlock()
+	if deleteFileNow {
+		vlog.deleteLogFile(f)
+	}
 
-	elog.Printf("Removing %s", rem)
-	return os.Remove(rem)
+	return nil
+}
+
+func (vlog *valueLog) incrIteratorCount() {
+	vlog.filesLock.Lock()
+	vlog.numActiveIterators++
+	vlog.filesLock.Unlock()
+}
+
+func (vlog *valueLog) decrIteratorCount() error {
+	vlog.filesLock.Lock()
+
+	vlog.numActiveIterators--
+	if vlog.numActiveIterators != 0 {
+		vlog.filesLock.Unlock()
+		return nil
+	}
+	lfs := make([]*logFile, 0, len(vlog.filesToBeDeleted))
+	for _, id := range vlog.filesToBeDeleted {
+		lfs = append(lfs, vlog.filesMap[id])
+		delete(vlog.filesMap, id)
+	}
+	vlog.filesToBeDeleted = nil
+	vlog.filesLock.Unlock()
+
+	for _, lf := range lfs {
+		if err := vlog.deleteLogFile(lf); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (vlog *valueLog) deleteLogFile(lf *logFile) error {
+	path := vlog.fpath(lf.fid)
+	if err := y.Munmap(lf.fmap); err != nil {
+		_ = lf.fd.Close()
+		return err
+	}
+	if err := lf.fd.Close(); err != nil {
+		return err
+	}
+	return os.Remove(path)
 }
 
 // Entry provides Key, Value and if required, CASCounterCheck to kv.BatchSet() API.
@@ -515,14 +579,19 @@ type valueLog struct {
 	dirPath string
 	elog    trace.EventLog
 
-	// guards our view of which files exist
-	filesLock sync.RWMutex
-	filesMap  map[uint32]*logFile
+	// guards our view of which files exist, which to be deleted, how many active iterators
+	filesLock        sync.RWMutex
+	filesMap         map[uint32]*logFile
+	filesToBeDeleted []uint32
+	// A refcount of iterators -- when this hits zero, we can delete the filesToBeDeleted.
+	numActiveIterators int
 
 	kv                *KV
 	maxFid            uint32
 	writableLogOffset uint32
 	opt               Options
+
+	garbageCh chan struct{}
 }
 
 func vlogFilePath(dirPath string, fid uint32) string {
@@ -567,8 +636,8 @@ func (vlog *valueLog) openOrCreateFiles() error {
 	// as read write.
 	for fid, lf := range vlog.filesMap {
 		if fid == maxFid {
-			lf.fd, err = y.OpenExistingSyncedFile(vlog.fpath(fid), vlog.opt.SyncWrites)
-			if err != nil {
+			if lf.fd, err = y.OpenExistingSyncedFile(vlog.fpath(fid),
+				vlog.opt.SyncWrites); err != nil {
 				return errors.Wrapf(err, "Unable to open value log file as RDWR")
 			}
 		} else {
@@ -593,18 +662,20 @@ func (vlog *valueLog) createVlogFile(fid uint32) (*logFile, error) {
 	path := vlog.fpath(fid)
 	lf := &logFile{fid: fid, path: path}
 	vlog.writableLogOffset = 0
+
 	var err error
-	lf.fd, err = y.CreateSyncedFile(path, vlog.opt.SyncWrites)
-	if err != nil {
+	if lf.fd, err = y.CreateSyncedFile(path, vlog.opt.SyncWrites); err != nil {
 		return nil, errors.Wrapf(err, "Unable to create value log file")
 	}
-	err = syncDir(vlog.dirPath)
-	if err != nil {
+
+	if err = syncDir(vlog.dirPath); err != nil {
 		return nil, errors.Wrapf(err, "Unable to sync value log file dir")
 	}
+
 	vlog.filesLock.Lock()
 	vlog.filesMap[fid] = lf
 	vlog.filesLock.Unlock()
+
 	return lf, nil
 }
 
@@ -618,6 +689,7 @@ func (vlog *valueLog) Open(kv *KV, opt *Options) error {
 	}
 
 	vlog.elog = trace.NewEventLog("Badger", "Valuelog")
+	vlog.garbageCh = make(chan struct{}, 1) // Only allow one GC at a time.
 
 	return nil
 }
@@ -627,19 +699,41 @@ func (vlog *valueLog) Close() error {
 	defer vlog.elog.Finish()
 
 	var err error
-	for _, f := range vlog.filesMap {
+	for id, f := range vlog.filesMap {
+
+		f.lock.Lock() // We won’t release the lock.
+		if munmapErr := y.Munmap(f.fmap); munmapErr != nil && err == nil {
+			err = munmapErr
+		}
+
+		if id == vlog.maxFid {
+			// truncate writable log file to correct offset.
+			if truncErr := f.fd.Truncate(
+				int64(vlog.writableLogOffset)); truncErr != nil && err == nil {
+				err = truncErr
+			}
+		}
+
 		if closeErr := f.fd.Close(); closeErr != nil && err == nil {
 			err = closeErr
 		}
+
 	}
 	return err
 }
 
-// sortedFids returns the file id's, sorted.  Assumes we have shared access to filesMap.
+// sortedFids returns the file id's not pending deletion, sorted.  Assumes we have shared access to
+// filesMap.
 func (vlog *valueLog) sortedFids() []uint32 {
+	toBeDeleted := make(map[uint32]struct{})
+	for _, fid := range vlog.filesToBeDeleted {
+		toBeDeleted[fid] = struct{}{}
+	}
 	ret := make([]uint32, 0, len(vlog.filesMap))
 	for fid := range vlog.filesMap {
-		ret = append(ret, fid)
+		if _, ok := toBeDeleted[fid]; !ok {
+			ret = append(ret, fid)
+		}
 	}
 	sort.Slice(ret, func(i, j int) bool {
 		return ret[i] < ret[j]
@@ -664,7 +758,7 @@ func (vlog *valueLog) Replay(ptr valuePointer, fn logEntry) error {
 			of = 0
 		}
 		f := vlog.filesMap[id]
-		err := f.iterate(of, fn)
+		err := vlog.iterate(f, of, fn)
 		if err != nil {
 			return errors.Wrapf(err, "Unable to replay value log: %q", f.path)
 		}
@@ -674,7 +768,7 @@ func (vlog *valueLog) Replay(ptr valuePointer, fn logEntry) error {
 	var err error
 	last := vlog.filesMap[vlog.maxFid]
 	lastOffset, err := last.fd.Seek(0, io.SeekEnd)
-	vlog.writableLogOffset = uint32(lastOffset)
+	atomic.AddUint32(&vlog.writableLogOffset, uint32(lastOffset))
 	return errors.Wrapf(err, "Unable to seek to end of value log: %q", last.path)
 }
 
@@ -699,18 +793,22 @@ func (vlog *valueLog) sync() error {
 		return nil
 	}
 	curlf := vlog.filesMap[vlog.maxFid]
-	curlf.fdLock.RLock()
+	curlf.lock.RLock()
 	vlog.filesLock.RUnlock()
 
 	dirSyncCh := make(chan error)
 	go func() { dirSyncCh <- syncDir(vlog.opt.ValueDir) }()
 	err := curlf.sync()
-	curlf.fdLock.RUnlock()
+	curlf.lock.RUnlock()
 	dirSyncErr := <-dirSyncCh
 	if err != nil {
 		err = dirSyncErr
 	}
 	return err
+}
+
+func (vlog *valueLog) writableOffset() uint32 {
+	return atomic.LoadUint32(&vlog.writableLogOffset)
 }
 
 // write is thread-unsafe by design and should not be called concurrently.
@@ -731,12 +829,12 @@ func (vlog *valueLog) write(reqs []*request) error {
 		y.NumWrites.Add(1)
 		y.NumBytesWritten.Add(int64(n))
 		vlog.elog.Printf("Done")
-		vlog.writableLogOffset += uint32(n)
+		atomic.AddUint32(&vlog.writableLogOffset, uint32(n))
 		vlog.buf.Reset()
 
-		if vlog.writableLogOffset > uint32(vlog.opt.ValueLogFileSize) {
+		if vlog.writableOffset() > uint32(vlog.opt.ValueLogFileSize) {
 			var err error
-			if err = curlf.doneWriting(); err != nil {
+			if err = curlf.doneWriting(vlog.writableLogOffset); err != nil {
 				return err
 			}
 
@@ -744,6 +842,10 @@ func (vlog *valueLog) write(reqs []*request) error {
 			y.AssertTruef(newid < 1<<16, "newid will overflow uint16: %v", newid)
 			newlf, err := vlog.createVlogFile(newid)
 			if err != nil {
+				return err
+			}
+
+			if err = newlf.mmap(2 * vlog.opt.ValueLogFileSize); err != nil {
 				return err
 			}
 
@@ -767,7 +869,7 @@ func (vlog *valueLog) write(reqs []*request) error {
 
 			p.Fid = curlf.fid
 			// Use the offset including buffer length so far.
-			p.Offset = vlog.writableLogOffset + uint32(vlog.buf.Len())
+			p.Offset = vlog.writableOffset() + uint32(vlog.buf.Len())
 			plen, err := encodeEntry(e, &vlog.buf) // Now encode the entry into buffer.
 			if err != nil {
 				return err
@@ -788,8 +890,8 @@ func (vlog *valueLog) write(reqs []*request) error {
 	// an invalid file descriptor.
 }
 
-// Gets the logFile and acquires an RLock() on it too.  You must call RUnlock on the file (if
-// non-nil).
+// Gets the logFile and acquires and RLock() for the mmap. You must call RUnlock on the file
+// (if non-nil)
 func (vlog *valueLog) getFileRLocked(fid uint32) (*logFile, error) {
 	vlog.filesLock.RLock()
 	defer vlog.filesLock.RUnlock()
@@ -798,48 +900,45 @@ func (vlog *valueLog) getFileRLocked(fid uint32) (*logFile, error) {
 		// log file has gone away, will need to retry the operation.
 		return nil, ErrRetry
 	}
-	ret.fdLock.RLock()
+	ret.lock.RLock()
 	return ret, nil
 }
 
 // Read reads the value log at a given location.
-//
-// FIXME once mmap is in place for writable log as well, we can
-// stop passing a reference to slice.
-func (vlog *valueLog) Read(vp valuePointer, slice *y.Slice, consumer func([]byte)) error {
-	buf, err := vlog.readValueBytes(vp, slice)
-
-	if err != nil {
-		return err
+func (vlog *valueLog) Read(vp valuePointer, consumer func([]byte) error) error {
+	// Check for valid offset if we are reading to writable log.
+	if vp.Fid == vlog.maxFid && vp.Offset >= vlog.writableOffset() {
+		return errors.Errorf(
+			"Invalid value pointer offset: %d greater than current offset: %d",
+			vp.Offset, vlog.writableOffset())
 	}
 
-	var h header
-	h.Decode(buf)
-	if (h.meta & BitDelete) != 0 {
-		// Tombstone key
-		consumer(nil)
-		return nil
+	fn := func(buf []byte) error {
+		var h header
+		h.Decode(buf)
+		if (h.meta & BitDelete) != 0 {
+			// Tombstone key
+			return consumer(nil)
+		}
+		n := uint32(headerBufSize)
+		n += h.klen
+		return consumer(buf[n : n+h.vlen])
 	}
-	n := uint32(headerBufSize)
-	n += h.klen
-	consumer(buf[n : n+h.vlen])
-
-	return nil
+	return vlog.readValueBytes(vp, fn)
 }
 
-func (vlog *valueLog) readValueBytes(vp valuePointer, slice *y.Slice) ([]byte, error) {
+func (vlog *valueLog) readValueBytes(vp valuePointer, consumer func([]byte) error) error {
 	lf, err := vlog.getFileRLocked(vp.Fid)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Unable to read from value log: %+v", vp)
+		return errors.Wrapf(err, "Unable to read from value log: %+v", vp)
 	}
-	defer lf.fdLock.RUnlock()
+	defer lf.lock.RUnlock()
 
 	var buf []byte
-	if buf, err = lf.read(vp, slice); err != nil {
-		return nil, errors.Wrapf(err, "Unable to read from value log: %+v", vp)
+	if buf, err = lf.read(vp); err != nil {
+		return errors.Wrapf(err, "Unable to read from value log: %+v", vp)
 	}
-
-	return buf, nil
+	return consumer(buf)
 }
 
 // Test helper
@@ -858,31 +957,13 @@ func valueBytesToEntry(buf []byte) (e Entry) {
 	return
 }
 
-func (vlog *valueLog) runGCInLoop(lc *y.Closer) {
-	defer lc.Done()
-	if vlog.opt.ValueGCThreshold == 0.0 {
-		return
-	}
-
-	tick := time.NewTicker(vlog.opt.ValueGCRunInterval)
-	defer tick.Stop()
-	for {
-		select {
-		case <-lc.HasBeenClosed():
-			return
-		case <-tick.C:
-			vlog.doRunGC()
-		}
-	}
-}
-
 func (vlog *valueLog) pickLog() *logFile {
 	vlog.filesLock.RLock()
 	defer vlog.filesLock.RUnlock()
-	if len(vlog.filesMap) <= 1 {
+	fids := vlog.sortedFids()
+	if len(fids) <= 1 {
 		return nil
 	}
-	fids := vlog.sortedFids()
 	// This file shouldn't be being written to.
 	idx := rand.Intn(len(fids))
 	if idx > 0 {
@@ -891,10 +972,10 @@ func (vlog *valueLog) pickLog() *logFile {
 	return vlog.filesMap[fids[idx]]
 }
 
-func (vlog *valueLog) doRunGC() error {
+func (vlog *valueLog) doRunGC(gcThreshold float64) error {
 	lf := vlog.pickLog()
 	if lf == nil {
-		return nil
+		return ErrNoRewrite
 	}
 
 	type reason struct {
@@ -913,7 +994,7 @@ func (vlog *valueLog) doRunGC() error {
 
 	start := time.Now()
 	y.AssertTrue(vlog.kv != nil)
-	err := lf.iterate(0, func(e Entry, vp valuePointer) error {
+	err := vlog.iterate(lf, 0, func(e Entry, vp valuePointer) error {
 		esz := float64(vp.Len) / (1 << 20) // in MBs. +4 for the CAS stuff.
 		skipped += esz
 		if skipped < skipFirstM {
@@ -969,18 +1050,19 @@ func (vlog *valueLog) doRunGC() error {
 		} else {
 			vlog.elog.Printf("Reason=%+v\n", r)
 
-			s := new(y.Slice)
-			buf, err := vlog.readValueBytes(vp, s)
+			err := vlog.readValueBytes(vp, func(buf []byte) error {
+				ne := valueBytesToEntry(buf)
+				ne.offset = vp.Offset
+				if ne.casCounter == e.casCounter {
+					ne.print("Latest Entry Header in LSM")
+					e.print("Latest Entry in Log")
+					return errors.Errorf("This shouldn't happen. Latest Pointer:%+v. Meta:%v.",
+						vp, vs.Meta)
+				}
+				return nil
+			})
 			if err != nil {
 				return errStop
-			}
-			ne := valueBytesToEntry(buf)
-			ne.offset = vp.Offset
-			if ne.casCounter == e.casCounter {
-				ne.print("Latest Entry Header in LSM")
-				e.print("Latest Entry in Log")
-				return errors.Errorf(
-					"This shouldn't happen. Latest Pointer:%+v. Meta:%v.", vp, vs.Meta)
 			}
 		}
 		return nil
@@ -992,9 +1074,9 @@ func (vlog *valueLog) doRunGC() error {
 	}
 	vlog.elog.Printf("Fid: %d Data status=%+v\n", lf.fid, r)
 
-	if r.total < 10.0 || r.discard < vlog.opt.ValueGCThreshold*r.total {
+	if r.total < 10.0 || r.discard < gcThreshold*r.total {
 		vlog.elog.Printf("Skipping GC on fid: %d\n\n", lf.fid)
-		return nil
+		return ErrNoRewrite
 	}
 
 	vlog.elog.Printf("REWRITING VLOG %d\n", lf.fid)
@@ -1003,4 +1085,25 @@ func (vlog *valueLog) doRunGC() error {
 	}
 	vlog.elog.Printf("Done rewriting.")
 	return nil
+}
+
+func (vlog *valueLog) waitOnGC(lc *y.Closer) {
+	defer lc.Done()
+
+	<-lc.HasBeenClosed() // Wait for lc to be closed.
+
+	// Block any GC in progress to finish, and don't allow any more writes to runGC by filling up
+	// the channel of size 1.
+	vlog.garbageCh <- struct{}{}
+}
+
+func (vlog *valueLog) runGC(gcThreshold float64) error {
+	select {
+	case vlog.garbageCh <- struct{}{}:
+		err := vlog.doRunGC(gcThreshold)
+		<-vlog.garbageCh
+		return err
+	default:
+		return ErrRejected
+	}
 }
