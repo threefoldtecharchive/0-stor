@@ -91,9 +91,15 @@ func main() {
 		},
 		cli.BoolFlag{
 			Name:        "auth-disable",
-			Usage:       "disable JWT authentification",
+			Usage:       "Disable JWT authentification",
 			Destination: &settings.AuthDisabled,
 			EnvVar:      "STOR_TESTING",
+		},
+		cli.IntFlag{
+			Name:        "max-msg-size",
+			Usage:       "Configure the maximum size of the message GRPC server can receive, in MiB",
+			Destination: &settings.MaxMsgSize,
+			Value:       32,
 		},
 	}
 
@@ -117,7 +123,7 @@ func main() {
 			log.Fatalln("Error computing store statistics: %v", err)
 		}
 
-		server, err := server.New(settings.DB.Dirs.Data, settings.DB.Dirs.Meta, !settings.AuthDisabled)
+		server, err := server.New(settings.DB.Dirs.Data, settings.DB.Dirs.Meta, !settings.AuthDisabled, settings.MaxMsgSize)
 		if err != nil {
 			log.Fatal(err.Error())
 		}

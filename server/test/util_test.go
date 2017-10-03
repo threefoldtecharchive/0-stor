@@ -27,7 +27,7 @@ func getTestGRPCServer(t *testing.T) (server.StoreServer, stubs.IYOClient, strin
 	tmpDir, err := ioutil.TempDir("", "0stortest")
 	require.NoError(t, err)
 
-	server, err := server.New(path.Join(tmpDir, "data"), path.Join(tmpDir, "meta"), true)
+	server, err := server.New(path.Join(tmpDir, "data"), path.Join(tmpDir, "meta"), true, 4)
 	require.NoError(t, err)
 
 	_, err = server.Listen("localhost:0")

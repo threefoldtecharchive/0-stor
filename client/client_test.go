@@ -28,7 +28,7 @@ func testGRPCServer(t testing.TB, n int) ([]server.StoreServer, func()) {
 		require.NoError(t, err)
 		dirs[i] = tmpDir
 
-		server, err := server.New(path.Join(tmpDir, "data"), path.Join(tmpDir, "meta"), false)
+		server, err := server.New(path.Join(tmpDir, "data"), path.Join(tmpDir, "meta"), false, 4)
 		require.NoError(t, err)
 
 		_, err = server.Listen("localhost:0")
