@@ -18,7 +18,7 @@ all: server cli
 cli: $(OUTPUT)
 ifeq ($(GOOS), darwin)
 	GOOS=$(GOOS) GOARCH=$(GOARCH) \
-		go build -o $(OUTPUT)/zerostorcli ./client/cmd/zerostorcli
+		go build -o $(OUTPUT)/zerostorcli ./cmd/zerostorcli
 else
 	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) \
 		go build -ldflags '$(ldflags)' -o $(OUTPUT)/zerostorcli ./cmd/zerostorcli
@@ -27,7 +27,7 @@ endif
 server: $(OUTPUT)
 ifeq ($(GOOS), darwin)
 	GOOS=$(GOOS) GOARCH=$(GOARCH) \
-		go build -o $(OUTPUT)/zerostorserver ./server
+		go build -o $(OUTPUT)/zerostorserver ./cmd/zerostorserver
 else
 	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) \
 		go build -ldflags '$(ldflags)' -o $(OUTPUT)/zerostorserver ./cmd/zerostorserver
