@@ -32,7 +32,10 @@ func TestServerMsgSize(t *testing.T) {
 	temp, err := ioutil.TempDir("", "0stor")
 	require.NoError(err)
 
-	srv, err := New(path.Join(temp, "data"), path.Join(temp, "meta"), false, 4)
+	mib := 1024 * 1024
+	maxSize := 64
+
+	srv, err := New(path.Join(temp, "data"), path.Join(temp, "meta"), false, maxSize)
 	require.NoError(err, "server should have been created")
 	defer srv.Close()
 
@@ -42,7 +45,7 @@ func TestServerMsgSize(t *testing.T) {
 	cl, err := stor.NewClient(addr, "testnamespace", "")
 	require.NoError(err, "client should have been created")
 
-	data := make([]byte, 1024*1024*4)
+	data := make([]byte, maxSize*mib)
 	_, err = rand.Read(data)
 	require.NoError(err, "should have read random data")
 
