@@ -33,25 +33,30 @@ func TestServerMsgSize(t *testing.T) {
 	require.NoError(err)
 
 	mib := 1024 * 1024
-	maxSize := 64
 
-	srv, err := New(path.Join(temp, "data"), path.Join(temp, "meta"), false, maxSize)
-	require.NoError(err, "server should have been created")
-	defer srv.Close()
+	for i := 2; i <= 64; i *= 2 {
+		t.Run(fmt.Sprintf("size %d", i), func(t *testing.T) {
+			maxSize := i
+			srv, err := New(path.Join(temp, "data"), path.Join(temp, "meta"), false, maxSize)
+			require.NoError(err, "server should have been created")
+			defer srv.Close()
 
-	addr, err := srv.Listen("localhost:0")
-	require.NoError(err, "server should have started listening")
+			addr, err := srv.Listen("localhost:0")
+			require.NoError(err, "server should have started listening")
 
-	cl, err := stor.NewClient(addr, "testnamespace", "")
-	require.NoError(err, "client should have been created")
+			cl, err := stor.NewClient(addr, "testnamespace", "")
+			require.NoError(err, "client should have been created")
 
-	data := make([]byte, maxSize*mib)
-	_, err = rand.Read(data)
-	require.NoError(err, "should have read random data")
+			data := make([]byte, maxSize*mib)
+			_, err = rand.Read(data)
+			require.NoError(err, "should have read random data")
 
-	err = cl.ObjectCreate([]byte("foo"), data, []string{})
-	require.Error(err, "should have exeeded message max size")
+			err = cl.ObjectCreate([]byte("foo"), data, []string{})
+			require.Error(err, "should have exeeded message max size")
 
-	err = cl.ObjectCreate([]byte("foo"), data[:len(data)/2], []string{})
-	require.NoError(err, "should not have exeeded message max size")
+			err = cl.ObjectCreate([]byte("foo"), data[:len(data)/2], []string{})
+			require.NoError(err, "should not have exeeded message max size")
+		})
+	}
+
 }
