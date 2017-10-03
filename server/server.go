@@ -49,6 +49,7 @@ func NewWithDB(db *badger.BadgerDB, authEnabled bool, maxSizeMsg int) (StoreServ
 		db: db,
 		grpcServer: grpc.NewServer(
 			grpc.MaxRecvMsgSize(maxSizeMsg),
+			grpc.MaxSendMsgSize(maxSizeMsg),
 		),
 	}
 

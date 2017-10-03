@@ -47,15 +47,29 @@ func TestServerMsgSize(t *testing.T) {
 			cl, err := stor.NewClient(addr, "testnamespace", "")
 			require.NoError(err, "client should have been created")
 
-			data := make([]byte, maxSize*mib)
-			_, err = rand.Read(data)
+			key := []byte("foo")
+
+			bigData := make([]byte, (maxSize+10)*mib)
+			_, err = rand.Read(bigData)
 			require.NoError(err, "should have read random data")
 
-			err = cl.ObjectCreate([]byte("foo"), data, []string{})
+			smallData := make([]byte, (maxSize/2)*mib)
+			_, err = rand.Read(smallData)
+			require.NoError(err, "should have read random data")
+
+			err = cl.ObjectCreate(key, bigData, []string{})
 			require.Error(err, "should have exeeded message max size")
 
-			err = cl.ObjectCreate([]byte("foo"), data[:len(data)/2], []string{})
+			err = cl.ObjectCreate(key, smallData, []string{})
 			require.NoError(err, "should not have exeeded message max size")
+
+			exists, err := cl.ObjectExist(key)
+			require.NoError(err, "object should exist")
+			require.True(exists, "object should exists")
+
+			obj, err := cl.ObjectGet(key)
+			require.NoError(err, "should be able to read message")
+			require.Equal(smallData, obj.Value)
 		})
 	}
 
