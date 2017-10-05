@@ -11,9 +11,11 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
+	bagerkv "github.com/dgraph-io/badger"
 	units "github.com/docker/go-units"
 	"github.com/zero-os/0-stor/server"
 	"github.com/zero-os/0-stor/server/config"
+	"github.com/zero-os/0-stor/server/db"
 	"github.com/zero-os/0-stor/server/db/badger"
 	"github.com/zero-os/0-stor/server/disk"
 	"github.com/zero-os/0-stor/server/manager"
@@ -101,6 +103,11 @@ func main() {
 			Destination: &settings.MaxMsgSize,
 			Value:       32,
 		},
+		cli.BoolFlag{
+			Name:        "async-write",
+			Usage:       "enable asynchonous writes (default: false)",
+			Destination: &settings.AsyncWrite,
+		},
 	}
 
 	app.Before = func(c *cli.Context) error {
@@ -119,14 +126,27 @@ func main() {
 	app.Action = func(c *cli.Context) {
 		log.Infoln(app.Name, "version", app.Version)
 
-		if err := ensureStoreStat(settings.DB.Dirs.Data, settings.DB.Dirs.Meta); err != nil {
+		dbOpts := bagerkv.DefaultOptions
+		dbOpts.SyncWrites = !settings.AsyncWrite
+
+		db, err := badger.NewWithOpts(settings.DB.Dirs.Data, settings.DB.Dirs.Meta, dbOpts)
+		if err != nil {
+			log.Errorf("error opening database files: %v", err)
+			os.Exit(1)
+		}
+
+		if err := ensureStoreStat(db, settings.DB.Dirs.Data); err != nil {
 			log.Fatalln("Error computing store statistics: %v", err)
 		}
 
-		server, err := server.New(settings.DB.Dirs.Data, settings.DB.Dirs.Meta, !settings.AuthDisabled, settings.MaxMsgSize)
+		server, err := server.NewWithDB(db, !settings.AuthDisabled, settings.MaxMsgSize)
 		if err != nil {
 			log.Fatal(err.Error())
 		}
+		defer func() {
+			log.Println("Gracefully closing 0-stor")
+			server.Close()
+		}()
 
 		if profileAddr != "" {
 			go func() {
@@ -148,22 +168,12 @@ func main() {
 		log.Infof("Server listening on %s", addr)
 
 		<-sigChan // block on signal handler
-		log.Println("Gracefully closing 0-stor")
-		server.Close()
-
-		os.Exit(0)
 	}
 
 	app.Run(os.Args)
 }
 
-func ensureStoreStat(dataPath, metaPath string) error {
-	kv, err := badger.New(dataPath, metaPath)
-	if err != nil {
-		return err
-	}
-	defer kv.Close()
-
+func ensureStoreStat(kv db.DB, dataPath string) error {
 	nsMgr := manager.NewNamespaceManager(kv)
 	statMgr := manager.NewStoreStatMgr(kv)
 

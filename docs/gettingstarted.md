@@ -31,6 +31,7 @@ GLOBAL OPTIONS:
    --profile-addr value      Enables profiling of this server as an http service
    --auth-disable            Disable JWT authentification [$STOR_TESTING]
    --max-msg-size value      configure the maximum size of the message GRPC server can receive, in MiB (default: 32)
+   --async-write             enable asynchonous writes (default: false)
    --help, -h                show help
    --version, -v             print the version
 
