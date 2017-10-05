@@ -35,10 +35,6 @@ func (api *ObjectAPI) Create(ctx context.Context, req *pb.CreateObjectRequest) (
 
 	obj := req.GetObject()
 
-	if len(obj.GetReferenceList()) > db.RefIDCount {
-		return &pb.CreateObjectReply{}, db.ErrReferenceListTooBig
-	}
-
 	mgr := manager.NewObjectManager(label, api.db)
 
 	if err := mgr.Set([]byte(obj.GetKey()), obj.GetValue(), obj.GetReferenceList()); err != nil {
@@ -72,7 +68,12 @@ func (api *ObjectAPI) List(req *pb.ListObjectsRequest, stream pb.ObjectManager_L
 			return err
 		}
 
-		if err := stream.Send(grpcObj(key, obj)); err != nil {
+		o, err := grpcObj(obj)
+		if err != nil {
+			return err
+		}
+
+		if err := stream.Send(o); err != nil {
 			return nil
 		}
 	}
@@ -96,8 +97,13 @@ func (api *ObjectAPI) Get(ctx context.Context, req *pb.GetObjectRequest) (*pb.Ge
 		return nil, err
 	}
 
+	o, err := grpcObj(obj)
+	if err != nil {
+		return nil, err
+	}
+
 	return &pb.GetObjectReply{
-		Object: grpcObj(key, obj),
+		Object: o,
 	}, nil
 }
 
@@ -248,10 +254,18 @@ func convertStatus(status manager.CheckStatus) pb.CheckResponse_Status {
 }
 
 // grpcObj convert a db.Object to a pb.Object
-func grpcObj(key []byte, in *db.Object) *pb.Object {
-	return &pb.Object{
-		Key:           key,
-		Value:         in.Data,
-		ReferenceList: in.GetReferenceListStr(),
+func grpcObj(obj *db.Object) (*pb.Object, error) {
+	data, err := obj.Data()
+	if err != nil {
+		return nil, err
 	}
+	refList, err := obj.GetreferenceListStr()
+	if err != nil {
+		return nil, err
+	}
+	return &pb.Object{
+		Key:           obj.Key,
+		Value:         data,
+		ReferenceList: refList,
+	}, nil
 }

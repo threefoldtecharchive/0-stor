@@ -3,31 +3,65 @@ package db
 import (
 	"crypto/rand"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/zero-os/0-stor/server/db/badger"
 )
 
-func TestObjectEncodeDecode(t *testing.T) {
-	data := make([]byte, 1024)
-	obj := NewObject(data)
-
-	_, err := rand.Read(obj.Data)
+func makeTestDB(t testing.TB) (DB, func()) {
+	tmpDir, err := ioutil.TempDir("", "0stortest")
 	require.NoError(t, err)
 
-	copy(obj.ReferenceList[0][:], []byte("user1"))
-	copy(obj.ReferenceList[1][:], []byte("user2"))
+	db, err := badger.New(path.Join(tmpDir, "data"), path.Join(tmpDir, "meta"))
+	require.NoError(t, err)
+	cleanup := func() {
+		db.Close()
+		os.RemoveAll(tmpDir)
+	}
+	return db, cleanup
+}
 
-	b, err := obj.Encode()
+func makeTestObj(t testing.TB, size uint64, db DB) (*Object, []byte, []string) {
+	obj := NewObject("testns", []byte("key"), db)
+
+	data := make([]byte, size)
+	_, err := rand.Read(data)
+	require.NoError(t, err)
+	obj.SetData(data)
+
+	refList := make([]string, len(obj.referenceList))
+	for i := range obj.referenceList {
+		refList[i] = fmt.Sprintf("user%d", i)
+	}
+	err = obj.SetReferenceList(refList)
+	require.NoError(t, err, "fail to set reference list")
+
+	return obj, data, refList
+}
+
+func TestObjectSaveLoad(t *testing.T) {
+	db, cleanup := makeTestDB(t)
+	defer cleanup()
+
+	obj, data, refList := makeTestObj(t, 1024*4, db)
+
+	err := obj.Save()
 	require.NoError(t, err)
 
-	obj2 := NewObject(nil)
-	err = obj2.Decode(b)
-	require.NoError(t, err)
+	obj2 := NewObject("testns", []byte("key"), db)
 
-	assert.Equal(t, obj.ReferenceList, obj2.ReferenceList, "reference list differs")
-	assert.Equal(t, obj.Data, obj2.Data, "data differes")
+	data2, err := obj2.Data()
+	require.NoError(t, err, "fail to read data")
+	refList2, err := obj.GetreferenceListStr()
+	require.NoError(t, err, "fail to read reference list")
+
+	assert.Equal(t, refList, refList2, "reference list differs")
+	assert.Equal(t, data, data2, "data differes")
 }
 
 func TestNamespaceEncodeDecode(t *testing.T) {
@@ -65,44 +99,19 @@ func TestStoreStatEncodeDecode(t *testing.T) {
 }
 
 func TestObjectValidateCRC(t *testing.T) {
-	data := make([]byte, 1024)
-	obj := NewObject(data)
+	db, cleanup := makeTestDB(t)
+	defer cleanup()
 
-	_, err := rand.Read(obj.Data)
-	require.NoError(t, err)
+	obj, _, _ := makeTestObj(t, 1024*4, db)
 
-	copy(obj.ReferenceList[0][:], []byte("user1"))
-	copy(obj.ReferenceList[1][:], []byte("user2"))
+	valid, err := obj.Validcrc()
+	require.NoError(t, err, "fail to validate crc")
 
-	b, err := obj.Encode()
-	require.NoError(t, err)
-
-	obj2 := NewObject(nil)
-	err = obj2.Decode(b)
-	require.NoError(t, err)
-
-	assert.True(t, obj2.ValidCRC(), "CRC should be valid")
+	assert.True(t, valid, "CRC should be valid")
 	for i := 0; i < 10; i++ {
-		obj2.Data[i] = -obj2.Data[i] // corrupte the data
+		obj.data[i] = -obj.data[i] // corrupte the data
 	}
-	assert.False(t, obj2.ValidCRC(), "CRC should be different")
-}
-
-func BenchmarkObjectEncode(b *testing.B) {
-	data := make([]byte, 1024)
-	obj := NewObject(data)
-
-	_, err := rand.Read(obj.Data)
-	require.NoError(b, err)
-
-	for i := range obj.ReferenceList {
-		copy(obj.ReferenceList[i][:], []byte(fmt.Sprintf("user%d", i)))
-	}
-
-	b.ResetTimer()
-	var x []byte
-	for i := 0; i < b.N; i++ {
-		x, err = obj.Encode()
-		_ = x
-	}
+	valid, err = obj.Validcrc()
+	require.NoError(t, err, "fail to validate crc")
+	assert.False(t, valid, "CRC should be different")
 }

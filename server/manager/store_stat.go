@@ -24,7 +24,7 @@ func (s *StoreStatManager) Get() (db.StoreStat, error) {
 	defer s.mu.RUnlock()
 
 	storeStat := db.StoreStat{}
-	b, err := s.db.Get([]byte(STORE_STATS_PREFIX))
+	b, err := s.db.Get([]byte(PrefixStoreStats))
 	if err != nil {
 		log.Errorln(err.Error())
 		return storeStat, err
@@ -51,5 +51,5 @@ func (s *StoreStatManager) Set(available, used uint64) error {
 		return err
 	}
 
-	return s.db.Set([]byte(STORE_STATS_PREFIX), b)
+	return s.db.Set([]byte(PrefixStoreStats), b)
 }

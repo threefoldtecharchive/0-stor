@@ -182,7 +182,7 @@ func ensureStoreStat(kv db.DB, dataPath string) error {
 		return err
 	}
 
-	namespaces, err := kv.List([]byte(manager.NAMESPACE_PREFIX))
+	namespaces, err := kv.List([]byte(manager.PrefixNamespace))
 	if err != nil {
 		return err
 	}

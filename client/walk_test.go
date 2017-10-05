@@ -14,10 +14,10 @@ import (
 // blockMap is dummy block.Writer/Reader used solely for tests
 type blockMap struct {
 	data    map[string][]byte
-	metaCli *meta.Client
+	metaCli meta.Client
 }
 
-func newBlockMap(metaCli *meta.Client) *blockMap {
+func newBlockMap(metaCli meta.Client) *blockMap {
 	return &blockMap{
 		metaCli: metaCli,
 		data:    make(map[string][]byte),

@@ -17,7 +17,7 @@ func TestReferenceList(t *testing.T) {
 	require.NoError(t, err, "fail to start embebed etcd server")
 	defer etcd.Stop()
 
-	servers, serverClean := testGRPCServer(t, 4)
+	servers, serverClean := testGRPCServer(t, 1)
 	defer serverClean()
 
 	shards := make([]string, len(servers))
@@ -26,44 +26,19 @@ func TestReferenceList(t *testing.T) {
 	}
 
 	policy := Policy{
-		Organization: "testorg",
-		Namespace:    "namespace1",
-		DataShards:   shards,
-		MetaShards:   []string{etcd.ListenAddr()},
-		IYOAppID:     "id",
-		IYOSecret:    "secret",
+		Organization:   "testorg",
+		Namespace:      "namespace1",
+		DataShards:     shards,
+		MetaShards:     []string{etcd.ListenAddr()},
+		IYOAppID:       "id",
+		IYOSecret:      "secret",
+		ReplicationNr:  0,
+		DistributionNr: 0,
+		BlockSize:      4096,
 	}
 
-	tt := []struct {
-		name      string
-		BlockSize int
-
-		ReplicationNr      int
-		ReplicationMaxSize int
-
-		DistributionNr         int
-		DistributionRedundancy int
-	}{
-		{
-			name:                   "distribution",
-			ReplicationMaxSize:     1, //force to use distribution over replication
-			DistributionNr:         3,
-			DistributionRedundancy: 1,
-		},
-		/*{
-			name:                   "chunks-distribution",
-			BlockSize:              1024,
-			ReplicationMaxSize:     1, //force to use distribution over replication
-			DistributionNr:         3,
-			DistributionRedundancy: 1,
-		},
-		{
-			name:               "chunks-replication",
-			BlockSize:          1024,
-			ReplicationNr:      len(shards),
-			ReplicationMaxSize: 1024 * 1024,
-		},*/
-	}
+	c, err := getTestClient(policy)
+	require.NoError(t, err, "fail to create client")
 
 	// initialize test data
 	key := []byte("testkey")
@@ -79,57 +54,42 @@ func TestReferenceList(t *testing.T) {
 		allRefList = append(allRefList, fmt.Sprintf("vdisk-%v", i))
 	}
 
-	for _, tc := range tt {
-		t.Run(tc.name, func(t *testing.T) {
-			policy.BlockSize = tc.BlockSize
-			policy.DistributionNr = tc.DistributionNr
-			policy.DistributionRedundancy = tc.DistributionRedundancy
-			policy.ReplicationNr = tc.ReplicationNr
-			policy.ReplicationMaxSize = tc.ReplicationMaxSize
+	// write data to the store with too-big refList
+	_, err = c.Write(key, data, allRefList)
+	require.Error(t, err)
 
-			c, err := getTestClient(policy)
-			require.NoError(t, err, "fail to create client")
+	// write data to the store with proper number of refList
+	refList := allRefList[:maxAllowedRefList]
+	_, err = c.Write(key, data, refList)
+	require.NoError(t, err, "fail to write data to the store")
 
-			// write data to the store with too-big refList
-			_, err = c.Write(key, data, allRefList)
-			require.Error(t, err)
+	// check
+	_, refListRead, err := c.Read(key)
+	require.Equal(t, refList, refListRead)
 
-			// write data to the store with proper number of refList
-			refList := allRefList[:maxAllowedRefList]
-			_, err = c.Write(key, data, refList)
-			require.NoError(t, err, "fail to write data to the store")
+	// remove reference list
+	removeIndex := maxAllowedRefList / 2
+	err = c.RemoveReferenceList(key, allRefList[removeIndex:])
+	require.NoError(t, err)
 
-			// check
-			_, refListRead, err := c.Read(key)
-			require.Equal(t, refList, refListRead)
+	_, refListRead, err = c.Read(key)
+	require.NoError(t, err)
+	require.Equal(t, allRefList[:removeIndex], refListRead)
 
-			// remove reference list
-			removeIndex := maxAllowedRefList / 2
-			err = c.RemoveReferenceList(key, allRefList[removeIndex:])
-			require.NoError(t, err)
+	// append some of it
+	appendIndex := removeIndex + (removeIndex / 2)
+	err = c.AppendReferenceList(key, allRefList[removeIndex:appendIndex])
+	require.NoError(t, err)
 
-			_, refListRead, err = c.Read(key)
-			require.NoError(t, err)
-			require.Equal(t, allRefList[:removeIndex], refListRead)
+	_, refListRead, err = c.Read(key)
+	require.NoError(t, err)
+	require.Equal(t, allRefList[:appendIndex], refListRead)
 
-			// append some of it
-			appendIndex := removeIndex + (removeIndex / 2)
-			err = c.AppendReferenceList(key, allRefList[removeIndex:appendIndex])
-			require.NoError(t, err)
+	// set again to full value
+	err = c.SetReferenceList(key, allRefList[:maxAllowedRefList])
+	require.NoError(t, err)
 
-			_, refListRead, err = c.Read(key)
-			require.NoError(t, err)
-			require.Equal(t, allRefList[:appendIndex], refListRead)
-
-			// set again to full value
-			err = c.SetReferenceList(key, allRefList[:maxAllowedRefList])
-			require.NoError(t, err)
-
-			_, refListRead, err = c.Read(key)
-			require.NoError(t, err)
-			require.Equal(t, allRefList[:maxAllowedRefList], refListRead)
-
-		})
-	}
-
+	_, refListRead, err = c.Read(key)
+	require.NoError(t, err)
+	require.Equal(t, allRefList[:maxAllowedRefList], refListRead)
 }

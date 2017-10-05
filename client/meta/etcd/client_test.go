@@ -1,6 +1,7 @@
-package meta
+package etcd
 
 import (
+	"fmt"
 	"net"
 	"testing"
 	"time"
@@ -8,9 +9,32 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/zero-os/0-stor/client/meta"
 	"github.com/zero-os/0-stor/client/meta/embedserver"
 )
 
+func createCapnpMeta(t testing.TB) *meta.Meta {
+	// TODO: remove code duplication
+	chunks := make([]*meta.Chunk, 256)
+	for i := range chunks {
+		chunks[i] = &meta.Chunk{
+			Key:  []byte(fmt.Sprintf("chunk%d", i)),
+			Size: 1024,
+		}
+		chunks[i].Shards = make([]string, 5)
+		for y := range chunks[i].Shards {
+			chunks[i].Shards[y] = fmt.Sprintf("http://127.0.0.1:12345/stor-%d", i)
+		}
+	}
+
+	meta := meta.New([]byte("testkey"))
+	meta.Previous = []byte("previous")
+	meta.Next = []byte("next")
+	meta.EncrKey = []byte("secret")
+	meta.Chunks = chunks
+
+	return meta
+}
 func TestRoundTrip(t *testing.T) {
 	etcd, err := embedserver.New()
 	require.NoError(t, err)
@@ -65,7 +89,7 @@ func TestServerDown(t *testing.T) {
 	require.Nil(t, err)
 
 	key := "key"
-	md := New([]byte(key))
+	md := meta.New([]byte(key))
 
 	// make sure we can do some operation to server
 	err = c.Put(key, md)

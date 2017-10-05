@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/zero-os/0-stor/client/lib"
+	"github.com/zero-os/0-stor/client/meta/etcd"
 
 	"github.com/zero-os/0-stor/client/itsyouonline"
 	"github.com/zero-os/0-stor/client/lib/chunker"
@@ -41,7 +42,7 @@ type Client struct {
 	storClients   map[string]stor.Client
 	muStorClients sync.Mutex
 
-	metaCli *meta.Client
+	metaCli meta.Client
 	iyoCl   itsyouonline.IYOClient
 }
 
@@ -92,7 +93,7 @@ func newClient(policy Policy, iyoCl itsyouonline.IYOClient) (*Client, error) {
 	// instanciate meta client
 	if len(policy.MetaShards) > 0 {
 		// meta client
-		metaCli, err := meta.NewClient(policy.MetaShards)
+		metaCli, err := etcd.NewClient(policy.MetaShards)
 		if err != nil {
 			return nil, err
 		}

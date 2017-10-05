@@ -1,7 +1,6 @@
 package server
 
 import (
-	"bytes"
 	"crypto/rand"
 	"fmt"
 	"io/ioutil"
@@ -16,6 +15,7 @@ import (
 	pb "github.com/zero-os/0-stor/grpc_store"
 	"github.com/zero-os/0-stor/server/db"
 	"github.com/zero-os/0-stor/server/db/badger"
+	"github.com/zero-os/0-stor/server/errors"
 	"github.com/zero-os/0-stor/server/manager"
 )
 
@@ -91,11 +91,18 @@ func TestCreateObject(t *testing.T) {
 	require.NoError(t, err)
 
 	obj, err := objMgr.Get([]byte("testkey"))
-	require.NoError(t, err)
-	assert.Equal(t, buf, obj.Data)
-	assert.EqualValues(t, []byte("user1"), bytes.Trim(obj.ReferenceList[0][:], "\x00"))
-	assert.EqualValues(t, []byte("user2"), bytes.Trim(obj.ReferenceList[1][:], "\x00"))
-	assert.EqualValues(t, []byte(nil), bytes.Trim(obj.ReferenceList[2][:], "\x00"))
+	require.NoError(t, err, "fail to get the object from db")
+
+	strRefList, err := obj.GetreferenceListStr()
+	require.NoError(t, err, "fail to get string reference list")
+
+	data, err := obj.Data()
+	require.NoError(t, err, "fail to get data")
+
+	assert.Equal(t, buf, data, "data is not the same")
+	require.Equal(t, 2, len(strRefList), "reference list not correct size")
+	assert.EqualValues(t, "user1", strRefList[0])
+	assert.EqualValues(t, "user2", strRefList[1])
 }
 
 func TestGetObject(t *testing.T) {
@@ -128,7 +135,7 @@ func TestGetObject(t *testing.T) {
 		}
 
 		_, err := api.Get(context.Background(), req)
-		assert.Equal(t, db.ErrNotFound, err)
+		assert.Equal(t, errors.ErrNotFound, err)
 	})
 }
 

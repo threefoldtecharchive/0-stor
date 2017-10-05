@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/zero-os/0-stor/server/db"
+	"github.com/zero-os/0-stor/server/errors"
 )
 
 var _ db.DB = (*memroyDB)(nil)
@@ -21,7 +22,7 @@ func New() db.DB {
 func (mdb *memroyDB) Get(key []byte) ([]byte, error) {
 	val, exists := mdb.m[string(key)]
 	if !exists {
-		return nil, db.ErrNotFound
+		return nil, errors.ErrNotFound
 	}
 	return val, nil
 }

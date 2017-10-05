@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/zero-os/0-stor/server/db"
+	"github.com/zero-os/0-stor/server/errors"
 )
 
 type ObjectManager struct {
@@ -25,71 +26,50 @@ func NewObjectManager(namespace string, db db.DB) *ObjectManager {
 	}
 }
 
-func objKey(namespace string, key []byte) []byte {
-	return []byte(fmt.Sprintf("%s:%s", namespace, key))
-}
-
 // Set saved an object into the key-value store as a blob of bytes
 func (mgr *ObjectManager) Set(key []byte, data []byte, referenceList []string) error {
-	obj := db.NewObject(data)
-	for i := range referenceList {
-		copy(obj.ReferenceList[i][:], []byte(referenceList[i]))
-	}
+	obj := db.NewObject(mgr.namespace, key, mgr.db)
+	obj.SetData(data)
 
-	b, err := obj.Encode()
-	if err != nil {
+	if err := obj.SetReferenceList(referenceList); err != nil {
 		return err
 	}
 
-	k := objKey(mgr.namespace, key)
-	return mgr.db.Set(k, b)
+	return obj.Save()
 }
 
 func (mgr *ObjectManager) List(start, count int) ([][]byte, error) {
-	prefix := fmt.Sprintf("%s:", mgr.namespace)
+	prefix := fmt.Sprintf("%s:%s:", mgr.namespace, db.PrefixData)
 	keys, err := mgr.db.List([]byte(prefix))
 	if err != nil {
 		return nil, err
 	}
-	for _, key := range keys {
-		fmt.Println(string(key))
-	}
+
 	// remove namespace prefix
+	lenPrefix := len(prefix)
 	for i := range keys {
-		keys[i] = keys[i][len(mgr.namespace)+1:]
+		keys[i] = keys[i][lenPrefix:]
 	}
 	return keys, nil
 }
 
 func (mgr *ObjectManager) Get(key []byte) (*db.Object, error) {
-	b, err := mgr.db.Get(objKey(mgr.namespace, key))
-	if err != nil {
-		return nil, err
-	}
-
-	obj := db.NewObject(nil)
-	err = obj.Decode(b)
-	return obj, err
+	return db.NewObject(mgr.namespace, key, mgr.db), nil
 }
 
 func (mgr *ObjectManager) Delete(key []byte) error {
-	return mgr.db.Delete(objKey(mgr.namespace, key))
+	obj := db.NewObject(mgr.namespace, key, mgr.db)
+	return obj.Delete()
 }
 
 func (mgr *ObjectManager) Exists(key []byte) (bool, error) {
-	return mgr.db.Exists(objKey(mgr.namespace, key))
+	obj := db.NewObject(mgr.namespace, key, mgr.db)
+	return obj.Exists()
 }
 
 func (mgr *ObjectManager) UpdateReferenceList(key []byte, refList []string, op int) error {
-	b, err := mgr.db.Get(objKey(mgr.namespace, key))
-	if err != nil {
-		return err
-	}
-
-	obj := db.NewObject(nil)
-	if err = obj.Decode(b); err != nil {
-		return err
-	}
+	obj := db.NewObject(mgr.namespace, key, mgr.db)
+	var err error
 
 	switch op {
 	case RefListOpSet:
@@ -105,12 +85,7 @@ func (mgr *ObjectManager) UpdateReferenceList(key []byte, refList []string, op i
 		return err
 	}
 
-	b, err = obj.Encode()
-	if err != nil {
-		return err
-	}
-
-	return mgr.db.Set(objKey(mgr.namespace, key), b)
+	return obj.Save()
 }
 
 type CheckStatus string
@@ -122,21 +97,18 @@ var (
 )
 
 func (mgr *ObjectManager) Check(key []byte) (CheckStatus, error) {
-	b, err := mgr.db.Get(objKey(mgr.namespace, key))
+	obj := db.NewObject(mgr.namespace, key, mgr.db)
+
+	valid, err := obj.Validcrc()
 	if err != nil {
-		if err == db.ErrNotFound {
+		if err == errors.ErrNotFound {
 			return CheckStatusMissing, nil
 		}
-		return "", err
+		return CheckStatus(""), err
+	}
+	if !valid {
+		return CheckStatusCorrupted, nil
 	}
 
-	obj := db.Object{}
-	if err := obj.Decode(b); err != nil {
-		return "", err
-	}
-
-	if obj.ValidCRC() {
-		return CheckStatusOK, nil
-	}
-	return CheckStatusCorrupted, nil
+	return CheckStatusOK, nil
 }

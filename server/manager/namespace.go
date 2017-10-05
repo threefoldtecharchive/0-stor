@@ -17,7 +17,7 @@ func NewNamespaceManager(db db.DB) *NamespaceManager {
 }
 
 func nsKey(label string) []byte {
-	return []byte(fmt.Sprintf("%s:%s", NAMESPACE_PREFIX, label))
+	return []byte(fmt.Sprintf("%s:%s", PrefixNamespace, label))
 }
 
 func (mgr *NamespaceManager) Get(label string) (*db.Namespace, error) {
@@ -49,14 +49,13 @@ func (mgr *NamespaceManager) Create(label string) error {
 		return err
 	}
 
-	if exists{
+	if exists {
 		return nil
 	}
 
 	bytes, err := db.NewNamespace().Encode()
-	if err == nil{
+	if err == nil {
 		err = mgr.db.Set([]byte(label), bytes)
 	}
 	return err
 }
-

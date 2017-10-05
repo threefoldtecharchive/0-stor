@@ -1,4 +1,4 @@
-package meta
+package etcd
 
 import (
 	"bytes"
@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/coreos/etcd/clientv3"
+	"github.com/zero-os/0-stor/client/meta"
 )
 
 const (
@@ -43,7 +44,7 @@ func (c *Client) Close() error {
 }
 
 // Put stores meta to metadata server
-func (c *Client) Put(key string, meta *Meta) error {
+func (c *Client) Put(key string, meta *meta.Meta) error {
 	buf := new(bytes.Buffer)
 	if err := meta.Encode(buf); err != nil {
 		return err
@@ -57,7 +58,7 @@ func (c *Client) Put(key string, meta *Meta) error {
 }
 
 // Get fetch metadata from metadata server
-func (c *Client) Get(key string) (*Meta, error) {
+func (c *Client) Get(key string) (*meta.Meta, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), metaOpTimeout)
 	defer cancel()
 
@@ -69,7 +70,7 @@ func (c *Client) Get(key string) (*Meta, error) {
 		return nil, ErrMetadataNotFound
 	}
 
-	return Decode(resp.Kvs[0].Value)
+	return meta.Decode(resp.Kvs[0].Value)
 }
 
 // Delete a metadata entry from metadata server

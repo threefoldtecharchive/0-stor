@@ -5,10 +5,8 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	badgerkv "github.com/dgraph-io/badger"
-	"github.com/zero-os/0-stor/server/db"
+	"github.com/zero-os/0-stor/server/errors"
 )
-
-var _ db.DB = (*BadgerDB)(nil)
 
 // BadgerDB implements the db.DB interace
 type BadgerDB struct {
@@ -89,7 +87,7 @@ func (b BadgerDB) Get(key []byte) ([]byte, error) {
 	}
 
 	if len(val) == 0 {
-		err = db.ErrNotFound
+		err = errors.ErrNotFound
 	}
 
 	return val, err
