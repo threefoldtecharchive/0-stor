@@ -1,0 +1,14 @@
+pyyaml
+nose
+termcolor
+nose-testconfig
+nose-progressive
+rednose
+parameterized
+bs4
+requests
+python-dateutil
+zerotier
+pytoml
+lxml
+git+https://github.com/gigforks/packet-python.git

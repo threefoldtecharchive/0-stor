@@ -3,6 +3,7 @@ from unittest import TestCase
 from nose.tools import TimeExpired
 from termcolor import colored
 from test_suite.framework.zero_store_cli import ZeroStoreCLI
+from test_suite.framework.iyo_client.base import Client
 import threading
 from hashlib import md5
 import subprocess
@@ -12,6 +13,7 @@ import os
 
 class TestcasesBase(TestCase):
     created_files_info = {}
+    iyo_slave_client = Client(config['main']['iyo_url'])
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -37,12 +39,22 @@ class TestcasesBase(TestCase):
 
         self.uploaded_files_info = {}
         self.downloaded_files_info = {}
+        self.deleted_files_info = {}
+
+        self.iyo_master_client = Client(config['main']['iyo_url'])
+        self.iyo_slave_id = config['main']['iyo_user2_id']
+        self.iyo_slave_secret = config['main']['iyo_user2_secret']
+        self.iyo_slave_username = config['main']['iyo_user2_username']
+        self.iyo_slave_client = TestcasesBase.iyo_slave_client
 
     @classmethod
     def setUpClass(cls):
         self = cls()
         self.create_files(self.number_of_files)
-        print(' [*] DEFAULT CONFIG PATH : %s ' % config['main']['default_config_path'])
+        iyo_user2_id = config['main']['iyo_user2_id']
+        iyo_user2_secret = config['main']['iyo_user2_secret']
+        cls.iyo_slave_client.oauth.login_via_client_credentials(client_id=iyo_user2_id,
+                                                                client_secret=iyo_user2_secret)
 
     def setUp(self):
         self._testID = self._testMethodName
@@ -52,8 +64,16 @@ class TestcasesBase(TestCase):
             raise TimeExpired('Timeout expired before end of test %s' % self._testID)
 
         signal.signal(signal.SIGALRM, timeout_handler)
-        signal.alarm(600)
+        signal.alarm(900)
+
+        with open(self.default_config_path, 'r') as stream:
+            self.config_zerostor = yaml.load(stream)
+        self.iyo_master_client.oauth.login_via_client_credentials(client_id=self.config_zerostor['iyo_app_id'],
+                                                                  client_secret=self.config_zerostor['iyo_app_secret'])
         print('\n')
+
+    def tearDown(self):
+        pass
 
     def create_files(self, number_of_files):
         self.execute_shell_commands(cmd='rm -rf /tmp/upload; rm -rf /tmp/download')
@@ -64,19 +84,23 @@ class TestcasesBase(TestCase):
 
             with open(file_path, 'wb') as file:
                 file.write(os.urandom(file_size))
+            file.close()
 
-            file_md5 = self.md5sum(file_path=file_path)
+            # file_md5 = self.md5sum(file_path=file_path)
             TestcasesBase.created_files_info['id_%d' % i] = {'path': file_path,
                                                              'size': file_size,
-                                                             'md5': file_md5}
-            print(colored(' [*] Create : %s size %s , md5 %s ' % (file_path, str(file_size), str(file_md5)), 'white'))
+                                                             'md5': ''}
+        print(colored(' [*] Create : %d files under /tmp/upload ' % number_of_files, 'white'))
 
     def md5sum(self, file_path):
         hash = md5()
-        with open(file_path, "rb") as file:
-            for chunk in iter(lambda: file.read(128 * hash.block_size), b""):
-                hash.update(chunk)
-        return hash.hexdigest()
+        try:
+            with open(file_path, "rb") as file:
+                for chunk in iter(lambda: file.read(128 * hash.block_size), b""):
+                    hash.update(chunk)
+            return hash.hexdigest()
+        except FileNotFoundError:
+            return 0
 
     def create_new_config_file(self, new_config):
         """
@@ -84,12 +108,10 @@ class TestcasesBase(TestCase):
                 - It takes new config dict, read the default config file as dict, update the default config file dict,
                 create a new config file with the updated dict.
         """
-        with open(self.default_config_path, 'r') as stream:
-            config = yaml.load(stream)
-        config.update(new_config)
+        self.config_zerostor.update(new_config)
         new_config_file_path = '/tmp/config_%s.yaml' % self.random_string()
         with open(new_config_file_path, 'w') as new_config_file:
-            yaml.dump(config, new_config_file, default_flow_style=False)
+            yaml.dump(self.config_zerostor, new_config_file, default_flow_style=False)
         return new_config_file_path
 
     def get_piplining_compination(self):
@@ -198,7 +220,7 @@ class TestcasesBase(TestCase):
         self.uploaded_files_info.update({job_id: {'path': file_info['path'],
                                                   'config_path': config_path,
                                                   'size': file_info['size'],
-                                                  'md5': file_info['md5']}})
+                                                  'md5': self.md5sum(file_path=file_info['path'])}})
 
     def create_job_id(self, job_ids_list):
         while True:
@@ -293,6 +315,17 @@ class TestcasesBase(TestCase):
                     'path'] = 'ERROR! : download queue does not have this key'
                 self.downloaded_files_info[job_id]['md5'] = 'There is no file!'
 
+    def deleter(self, uploaded_files_info):
+        """
+            uploaded_files_info = {job_id: {file_paht:'', file_config:'', file_size:'', md5:'', key:''} }
+        """
+        for job_id in uploaded_files_info:
+            uploaded_key = uploaded_files_info[job_id]['key']
+            config_path = uploaded_files_info[job_id]['config_path']
+            result = self.zero_store_cli.delete_file(uploaded_key=uploaded_key, config_path=config_path)
+            self.deleted_files_info[job_id] = {'u_info': uploaded_files_info[job_id],
+                                               'deleted_info': result}
+
     def check_md5(self, downloaded_files_info):
         print(colored(' [*] Compare downloaded files with uploaded files.', 'white'))
         corrupted_files = {}
@@ -329,6 +362,36 @@ class TestcasesBase(TestCase):
         result[random_key] = source_dict[random_key]
         return result
 
+    def upload_download_random_file_with_specific_config(self, random_file, config_dict):
+        print(colored(' [*] config %s ' % str(config_dict), 'yellow'))
+        new_config_file_path = self.create_new_config_file(config_dict)
+        print(colored(' [*] new config path : %s' % new_config_file_path, 'white'))
+        number_of_threads = 1
+        self.writer(created_files_info=random_file,
+                    config_list=[new_config_file_path],
+                    number_of_threads=number_of_threads)
+        self.get_uploaded_files_keys()
+        self.reader(uploaded_files_info=self.uploaded_files_info, number_of_threads=number_of_threads)
+        self.get_download_files_paths_from_threads()
+
+    def iyo_slave_accept_invitation(self, namespace, permissions_list):
+        results = []
+        for permission in permissions_list:
+            if permission == '-w':
+                suborg = 'write'
+            elif permission == '-r':
+                suborg = 'read'
+            elif permission == '-d':
+                suborg = 'delete'
+            elif permission == '-a':
+                suborg = 'admin'
+            namespace_value = "%s.0stor.%s.%s" % (self.config_zerostor['organization'], namespace, suborg)
+
+            status_code = self.iyo_slave_client.api.AcceptMembership(namespace_value, 'member',
+                                                                     self.iyo_slave_username).status_code
+            print(colored(' [*] namespace: %s, response status code: %d' % (namespace_value, status_code), 'yellow'))
+            results.append(status_code)
+        return results
 
 class Utiles:
     def __init__(self):
@@ -352,5 +415,5 @@ class Utiles:
             return 2 ** random.randint(4, 11)
         elif type == 'medium':
             return 2 ** random.randint(10, 14)
-        elif type == 'medium':
+        elif type == 'large':
             return 2 ** random.randint(14, 20)
