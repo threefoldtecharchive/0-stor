@@ -26,7 +26,9 @@ The CLI expose two group of commands, file and namespace. Each group contains su
 - file
   - upload: Upload a file to the 0-stor(s)
   - download: Download a file from the 0-stor(s)
+  - delete: Delete a file from the 0-stor(s)
   - metadata: Print the metadata of a key
+  - repair: Repair a file on the 0-stor(s)
 - namespace
   - create: Create a namespace by creation the required sub-ogranization on [ItsYou.Online](https://itsyou.online/)
   - delete: Delete a namespace by deleting the sub-organizations.
