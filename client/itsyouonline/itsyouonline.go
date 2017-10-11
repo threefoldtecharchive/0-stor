@@ -110,7 +110,7 @@ func (c *Client) CreateNamespace(namespace string) error {
 		return fmt.Errorf("code=%v, err=%v", resp.StatusCode, err)
 	}
 
-	// cretate 0stor suborganization
+	// create 0stor suborganization
 
 	org = itsyouonline.Organization{
 		Globalid: namespaceID + "." + namespace,

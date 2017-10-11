@@ -56,7 +56,7 @@ type Policy struct {
 
 	// Enable compression
 	Compress bool `yaml:"compress"`
-	// Enable ecryption, if true EncryptKey need to be set
+	// Enable encryption, if true EncryptKey need to be set
 	Encrypt bool `yaml:"encrypt"`
 	// Key used during encryption
 	EncryptKey string `yaml:"encrypt_key"`
@@ -82,7 +82,7 @@ func NewPolicyFromReader(r io.Reader) (Policy, error) {
 		return policy, err
 	}
 
-	// unmarshall
+	// unmarshal
 	if err := yaml.Unmarshal(b, &policy); err != nil {
 		return policy, err
 	}

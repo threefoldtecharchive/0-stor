@@ -81,7 +81,7 @@ func newClient(policy Policy, iyoCl itsyouonline.IYOClient) (*Client, error) {
 		storClients: make(map[string]stor.Client, len(policy.DataShards)),
 	}
 
-	// instanciate stor client for each shards.
+	// instantiate stor client for each shards.
 	for _, shard := range policy.DataShards {
 		// getStor keep the created stor in a map
 		_, err := client.getStor(shard)
@@ -90,7 +90,7 @@ func newClient(policy Policy, iyoCl itsyouonline.IYOClient) (*Client, error) {
 		}
 	}
 
-	// instanciate meta client
+	// instantiate meta client
 	if len(policy.MetaShards) > 0 {
 		// meta client
 		metaCli, err := etcd.NewClient(policy.MetaShards)

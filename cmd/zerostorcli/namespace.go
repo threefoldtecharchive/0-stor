@@ -52,7 +52,7 @@ func setACL(c *cli.Context) error {
 
 	namespace := c.String("namespace")
 	user := c.String("user")
-	currentPermision, err := iyoCl.GetPermission(namespace, user)
+	currentPermission, err := iyoCl.GetPermission(namespace, user)
 	if err != nil {
 		return cli.NewExitError(fmt.Errorf("fail to retrieve permission : %v", err), 1)
 	}
@@ -66,10 +66,10 @@ func setACL(c *cli.Context) error {
 
 	// remove permission if needed
 	toRemove := itsyouonline.Permission{
-		Read:   currentPermision.Read && !requestedPermission.Read,
-		Write:  currentPermision.Write && !requestedPermission.Write,
-		Delete: currentPermision.Delete && !requestedPermission.Delete,
-		Admin:  currentPermision.Admin && !requestedPermission.Admin,
+		Read:   currentPermission.Read && !requestedPermission.Read,
+		Write:  currentPermission.Write && !requestedPermission.Write,
+		Delete: currentPermission.Delete && !requestedPermission.Delete,
+		Admin:  currentPermission.Admin && !requestedPermission.Admin,
 	}
 	if err := iyoCl.RemovePermission(namespace, user, toRemove); err != nil {
 		return cli.NewExitError(err, 1)
