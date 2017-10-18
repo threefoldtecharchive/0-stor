@@ -235,10 +235,9 @@
   revision = "0a1f6992d698b8e97bd97cbbd51fdac317959741"
 
 [[projects]]
-  branch = "master"
   name = "github.com/ugorji/go"
   packages = ["codec"]
-  revision = "f26fc641ec9d52a2161443cf9bb9fd53b9062a22"
+  revision = "ded73eae5db7e7a0ef6f55aace87a2873c5d2b74"
 
 [[projects]]
   name = "github.com/urfave/cli"
@@ -321,6 +320,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "0ac3bbcb0b8527057db2b2b1ed1f4fc28de40b10b2a459bf3a7b3b69893b4822"
+  inputs-digest = "f58310b6440b2849c15251718129d92b537e9ccfc1cd358fdc1f0307cb69edbe"
   solver-name = "gps-cdcl"
   solver-version = 1

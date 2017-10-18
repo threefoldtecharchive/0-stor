@@ -108,3 +108,8 @@
 [[constraint]]
   name = "zombiezen.com/go/capnproto2"
   branch = "master"
+
+# etcd client requires this version
+[[override]]
+  name = "github.com/ugorji/go"
+  revision = "ded73eae5db7e7a0ef6f55aace87a2873c5d2b74"
