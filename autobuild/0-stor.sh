@@ -1,5 +1,8 @@
 #!/bin/bash
-set -e
+set -ex
+
+apt-get update
+apt-get install wget make -y
 
 # install go
 wget https://storage.googleapis.com/golang/go1.9.linux-amd64.tar.gz -O /tmp/go1.9.linux-amd64.tar.gz
