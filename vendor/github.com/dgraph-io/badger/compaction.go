@@ -1,3 +1,19 @@
+/*
+ * Copyright 2017 Dgraph Labs, Inc. and Contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package badger
 
 import (
@@ -25,8 +41,8 @@ func (r keyRange) String() string {
 }
 
 func (r keyRange) equals(dst keyRange) bool {
-	return bytes.Compare(r.left, dst.left) == 0 &&
-		bytes.Compare(r.right, dst.right) == 0 &&
+	return bytes.Equal(r.left, dst.left) &&
+		bytes.Equal(r.right, dst.right) &&
 		r.inf == dst.inf
 }
 
@@ -36,11 +52,11 @@ func (r keyRange) overlapsWith(dst keyRange) bool {
 	}
 
 	// If my left is greater than dst right, we have no overlap.
-	if bytes.Compare(r.left, dst.right) > 0 {
+	if y.CompareKeys(r.left, dst.right) > 0 {
 		return false
 	}
 	// If my right is less than dst left, we have no overlap.
-	if bytes.Compare(r.right, dst.left) < 0 {
+	if y.CompareKeys(r.right, dst.left) < 0 {
 		return false
 	}
 	// We have overlap.
@@ -52,10 +68,10 @@ func getKeyRange(tables []*table.Table) keyRange {
 	smallest := tables[0].Smallest()
 	biggest := tables[0].Biggest()
 	for i := 1; i < len(tables); i++ {
-		if bytes.Compare(tables[i].Smallest(), smallest) < 0 {
+		if y.CompareKeys(tables[i].Smallest(), smallest) < 0 {
 			smallest = tables[i].Smallest()
 		}
-		if bytes.Compare(tables[i].Biggest(), biggest) > 0 {
+		if y.CompareKeys(tables[i].Biggest(), biggest) > 0 {
 			biggest = tables[i].Biggest()
 		}
 	}

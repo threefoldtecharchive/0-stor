@@ -39,7 +39,7 @@
 
 [[constraint]]
   name = "github.com/dgraph-io/badger"
-  revision = "a3ac9e5df673e9ae586a8865c489b81c8df71b93"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/dgrijalva/jwt-go"
@@ -108,3 +108,8 @@
 [[constraint]]
   name = "zombiezen.com/go/capnproto2"
   branch = "master"
+
+# etcd client requires this version
+[[override]]
+  name = "github.com/ugorji/go"
+  revision = "ded73eae5db7e7a0ef6f55aace87a2873c5d2b74"

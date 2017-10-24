@@ -50,7 +50,7 @@ func (s *UsersService) UpdateUserAddress(label, username string, body Address, h
 	return resp, nil
 }
 
-// List of all of the user his email addresses.
+// List of all of the user his addresses.
 func (s *UsersService) GetUserAddresses(username string, headers, queryParams map[string]interface{}) ([]Address, *http.Response, error) {
 	var u []Address
 

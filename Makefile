@@ -48,10 +48,10 @@ testclient:
 	go test  -v -timeout $(TIMEOUT) $(CLIENT_PACKAGES)
 
 testserverrace:
-	go test  -v -race -timeout $(TIMEOUT) $(SERVER_PACKAGES)
+	go test  -v -race $(SERVER_PACKAGES)
 
 testclientrace:
-	go test  -v -race -timeout $(TIMEOUT) $(CLIENT_PACKAGES)
+	go test  -v -race $(CLIENT_PACKAGES)
 
 $(OUTPUT):
 	mkdir -p $(OUTPUT)

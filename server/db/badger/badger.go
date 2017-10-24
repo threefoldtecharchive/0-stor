@@ -4,25 +4,25 @@ import (
 	"os"
 
 	log "github.com/Sirupsen/logrus"
-	badgerkv "github.com/dgraph-io/badger"
+	badgerdb "github.com/dgraph-io/badger"
 	"github.com/zero-os/0-stor/server/errors"
 )
 
 // BadgerDB implements the db.DB interace
 type BadgerDB struct {
-	KV *badgerkv.KV
+	db *badgerdb.DB
 	// Config *config.Settings
 }
 
 // New creates new badger DB with default options
 func New(data, meta string) (*BadgerDB, error) {
-	opts := badgerkv.DefaultOptions
+	opts := badgerdb.DefaultOptions
 	opts.SyncWrites = true
 	return NewWithOpts(data, meta, opts)
 }
 
 // NewWithOpts creates new badger DB with own options
-func NewWithOpts(data, meta string, opts badgerkv.Options) (*BadgerDB, error) {
+func NewWithOpts(data, meta string, opts badgerdb.Options) (*BadgerDB, error) {
 	if err := os.MkdirAll(meta, 0774); err != nil {
 		log.Errorf("\t\tMeta dir: %v [ERROR]", meta)
 		return nil, err
@@ -36,15 +36,15 @@ func NewWithOpts(data, meta string, opts badgerkv.Options) (*BadgerDB, error) {
 	opts.Dir = meta
 	opts.ValueDir = data
 
-	kv, err := badgerkv.NewKV(&opts)
+	db, err := badgerdb.Open(opts)
 
 	return &BadgerDB{
-		KV: kv,
+		db: db,
 	}, err
 }
 
 func (b BadgerDB) Close() error {
-	err := b.KV.Close()
+	err := b.db.Close()
 	if err != nil {
 		log.Errorln(err.Error())
 	}
@@ -52,113 +52,129 @@ func (b BadgerDB) Close() error {
 }
 
 func (b BadgerDB) Delete(key []byte) error {
-	err := b.KV.Delete([]byte(key))
-	if err != nil {
-		log.Errorln(err.Error())
-	}
-	return err
+	return b.db.Update(func(tx *badgerdb.Txn) error {
+		err := tx.Delete(key)
+		if err != nil {
+			log.Errorf("badger delete error: %v", err)
+		}
+		return err
+	})
 }
 
 func (b BadgerDB) Set(key []byte, val []byte) error {
-	err := b.KV.Set([]byte(key), val, 0x00)
-	if err != nil {
-		log.Errorln(err.Error())
-	}
-	return err
+	return b.db.Update(func(tx *badgerdb.Txn) error {
+		err := tx.Set(key, val, 0x00)
+		if err != nil {
+			log.Errorf("bager set error: %v", err)
+		}
+		return err
+	})
 }
 
-func (b BadgerDB) Get(key []byte) ([]byte, error) {
-	var item badgerkv.KVItem
+func (b BadgerDB) Get(key []byte) (val []byte, err error) {
 
-	err := b.KV.Get([]byte(key), &item)
+	err = b.db.View(func(tx *badgerdb.Txn) error {
+		item, err := tx.Get(key)
+		if err != nil {
+			log.Errorf("badger get error: %v", err)
+			return err
+		}
+		v, err := item.Value()
+		if err != nil {
+			log.Errorf("badger get error: %v", err)
+			return err
+		}
 
-	if err != nil {
-		log.Errorln(err.Error())
-		return nil, err
-	}
-
-	var val []byte
-	err = item.Value(func(v []byte) {
 		val = make([]byte, len(v))
 		copy(val, v)
+		return nil
 	})
-	if err != nil {
-		return nil, err
-	}
 
-	if len(val) == 0 {
+	if err == badgerdb.ErrKeyNotFound {
 		err = errors.ErrNotFound
 	}
 
-	return val, err
+	return
 }
 
-func (b BadgerDB) Exists(key []byte) (bool, error) {
-	exists, err := b.KV.Exists([]byte(key))
-	if err != nil {
-		log.Errorln(err.Error())
-	}
-	return exists, err
+func (b BadgerDB) Exists(key []byte) (exists bool, err error) {
+	err = b.db.View(func(tx *badgerdb.Txn) error {
+		_, err := tx.Get(key)
+		if err != nil && err != badgerdb.ErrKeyNotFound {
+			log.Errorf("badger exists error: %v", err)
+			return err
+		}
+
+		exists = !(err == badgerdb.ErrKeyNotFound)
+		return nil
+	})
+
+	return
 }
 
 // Pass count = -1 to get all elements starting from the provided index
-func (b BadgerDB) Filter(prefix []byte, start int, count int) ([][]byte, error) {
-	opt := badgerkv.DefaultIteratorOptions
+func (b BadgerDB) Filter(prefix []byte, start int, count int) (result [][]byte, err error) {
+	opt := badgerdb.DefaultIteratorOptions
+	result = make([][]byte, 0, count)
+	var buf []byte
 
-	it := b.KV.NewIterator(opt)
-	defer it.Close()
+	err = b.db.View(func(tx *badgerdb.Txn) error {
+		it := tx.NewIterator(opt)
+		defer it.Close()
 
-	result := make([][]byte, 0, count)
+		counter := 0 // Number of namespaces encountered
 
-	counter := 0 // Number of namespaces encountered
+		for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
+			counter++
 
-	prefixBytes := []byte(prefix)
+			// Skip until starting index
+			if counter < start {
+				continue
+			}
 
-	for it.Seek(prefixBytes); it.ValidForPrefix(prefixBytes); it.Next() {
-		counter++
+			b, err := it.Item().Value()
+			if err != nil {
+				log.Errorf("badger filter error: %v", err)
+				return err
+			}
 
-		// Skip until starting index
-		if counter < start {
-			continue
+			buf = make([]byte, len(b))
+			n := copy(buf, b)
+			result = append(result, buf[:n])
+
+			if count > 0 && len(result) == count {
+				break
+			}
 		}
 
-		item := it.Item()
+		return nil
+	})
 
-		var val []byte
-		err := item.Value(func(v []byte) {
-			val = make([]byte, len(v))
-			copy(val, v)
-		})
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, val)
-
-		if count > 0 && len(result) == count {
-			break
-		}
-	}
-
-	return result, nil
+	return result, err
 }
 
-func (b BadgerDB) List(prefix []byte) ([][]byte, error) {
+func (b BadgerDB) List(prefix []byte) (result [][]byte, err error) {
 
-	opt := badgerkv.DefaultIteratorOptions
+	opt := badgerdb.DefaultIteratorOptions
 	opt.PrefetchValues = false
+	result = [][]byte{}
+	var buf []byte
 
-	it := b.KV.NewIterator(opt)
-	defer it.Close()
+	err = b.db.View(func(tx *badgerdb.Txn) error {
+		it := tx.NewIterator(opt)
+		defer it.Close()
 
-	result := [][]byte{}
+		for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
+			key := it.Item().Key()
 
-	for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
-		item := it.Item()
+			buf = make([]byte, len(key))
 
-		key := make([]byte, len(item.Key()))
-		copy(key, item.Key())
-		result = append(result, key)
-	}
+			n := copy(buf, key)
+			result = append(result, buf[:n])
+		}
 
-	return result, nil
+		return nil
+	})
+
+	return result, err
 }

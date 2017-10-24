@@ -55,7 +55,7 @@ func getTestClient(policy Policy) (*Client, error) {
 
 func TestRoundTripGRPC(t *testing.T) {
 	etcd, err := embedserver.New()
-	require.NoError(t, err, "fail to start embebed etcd server")
+	require.NoError(t, err, "fail to start embedded etcd server")
 	defer etcd.Stop()
 
 	servers, serverClean := testGRPCServer(t, 4)
@@ -113,14 +113,14 @@ func TestRoundTripGRPC(t *testing.T) {
 		{
 			name:                   "distribution",
 			ReplicationMaxSize:     1, //force to use distribution over replication
-			DistributionNr:         3,
+			DistributionNr:         2,
 			DistributionRedundancy: 1,
 		},
 		{
 			name:                   "chunks-distribution",
 			BlockSize:              1024,
 			ReplicationMaxSize:     1, //force to use distribution over replication
-			DistributionNr:         3,
+			DistributionNr:         2,
 			DistributionRedundancy: 1,
 		},
 		{
@@ -150,7 +150,7 @@ func TestRoundTripGRPC(t *testing.T) {
 			Encrypt:                true,
 			ReplicationMaxSize:     1, //force to use distribution over replication
 			EncryptKey:             "cF0BFpIsljOS8UmaP8YRHRX0nBPVRVPw",
-			DistributionNr:         3,
+			DistributionNr:         2,
 			DistributionRedundancy: 1,
 		},
 		{
@@ -169,7 +169,7 @@ func TestRoundTripGRPC(t *testing.T) {
 			Encrypt:                true,
 			ReplicationMaxSize:     1, //force to use distribution over replication
 			EncryptKey:             "cF0BFpIsljOS8UmaP8YRHRX0nBPVRVPw",
-			DistributionNr:         3,
+			DistributionNr:         2,
 			DistributionRedundancy: 1,
 		},
 	}
@@ -201,7 +201,7 @@ func TestRoundTripGRPC(t *testing.T) {
 
 			// validate metadata
 			assert.Equal(t, key, meta.Key, "Key in metadata is not the same")
-			// assert.EqualValues(t, len(data), meta.Size(), "size in the metadat doen't correspond with the size of the data")
+			// assert.EqualValues(t, len(data), meta.Size(), "size in the metadat doesn't correspond with the size of the data")
 			for _, chunk := range meta.Chunks {
 				for _, shard := range chunk.Shards {
 					assert.Contains(t, shards, shard, "shards in metadata is not one of the shards configured in the client")
@@ -225,7 +225,7 @@ func TestRoundTripGRPC(t *testing.T) {
 			err = c.DeleteWithMeta(meta)
 			require.NoError(t, err, "failed to delete from the store")
 
-			// makes sure metadata is not exist anymore
+			// makes sure metadata does not exist anymore
 			_, err = c.metaCli.Get(string(key))
 			require.Error(t, err)
 		})
@@ -234,7 +234,7 @@ func TestRoundTripGRPC(t *testing.T) {
 
 func TestBlocksizes(t *testing.T) {
 	etcd, err := embedserver.New()
-	require.NoError(t, err, "fail to start embebed etcd server")
+	require.NoError(t, err, "fail to start embedded etcd server")
 	defer etcd.Stop()
 
 	servers, serverClean := testGRPCServer(t, 4)
@@ -275,12 +275,17 @@ func TestBlocksizes(t *testing.T) {
 		Encrypt:    true,
 		EncryptKey: "cF0BFpIsljOS8UmaP8YRHRX0nBPVRVPw",
 		// ReplicationMaxSize:     1, //force to use distribution over replication
-		DistributionNr:         3,
+		DistributionNr:         2,
 		DistributionRedundancy: 1,
 	}
 
-	for i := 0; i < 50; i++ {
-		tc.BlockSize = 1024 * 10 * (i + 1)
+	for i := 0; i <= 5; i++ {
+		if i == 0 {
+			tc.BlockSize = 10240
+		} else {
+			tc.BlockSize = 1024 * 10 * (i * 10)
+		}
+
 		tc.name = fmt.Sprintf("%d", tc.BlockSize)
 
 		t.Run(tc.name, func(t *testing.T) {
@@ -331,7 +336,7 @@ func TestMultipleDownload(t *testing.T) {
 	// #test for https://github.com/zero-os/0-stor/issues/208
 
 	etcd, err := embedserver.New()
-	require.NoError(t, err, "fail to start embebed etcd server")
+	require.NoError(t, err, "fail to start embedded etcd server")
 	defer etcd.Stop()
 
 	servers, serverClean := testGRPCServer(t, 4)
@@ -355,7 +360,7 @@ func TestMultipleDownload(t *testing.T) {
 		EncryptKey:             "cF0BFpIsljOS8UmaP8YRHRX0nBPVRVPw",
 		ReplicationNr:          0,
 		ReplicationMaxSize:     1, //force to use distribution over replication
-		DistributionNr:         3,
+		DistributionNr:         2,
 		DistributionRedundancy: 1,
 	}
 
@@ -381,11 +386,11 @@ func TestMultipleDownload(t *testing.T) {
 	}
 }
 
-func TestConcurentWriteRead(t *testing.T) {
+func TestConcurrentWriteRead(t *testing.T) {
 	t.SkipNow()
 
 	etcd, err := embedserver.New()
-	require.NoError(t, err, "fail to start embebed etcd server")
+	require.NoError(t, err, "fail to start embedded etcd server")
 	defer etcd.Stop()
 
 	servers, serverClean := testGRPCServer(t, 4)
@@ -409,7 +414,7 @@ func TestConcurentWriteRead(t *testing.T) {
 		EncryptKey:             "cF0BFpIsljOS8UmaP8YRHRX0nBPVRVPw",
 		ReplicationNr:          0,
 		ReplicationMaxSize:     1, //force to use distribution over replication
-		DistributionNr:         3,
+		DistributionNr:         2,
 		DistributionRedundancy: 1,
 	}
 
@@ -433,10 +438,10 @@ func TestConcurentWriteRead(t *testing.T) {
 		require.Equal(t, refList, refListResult, "refList read is not same as refList written")
 	}
 
-	// Seems we can't increased the number of concurent write more then around 32
-	for concurent := 1; concurent <= 64; concurent *= 2 {
+	// Seems we can't increased the number of concurrent write more then around 32
+	for concurrent := 1; concurrent <= 64; concurrent *= 2 {
 		for size := 1024; size < 1024*10; size *= 4 {
-			name := fmt.Sprintf("Concurent client: %d - Size of the data: %d", concurent, size)
+			name := fmt.Sprintf("Concurrent client: %d - Size of the data: %d", concurrent, size)
 			t.Log(name)
 
 			wg := &sync.WaitGroup{}
@@ -458,7 +463,7 @@ func TestConcurentWriteRead(t *testing.T) {
 
 func BenchmarkWriteFilesSizes(b *testing.B) {
 	etcd, err := embedserver.New()
-	require.NoError(b, err, "fail to start embebed etcd server")
+	require.NoError(b, err, "fail to start embedded etcd server")
 	defer etcd.Stop()
 
 	servers, serverClean := testGRPCServer(b, 4)
@@ -482,7 +487,7 @@ func BenchmarkWriteFilesSizes(b *testing.B) {
 		EncryptKey:             "cF0BFpIsljOS8UmaP8YRHRX0nBPVRVPw",
 		ReplicationNr:          0,
 		ReplicationMaxSize:     1, //force to use distribution over replication
-		DistributionNr:         3,
+		DistributionNr:         2,
 		DistributionRedundancy: 1,
 	}
 
@@ -533,7 +538,7 @@ func BenchmarkWriteFilesSizes(b *testing.B) {
 
 func TestIssue225(t *testing.T) {
 	etcd, err := embedserver.New()
-	require.NoError(t, err, "fail to start embebed etcd server")
+	require.NoError(t, err, "fail to start embedded etcd server")
 	defer etcd.Stop()
 
 	servers, serverClean := testGRPCServer(t, 4)
@@ -557,7 +562,7 @@ func TestIssue225(t *testing.T) {
 		EncryptKey:             "cF0BFpIsljOS8UmaP8YRHRX0nBPVRVPw",
 		ReplicationNr:          4,
 		ReplicationMaxSize:     4096, //force to use distribution over replication
-		DistributionNr:         3,
+		DistributionNr:         2,
 		DistributionRedundancy: 1,
 	}
 
@@ -565,7 +570,7 @@ func TestIssue225(t *testing.T) {
 	require.NoError(t, err, "fail to create client")
 	defer c.Close()
 
-	data := make([]byte, 89817)
+	data := make([]byte, 44910)
 
 	_, err = rand.Read(data)
 	require.NoError(t, err, "fail to read random data")
@@ -584,7 +589,7 @@ func TestIssue225(t *testing.T) {
 
 // func BenchmarkDirectWriteGRPC(b *testing.B) {
 // 	etcd, err := embedserver.New()
-// 	require.NoError(b, err, "fail to start embebed etcd server")
+// 	require.NoError(b, err, "fail to start embedded etcd server")
 // 	defer etcd.Stop()
 
 // 	servers, serverClean := testGRPCServer(b, 1)

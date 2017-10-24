@@ -84,6 +84,7 @@ includes_FreeBSD='
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
 #include <sys/mman.h>
+#include <sys/mount.h>
 #include <sys/wait.h>
 #include <sys/ioctl.h>
 #include <net/bpf.h>
@@ -283,6 +284,7 @@ includes_SunOS='
 #include <sys/mman.h>
 #include <sys/wait.h>
 #include <sys/ioctl.h>
+#include <sys/mkdev.h>
 #include <net/bpf.h>
 #include <net/if.h>
 #include <net/if_arp.h>
@@ -347,6 +349,7 @@ ccflags="$@"
 		$2 !~ /^EXPR_/ &&
 		$2 ~ /^E[A-Z0-9_]+$/ ||
 		$2 ~ /^B[0-9_]+$/ ||
+		$2 ~ /^(OLD|NEW)DEV$/ ||
 		$2 == "BOTHER" ||
 		$2 ~ /^CI?BAUD(EX)?$/ ||
 		$2 == "IBSHIFT" ||
