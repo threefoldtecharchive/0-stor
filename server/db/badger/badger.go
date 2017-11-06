@@ -63,7 +63,7 @@ func (b BadgerDB) Delete(key []byte) error {
 
 func (b BadgerDB) Set(key []byte, val []byte) error {
 	return b.db.Update(func(tx *badgerdb.Txn) error {
-		err := tx.Set(key, val, 0x00)
+		err := tx.Set(key, val)
 		if err != nil {
 			log.Errorf("bager set error: %v", err)
 		}

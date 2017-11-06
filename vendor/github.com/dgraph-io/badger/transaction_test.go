@@ -41,7 +41,7 @@ func TestTxnSimple(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		k := []byte(fmt.Sprintf("key=%d", i))
 		v := []byte(fmt.Sprintf("val=%d", i))
-		txn.Set(k, v, 0)
+		txn.Set(k, v)
 	}
 
 	item, err := txn.Get([]byte("key=8"))
@@ -51,6 +51,7 @@ func TestTxnSimple(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []byte("val=8"), val)
 
+	require.Error(t, ErrManagedTxn, txn.CommitAt(100, nil))
 	require.NoError(t, txn.Commit(nil))
 }
 
@@ -66,7 +67,7 @@ func TestTxnVersions(t *testing.T) {
 	for i := 1; i < 10; i++ {
 		txn := kv.NewTransaction(true)
 
-		txn.Set(k, []byte(fmt.Sprintf("valversion=%d", i)), 0)
+		txn.Set(k, []byte(fmt.Sprintf("valversion=%d", i)))
 		require.NoError(t, txn.Commit(nil))
 		require.Equal(t, uint64(i), kv.orc.readTs())
 	}
@@ -148,8 +149,11 @@ func TestTxnVersions(t *testing.T) {
 		opt.Reverse = true
 		itr = txn.NewIterator(opt)
 		checkAllVersions(itr, i)
+
+		txn.Discard()
 	}
 	txn := kv.NewTransaction(true)
+	defer txn.Discard()
 	require.NoError(t, err)
 	item, err := txn.Get(k)
 	require.NoError(t, err)
@@ -173,9 +177,10 @@ func TestTxnWriteSkew(t *testing.T) {
 
 	// Set balance to $100 in each account.
 	txn := kv.NewTransaction(true)
+	defer txn.Discard()
 	val := []byte(strconv.Itoa(100))
-	txn.Set(ax, val, 0)
-	txn.Set(ay, val, 0)
+	txn.Set(ax, val)
+	txn.Set(ay, val)
 	require.NoError(t, txn.Commit(nil))
 	require.Equal(t, uint64(1), kv.orc.readTs())
 
@@ -196,7 +201,7 @@ func TestTxnWriteSkew(t *testing.T) {
 	sum := getBal(txn1, ax)
 	sum += getBal(txn1, ay)
 	require.Equal(t, 200, sum)
-	txn1.Set(ax, []byte("0"), 0) // Deduct 100 from ax.
+	txn1.Set(ax, []byte("0")) // Deduct 100 from ax.
 
 	// Let's read this back.
 	sum = getBal(txn1, ax)
@@ -210,7 +215,7 @@ func TestTxnWriteSkew(t *testing.T) {
 	sum = getBal(txn2, ax)
 	sum += getBal(txn2, ay)
 	require.Equal(t, 200, sum)
-	txn2.Set(ay, []byte("0"), 0) // Deduct 100 from ay.
+	txn2.Set(ay, []byte("0")) // Deduct 100 from ay.
 
 	// Let's read this back.
 	sum = getBal(txn2, ax)
@@ -244,21 +249,21 @@ func TestTxnIterationEdgeCase(t *testing.T) {
 
 	// c1
 	txn := kv.NewTransaction(true)
-	txn.Set(kc, []byte("c1"), 0)
+	txn.Set(kc, []byte("c1"))
 	require.NoError(t, txn.Commit(nil))
 	require.Equal(t, uint64(1), kv.orc.readTs())
 
 	// a2, c2
 	txn = kv.NewTransaction(true)
-	txn.Set(ka, []byte("a2"), 0)
-	txn.Set(kc, []byte("c2"), 0)
+	txn.Set(ka, []byte("a2"))
+	txn.Set(kc, []byte("c2"))
 	require.NoError(t, txn.Commit(nil))
 	require.Equal(t, uint64(2), kv.orc.readTs())
 
 	// b3
 	txn = kv.NewTransaction(true)
-	txn.Set(ka, []byte("a3"), 0)
-	txn.Set(kb, []byte("b3"), 0)
+	txn.Set(ka, []byte("a3"))
+	txn.Set(kb, []byte("b3"))
 	require.NoError(t, txn.Commit(nil))
 	require.Equal(t, uint64(3), kv.orc.readTs())
 
@@ -280,6 +285,7 @@ func TestTxnIterationEdgeCase(t *testing.T) {
 		require.Equal(t, len(expected), i)
 	}
 	txn = kv.NewTransaction(true)
+	defer txn.Discard()
 	itr := txn.NewIterator(DefaultIteratorOptions)
 	checkIterator(itr, []string{"a3", "c2"})
 
@@ -326,21 +332,21 @@ func TestTxnIterationEdgeCase2(t *testing.T) {
 
 	// c1
 	txn := kv.NewTransaction(true)
-	txn.Set(kc, []byte("c1"), 0)
+	txn.Set(kc, []byte("c1"))
 	require.NoError(t, txn.Commit(nil))
 	require.Equal(t, uint64(1), kv.orc.readTs())
 
 	// a2, c2
 	txn = kv.NewTransaction(true)
-	txn.Set(ka, []byte("a2"), 0)
-	txn.Set(kc, []byte("c2"), 0)
+	txn.Set(ka, []byte("a2"))
+	txn.Set(kc, []byte("c2"))
 	require.NoError(t, txn.Commit(nil))
 	require.Equal(t, uint64(2), kv.orc.readTs())
 
 	// b3
 	txn = kv.NewTransaction(true)
-	txn.Set(ka, []byte("a3"), 0)
-	txn.Set(kb, []byte("b3"), 0)
+	txn.Set(ka, []byte("a3"))
+	txn.Set(kb, []byte("b3"))
 	require.NoError(t, txn.Commit(nil))
 	require.Equal(t, uint64(3), kv.orc.readTs())
 
@@ -362,6 +368,7 @@ func TestTxnIterationEdgeCase2(t *testing.T) {
 		require.Equal(t, len(expected), i)
 	}
 	txn = kv.NewTransaction(true)
+	defer txn.Discard()
 	rev := DefaultIteratorOptions
 	rev.Reverse = true
 
@@ -419,17 +426,18 @@ func TestTxnIterationEdgeCase3(t *testing.T) {
 
 	// c1
 	txn := kv.NewTransaction(true)
-	txn.Set(kc, []byte("c1"), 0)
+	txn.Set(kc, []byte("c1"))
 	require.NoError(t, txn.Commit(nil))
 	require.Equal(t, uint64(1), kv.orc.readTs())
 
 	// b2
 	txn = kv.NewTransaction(true)
-	txn.Set(kb, []byte("b2"), 0)
+	txn.Set(kb, []byte("b2"))
 	require.NoError(t, txn.Commit(nil))
 	require.Equal(t, uint64(2), kv.orc.readTs())
 
 	txn = kv.NewTransaction(true)
+	defer txn.Discard()
 	rev := DefaultIteratorOptions
 	rev.Reverse = true
 
@@ -480,8 +488,8 @@ func TestIteratorAllVersionsButDeleted(t *testing.T) {
 
 	// Write two keys
 	err = db.Update(func(txn *Txn) error {
-		txn.Set([]byte("answer1"), []byte("42"), 0)
-		txn.Set([]byte("answer2"), []byte("43"), 0)
+		txn.Set([]byte("answer1"), []byte("42"))
+		txn.Set([]byte("answer2"), []byte("43"))
 		return nil
 	})
 	require.NoError(t, err)
@@ -493,7 +501,7 @@ func TestIteratorAllVersionsButDeleted(t *testing.T) {
 		err = txn.db.batchSet([]*entry{
 			{
 				Key:  y.KeyWithTs(item.key, item.version),
-				Meta: bitDelete,
+				meta: bitDelete,
 			},
 		})
 		require.NoError(t, err)
@@ -520,11 +528,13 @@ func TestIteratorAllVersionsButDeleted(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestTxnManaged(t *testing.T) {
+func TestManagedDB(t *testing.T) {
 	dir, err := ioutil.TempDir("", "badger")
 	require.NoError(t, err)
 	defer os.RemoveAll(dir)
-	kv, err := Open(getTestOptions(dir))
+
+	opt := getTestOptions(dir)
+	kv, err := OpenManaged(opt)
 	require.NoError(t, err)
 	defer kv.Close()
 
@@ -536,11 +546,21 @@ func TestTxnManaged(t *testing.T) {
 		return []byte(fmt.Sprintf("val-%d", i))
 	}
 
+	// Don't allow these APIs in ManagedDB
+	require.Panics(t, func() { kv.NewTransaction(false) })
+
+	err = kv.Update(func(tx *Txn) error { return nil })
+	require.Equal(t, ErrManagedTxn, err)
+
+	err = kv.View(func(tx *Txn) error { return nil })
+	require.Equal(t, ErrManagedTxn, err)
+
 	// Write data at t=3.
 	txn := kv.NewTransactionAt(3, true)
 	for i := 0; i <= 3; i++ {
-		require.NoError(t, txn.Set(key(i), val(i), 0))
+		require.NoError(t, txn.Set(key(i), val(i)))
 	}
+	require.Error(t, ErrManagedTxn, txn.Commit(nil))
 	require.NoError(t, txn.CommitAt(3, nil))
 
 	// Read data at t=2.
@@ -549,6 +569,7 @@ func TestTxnManaged(t *testing.T) {
 		_, err := txn.Get(key(i))
 		require.Equal(t, ErrKeyNotFound, err)
 	}
+	txn.Discard()
 
 	// Read data at t=3.
 	txn = kv.NewTransactionAt(3, false)
@@ -560,6 +581,7 @@ func TestTxnManaged(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, val(i), v)
 	}
+	txn.Discard()
 
 	// Write data at t=7.
 	txn = kv.NewTransactionAt(6, true)
@@ -568,7 +590,7 @@ func TestTxnManaged(t *testing.T) {
 		if err == nil {
 			continue // Don't overwrite existing keys.
 		}
-		require.NoError(t, txn.Set(key(i), val(i), 0))
+		require.NoError(t, txn.Set(key(i), val(i)))
 	}
 	require.NoError(t, txn.CommitAt(7, nil))
 
@@ -593,4 +615,5 @@ func TestTxnManaged(t *testing.T) {
 			require.Equal(t, val(i), v)
 		}
 	}
+	txn.Discard()
 }

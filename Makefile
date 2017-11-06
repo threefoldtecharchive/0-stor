@@ -53,6 +53,11 @@ testserverrace:
 testclientrace:
 	go test  -v -race $(CLIENT_PACKAGES)
 
+update_deps:
+	dep ensure -update -v
+	dep prune -v
+
+
 $(OUTPUT):
 	mkdir -p $(OUTPUT)
 
