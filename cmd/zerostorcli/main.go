@@ -117,8 +117,8 @@ func main() {
 							Usage: "Label of the namespace",
 						},
 						cli.StringFlag{
-							Name:  "user",
-							Usage: "ItsYouOnline user id",
+							Name:  "userid",
+							Usage: "ItsYouOnline user's ID (email address)",
 						},
 						cli.BoolFlag{
 							Name:  "read, r",
@@ -148,8 +148,8 @@ func main() {
 							Usage: "Label of the namespace",
 						},
 						cli.StringFlag{
-							Name:  "user",
-							Usage: "ItsYouOnline user id",
+							Name:  "userid",
+							Usage: "ItsYouOnline user's ID (email address)",
 						},
 					},
 					Action: getACL,

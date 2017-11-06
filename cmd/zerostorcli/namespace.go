@@ -51,9 +51,9 @@ func setACL(c *cli.Context) error {
 	}
 
 	namespace := c.String("namespace")
-	user := c.String("user")
+	userID := c.String("userid")
 
-	currentpermissions, err := iyoCl.GetPermission(namespace, user)
+	currentpermissions, err := iyoCl.GetPermission(namespace, userID)
 	if err != nil {
 		return cli.NewExitError(err, 1)
 	}
@@ -67,15 +67,16 @@ func setACL(c *cli.Context) error {
 
 	// remove permission if needed
 	toRemove := itsyouonline.Permission{
-		Read:   !requestedPermission.Read,
-		Write:  !requestedPermission.Write,
-		Delete: !requestedPermission.Delete,
-		Admin:  !requestedPermission.Admin,
+		Read:   currentpermissions.Read && !requestedPermission.Read,
+		Write:  currentpermissions.Write && !requestedPermission.Write,
+		Delete: currentpermissions.Delete && !requestedPermission.Delete,
+		Admin:  currentpermissions.Admin && !requestedPermission.Admin,
 	}
-	if err := iyoCl.RemovePermission(namespace, user, toRemove); err != nil {
+	if err := iyoCl.RemovePermission(namespace, userID, toRemove); err != nil {
 		return cli.NewExitError(err, 1)
 	}
 
+	// add permission if needed
 	toAdd := itsyouonline.Permission{
 		Read:   !currentpermissions.Read && requestedPermission.Read,
 		Write:  !currentpermissions.Write && requestedPermission.Write,
@@ -84,7 +85,7 @@ func setACL(c *cli.Context) error {
 	}
 
 	// Give requested permission
-	if err := iyoCl.GivePermission(namespace, user, toAdd); err != nil {
+	if err := iyoCl.GivePermission(namespace, userID, toAdd); err != nil {
 		return cli.NewExitError(err, 1)
 	}
 
@@ -98,12 +99,12 @@ func getACL(c *cli.Context) error {
 	}
 
 	namespace := c.String("namespace")
-	user := c.String("user")
-	perm, err := iyoCl.GetPermission(namespace, user)
+	userID := c.String("userid")
+	perm, err := iyoCl.GetPermission(namespace, userID)
 	if err != nil {
 		return cli.NewExitError(fmt.Errorf("fail to retrieve permission : %v", err), 1)
 	}
-	fmt.Printf("User %s:\n", user)
+	fmt.Printf("User %s:\n", userID)
 	fmt.Printf("Read: %v\n", perm.Read)
 	fmt.Printf("Write: %v\n", perm.Write)
 	fmt.Printf("Delete: %v\n", perm.Delete)

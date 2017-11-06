@@ -77,7 +77,7 @@ The CLI expose two group of commands, file and namespace. Each group contains su
 ```
 
 Upload the file and use the file's name (`my_file.file`) as the 0-stor key.  
-If a custom key need to be provided the `--key` or `-k` can be set to the desired key:
+If a custom key needs to be provided, the `--key` or `-k` flag can be used to set the desired key:
 ```
 ./zerostorcli --conf conf_file.yaml file upload -k myFile data/my_file.file
 ```
@@ -135,10 +135,12 @@ This command will delete the organization `myorg.0stor.namespace_test` and all i
 ### Set rights of a user into a namespace
 
 ```
-./zerostorcli --conf conf_file.yaml namespace set-acl --namespace namespace_test --user johndoe -r -w -d
+./zerostorcli --conf conf_file.yaml namespace set-acl --namespace namespace_test --userid johndoe@email.com -r -w -d
 ```
 
-This command will authorize the user `johndoe` into the namespace `namespace_test` with the right read, write and delete.
+This command will authorize the user with it's [ItsYou.online][iyo] user ID, in this case the email address `johndoe@email.com` into the namespace `namespace_test` with the right read, write and delete.
+
+For [ItsYou.online's][iyo] user ID, following can be used reliably with 0-stor: email address
 
 The different rights that can be set are:
 - read
@@ -155,13 +157,13 @@ To remove some right, just re-execute the command with the new rights. if no rig
 ### Get the rights of a user
 
 ```
-./zerostorcli --conf demo.yaml namespace get-acl --namespace namespace_test --user johndoe
+./zerostorcli --conf demo.yaml namespace get-acl --namespace namespace_test --userid johndoe@email.com
 ```
 
-This command will the right that a user has for the specified namespace:
+This command will show the rights that a user with provided [ItsYou.online][iyo] user ID has for the specified namespace:
 
 ```
-User johndoe :
+User johndoe@email.com :
 Read: true
 Write: true
 Delete: true

@@ -190,7 +190,7 @@ func (c *Client) GivePermission(namespace, userID string, perm Permission) error
 }
 
 // RemovePermission remove some permission from a user on a namespace
-func (c *Client) RemovePermission(namespace, username string, perm Permission) error {
+func (c *Client) RemovePermission(namespace, userID string, perm Permission) error {
 	_, _, _, err := c.iyoClient.LoginWithClientCredentials(c.clientID, c.secret)
 	if err != nil {
 		return fmt.Errorf("login failed: %v", err)
@@ -203,7 +203,7 @@ func (c *Client) RemovePermission(namespace, username string, perm Permission) e
 		} else {
 			org = c.namespaceID(namespace) + "." + perm
 		}
-		resp, err := c.iyoClient.Organizations.RemoveOrganizationMember(username, org, nil, nil)
+		resp, err := c.iyoClient.Organizations.RemoveOrganizationMember(userID, org, nil, nil)
 		if err != nil {
 			return fmt.Errorf("removing permission failed: IYO returned status %+v \nwith error message: %v", resp.Status, err)
 		}
@@ -212,8 +212,9 @@ func (c *Client) RemovePermission(namespace, username string, perm Permission) e
 	return nil
 }
 
-// GetPermission retrieve the permission a user has for a namespace
-func (c *Client) GetPermission(namespace, username string) (Permission, error) {
+// GetPermission retrieves the permission a user has for a namespace
+// returns true for a right when user is member or invited to the namespace
+func (c *Client) GetPermission(namespace, userID string) (Permission, error) {
 	var (
 		permission = Permission{}
 		org        string
@@ -251,19 +252,19 @@ func (c *Client) GetPermission(namespace, username string) (Permission, error) {
 
 		switch perm {
 		case "read":
-			if hasPermission(username, members.Users, invitations) {
+			if hasPermission(userID, members.Users, invitations) {
 				permission.Read = true
 			}
 		case "write":
-			if hasPermission(username, members.Users, invitations) {
+			if hasPermission(userID, members.Users, invitations) {
 				permission.Write = true
 			}
 		case "delete":
-			if hasPermission(username, members.Users, invitations) {
+			if hasPermission(userID, members.Users, invitations) {
 				permission.Delete = true
 			}
 		case "admin":
-			if hasPermission(username, members.Users, invitations) {
+			if hasPermission(userID, members.Users, invitations) {
 				permission.Admin = true
 			}
 		}
@@ -286,7 +287,7 @@ func isMember(target string, list []itsyouonline.OrganizationUser) bool {
 
 func isInvited(target string, invitations []itsyouonline.JoinOrganizationInvitation) bool {
 	for _, invite := range invitations {
-		if target == invite.User {
+		if target == invite.User || target == invite.Emailaddress {
 			return true
 		}
 	}
