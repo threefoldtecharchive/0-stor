@@ -141,7 +141,7 @@ func (c *Client) CreateNamespace(namespace string) error {
 	return nil
 }
 
-// DeleteNamespace delete the sub organiation the represent the namespace
+// DeleteNamespace delete the sub organization the represent the namespace
 // It delete these sub organizations:
 // - org.0stor.namespace
 // - org.0stor.namespace.read
@@ -205,24 +205,14 @@ func (c *Client) RemovePermission(namespace, username string, perm Permission) e
 		}
 		resp, err := c.iyoClient.Organizations.RemoveOrganizationMember(username, org, nil, nil)
 		if err != nil {
-			return fmt.Errorf("remove permission from member failed: code=%v, err=%v", resp.StatusCode, err)
+			return fmt.Errorf("removing permission failed: IYO returned status %+v \nwith error message: %v", resp.Status, err)
 		}
-
-		// also remove pending invitation in case the user didn't accepted the invit yet
-		resp, err = c.iyoClient.Organizations.RemovePendingOrganizationInvitation(username, org, nil, nil)
-		if err != nil {
-			return fmt.Errorf("remove permission from member failed: code=%v, err=%v", resp.StatusCode, err)
-		}
-		if resp.StatusCode != http.StatusNoContent {
-			return fmt.Errorf("give member permission failed: code=%v", resp.StatusCode)
-		}
-
 	}
 
 	return nil
 }
 
-// GetPermission retreive the permission a user has for a namespace
+// GetPermission retrieve the permission a user has for a namespace
 func (c *Client) GetPermission(namespace, username string) (Permission, error) {
 	var (
 		permission = Permission{}
@@ -243,37 +233,37 @@ func (c *Client) GetPermission(namespace, username string) (Permission, error) {
 
 		invitations, resp, err := c.iyoClient.Organizations.GetInvitations(org, nil, nil)
 		if err != nil {
-			return permission, fmt.Errorf("Fail to retrieve user permission : %+v", err)
+			return permission, fmt.Errorf("Failed to retrieve user permission : %+v", err)
 		}
 
 		if resp.StatusCode != http.StatusOK {
-			return permission, fmt.Errorf("Fail to retrieve user permission : status=%+v", resp.Status)
+			return permission, fmt.Errorf("Failed to retrieve user permission : IYO returned status %+v", resp.Status)
 		}
 
 		members, resp, err := c.iyoClient.Organizations.GetOrganizationUsers(org, nil, nil)
 		if err != nil {
-			return permission, fmt.Errorf("Fail to retrieve user permission : %+v", err)
+			return permission, fmt.Errorf("Failed to retrieve user permission: %+v", err)
 		}
 
 		if resp.StatusCode != http.StatusOK {
-			return permission, fmt.Errorf("Fail to retrieve user permission : status=%+v", resp.Status)
+			return permission, fmt.Errorf("Failed to retrieve user permission : IYO returned status %+v", resp.Status)
 		}
 
 		switch perm {
 		case "read":
-			if hasPermision(username, members.Users, invitations) {
+			if hasPermission(username, members.Users, invitations) {
 				permission.Read = true
 			}
 		case "write":
-			if hasPermision(username, members.Users, invitations) {
+			if hasPermission(username, members.Users, invitations) {
 				permission.Write = true
 			}
 		case "delete":
-			if hasPermision(username, members.Users, invitations) {
+			if hasPermission(username, members.Users, invitations) {
 				permission.Delete = true
 			}
 		case "admin":
-			if hasPermision(username, members.Users, invitations) {
+			if hasPermission(username, members.Users, invitations) {
 				permission.Admin = true
 			}
 		}
@@ -281,7 +271,7 @@ func (c *Client) GetPermission(namespace, username string) (Permission, error) {
 	return permission, nil
 }
 
-func hasPermision(target string, members []itsyouonline.OrganizationUser, invitations []itsyouonline.JoinOrganizationInvitation) bool {
+func hasPermission(target string, members []itsyouonline.OrganizationUser, invitations []itsyouonline.JoinOrganizationInvitation) bool {
 	return isMember(target, members) || isInvited(target, invitations)
 }
 
@@ -295,8 +285,8 @@ func isMember(target string, list []itsyouonline.OrganizationUser) bool {
 }
 
 func isInvited(target string, invitations []itsyouonline.JoinOrganizationInvitation) bool {
-	for _, invit := range invitations {
-		if target == invit.User {
+	for _, invite := range invitations {
+		if target == invite.User {
 			return true
 		}
 	}
