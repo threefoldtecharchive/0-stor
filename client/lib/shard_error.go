@@ -1,7 +1,8 @@
 package lib
 
 import (
-	"encoding/json"
+	"fmt"
+	"strings"
 	"sync"
 )
 
@@ -78,13 +79,27 @@ func (se ShardError) Error() string {
 	se.mux.Lock()
 	defer se.mux.Unlock()
 
-	b, err := json.Marshal(se.errors)
-	if err != nil {
-		// This error won't happen in case we strict to use non interface{} fields
-		// TODO : returns something better instead of error returned from JSON
-		return err.Error()
+	return formatPrettyError(se.errors)
+}
+
+// formatPrettyError formates a slice of serverError into a human readable string
+func formatPrettyError(errs []serverError) string {
+	errStr := "following shard errors occurred:\n"
+
+	for _, err := range errs {
+		serverStr := formatServerList(err.Addrs)
+		errStr = errStr + fmt.Sprintf("\t%s %s: errored with: %v\n", err.Kind, serverStr, err.Err)
 	}
-	return string(b)
+
+	return errStr
+}
+
+func formatServerList(servers []string) string {
+	if len(servers) == 0 {
+		return ""
+	}
+
+	return "(" + strings.Join(servers, ",") + ")"
 }
 
 // Errors returns the underlying errors
