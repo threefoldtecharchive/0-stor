@@ -45,7 +45,8 @@ func (c *Client) AppendReferenceListWithMeta(md *meta.Meta, refList []string) er
 	return c.updateRefListWithMeta(md, refList, manager.RefListOpAppend)
 }
 
-// RemoveReferenceList removes some reference from the reference list of the object pointed by key
+// RemoveReferenceList removes some reference from the reference list of the object pointed by key.
+// It wont return error in case of the object doesn't have some elements of the `refList`.
 func (c *Client) RemoveReferenceList(key []byte, refList []string) error {
 	md, err := c.metaCli.Get(string(key))
 	if err != nil {

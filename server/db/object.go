@@ -179,6 +179,8 @@ func (o *Object) AppendReferenceList(refList []string) error {
 }
 
 // RemoveReferenceList removes given reference list from the object.
+// It won't return error in case of some or all elements of the `refList`
+// are not exist in the object.
 func (o *Object) RemoveReferenceList(refList []string) error {
 	// creates map of existing reference list for easier search
 	// it might good for big refList but seems bad
