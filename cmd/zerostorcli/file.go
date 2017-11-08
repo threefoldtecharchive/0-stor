@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -8,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/urfave/cli"
+	"github.com/zero-os/0-stor/client/meta"
 )
 
 func upload(c *cli.Context) error {
@@ -121,13 +124,101 @@ func metadata(c *cli.Context) error {
 		return cli.NewExitError(fmt.Sprintf("fail to get metadata: %v", err), 1)
 	}
 
-	b, err := json.Marshal(meta)
-	if err != nil {
-		return cli.NewExitError("error encoding metadata into json", 1)
+	json := c.Bool("json")
+	pretty := c.Bool("pretty")
+
+	switch {
+	case pretty:
+		jsonStr, err := structPrettyJSONString(meta)
+		if err != nil {
+			return cli.NewExitError("error encoding metadata into json", 1)
+		}
+		fmt.Print(jsonStr)
+	case json:
+		jsonStr, err := structJSONString(meta)
+		if err != nil {
+			return cli.NewExitError("error encoding metadata into json", 1)
+		}
+		fmt.Print(jsonStr)
+	default:
+		fmt.Print(metaString(meta))
 	}
-	fmt.Print(string(b))
 
 	return nil
+}
+
+// metaString turns a meta.Meta struct into a human readable string
+func metaString(m *meta.Meta) string {
+	if m == nil {
+		return "no metadata found"
+	}
+	var buffer bytes.Buffer
+
+	buffer.WriteString(fmt.Sprintf("Key: %s\n", m.Key))
+	buffer.WriteString(fmt.Sprintf("Epoch: %d\n", m.Epoch))
+	buffer.WriteString(fmt.Sprintf("Encryption key: %s\n", m.EncrKey))
+	buffer.WriteString("Chunks:\n")
+	for _, chunk := range m.Chunks {
+		buffer.WriteString("\t")
+		buffer.WriteString(tabAfterNewLine(chunkString(chunk)))
+		buffer.WriteString("\n")
+	}
+	if m.Previous != nil {
+		buffer.WriteString(fmt.Sprintf("Previous: %s\n", m.Previous))
+	}
+	if m.Next != nil {
+		buffer.WriteString(fmt.Sprintf("Next: %s\n", m.Next))
+	}
+	if m.ConfigPtr != nil {
+		buffer.WriteString(fmt.Sprintf("Config pointer: %s\n", m.ConfigPtr))
+	}
+
+	return buffer.String()
+}
+
+func chunkString(c *meta.Chunk) string {
+	if c == nil {
+		return "no chunk found\n"
+	}
+	var buffer bytes.Buffer
+
+	buffer.WriteString(fmt.Sprintf("Key: %s\n", hex.EncodeToString(c.Key)))
+	buffer.WriteString(fmt.Sprintf("Size: %d\n", c.Size))
+	buffer.WriteString("Shards:\n")
+	for _, shard := range c.Shards {
+		buffer.WriteString(fmt.Sprintf("\t%s\n", shard))
+	}
+
+	return buffer.String()
+}
+
+// tabAfterNewLine adds a tab After each `\n` newline character
+func tabAfterNewLine(str string) string {
+	return strings.Replace(str, "\n", "\n\t", -1)
+}
+
+// JSONString returns a flat JSON representation of provided struct
+func structJSONString(i interface{}) (string, error) {
+	return encodeJSON(i, "")
+}
+
+// structPrettyJSONString returns a prettified JSON representation of provided struct
+func structPrettyJSONString(i interface{}) (string, error) {
+	return encodeJSON(i, "\t")
+}
+
+// encodeJSON turns provided struct json string with provided indentation character(s)
+func encodeJSON(data interface{}, indent string) (string, error) {
+	buffer := new(bytes.Buffer)
+	encoder := json.NewEncoder(buffer)
+	encoder.SetIndent("", indent)
+
+	err := encoder.Encode(data)
+	if err != nil {
+		return "", err
+	}
+
+	return buffer.String(), nil
 }
 
 func repair(c *cli.Context) error {

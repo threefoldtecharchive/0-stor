@@ -82,8 +82,18 @@ func main() {
 					Action: delete,
 				},
 				{
-					Name:   "metadata",
-					Usage:  "print the metadata of a key",
+					Name:  "metadata",
+					Usage: "print the metadata of a key",
+					Flags: []cli.Flag{
+						cli.BoolFlag{
+							Name:  "json",
+							Usage: "print the metadata in JSON format",
+						},
+						cli.BoolFlag{
+							Name:  "pretty",
+							Usage: "print the metadata in a prettified JSON format",
+						},
+					},
 					Action: metadata,
 				},
 				{
