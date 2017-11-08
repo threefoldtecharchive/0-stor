@@ -38,9 +38,15 @@ func deleteNamespace(c *cli.Context) error {
 
 	namespace := c.Args().First()
 	if err := iyoCl.DeleteNamespace(namespace); err != nil {
-		return cli.NewExitError(err, 1)
+		errMsg := fmt.Sprintf("failed to delete namespace: %v", err)
+		if err == itsyouonline.ErrForbidden {
+			errMsg += " (please check if provided IYO app ID is owner of the namespace)"
+		}
+
+		return cli.NewExitError(errMsg, 1)
 	}
 	fmt.Printf("Namespace %s deleted\n", namespace)
+
 	return nil
 }
 

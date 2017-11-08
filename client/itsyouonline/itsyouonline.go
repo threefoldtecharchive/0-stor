@@ -16,6 +16,9 @@ const (
 
 var (
 	errNoPermission = errors.New("no permission")
+
+	// ErrForbidden represents a forbidden action error
+	ErrForbidden = errors.New("forbidden action")
 )
 
 // IYOClient defines the interface to manage namespaces and permissions on ItsYouOnline
@@ -141,22 +144,20 @@ func (c *Client) CreateNamespace(namespace string) error {
 	return nil
 }
 
-// DeleteNamespace delete the sub organization the represent the namespace
-// It delete these sub organizations:
-// - org.0stor.namespace
-// - org.0stor.namespace.read
-// - org.0stor.namespace.write
-// - org.0stor.namespace.write
+// DeleteNamespace deletes the namespace sub organization and all of it's sub organizations
 func (c *Client) DeleteNamespace(namespace string) error {
 	_, _, _, err := c.iyoClient.LoginWithClientCredentials(c.clientID, c.secret)
 	if err != nil {
 		return fmt.Errorf("login failed: %v", err)
 	}
 
-	// create namespace org
 	resp, err := c.iyoClient.Organizations.DeleteOrganization(c.namespaceID(namespace), nil, nil)
 	if err != nil {
-		return fmt.Errorf("delete namespace failed: code=%v, err=%v", resp.StatusCode, err)
+		return fmt.Errorf("deleting namespace failed: IYO returned status %+v \nwith error message: %v", resp.Status, err)
+	}
+
+	if resp.StatusCode == http.StatusForbidden {
+		return ErrForbidden
 	}
 
 	return nil
