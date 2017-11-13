@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 // Types
-message Emtpy {
+message Empty {
 }
 
 // message ACL {
@@ -12,7 +12,7 @@ message Emtpy {
 // }
 message Namespace {
     string label = 1;
-    int64 spaceAvailale = 2;
+    int64 spaceAvailable = 2;
     int64 spaceUsed = 3;
     int64 readRequestPerHour = 4;
     int64 writeRequestPerHour = 5;
