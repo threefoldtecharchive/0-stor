@@ -75,7 +75,6 @@ func (s *grpcServer) Listen(addr string) (string, error) {
 	s.addr = s.lis.Addr().String()
 
 	return s.addr, nil
-
 }
 
 func (s *grpcServer) Close() {

@@ -1,17 +1,29 @@
 package badger
 
 import (
+	"context"
 	"os"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	badgerdb "github.com/dgraph-io/badger"
 	"github.com/zero-os/0-stor/server/errors"
 )
 
+const (
+	// discardRatio represents the discard ratio for the badger GC
+	// https://godoc.org/github.com/dgraph-io/badger#DB.RunValueLogGC
+	discardRatio = 0.5
+
+	// GC interval
+	cgInterval = 10 * time.Minute
+)
+
 // BadgerDB implements the db.DB interace
 type BadgerDB struct {
-	db *badgerdb.DB
-	// Config *config.Settings
+	db         *badgerdb.DB
+	ctx        context.Context
+	cancelFunc context.CancelFunc
 }
 
 // New creates new badger DB with default options
@@ -38,12 +50,22 @@ func NewWithOpts(data, meta string, opts badgerdb.Options) (*BadgerDB, error) {
 
 	db, err := badgerdb.Open(opts)
 
-	return &BadgerDB{
-		db: db,
-	}, err
+	ctx, cancel := context.WithCancel(context.Background())
+
+	badger := &BadgerDB{
+		db:         db,
+		ctx:        ctx,
+		cancelFunc: cancel,
+	}
+
+	go badger.runGC()
+
+	return badger, err
 }
 
 func (b BadgerDB) Close() error {
+	b.cancelFunc()
+
 	err := b.db.Close()
 	if err != nil {
 		log.Errorln(err.Error())
@@ -65,14 +87,13 @@ func (b BadgerDB) Set(key []byte, val []byte) error {
 	return b.db.Update(func(tx *badgerdb.Txn) error {
 		err := tx.Set(key, val)
 		if err != nil {
-			log.Errorf("bager set error: %v", err)
+			log.Errorf("badger set error: %v", err)
 		}
 		return err
 	})
 }
 
 func (b BadgerDB) Get(key []byte) (val []byte, err error) {
-
 	err = b.db.View(func(tx *badgerdb.Txn) error {
 		item, err := tx.Get(key)
 		if err != nil {
@@ -154,7 +175,6 @@ func (b BadgerDB) Filter(prefix []byte, start int, count int) (result [][]byte, 
 }
 
 func (b BadgerDB) List(prefix []byte) (result [][]byte, err error) {
-
 	opt := badgerdb.DefaultIteratorOptions
 	opt.PrefetchValues = false
 	result = [][]byte{}
@@ -177,4 +197,30 @@ func (b BadgerDB) List(prefix []byte) (result [][]byte, err error) {
 	})
 
 	return result, err
+}
+
+// collectGarbage runs the garbage collection for Badger backend db
+func (b BadgerDB) collectGarbage() error {
+	if err := b.db.PurgeOlderVersions(); err != nil {
+		return err
+	}
+
+	return b.db.RunValueLogGC(discardRatio)
+}
+
+// runGC triggers the garbage collection for the Badger backend db.
+// Should be run as a goroutine
+func (b BadgerDB) runGC() {
+	ticker := time.NewTicker(cgInterval)
+	for {
+		select {
+		case <-ticker.C:
+			err := b.collectGarbage()
+			if err != nil {
+				log.Errorf("Garbage collection errored: %v", err)
+			}
+		case <-b.ctx.Done():
+			return
+		}
+	}
 }

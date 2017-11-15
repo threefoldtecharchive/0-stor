@@ -148,7 +148,7 @@ func (api *ObjectAPI) Delete(ctx context.Context, req *pb.DeleteObjectRequest) (
 	return &pb.DeleteObjectReply{}, nil
 }
 
-//  SetReferenceList replace the complete reference list for the object
+// SetReferenceList replace the complete reference list for the object
 func (api *ObjectAPI) SetReferenceList(ctx context.Context, req *pb.UpdateReferenceListRequest) (*pb.UpdateReferenceListReply, error) {
 	label, key, refList := req.GetLabel(), req.GetKey(), req.GetReferenceList()
 
@@ -190,7 +190,7 @@ func (api *ObjectAPI) AppendReferenceList(ctx context.Context, req *pb.UpdateRef
 	return &pb.UpdateReferenceListReply{}, err
 }
 
-// RemoveReferenceList remvoes some reference from the reference list of the object
+// RemoveReferenceList removes some reference from the reference list of the object
 func (api *ObjectAPI) RemoveReferenceList(ctx context.Context, req *pb.UpdateReferenceListRequest) (*pb.UpdateReferenceListReply, error) {
 	label, key, refList := req.GetLabel(), req.GetKey(), req.GetReferenceList()
 
@@ -210,6 +210,7 @@ func (api *ObjectAPI) RemoveReferenceList(ctx context.Context, req *pb.UpdateRef
 
 	return &pb.UpdateReferenceListReply{}, err
 }
+
 func (api *ObjectAPI) Check(req *pb.CheckRequest, stream pb.ObjectManager_CheckServer) error {
 	label, ids := req.GetLabel(), req.GetIds()
 

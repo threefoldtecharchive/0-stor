@@ -105,7 +105,7 @@ func main() {
 		},
 		cli.BoolFlag{
 			Name:        "async-write",
-			Usage:       "enable asynchonous writes (default: false)",
+			Usage:       "enable asynchronous writes (default: false)",
 			Destination: &settings.AsyncWrite,
 		},
 	}
@@ -117,7 +117,7 @@ func main() {
 		}
 
 		if settings.AuthDisabled {
-			log.Warning("!! Aunthentification disabled, don't use this mode for production!!!")
+			log.Warning("!! Authentification disabled, don't use this mode for production!!!")
 		}
 
 		return nil
