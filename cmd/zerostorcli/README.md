@@ -16,10 +16,10 @@ If a custom filename and/or directory needs to be provided for the config file, 
 
 A config file should look something like this:
 ```yaml
-organization: <IYO organization>     #itsyou.online organization of the 0-stor
-namespace: <IYO namespace>    #itsyou.online namespace of the 0-stor
-iyo_app_id: <an IYO app ID>  #itsyou.online app/user id
-iyo_app_secret: <an IYO app secret>   #itsyou.online app/user secret
+organization: <IYO organization>    #itsyou.online organization of the 0-stor
+namespace: <IYO namespace>          #itsyou.online namespace of the 0-stor
+iyo_app_id: <an IYO app ID>         #itsyou.online app/user id
+iyo_app_secret: <an IYO app secret> #itsyou.online app/user secret
 # the address(es) of 0-stor data cluster 
 data_shards:
     - 127.0.0.1:12345

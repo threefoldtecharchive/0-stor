@@ -40,6 +40,7 @@ _testmain.go
 
 # benchmark
 *.png
+!/docs/assets/*.png
 
 # Jetbrains
 .idea

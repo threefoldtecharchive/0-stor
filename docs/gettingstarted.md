@@ -6,7 +6,14 @@ go get -u github.com/zero-os/0-stor/cmd/zerostorserver
 ```
 
 
-## Running the server
+## Running the 0-stor server
+
+Start the server with grpc listening on all interfaces and port `12345`:
+```shell
+./zerostorserver --bind :12345 --data /path/to/data --meta /path/to/meta --interface grpc
+```
+
+More information about the server and all its options:
 ```
 NAME:
    zerostorserver - Generic object store used by zero-os
@@ -34,10 +41,4 @@ GLOBAL OPTIONS:
    --async-write             enable asynchonous writes (default: false)
    --help, -h                show help
    --version, -v             print the version
-
-```
-
-Start the server with grpc listening on all interfaces and port 12345
-```shell
-./zerostorserver --bind :12345 --data /path/to/data --meta /path/to/meta --interface grpc
 ```

@@ -1,4 +1,4 @@
-organization: myorg # itsyou.online organization name
+organization: myorg         # itsyou.online organization name
 namespace: namespace1       # itsyou.online namespace
 protocol: grpc
 iyo_app_id: appID
@@ -9,11 +9,11 @@ data_shards:
     - 127.0.0.1:12346
     - 127.0.0.1:12347
     - 127.0.0.1:12348
-# the address(es) of etcd server
+# the address(es) of an etcd server cluster
 meta_shards:
     - http://127.0.0.1:2379
-    - http://127.0.0.1:22379                         # the address(es) of etcd server
-    - http://127.0.0.1:32379                         # the address(es) of etcd server
+    - http://127.0.0.1:22379
+    - http://127.0.0.1:32379
 
 block_size: 4096
 
