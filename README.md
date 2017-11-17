@@ -4,18 +4,16 @@
 
 A Single device object store.
 
-
 [link to group on telegram](https://t.me/joinchat/BwOvOw2-K4AN7p9VZckpFw)
 
 ## Components
 
 ## Server
-The 0-stor server is a generic object store that prodive simple storage primitives, read, write, list, delete.
+The 0-stor server is a generic object store that provides simple storage primitives: read, write, list, delete.
 
-Underneat 0-stor uses [badger](https://github.com/dgraph-io/badger) as key value store. Badger allow to store the keys and the value in two different devices. Because of this separation the LSM tree of keys can most of the time stay in memory. Typically the keys could be kept in memory and depending on the use case, the values could be served from an SSD or HDD.
+Underneath 0-stor uses [badger](https://github.com/dgraph-io/badger) as key value store. Badger allow to store the keys and the value in two different devices. Because of this separation, the LSM (Log-Structured Merge) tree of keys can most of the time stay in memory. Typically the keys could be kept in memory and depending on the use case, the values could be served from an SSD or HDD.
 
 ### Installation
-
 Install the 0-stor server
 ```
 go get -u github.com/zero-os/0-stor/cmd/zerostorserver
@@ -43,18 +41,18 @@ Start the server with listening on all interfaces and port 12345
 ```shell
 ./zerostorserver --bind :12345 --data /path/to/data --meta /path/to/meta
 ```
+
 ## Client
+The client contains all the logic to communicate with the 0-stor server.
 
-The client is where all the logic of the communicaion with the 0-stor server lies.
-
-The client provide some basic storage primitives to process your data before sending it to the 0-stor server :
+The client provides some basic storage primitives to process your data before sending it to the 0-stor server:
 - chunking
 - compression
 - encryption
 - replication
 - distribution/erasure coding
 
-All of these primitives are configurable and you can decide how your data will be processed before beeing send to the 0-stor.
+All of these primitives are configurable and you can decide how your data will be processed before being sent to the 0-stor.
 
 ### Client API
 Client API documentation is on godoc
@@ -69,10 +67,8 @@ To install
 go get -u github.com/zero-os/0-stor/cmd/zerostorcli
 ```
 
-
 ### More documentation
-
-You can find more information about both component in the `/docs` folder of the repository.
+You can find more information about the different components in the `/docs` folder of this repository:
 
 * [Server docs](docs/README.md)
 * [Client docs](client/README.md)
