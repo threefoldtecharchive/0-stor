@@ -8,8 +8,6 @@ import (
 	"github.com/paulbellamy/ratecounter"
 )
 
-var lock = sync.RWMutex{}
-
 type stat struct {
 	readReq  *ratecounter.RateCounter
 	writeReq *ratecounter.RateCounter
@@ -22,46 +20,46 @@ func newStat() stat {
 	}
 }
 
-type namespaceStatMap map[string]stat
-
-var golbalNamespaceStat namespaceStatMap
-
-func init() {
-	golbalNamespaceStat = namespaceStatMap{}
-}
+// global (private) variables used to store state for this module
+var (
+	globalNamespaceStat     = make(map[string]stat)
+	globalNamespaceStatLock sync.RWMutex
+)
 
 // AddNamespace create a rate counter this a namespace
 func AddNamespace(label string) {
-	_, ok := golbalNamespaceStat[label]
+	_, ok := globalNamespaceStat[label]
 	if ok {
 		return
 	}
 
-	golbalNamespaceStat[label] = newStat()
+	globalNamespaceStat[label] = newStat()
 	return
 }
 
-// Incr increment the read request counter for a namespace
+// IncrRead increments the read request counter for a namespace
 func IncrRead(label string) {
-	lock.Lock()
-	defer lock.Unlock()
-	stat, ok := golbalNamespaceStat[label]
+	globalNamespaceStatLock.Lock()
+	defer globalNamespaceStatLock.Unlock()
+
+	stat, ok := globalNamespaceStat[label]
 	if !ok {
 		AddNamespace(label)
-		stat = golbalNamespaceStat[label]
+		stat = globalNamespaceStat[label]
 	}
 
 	stat.readReq.Incr(1)
 }
 
-// Incr increment the write request counter for a namespace
+// IncrWrite increments the write request counter for a namespace
 func IncrWrite(label string) {
-	lock.Lock()
-	defer lock.Unlock()
-	stat, ok := golbalNamespaceStat[label]
+	globalNamespaceStatLock.Lock()
+	defer globalNamespaceStatLock.Unlock()
+
+	stat, ok := globalNamespaceStat[label]
 	if !ok {
 		AddNamespace(label)
-		stat = golbalNamespaceStat[label]
+		stat = globalNamespaceStat[label]
 	}
 
 	stat.writeReq.Incr(1)
@@ -69,12 +67,13 @@ func IncrWrite(label string) {
 
 // Rate return the numer of request per hour for a namespace
 func Rate(label string) (read, write int64) {
-	lock.RLock()
-	defer lock.RUnlock()
-	stat, ok := golbalNamespaceStat[label]
+	globalNamespaceStatLock.RLock()
+	defer globalNamespaceStatLock.RUnlock()
+
+	stat, ok := globalNamespaceStat[label]
 	if !ok {
 		AddNamespace(label)
-		stat = golbalNamespaceStat[label]
+		stat = globalNamespaceStat[label]
 	}
 
 	return stat.readReq.Rate(), stat.writeReq.Rate()
