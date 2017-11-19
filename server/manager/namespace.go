@@ -44,16 +44,16 @@ func (mgr *NamespaceManager) Count(label string) (int, error) {
 // Create namespace if doesn't exists
 func (mgr *NamespaceManager) Create(label string) error {
 	exists, err := mgr.db.Exists([]byte(label))
-
 	if err != nil {
 		return err
 	}
-
 	if exists {
 		return nil
 	}
 
-	bytes, err := db.NewNamespace().Encode()
+	ns := db.NewNamespace()
+	ns.Label = label
+	bytes, err := ns.Encode()
 	if err == nil {
 		err = mgr.db.Set([]byte(label), bytes)
 	}
