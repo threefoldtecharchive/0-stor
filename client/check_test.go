@@ -10,7 +10,6 @@ import (
 )
 
 func TestCheck(t *testing.T) {
-
 	etcd, err := embedserver.New()
 	require.NoError(t, err, "fail to start embedded etcd server")
 	defer etcd.Stop()
