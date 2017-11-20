@@ -233,7 +233,7 @@ func main() {
 
 ## Configuration
 
-Configuration file example can be found on [config.yaml](./cmd/zerostorcli/config.yaml).
+Configuration file example can be found on [config.yaml](/cmd/zerostorcli/config.yaml).
 
 ## Libraries
 
