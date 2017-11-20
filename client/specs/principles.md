@@ -1,4 +1,3 @@
-
 # 0-stor-lib
 
 ## process for uploading large file
@@ -145,4 +144,5 @@ cl.get(metadata=mdata,path=...)
     - https://husobee.github.io/golang/rest/grpc/2016/05/28/golang-rest-v-grpc.html
 
 ## todo
+
 - lets do a test how much slower golang is compared to C implemente dusing ISA (intel)
