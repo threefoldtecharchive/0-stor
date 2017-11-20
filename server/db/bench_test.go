@@ -10,7 +10,7 @@ import (
 
 func BenchmarkSetReferenceList(b *testing.B) {
 	log.SetLevel(log.DebugLevel)
-	db, cleanup := makeTestDB(b)
+	db, cleanup := makeTestBadgerDB(b)
 	defer cleanup()
 
 	sizes := []uint64{1024, 1024 * 4, 1024 * 10, 1024 * 1024}

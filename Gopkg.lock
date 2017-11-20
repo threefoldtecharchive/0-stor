@@ -68,10 +68,10 @@
   version = "v1.1.0"
 
 [[projects]]
+  branch = "master"
   name = "github.com/dgraph-io/badger"
   packages = [".","options","protos","skl","table","y"]
-  revision = "89689ef36cae26ae094cb5ea79b7400d839f2d68"
-  version = "v1.0.1"
+  revision = "3b57d2fc988219f8f22dd0e33459ca7443b59200"
 
 [[projects]]
   name = "github.com/dgrijalva/jwt-go"
@@ -134,10 +134,10 @@
   version = "v1.2.2"
 
 [[projects]]
+  branch = "master"
   name = "github.com/itsyouonline/identityserver"
   packages = ["clients/go/itsyouonline","clients/go/itsyouonline/goraml"]
-  revision = "9582aee8e700e51757f6237fcc333ecc81b675dd"
-  version = "v0.9.16"
+  revision = "ba1ce747b617cc6e22285cf3a1c3b8f29af1074c"
 
 [[projects]]
   name = "github.com/jonboulle/clockwork"
@@ -224,10 +224,10 @@
   revision = "a6e9df898b1336106c743392c48ee0b71f5c4efa"
 
 [[projects]]
+  branch = "master"
   name = "github.com/stretchr/testify"
   packages = ["assert","require"]
-  revision = "69483b4bd14f5845b5a1e55bca19e954e827f1d0"
-  version = "v1.1.4"
+  revision = "2aa2c176b9dab406a6970f6a55f513e8a8c8b18f"
 
 [[projects]]
   name = "github.com/templexxx/reedsolomon"
@@ -320,6 +320,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f58310b6440b2849c15251718129d92b537e9ccfc1cd358fdc1f0307cb69edbe"
+  inputs-digest = "153740b991bd0749d397cedce57cb57cfb0a51eed334e8cfa1861304ebce4d03"
   solver-name = "gps-cdcl"
   solver-version = 1

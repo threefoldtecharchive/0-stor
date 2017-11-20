@@ -63,7 +63,7 @@ func NewWithOpts(data, meta string, opts badgerdb.Options) (*BadgerDB, error) {
 	return badger, err
 }
 
-// Close implements db.Close
+// Close implements DB.Close
 func (b BadgerDB) Close() error {
 	b.cancelFunc()
 
@@ -74,7 +74,7 @@ func (b BadgerDB) Close() error {
 	return err
 }
 
-// Delete implements db.Delete
+// Delete implements DB.Delete
 func (b BadgerDB) Delete(key []byte) error {
 	return b.db.Update(func(tx *badgerdb.Txn) error {
 		err := tx.Delete(key)
@@ -85,7 +85,7 @@ func (b BadgerDB) Delete(key []byte) error {
 	})
 }
 
-// Set implements db.Set
+// Set implements DB.Set
 func (b BadgerDB) Set(key []byte, val []byte) error {
 	return b.db.Update(func(tx *badgerdb.Txn) error {
 		err := tx.Set(key, val)
@@ -96,7 +96,7 @@ func (b BadgerDB) Set(key []byte, val []byte) error {
 	})
 }
 
-// Get implements db.Get
+// Get implements DB.Get
 func (b BadgerDB) Get(key []byte) (val []byte, err error) {
 	err = b.db.View(func(tx *badgerdb.Txn) error {
 		item, err := tx.Get(key)
@@ -122,7 +122,7 @@ func (b BadgerDB) Get(key []byte) (val []byte, err error) {
 	return
 }
 
-// Exists implements db.Exists
+// Exists implements DB.Exists
 func (b BadgerDB) Exists(key []byte) (exists bool, err error) {
 	err = b.db.View(func(tx *badgerdb.Txn) error {
 		_, err := tx.Get(key)
@@ -138,23 +138,25 @@ func (b BadgerDB) Exists(key []byte) (exists bool, err error) {
 	return
 }
 
-// Filter implements db.Filter
+// Filter implements DB.Filter
 func (b BadgerDB) Filter(prefix []byte, start int, count int) (result [][]byte, err error) {
+	if count == 0 {
+		return
+	}
+
 	opt := badgerdb.DefaultIteratorOptions
-	result = make([][]byte, 0, count)
 	var buf []byte
 
 	err = b.db.View(func(tx *badgerdb.Txn) error {
 		it := tx.NewIterator(opt)
 		defer it.Close()
 
-		counter := 0 // Number of namespaces encountered
+		var counter int // Number of namespaces encountered (only used for start cursor)
 
 		for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
-			counter++
-
 			// Skip until starting index
-			if counter < start {
+			if start > counter {
+				counter++
 				continue
 			}
 
@@ -168,7 +170,7 @@ func (b BadgerDB) Filter(prefix []byte, start int, count int) (result [][]byte, 
 			n := copy(buf, b)
 			result = append(result, buf[:n])
 
-			if count > 0 && len(result) == count {
+			if len(result) == count {
 				break
 			}
 		}
@@ -179,11 +181,10 @@ func (b BadgerDB) Filter(prefix []byte, start int, count int) (result [][]byte, 
 	return result, err
 }
 
-// List implements db.List
+// List implements DB.List
 func (b BadgerDB) List(prefix []byte) (result [][]byte, err error) {
 	opt := badgerdb.DefaultIteratorOptions
 	opt.PrefetchValues = false
-	result = [][]byte{}
 	var buf []byte
 
 	err = b.db.View(func(tx *badgerdb.Txn) error {

@@ -24,6 +24,7 @@ import (
 	"math"
 	"math/rand"
 	"os"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"sync"
@@ -52,6 +53,9 @@ func getItemValue(t *testing.T, item *Item) (val []byte) {
 	if v == nil {
 		return nil
 	}
+	another, err := item.ValueCopy(nil)
+	require.NoError(t, err)
+	require.Equal(t, v, another)
 	return v
 }
 
@@ -227,6 +231,29 @@ func TestGet(t *testing.T) {
 	txn.Discard()
 }
 
+func TestGetAfterDelete(t *testing.T) {
+	dir, err := ioutil.TempDir("", "badger")
+	require.NoError(t, err)
+	defer os.RemoveAll(dir)
+	kv, err := Open(getTestOptions(dir))
+	if err != nil {
+		t.Error(err)
+	}
+	defer kv.Close()
+
+	// populate with one entry
+	key := []byte("key")
+	txnSet(t, kv, key, []byte("val1"), 0x00)
+	require.NoError(t, kv.Update(func(txn *Txn) error {
+		err := txn.Delete(key)
+		require.NoError(t, err)
+
+		_, err = txn.Get(key)
+		require.Equal(t, ErrKeyNotFound, err)
+		return nil
+	}))
+}
+
 func TestExists(t *testing.T) {
 	dir, err := ioutil.TempDir("", "badger")
 	require.NoError(t, err)
@@ -324,7 +351,7 @@ func TestGetMore(t *testing.T) {
 	}
 	//	n := 500000
 	n := 10000
-	m := 49 // Increasing would cause ErrTxnTooBig
+	m := 45 // Increasing would cause ErrTxnTooBig
 	for i := 0; i < n; i += m {
 		txn := kv.NewTransaction(true)
 		for j := i; j < i+m && j < n; j++ {
@@ -428,7 +455,7 @@ func TestExistsMore(t *testing.T) {
 
 	//	n := 500000
 	n := 10000
-	m := 49
+	m := 45
 	for i := 0; i < n; i += m {
 		if (i % 1000) == 0 {
 			t.Logf("Putting i=%d\n", i)
@@ -663,11 +690,6 @@ func TestIterateDeleted(t *testing.T) {
 			require.Equal(t, int64(0), estSize)
 		})
 	}
-}
-
-func TestDirNotExists(t *testing.T) {
-	_, err := Open(getTestOptions("not-exists"))
-	require.Error(t, err)
 }
 
 func TestDeleteWithoutSyncWrite(t *testing.T) {
@@ -1220,4 +1242,77 @@ func TestLargeKeys(t *testing.T) {
 			t.Fatalf("#%d: batchSet err: %v", i, err)
 		}
 	}
+}
+
+func TestCreateDirs(t *testing.T) {
+	dir, err := ioutil.TempDir("", "parent")
+	require.NoError(t, err)
+	defer os.RemoveAll(dir)
+
+	opts := DefaultOptions
+	dir = filepath.Join(dir, "badger")
+	opts.Dir = dir
+	opts.ValueDir = dir
+	db, err := Open(opts)
+	require.NoError(t, err)
+	db.Close()
+	_, err = os.Stat(dir)
+	require.NoError(t, err)
+}
+
+func TestWriteDeadlock(t *testing.T) {
+	dir, err := ioutil.TempDir("", "badger")
+	fmt.Println(dir)
+	require.NoError(t, err)
+	defer os.RemoveAll(dir)
+
+	opt := DefaultOptions
+	opt.Dir = dir
+	opt.ValueDir = dir
+	opt.ValueLogFileSize = 10 << 20
+	db, err := Open(opt)
+	require.NoError(t, err)
+
+	print := func(count *int) {
+		*count++
+		if *count%100 == 0 {
+			fmt.Printf("%05d\r", *count)
+		}
+	}
+
+	var count int
+	val := make([]byte, 10000)
+	require.NoError(t, db.Update(func(txn *Txn) error {
+		for i := 0; i < 1500; i++ {
+			key := fmt.Sprintf("%d", i)
+			rand.Read(val)
+			require.NoError(t, txn.Set([]byte(key), val))
+			print(&count)
+		}
+		return nil
+	}))
+
+	count = 0
+	fmt.Println("\nWrites done. Iteration and updates starting...")
+	err = db.Update(func(txn *Txn) error {
+		opt := DefaultIteratorOptions
+		opt.PrefetchValues = false
+		it := txn.NewIterator(opt)
+		for it.Rewind(); it.Valid(); it.Next() {
+			item := it.Item()
+
+			// Using Value() would cause deadlock.
+			// item.Value()
+			out, err := item.ValueCopy(nil)
+			require.NoError(t, err)
+			require.Equal(t, len(val), len(out))
+
+			key := y.Copy(item.Key())
+			rand.Read(val)
+			require.NoError(t, txn.Set(key, val))
+			print(&count)
+		}
+		return nil
+	})
+	require.NoError(t, err)
 }
