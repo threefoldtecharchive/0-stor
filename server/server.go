@@ -38,7 +38,7 @@ func New(data, meta string, authEnabled bool, maxSizeMsg int) (StoreServer, erro
 
 // NewWithDB creates a grpc server with given DB object
 // if authEnabled is false, JWT authentification is disabled
-func NewWithDB(db *badger.BadgerDB, authEnabled bool, maxSizeMsg int) (StoreServer, error) {
+func NewWithDB(db *badger.DB, authEnabled bool, maxSizeMsg int) (StoreServer, error) {
 	if !authEnabled {
 		disableAuth()
 	}
