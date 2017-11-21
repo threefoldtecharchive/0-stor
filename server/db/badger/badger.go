@@ -19,22 +19,22 @@ const (
 	cgInterval = 10 * time.Minute
 )
 
-// BadgerDB implements the db.DB interace
-type BadgerDB struct {
+// DB implements the db.DB interace
+type DB struct {
 	db         *badgerdb.DB
 	ctx        context.Context
 	cancelFunc context.CancelFunc
 }
 
 // New creates new badger DB with default options
-func New(data, meta string) (*BadgerDB, error) {
+func New(data, meta string) (*DB, error) {
 	opts := badgerdb.DefaultOptions
 	opts.SyncWrites = true
 	return NewWithOpts(data, meta, opts)
 }
 
 // NewWithOpts creates new badger DB with own options
-func NewWithOpts(data, meta string, opts badgerdb.Options) (*BadgerDB, error) {
+func NewWithOpts(data, meta string, opts badgerdb.Options) (*DB, error) {
 	if err := os.MkdirAll(meta, 0774); err != nil {
 		log.Errorf("\t\tMeta dir: %v [ERROR]", meta)
 		return nil, err
@@ -52,7 +52,7 @@ func NewWithOpts(data, meta string, opts badgerdb.Options) (*BadgerDB, error) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	badger := &BadgerDB{
+	badger := &DB{
 		db:         db,
 		ctx:        ctx,
 		cancelFunc: cancel,
@@ -64,7 +64,7 @@ func NewWithOpts(data, meta string, opts badgerdb.Options) (*BadgerDB, error) {
 }
 
 // Close implements DB.Close
-func (b BadgerDB) Close() error {
+func (b DB) Close() error {
 	b.cancelFunc()
 
 	err := b.db.Close()
@@ -75,7 +75,7 @@ func (b BadgerDB) Close() error {
 }
 
 // Delete implements DB.Delete
-func (b BadgerDB) Delete(key []byte) error {
+func (b DB) Delete(key []byte) error {
 	return b.db.Update(func(tx *badgerdb.Txn) error {
 		err := tx.Delete(key)
 		if err != nil {
@@ -86,7 +86,7 @@ func (b BadgerDB) Delete(key []byte) error {
 }
 
 // Set implements DB.Set
-func (b BadgerDB) Set(key []byte, val []byte) error {
+func (b DB) Set(key []byte, val []byte) error {
 	return b.db.Update(func(tx *badgerdb.Txn) error {
 		err := tx.Set(key, val)
 		if err != nil {
@@ -97,7 +97,7 @@ func (b BadgerDB) Set(key []byte, val []byte) error {
 }
 
 // Get implements DB.Get
-func (b BadgerDB) Get(key []byte) (val []byte, err error) {
+func (b DB) Get(key []byte) (val []byte, err error) {
 	err = b.db.View(func(tx *badgerdb.Txn) error {
 		item, err := tx.Get(key)
 		if err != nil {
@@ -123,7 +123,7 @@ func (b BadgerDB) Get(key []byte) (val []byte, err error) {
 }
 
 // Exists implements DB.Exists
-func (b BadgerDB) Exists(key []byte) (exists bool, err error) {
+func (b DB) Exists(key []byte) (exists bool, err error) {
 	err = b.db.View(func(tx *badgerdb.Txn) error {
 		_, err := tx.Get(key)
 		if err != nil && err != badgerdb.ErrKeyNotFound {
@@ -139,7 +139,7 @@ func (b BadgerDB) Exists(key []byte) (exists bool, err error) {
 }
 
 // Filter implements DB.Filter
-func (b BadgerDB) Filter(prefix []byte, start int, count int) (result [][]byte, err error) {
+func (b DB) Filter(prefix []byte, start int, count int) (result [][]byte, err error) {
 	if count == 0 {
 		return
 	}
@@ -182,7 +182,7 @@ func (b BadgerDB) Filter(prefix []byte, start int, count int) (result [][]byte, 
 }
 
 // List implements DB.List
-func (b BadgerDB) List(prefix []byte) (result [][]byte, err error) {
+func (b DB) List(prefix []byte) (result [][]byte, err error) {
 	opt := badgerdb.DefaultIteratorOptions
 	opt.PrefetchValues = false
 	var buf []byte
@@ -207,7 +207,7 @@ func (b BadgerDB) List(prefix []byte) (result [][]byte, err error) {
 }
 
 // collectGarbage runs the garbage collection for Badger backend db
-func (b BadgerDB) collectGarbage() error {
+func (b DB) collectGarbage() error {
 	if err := b.db.PurgeOlderVersions(); err != nil {
 		return err
 	}
@@ -217,7 +217,7 @@ func (b BadgerDB) collectGarbage() error {
 
 // runGC triggers the garbage collection for the Badger backend db.
 // Should be run as a goroutine
-func (b BadgerDB) runGC() {
+func (b DB) runGC() {
 	ticker := time.NewTicker(cgInterval)
 	for {
 		select {
