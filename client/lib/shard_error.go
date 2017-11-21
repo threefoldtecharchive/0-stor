@@ -26,11 +26,21 @@ const (
 	StatusInvalidShardAddress = 402
 )
 
-type serverError struct {
+// ServerError represents errors at the server
+type ServerError struct {
 	Addrs []string `json:"addrs"`
 	Kind  string   `json:"kind"`
 	Err   error    `json:"error"`
 	Code  int      `json:"code"`
+}
+
+// Error implements error interface
+func (se *ServerError) Error() string {
+	if len(se.Addrs) == 0 {
+		return fmt.Sprintf("server(s) %s errored with: %v", se.Kind, se.Err)
+	}
+	return fmt.Sprintf("server(s) %s %s: errored with: %v",
+		se.Kind, strings.Join(se.Addrs, ","), se.Err)
 }
 
 // ShardError represents errors in a shard
@@ -38,7 +48,7 @@ type serverError struct {
 // returns JSON string which make it easy to be parsed by other module
 // or language
 type ShardError struct {
-	errors []serverError
+	errors []ServerError
 	mux    sync.Mutex
 }
 
@@ -50,7 +60,7 @@ func (se *ShardError) Add(addrs []string, kind string, err error, code int) {
 	if code == 0 {
 		code = StatusUnknownError
 	}
-	se.errors = append(se.errors, serverError{
+	se.errors = append(se.errors, ServerError{
 		Addrs: addrs,
 		Kind:  kind,
 		Err:   err,
@@ -59,7 +69,7 @@ func (se *ShardError) Add(addrs []string, kind string, err error, code int) {
 }
 
 // Nil returns true if it is a nil error
-func (se ShardError) Nil() bool {
+func (se *ShardError) Nil() bool {
 	se.mux.Lock()
 	defer se.mux.Unlock()
 
@@ -67,7 +77,7 @@ func (se ShardError) Nil() bool {
 }
 
 // Num returns the number of underlying errors
-func (se ShardError) Num() int {
+func (se *ShardError) Num() int {
 	se.mux.Lock()
 	defer se.mux.Unlock()
 
@@ -75,35 +85,23 @@ func (se ShardError) Num() int {
 }
 
 // Error implements error interface
-func (se ShardError) Error() string {
+func (se *ShardError) Error() string {
 	se.mux.Lock()
 	defer se.mux.Unlock()
 
-	return formatPrettyError(se.errors)
-}
-
-// formatPrettyError formates a slice of serverError into a human readable string
-func formatPrettyError(errs []serverError) string {
-	errStr := "following shard errors occurred:\n"
-
-	for _, err := range errs {
-		serverStr := formatServerList(err.Addrs)
-		errStr = errStr + fmt.Sprintf("\t%s %s: errored with: %v\n", err.Kind, serverStr, err.Err)
-	}
-
-	return errStr
-}
-
-func formatServerList(servers []string) string {
-	if len(servers) == 0 {
+	if len(se.errors) == 0 {
 		return ""
 	}
 
-	return "(" + strings.Join(servers, ",") + ")"
+	errStr := "following shard errors occurred:\n"
+	for _, err := range se.errors {
+		errStr += "\t" + err.Error() + "\n"
+	}
+	return errStr[:len(errStr)-1]
 }
 
 // Errors returns the underlying errors
-func (se ShardError) Errors() []serverError {
+func (se *ShardError) Errors() []ServerError {
 	se.mux.Lock()
 	defer se.mux.Unlock()
 

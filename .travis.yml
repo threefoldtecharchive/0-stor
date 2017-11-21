@@ -25,6 +25,12 @@ matrix:
       script: make
 
     - language: go
+      go: 1.9
+      script:
+        - go vet $(go list ./... | grep -v vendor)
+        - diff -u <(echo -n) <(gofmt -d $(find . -name "*\.go" | grep -v '\.git/' | grep -v vendor))
+
+    - language: go
       sudo: true
       dist: trusty
       go: 1.9

@@ -5,7 +5,7 @@ type Settings struct {
 	BindAddress  string `json:"bind"`
 	AuthDisabled bool   `json:"auth_disabled"`
 	MaxMsgSize   int    `json:"max_msg_size"`
-	AsyncWrite   bool   `json:"async_write`
+	AsyncWrite   bool   `json:"async_write"`
 
 	DB struct {
 		Dirs struct {
