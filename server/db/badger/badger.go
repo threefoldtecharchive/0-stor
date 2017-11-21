@@ -64,7 +64,7 @@ func NewWithOpts(data, meta string, opts badgerdb.Options) (*DB, error) {
 }
 
 // Close implements DB.Close
-func (b DB) Close() error {
+func (b *DB) Close() error {
 	b.cancelFunc()
 
 	err := b.db.Close()
@@ -75,7 +75,7 @@ func (b DB) Close() error {
 }
 
 // Delete implements DB.Delete
-func (b DB) Delete(key []byte) error {
+func (b *DB) Delete(key []byte) error {
 	return b.db.Update(func(tx *badgerdb.Txn) error {
 		err := tx.Delete(key)
 		if err != nil {
@@ -86,7 +86,7 @@ func (b DB) Delete(key []byte) error {
 }
 
 // Set implements DB.Set
-func (b DB) Set(key []byte, val []byte) error {
+func (b *DB) Set(key []byte, val []byte) error {
 	return b.db.Update(func(tx *badgerdb.Txn) error {
 		err := tx.Set(key, val)
 		if err != nil {
@@ -97,7 +97,7 @@ func (b DB) Set(key []byte, val []byte) error {
 }
 
 // Get implements DB.Get
-func (b DB) Get(key []byte) (val []byte, err error) {
+func (b *DB) Get(key []byte) (val []byte, err error) {
 	err = b.db.View(func(tx *badgerdb.Txn) error {
 		item, err := tx.Get(key)
 		if err != nil {
@@ -123,7 +123,7 @@ func (b DB) Get(key []byte) (val []byte, err error) {
 }
 
 // Exists implements DB.Exists
-func (b DB) Exists(key []byte) (exists bool, err error) {
+func (b *DB) Exists(key []byte) (exists bool, err error) {
 	err = b.db.View(func(tx *badgerdb.Txn) error {
 		_, err := tx.Get(key)
 		if err != nil && err != badgerdb.ErrKeyNotFound {
@@ -139,7 +139,7 @@ func (b DB) Exists(key []byte) (exists bool, err error) {
 }
 
 // Filter implements DB.Filter
-func (b DB) Filter(prefix []byte, start int, count int) (result [][]byte, err error) {
+func (b *DB) Filter(prefix []byte, start int, count int) (result [][]byte, err error) {
 	if count == 0 {
 		return
 	}
@@ -182,7 +182,7 @@ func (b DB) Filter(prefix []byte, start int, count int) (result [][]byte, err er
 }
 
 // List implements DB.List
-func (b DB) List(prefix []byte) (result [][]byte, err error) {
+func (b *DB) List(prefix []byte) (result [][]byte, err error) {
 	opt := badgerdb.DefaultIteratorOptions
 	opt.PrefetchValues = false
 	var buf []byte
@@ -207,7 +207,7 @@ func (b DB) List(prefix []byte) (result [][]byte, err error) {
 }
 
 // collectGarbage runs the garbage collection for Badger backend db
-func (b DB) collectGarbage() error {
+func (b *DB) collectGarbage() error {
 	if err := b.db.PurgeOlderVersions(); err != nil {
 		return err
 	}
@@ -217,7 +217,7 @@ func (b DB) collectGarbage() error {
 
 // runGC triggers the garbage collection for the Badger backend db.
 // Should be run as a goroutine
-func (b DB) runGC() {
+func (b *DB) runGC() {
 	ticker := time.NewTicker(cgInterval)
 	for {
 		select {
