@@ -24,14 +24,14 @@ func outputVersion() string {
 
 	// Build (Git) Commit Hash
 	if CommitHash != "" {
-		version += "\r\nBuild: " + CommitHash
+		version += "\r\n   Build: " + CommitHash
 		if BuildDate != "" {
 			version += " " + BuildDate
 		}
 	}
 
 	// Output version and runtime information
-	return fmt.Sprintf("%s\r\nRuntime: %s %s\r\n",
+	return fmt.Sprintf("%s\r\n   Runtime: %s %s\r\n",
 		version,
 		runtime.Version(), // Go Version
 		runtime.GOOS,      // OS Name
