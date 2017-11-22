@@ -8,29 +8,30 @@ PACKAGE = github.com/zero-os/0-stor
 COMMIT_HASH = $(shell git rev-parse --short HEAD 2>/dev/null)
 BUILD_DATE = $(shell date +%FT%T%z)
 
-SERVER_PACKAGES = $(shell go list ./server/... | grep -v vendor)
-CLIENT_PACKAGES = $(shell go list ./client/... | grep -v vendor)
+SERVER_PACKAGES = $(shell go list ./server/...)
+CLIENT_PACKAGES = $(shell go list ./client/...)
 
-ldflags = -extldflags "-static" -s -w -X main.CommitHash=$(COMMIT_HASH) -X main.BuildDate=$(BUILD_DATE)
+ldflags = -extldflags "-static"
+ldflagsversion = -X main.CommitHash=$(COMMIT_HASH) -X main.BuildDate=$(BUILD_DATE) -s -w
 
 all: server cli
 
 cli: $(OUTPUT)
 ifeq ($(GOOS), darwin)
 	GOOS=$(GOOS) GOARCH=$(GOARCH) \
-		go build -o $(OUTPUT)/zerostorcli ./cmd/zerostorcli
+		go build -ldflags '$(ldflagsversion)' -o $(OUTPUT)/zerostorcli ./cmd/zerostorcli
 else
 	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) \
-		go build -ldflags '$(ldflags)' -o $(OUTPUT)/zerostorcli ./cmd/zerostorcli
+		go build -ldflags '$(ldflags)$(ldflagsversion)' -o $(OUTPUT)/zerostorcli ./cmd/zerostorcli
 endif
 
 server: $(OUTPUT)
 ifeq ($(GOOS), darwin)
 	GOOS=$(GOOS) GOARCH=$(GOARCH) \
-		go build -o $(OUTPUT)/zerostorserver ./cmd/zerostorserver
+		go build -ldflags '$(ldflagsversion)' -o $(OUTPUT)/zerostorserver ./cmd/zerostorserver
 else
 	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) \
-		go build -ldflags '$(ldflags)' -o $(OUTPUT)/zerostorserver ./cmd/zerostorserver
+		go build -ldflags '$(ldflags)$(ldflagsversion)' -o $(OUTPUT)/zerostorserver ./cmd/zerostorserver
 endif
 
 install: all
