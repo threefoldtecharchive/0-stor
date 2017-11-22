@@ -35,9 +35,6 @@ _testmain.go
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
-# Project-local glide cache, RE: https://github.com/Masterminds/glide/issues/736
-.glide/
-
 # benchmark
 *.png
 !/docs/assets/*.png
@@ -46,7 +43,6 @@ _testmain.go
 .idea
 
 server/server
-client/cmd/zerostorcli/zerostorcli
 coverage.txt
 
 bin
@@ -70,7 +66,8 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+test/**/lib/
+utils/**/lib/
 lib64/
 parts/
 sdist/
