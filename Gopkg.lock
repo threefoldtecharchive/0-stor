@@ -288,12 +288,6 @@
   version = "v1.5.2"
 
 [[projects]]
-  branch = "v1"
-  name = "gopkg.in/bsm/ratelimit.v1"
-  packages = ["."]
-  revision = "db14e161995a5177acef654cb0dd785e8ee8bc22"
-
-[[projects]]
   branch = "v2"
   name = "gopkg.in/validator.v2"
   packages = ["."]
@@ -314,6 +308,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "153740b991bd0749d397cedce57cb57cfb0a51eed334e8cfa1861304ebce4d03"
+  inputs-digest = "176cad0715bdc15bf4a311abd9e13a36b0716b306d5fc19d4235a047609cbd62"
   solver-name = "gps-cdcl"
   solver-version = 1
