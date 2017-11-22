@@ -43,3 +43,12 @@ matrix:
       go: 1.9
       install: skip
       script: make testclientrace
+
+    - language: go
+      sudo: true
+      dist: trusty
+      go: 1.9
+      install:
+        - ./utils/scripts/install_capnp_unix.sh
+        - ./utils/scripts/install_protoc_unix.sh
+      script: make testcodegen

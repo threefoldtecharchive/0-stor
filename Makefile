@@ -54,12 +54,19 @@ testserverrace:
 testclientrace:
 	go test  -v -race $(CLIENT_PACKAGES)
 
+testcodegen:
+	./utils/scripts/test_codegeneration.sh
+
 update_deps:
+	dep ensure -v
 	dep ensure -update -v
 	dep prune -v
-
+	# ensure we don't delete files that we don't want to prune
+	git checkout -- vendor/zombiezen.com/go/capnproto2/std/go.capnp
+	git checkout -- vendor/zombiezen.com/go/capnproto2/capnpc-go
+	git checkout -- vendor/github.com/golang/protobuf/protoc-gen-go
 
 $(OUTPUT):
 	mkdir -p $(OUTPUT)
 
-.PHONY: $(OUTPUT) zerostorcli 0storserver test testserver testclient testserverrace testclientrace
+.PHONY: $(OUTPUT) zerostorcli 0storserver test testserver testclient testserverrace testcodegen testclientrace
