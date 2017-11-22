@@ -157,6 +157,11 @@ func (s Metadata_List) At(i int) Metadata { return Metadata{s.List.Struct(i)} }
 
 func (s Metadata_List) Set(i int, v Metadata) error { return s.List.SetStruct(i, v.Struct) }
 
+func (s Metadata_List) String() string {
+	str, _ := text.MarshalList(0x84eb980ee3c7d21d, s.List)
+	return str
+}
+
 // Metadata_Promise is a wrapper for a Metadata promised by a client call.
 type Metadata_Promise struct{ *capnp.Pipeline }
 
@@ -249,6 +254,11 @@ func NewMetadata_Chunk_List(s *capnp.Segment, sz int32) (Metadata_Chunk_List, er
 func (s Metadata_Chunk_List) At(i int) Metadata_Chunk { return Metadata_Chunk{s.List.Struct(i)} }
 
 func (s Metadata_Chunk_List) Set(i int, v Metadata_Chunk) error { return s.List.SetStruct(i, v.Struct) }
+
+func (s Metadata_Chunk_List) String() string {
+	str, _ := text.MarshalList(0x8215e3820528ef57, s.List)
+	return str
+}
 
 // Metadata_Chunk_Promise is a wrapper for a Metadata_Chunk promised by a client call.
 type Metadata_Chunk_Promise struct{ *capnp.Pipeline }
