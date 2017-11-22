@@ -27,12 +27,12 @@ Structure used:
 
 ### Data Format send from the client:
 The 0-stor is doesn't expect any specific data format from the client.
-The knowledge of how the data are layout is the responsiility of the client. All client will be built using the [0-stor-lib](https://github.com/zero-os/0-stor-lib). The lib will be responsible to know how to process the data for write and read operations.
+The knowledge of how the data are layout is the responsibility of the client. All client will be built using the [0-stor-lib](https://github.com/zero-os/0-stor-lib). The lib will be responsible to know how to process the data for write and read operations.
 
 ## Namespaces concept
 We leverage ItsYou.online organization feature to create namespaces on the 0-stor.
 There is not API to create namespaces, instead any member of an organization that has a name following the format: `myorg.0stor.mynamespace` will have access to the namespace called `myorg_0stor_mynamespace`.  
-Since IYO organization name are unique, we avoid colision and problems in namespaces.
+Since IYO organization name are unique, we avoid collision and problems in namespaces.
 
 ### ACL
 The ACl also leverage IYO organizations.  

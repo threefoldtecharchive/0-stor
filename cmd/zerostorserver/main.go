@@ -17,7 +17,7 @@ import (
 	"github.com/zero-os/0-stor/server/config"
 	"github.com/zero-os/0-stor/server/db"
 	"github.com/zero-os/0-stor/server/db/badger"
-	"github.com/zero-os/0-stor/server/disk"
+	"github.com/zero-os/0-stor/server/fs"
 	"github.com/zero-os/0-stor/server/manager"
 )
 
@@ -177,7 +177,7 @@ func ensureStoreStat(kv db.DB, dataPath string) error {
 	nsMgr := manager.NewNamespaceManager(kv)
 	statMgr := manager.NewStoreStatMgr(kv)
 
-	available, err := disk.FreeSpace(dataPath)
+	available, err := fs.FreeSpace(dataPath)
 	if err != nil {
 		return err
 	}

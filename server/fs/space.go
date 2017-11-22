@@ -1,4 +1,5 @@
-package disk
+//Package fs defines a package that handles file system interactions on the 0-stor server
+package fs
 
 import "syscall"
 
