@@ -10,6 +10,15 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/zero-os/0-stor/client/stor"
+	"github.com/zero-os/0-stor/server/jwt"
+)
+
+const (
+	// path to testing public key
+	testPubKeyPath = "./../devcert/jwt_pub.pem"
+
+	// test label (full iyo namespacing)
+	label = "testorg_0stor_testnamespace"
 )
 
 func TestMain(m *testing.M) {
@@ -34,10 +43,11 @@ func TestServerMsgSize(t *testing.T) {
 
 	mib := 1024 * 1024
 
+	verifier := jwt.NopVerifier{}
 	for i := 2; i <= 64; i *= 2 {
 		t.Run(fmt.Sprintf("size %d", i), func(t *testing.T) {
 			maxSize := i
-			srv, err := New(path.Join(temp, "data"), path.Join(temp, "meta"), false, maxSize)
+			srv, err := New(path.Join(temp, "data"), path.Join(temp, "meta"), verifier, maxSize)
 			require.NoError(err, "server should have been created")
 			defer srv.Close()
 
@@ -61,7 +71,7 @@ func TestServerMsgSize(t *testing.T) {
 			require.Error(err, "should have exeeded message max size")
 
 			err = cl.ObjectCreate(key, smallData, []string{})
-			require.NoError(err, "should not have exeeded message max size")
+			require.NoError(err, "should not have exceeded message max size")
 
 			exists, err := cl.ObjectExist(key)
 			require.NoError(err, "object should exist")

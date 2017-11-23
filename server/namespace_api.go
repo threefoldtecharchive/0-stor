@@ -5,6 +5,7 @@ import (
 
 	pb "github.com/zero-os/0-stor/grpc_store"
 	"github.com/zero-os/0-stor/server/db"
+	"github.com/zero-os/0-stor/server/jwt"
 	"github.com/zero-os/0-stor/server/manager"
 	"github.com/zero-os/0-stor/server/stats"
 )
@@ -12,19 +13,28 @@ import (
 var _ (pb.NamespaceManagerServer) = (*NamespaceAPI)(nil)
 
 type NamespaceAPI struct {
-	db db.DB
+	db          db.DB
+	jwtVerifier jwt.TokenVerifier
 }
 
-func NewNamespaceAPI(db db.DB) *NamespaceAPI {
+func NewNamespaceAPI(db db.DB, v jwt.TokenVerifier) *NamespaceAPI {
+	if db == nil {
+		panic("no database given to NamespaceAPI")
+	}
+	if v == nil {
+		panic("no jwt verifier given to NamespaceAPI")
+	}
+
 	return &NamespaceAPI{
-		db: db,
+		db:          db,
+		jwtVerifier: v,
 	}
 }
 
 func (api *NamespaceAPI) Get(ctx context.Context, req *pb.GetNamespaceRequest) (*pb.GetNamespaceReply, error) {
 	label := req.GetLabel()
 
-	if err := validateJWT(ctx, MethodAdmin, label); err != nil {
+	if err := api.jwtVerifier.ValidateJWT(ctx, jwt.MethodAdmin, label); err != nil {
 		return nil, err
 	}
 

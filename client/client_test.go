@@ -18,21 +18,28 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const (
+	// path to testing public key
+	testPubKeyPath = "./../devcert/jwt_pub.pem"
+)
+
 func testGRPCServer(t testing.TB, n int) ([]server.StoreServer, func()) {
+	require := require.New(t)
+
 	servers := make([]server.StoreServer, n)
 	dirs := make([]string, n)
 
 	for i := 0; i < n; i++ {
 
 		tmpDir, err := ioutil.TempDir("", "0stortest")
-		require.NoError(t, err)
+		require.NoError(err)
 		dirs[i] = tmpDir
 
-		server, err := server.New(path.Join(tmpDir, "data"), path.Join(tmpDir, "meta"), false, 4)
-		require.NoError(t, err)
+		server, err := server.New(path.Join(tmpDir, "data"), path.Join(tmpDir, "meta"), nil, 4)
+		require.NoError(err)
 
 		_, err = server.Listen("localhost:0")
-		require.NoError(t, err, "server failed to start listening")
+		require.NoError(err, "server failed to start listening")
 
 		servers[i] = server
 	}

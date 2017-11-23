@@ -18,6 +18,7 @@ import (
 	"github.com/zero-os/0-stor/server/db"
 	"github.com/zero-os/0-stor/server/db/badger"
 	"github.com/zero-os/0-stor/server/fs"
+	"github.com/zero-os/0-stor/server/jwt"
 	"github.com/zero-os/0-stor/server/manager"
 )
 
@@ -136,16 +137,21 @@ func main() {
 		}
 
 		if err := ensureStoreStat(db, settings.DB.Dirs.Data); err != nil {
-			log.Fatalln("Error computing store statistics: %v", err)
+			log.Fatalf("Error computing store statistics: %v", err)
 		}
 
-		server, err := server.NewWithDB(db, !settings.AuthDisabled, settings.MaxMsgSize)
+		var storServer server.StoreServer
+		if settings.AuthDisabled {
+			storServer, err = server.NewWithDB(db, nil, settings.MaxMsgSize)
+		} else {
+			storServer, err = server.NewWithDB(db, jwt.DefaultVerifier(), settings.MaxMsgSize)
+		}
 		if err != nil {
-			log.Fatal(err.Error())
+			log.Fatal(err)
 		}
 		defer func() {
 			log.Println("Gracefully closing 0-stor")
-			server.Close()
+			storServer.Close()
 		}()
 
 		if profileAddr != "" {
@@ -160,7 +166,7 @@ func main() {
 		sigChan := make(chan os.Signal, 1)
 		signal.Notify(sigChan, syscall.SIGINT)
 
-		addr, err := server.Listen(settings.BindAddress)
+		addr, err := storServer.Listen(settings.BindAddress)
 		if err != nil {
 			log.Fatal(err.Error())
 		}

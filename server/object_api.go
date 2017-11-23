@@ -7,6 +7,7 @@ import (
 
 	pb "github.com/zero-os/0-stor/grpc_store"
 	"github.com/zero-os/0-stor/server/db"
+	"github.com/zero-os/0-stor/server/jwt"
 	"github.com/zero-os/0-stor/server/manager"
 	"github.com/zero-os/0-stor/server/stats"
 )
@@ -14,12 +15,21 @@ import (
 var _ (pb.ObjectManagerServer) = (*ObjectAPI)(nil)
 
 type ObjectAPI struct {
-	db db.DB
+	db          db.DB
+	jwtVerifier jwt.TokenVerifier
 }
 
-func NewObjectAPI(db db.DB) *ObjectAPI {
+func NewObjectAPI(db db.DB, v jwt.TokenVerifier) *ObjectAPI {
+	if db == nil {
+		panic("no database given to ObjectAPI")
+	}
+	if v == nil {
+		panic("no verifier given to ObjectAPI")
+	}
+
 	return &ObjectAPI{
-		db: db,
+		db:          db,
+		jwtVerifier: v,
 	}
 }
 
@@ -29,7 +39,7 @@ func (api *ObjectAPI) Create(ctx context.Context, req *pb.CreateObjectRequest) (
 	// increase request counter
 	go stats.IncrWrite(label)
 
-	if err := validateJWT(ctx, MethodWrite, label); err != nil {
+	if err := api.jwtVerifier.ValidateJWT(ctx, jwt.MethodWrite, label); err != nil {
 		return nil, err
 	}
 
@@ -51,7 +61,7 @@ func (api *ObjectAPI) List(req *pb.ListObjectsRequest, stream pb.ObjectManager_L
 	// increase rate counter
 	go stats.IncrRead(label)
 
-	if err := validateJWT(stream.Context(), MethodRead, label); err != nil {
+	if err := api.jwtVerifier.ValidateJWT(stream.Context(), jwt.MethodRead, label); err != nil {
 		return err
 	}
 
@@ -83,7 +93,7 @@ func (api *ObjectAPI) List(req *pb.ListObjectsRequest, stream pb.ObjectManager_L
 func (api *ObjectAPI) Get(ctx context.Context, req *pb.GetObjectRequest) (*pb.GetObjectReply, error) {
 	label, key := req.GetLabel(), req.GetKey()
 
-	if err := validateJWT(ctx, MethodRead, label); err != nil {
+	if err := api.jwtVerifier.ValidateJWT(ctx, jwt.MethodRead, label); err != nil {
 		return nil, err
 	}
 
@@ -113,7 +123,7 @@ func (api *ObjectAPI) Exists(ctx context.Context, req *pb.ExistsObjectRequest) (
 	// increase rate counter
 	go stats.IncrRead(label)
 
-	if err := validateJWT(ctx, MethodRead, label); err != nil {
+	if err := api.jwtVerifier.ValidateJWT(ctx, jwt.MethodRead, label); err != nil {
 		return nil, err
 	}
 
@@ -135,7 +145,7 @@ func (api *ObjectAPI) Delete(ctx context.Context, req *pb.DeleteObjectRequest) (
 	// increase rate counter
 	go stats.IncrWrite(label)
 
-	if err := validateJWT(ctx, MethodDelete, label); err != nil {
+	if err := api.jwtVerifier.ValidateJWT(ctx, jwt.MethodDelete, label); err != nil {
 		return nil, err
 	}
 
@@ -155,7 +165,7 @@ func (api *ObjectAPI) SetReferenceList(ctx context.Context, req *pb.UpdateRefere
 	// increase rate counter
 	go stats.IncrWrite(label)
 
-	if err := validateJWT(ctx, MethodWrite, label); err != nil {
+	if err := api.jwtVerifier.ValidateJWT(ctx, jwt.MethodWrite, label); err != nil {
 		return nil, err
 	}
 
@@ -176,7 +186,7 @@ func (api *ObjectAPI) AppendReferenceList(ctx context.Context, req *pb.UpdateRef
 	// increase rate counter
 	go stats.IncrWrite(label)
 
-	if err := validateJWT(ctx, MethodWrite, label); err != nil {
+	if err := api.jwtVerifier.ValidateJWT(ctx, jwt.MethodWrite, label); err != nil {
 		return nil, err
 	}
 
@@ -197,7 +207,7 @@ func (api *ObjectAPI) RemoveReferenceList(ctx context.Context, req *pb.UpdateRef
 	// increase rate counter
 	go stats.IncrWrite(label)
 
-	if err := validateJWT(ctx, MethodWrite, label); err != nil {
+	if err := api.jwtVerifier.ValidateJWT(ctx, jwt.MethodWrite, label); err != nil {
 		return nil, err
 	}
 
@@ -217,7 +227,7 @@ func (api *ObjectAPI) Check(req *pb.CheckRequest, stream pb.ObjectManager_CheckS
 	// increase rate counter
 	go stats.IncrWrite(label)
 
-	if err := validateJWT(stream.Context(), MethodRead, label); err != nil {
+	if err := api.jwtVerifier.ValidateJWT(stream.Context(), jwt.MethodRead, label); err != nil {
 		return err
 	}
 

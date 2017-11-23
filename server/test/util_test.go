@@ -18,22 +18,32 @@ import (
 	"github.com/zero-os/0-stor/stubs"
 )
 
+const (
+	// path to testing public key
+	testPubKeyPath = "../../devcert/jwt_pub.pem"
+
+	// path to testing private key
+	testPrivKeyPath = "../../devcert/jwt_key.pem"
+)
+
 func TestMain(m *testing.M) {
 	log.SetLevel(log.DebugLevel)
 	os.Exit(m.Run())
 }
 
-func getTestGRPCServer(t *testing.T) (server.StoreServer, stubs.IYOClient, string, func()) {
+func getTestGRPCServer(t *testing.T, organization string) (server.StoreServer, stubs.IYOClient, func()) {
 	tmpDir, err := ioutil.TempDir("", "0stortest")
 	require.NoError(t, err)
 
-	server, err := server.New(path.Join(tmpDir, "data"), path.Join(tmpDir, "meta"), true, 4)
+	verifier, err := getTestVerifier(testPubKeyPath)
+
+	server, err := server.New(path.Join(tmpDir, "data"), path.Join(tmpDir, "meta"), verifier, 4)
 	require.NoError(t, err)
 
 	_, err = server.Listen("localhost:0")
 	require.NoError(t, err, "server failed to start listening")
 
-	jwtCreater, organization := getIYOClient(t)
+	jwtCreator, organization := getIYOClient(t, organization)
 
 	clean := func() {
 		fmt.Sprintln("clean called")
@@ -41,25 +51,30 @@ func getTestGRPCServer(t *testing.T) (server.StoreServer, stubs.IYOClient, strin
 		os.RemoveAll(tmpDir)
 	}
 
-	return server, jwtCreater, organization, clean
+	return server, jwtCreator, clean
 }
 
-func getIYOClient(t testing.TB) (stubs.IYOClient, string) {
-	pubKey, err := ioutil.ReadFile("../../devcert/jwt_pub.pem")
-	require.NoError(t, err)
-	jwt.SetJWTPublicKey(string(pubKey))
+// returns a jwt verifier from provided public key file
+func getTestVerifier(pubKeyPath string) (*jwt.Verifier, error) {
+	pubKey, err := ioutil.ReadFile(pubKeyPath)
+	if err != nil {
+		return nil, err
+	}
 
-	b, err := ioutil.ReadFile("../../devcert/jwt_key.pem")
+	return jwt.NewVerifier(string(pubKey))
+}
+
+func getIYOClient(t testing.TB, organization string) (stubs.IYOClient, string) {
+	b, err := ioutil.ReadFile(testPrivKeyPath)
 	require.NoError(t, err)
 
 	key, err := jwtgo.ParseECPrivateKeyFromPEM(b)
 	require.NoError(t, err)
 
-	organization := "testorg"
-	jwtCreater, err := stubs.NewStubIYOClient(organization, key)
-	require.NoError(t, err, "failt to create MockJWTCreater")
+	jwtCreator, err := stubs.NewStubIYOClient(organization, key)
+	require.NoError(t, err, "failed to create the stub IYO client")
 
-	return jwtCreater, organization
+	return jwtCreator, organization
 }
 
 func populateDB(t *testing.T, namespace string, db db.DB) map[string][]byte {

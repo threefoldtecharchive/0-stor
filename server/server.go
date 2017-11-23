@@ -6,6 +6,7 @@ import (
 	pb "github.com/zero-os/0-stor/grpc_store"
 	"github.com/zero-os/0-stor/server/db"
 	"github.com/zero-os/0-stor/server/db/badger"
+	"github.com/zero-os/0-stor/server/jwt"
 	"google.golang.org/grpc"
 
 	log "github.com/Sirupsen/logrus"
@@ -28,22 +29,24 @@ type grpcServer struct {
 
 // New creates a grpc server with given DB data & meta directory
 // if authEnabled is false, JWT authentification is disabled
-func New(data, meta string, authEnabled bool, maxSizeMsg int) (StoreServer, error) {
+func New(data, meta string, jwtVerifier jwt.TokenVerifier, maxSizeMsg int) (StoreServer, error) {
 	db, err := badger.New(data, meta)
 	if err != nil {
 		return nil, err
 	}
-	return NewWithDB(db, authEnabled, maxSizeMsg)
+	return NewWithDB(db, jwtVerifier, maxSizeMsg)
 }
 
 // NewWithDB creates a grpc server with given DB object
-// if authEnabled is false, JWT authentification is disabled
-func NewWithDB(db *badger.DB, authEnabled bool, maxSizeMsg int) (StoreServer, error) {
-	if !authEnabled {
-		disableAuth()
-	}
-
+func NewWithDB(db db.DB, jwtVerifier jwt.TokenVerifier, maxSizeMsg int) (StoreServer, error) {
 	maxSizeMsg = maxSizeMsg * 1024 * 1024 //Mib to Bytes
+
+	if db == nil {
+		panic("no database given")
+	}
+	if jwtVerifier == nil {
+		jwtVerifier = jwt.NopVerifier{}
+	}
 
 	s := &grpcServer{
 		db: db,
@@ -53,8 +56,8 @@ func NewWithDB(db *badger.DB, authEnabled bool, maxSizeMsg int) (StoreServer, er
 		),
 	}
 
-	pb.RegisterObjectManagerServer(s.grpcServer, NewObjectAPI(db))
-	pb.RegisterNamespaceManagerServer(s.grpcServer, NewNamespaceAPI(db))
+	pb.RegisterObjectManagerServer(s.grpcServer, NewObjectAPI(db, jwtVerifier))
+	pb.RegisterNamespaceManagerServer(s.grpcServer, NewNamespaceAPI(db, jwtVerifier))
 	//pb.RegisterReservationManagerServer(srv.GRPCServer(), &rpc.ReservationManager{db})
 
 	return s, nil

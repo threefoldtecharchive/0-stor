@@ -16,40 +16,39 @@ import (
 	"github.com/zero-os/0-stor/server/db"
 	"github.com/zero-os/0-stor/server/db/badger"
 	"github.com/zero-os/0-stor/server/errors"
+	"github.com/zero-os/0-stor/server/jwt"
 	"github.com/zero-os/0-stor/server/manager"
 )
 
-func getTestObjectAPI(t *testing.T) (*ObjectAPI, func()) {
+func getTestObjectAPI(require *require.Assertions) (*ObjectAPI, func()) {
 	tmpDir, err := ioutil.TempDir("", "0stortest")
-	require.NoError(t, err)
+	require.NoError(err)
 
 	db, err := badger.New(path.Join(tmpDir, "data"), path.Join(tmpDir, "meta"))
 	if err != nil {
-		require.NoError(t, err)
+		require.NoError(err)
 	}
 
 	clean := func() {
 		db.Close()
 		os.RemoveAll(tmpDir)
 	}
-	disableAuth()
-	return NewObjectAPI(db), clean
+
+	return NewObjectAPI(db, jwt.NopVerifier{}), clean
 }
 
-func populateDB(t *testing.T, db db.DB) (string, [][]byte) {
-	label := "testnamespace"
-
+func populateDB(require *require.Assertions, db db.DB) (string, [][]byte) {
 	nsMgr := manager.NewNamespaceManager(db)
 	objMgr := manager.NewObjectManager(label, db)
 	err := nsMgr.Create(label)
-	require.NoError(t, err)
+	require.NoError(err)
 
 	bufList := make([][]byte, 10)
 
 	for i := 0; i < 10; i++ {
 		bufList[i] = make([]byte, 1024*1024)
 		_, err = rand.Read(bufList[i])
-		require.NoError(t, err)
+		require.NoError(err)
 
 		refList := []string{
 			"user1", "user2",
@@ -57,26 +56,27 @@ func populateDB(t *testing.T, db db.DB) (string, [][]byte) {
 		key := fmt.Sprintf("testkey%d", i)
 
 		err = objMgr.Set([]byte(key), bufList[i], refList)
-		require.NoError(t, err)
+		require.NoError(err)
 	}
 
 	return label, bufList
 }
 
 func TestCreateObject(t *testing.T) {
-	api, clean := getTestObjectAPI(t)
-	defer clean()
+	require := require.New(t)
+	assert := assert.New(t)
 
-	label := "testnamespace"
+	api, clean := getTestObjectAPI(require)
+	defer clean()
 
 	nsMgr := manager.NewNamespaceManager(api.db)
 	objMgr := manager.NewObjectManager(label, api.db)
 	err := nsMgr.Create(label)
-	require.NoError(t, err)
+	require.NoError(err)
 
 	buf := make([]byte, 1024*1024)
 	_, err = rand.Read(buf)
-	require.NoError(t, err)
+	require.NoError(err)
 
 	req := &pb.CreateObjectRequest{
 		Label: label,
@@ -88,28 +88,31 @@ func TestCreateObject(t *testing.T) {
 	}
 
 	_, err = api.Create(context.Background(), req)
-	require.NoError(t, err)
+	require.NoError(err)
 
 	obj, err := objMgr.Get([]byte("testkey"))
-	require.NoError(t, err, "fail to get the object from db")
+	require.NoError(err, "fail to get the object from db")
 
 	strRefList, err := obj.GetreferenceListStr()
-	require.NoError(t, err, "fail to get string reference list")
+	require.NoError(err, "fail to get string reference list")
 
 	data, err := obj.Data()
-	require.NoError(t, err, "fail to get data")
+	require.NoError(err, "fail to get data")
 
-	assert.Equal(t, buf, data, "data is not the same")
-	require.Equal(t, 2, len(strRefList), "reference list not correct size")
-	assert.EqualValues(t, "user1", strRefList[0])
-	assert.EqualValues(t, "user2", strRefList[1])
+	assert.Equal(buf, data, "data is not the same")
+	require.Equal(2, len(strRefList), "reference list not correct size")
+	assert.EqualValues("user1", strRefList[0])
+	assert.EqualValues("user2", strRefList[1])
 }
 
 func TestGetObject(t *testing.T) {
-	api, clean := getTestObjectAPI(t)
+	require := require.New(t)
+	assert := assert.New(t)
+
+	api, clean := getTestObjectAPI(require)
 	defer clean()
 
-	label, bufList := populateDB(t, api.db)
+	label, bufList := populateDB(require, api.db)
 
 	t.Run("valid", func(t *testing.T) {
 		key := []byte("testkey0")
@@ -119,13 +122,13 @@ func TestGetObject(t *testing.T) {
 		}
 
 		resp, err := api.Get(context.Background(), req)
-		require.NoError(t, err)
+		require.NoError(err)
 
 		obj := resp.GetObject()
 
-		assert.Equal(t, key, obj.GetKey())
-		assert.Equal(t, bufList[0], obj.GetValue())
-		assert.Equal(t, []string{"user1", "user2"}, obj.GetReferenceList())
+		assert.Equal(key, obj.GetKey())
+		assert.Equal(bufList[0], obj.GetValue())
+		assert.Equal([]string{"user1", "user2"}, obj.GetReferenceList())
 	})
 
 	t.Run("non existing", func(t *testing.T) {
@@ -135,15 +138,18 @@ func TestGetObject(t *testing.T) {
 		}
 
 		_, err := api.Get(context.Background(), req)
-		assert.Equal(t, errors.ErrNotFound, err)
+		assert.Equal(errors.ErrNotFound, err)
 	})
 }
 
 func TestExistsObject(t *testing.T) {
-	api, clean := getTestObjectAPI(t)
+	require := require.New(t)
+	assert := assert.New(t)
+
+	api, clean := getTestObjectAPI(require)
 	defer clean()
 
-	label, bufList := populateDB(t, api.db)
+	label, bufList := populateDB(require, api.db)
 
 	for i := 0; i < len(bufList); i++ {
 		key := fmt.Sprintf("testkey%d", i)
@@ -154,8 +160,8 @@ func TestExistsObject(t *testing.T) {
 			}
 
 			resp, err := api.Exists(context.Background(), req)
-			require.NoError(t, err)
-			assert.True(t, resp.Exists, fmt.Sprintf("Key %s should exists", key))
+			require.NoError(err)
+			assert.True(resp.Exists, fmt.Sprintf("Key %s should exists", key))
 		})
 	}
 
@@ -166,16 +172,19 @@ func TestExistsObject(t *testing.T) {
 		}
 
 		resp, err := api.Exists(context.Background(), req)
-		require.NoError(t, err)
-		assert.False(t, resp.Exists, fmt.Sprint("Key nonexists should not exists"))
+		require.NoError(err)
+		assert.False(resp.Exists, fmt.Sprint("Key nonexists should not exists"))
 	})
 }
 
 func TestDeleteObject(t *testing.T) {
-	api, clean := getTestObjectAPI(t)
+	require := require.New(t)
+	assert := assert.New(t)
+
+	api, clean := getTestObjectAPI(require)
 	defer clean()
 
-	label, _ := populateDB(t, api.db)
+	label, _ := populateDB(require, api.db)
 	objMgr := manager.NewObjectManager(label, api.db)
 
 	t.Run("valid", func(t *testing.T) {
@@ -185,11 +194,11 @@ func TestDeleteObject(t *testing.T) {
 		}
 
 		_, err := api.Delete(context.Background(), req)
-		require.NoError(t, err)
+		require.NoError(err)
 
 		exists, err := objMgr.Exists([]byte(req.Key))
-		require.NoError(t, err)
-		assert.False(t, exists)
+		require.NoError(err)
+		assert.False(exists)
 	})
 
 	// deleting a non existing object doesn't return an error.
@@ -200,19 +209,22 @@ func TestDeleteObject(t *testing.T) {
 		}
 
 		_, err := api.Delete(context.Background(), req)
-		require.NoError(t, err)
+		require.NoError(err)
 
 		exists, err := objMgr.Exists([]byte(req.Key))
-		require.NoError(t, err)
-		assert.False(t, exists)
+		require.NoError(err)
+		assert.False(exists)
 	})
 }
 
 func TestCheckObject(t *testing.T) {
-	api, clean := getTestObjectAPI(t)
+	require := require.New(t)
+	assert := assert.New(t)
+
+	api, clean := getTestObjectAPI(require)
 	defer clean()
 
-	label, _ := populateDB(t, api.db)
+	label, _ := populateDB(require, api.db)
 	objMgr := manager.NewObjectManager(label, api.db)
 
 	tt := []struct {
@@ -235,8 +247,8 @@ func TestCheckObject(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			status, err := objMgr.Check(tc.key)
-			require.NoError(t, err, "failed to check status of %v", tc.key)
-			assert.Equal(t, tc.expectedStatus, status)
+			require.NoError(err, "failed to check status of %v", tc.key)
+			assert.Equal(tc.expectedStatus, status)
 		})
 	}
 }
