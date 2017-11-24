@@ -194,7 +194,7 @@ func (v *Verifier) expectedScopes(method Method, label string) ([]string, error)
 	return []string{
 		// add scope the requested method
 		// e.g.: first.0stor.gig.read
-		fmt.Sprintf("%s.%s", adminScope, string(method)),
+		fmt.Sprintf("%s.%s", adminScope, method),
 		// add admin scope
 		// e.g.: first.0stor.gig
 		adminScope,
@@ -278,17 +278,6 @@ func (v *Verifier) getScopesFromCache(token string) ([]string, error) {
 
 	return cacheVal.scopes, nil
 }
-
-// Method represents the operation method
-type Method string
-
-// Method variables
-var (
-	MethodWrite  Method = "write"
-	MethodRead   Method = "read"
-	MethodDelete Method = "delete"
-	MethodAdmin  Method = "admin"
-)
 
 // jwtCacheVal represents the value stored in the cache
 type jwtCacheVal struct {
