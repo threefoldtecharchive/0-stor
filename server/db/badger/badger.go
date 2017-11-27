@@ -224,7 +224,12 @@ func (b *DB) runGC() {
 		case <-ticker.C:
 			err := b.collectGarbage()
 			if err != nil {
-				log.Errorf("Garbage collection errored: %v", err)
+				// don't report error when gc didn't result in any cleanup
+				if err == badgerdb.ErrNoRewrite {
+					log.Debugf("Badger GC: %v", err)
+				} else {
+					log.Errorf("Badger GC errored: %v", err)
+				}
 			}
 		case <-b.ctx.Done():
 			return
