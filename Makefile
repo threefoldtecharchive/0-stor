@@ -40,6 +40,9 @@ install: all
 
 test: testserver testclient
 
+testcov:
+	utils/scripts/coverage_test.sh
+
 testrace: testserverrace testclientrace
 
 testserver:
