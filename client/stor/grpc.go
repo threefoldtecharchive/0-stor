@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	pb "github.com/zero-os/0-stor/grpc_store"
+	pb "github.com/zero-os/0-stor/server/schema"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )

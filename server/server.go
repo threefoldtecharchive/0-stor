@@ -3,10 +3,10 @@ package server
 import (
 	"net"
 
-	pb "github.com/zero-os/0-stor/grpc_store"
 	"github.com/zero-os/0-stor/server/db"
 	"github.com/zero-os/0-stor/server/db/badger"
 	"github.com/zero-os/0-stor/server/jwt"
+	pb "github.com/zero-os/0-stor/server/schema"
 	"google.golang.org/grpc"
 
 	log "github.com/Sirupsen/logrus"

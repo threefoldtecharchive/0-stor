@@ -5,10 +5,10 @@ import (
 
 	"golang.org/x/net/context"
 
-	pb "github.com/zero-os/0-stor/grpc_store"
 	"github.com/zero-os/0-stor/server/db"
 	"github.com/zero-os/0-stor/server/jwt"
 	"github.com/zero-os/0-stor/server/manager"
+	pb "github.com/zero-os/0-stor/server/schema"
 	"github.com/zero-os/0-stor/server/stats"
 )
 

@@ -29,5 +29,5 @@ generate_and_check() {
     fi
 }
 
-generate_and_check .
+generate_and_check ./server
 generate_and_check ./client/meta

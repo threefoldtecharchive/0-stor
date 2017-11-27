@@ -6,7 +6,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/zero-os/0-stor/client/meta"
-	pb "github.com/zero-os/0-stor/grpc_store"
+	pb "github.com/zero-os/0-stor/server/schema"
 )
 
 var (

@@ -3,7 +3,7 @@ package stor
 import (
 	"math"
 
-	pb "github.com/zero-os/0-stor/grpc_store"
+	pb "github.com/zero-os/0-stor/server/schema"
 	"google.golang.org/grpc"
 )
 

@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/zero-os/0-stor/client/itsyouonline"
-	pb "github.com/zero-os/0-stor/grpc_store"
+	pb "github.com/zero-os/0-stor/server/schema"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

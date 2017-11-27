@@ -3,7 +3,7 @@
 package client
 
 import (
-	pb "github.com/zero-os/0-stor/grpc_store"
+	pb "github.com/zero-os/0-stor/server/schema"
 )
 
 type CheckStatus = pb.CheckResponse_Status

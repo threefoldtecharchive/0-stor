@@ -20,7 +20,7 @@ import (
 	"github.com/zero-os/0-stor/client/lib/encrypt"
 	"github.com/zero-os/0-stor/client/meta"
 	"github.com/zero-os/0-stor/client/stor"
-	pb "github.com/zero-os/0-stor/grpc_store"
+	pb "github.com/zero-os/0-stor/server/schema"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/golang/snappy"
