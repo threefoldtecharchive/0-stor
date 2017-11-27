@@ -1,3 +1,8 @@
+/*Package encrypt defines a package that handles encryption/decryption of the input data
+
+Currently Supported encryption algorithms:
+    	- AES256 (using GCM)
+*/
 package encrypt
 
 import (

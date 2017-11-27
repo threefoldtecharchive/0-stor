@@ -1,3 +1,11 @@
+/*Package compress defines compression mechanism
+
+- Compress/decompress the input data.
+- Supported compression algorithms:
+    - snappy (https://github.com/google/snappy)
+    - gzip
+    - lz4 (https://github.com/lz4/lz4)
+*/
 package compress
 
 import (

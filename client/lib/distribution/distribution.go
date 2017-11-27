@@ -1,3 +1,8 @@
+/*Package distribution provides primitives for chunking and encoding data.
+
+Erasure coding in used to encode data
+(http://smahesh.com/blog/2012/07/01/dummies-guide-to-erasure-coding/).
+*/
 package distribution
 
 import (
@@ -8,7 +13,7 @@ const (
 	padFactor = 256
 )
 
-// Encoder encode the data to be distributed
+// Encoder encodes the data to be distributed
 // Use this object instead of the distribution if you
 // don't have Writers for your output
 type Encoder struct {

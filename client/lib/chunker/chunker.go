@@ -1,3 +1,8 @@
+/*Package chunker defines a pipeline component to split a block into multiple smaller blocks.
+
+Chunker returns an iterator that will yield a new chunk of data of the chosen size.
+The block can then be sent to the rest of the pipeline.
+*/
 package chunker
 
 import (
