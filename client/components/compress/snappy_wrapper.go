@@ -3,7 +3,7 @@ package compress
 import (
 	"github.com/golang/snappy"
 
-	"github.com/zero-os/0-stor/client/lib/block"
+	"github.com/zero-os/0-stor/client/components/block"
 	"github.com/zero-os/0-stor/client/meta"
 )
 

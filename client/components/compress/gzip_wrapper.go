@@ -6,7 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 
-	"github.com/zero-os/0-stor/client/lib/block"
+	"github.com/zero-os/0-stor/client/components/block"
 	"github.com/zero-os/0-stor/client/meta"
 )
 

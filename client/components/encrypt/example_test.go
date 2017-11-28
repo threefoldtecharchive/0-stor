@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/zero-os/0-stor/client/lib/encrypt"
+	"github.com/zero-os/0-stor/client/components/encrypt"
 )
 
 func Example() {

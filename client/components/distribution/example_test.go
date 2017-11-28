@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/zero-os/0-stor/client/lib/distribution"
+	"github.com/zero-os/0-stor/client/components/distribution"
 )
 
 func Example() {

@@ -97,12 +97,12 @@ calling `WriteWithMeta` or `WriteFWithMeta` methods.
 - Client does some preprocessing on each chunk of data before sending them to 0stor
 - This is achieved by configuring a policy during client creation
 - Supported Data Preprocessing:
-    - [chunker](./lib/chunker)
-	- [compression](./lib/compress/README.md)
-    - [Hasher](./lib/hash/README.md)
-    - [encryption](./lib/encrypt/README.md)
-    - [distribution / erasure coding](./lib/distribution/README.md)
-    - [replication](./lib/replication/README.md)
+    - [chunker](./components/chunker)
+	- [compression](./components/compress/README.md)
+    - [Hasher](./components/hash/README.md)
+    - [encryption](./components/encrypt/README.md)
+    - [distribution / erasure coding](./components/distribution/README.md)
+    - [replication](./components/replication/README.md)
 
 **walk over the metadata**
 
@@ -237,8 +237,8 @@ Configuration file example can be found on [config.yaml](/cmd/zerostorcli/config
 
 ## Libraries
 
-This client some libraries that can be used independently.
-See [lib](./lib) directory for more details.
+This client includes some components that can be used independently.
+See [components](./components) directory for more details.
 
 ## CLI
 

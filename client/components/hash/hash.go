@@ -3,7 +3,7 @@ package hash
 import (
 	"fmt"
 
-	"github.com/zero-os/0-stor/client/lib/block"
+	"github.com/zero-os/0-stor/client/components/block"
 	"github.com/zero-os/0-stor/client/meta"
 )
 

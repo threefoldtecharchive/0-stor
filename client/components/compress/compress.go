@@ -12,7 +12,7 @@ import (
 	"compress/gzip"
 	"fmt"
 
-	"github.com/zero-os/0-stor/client/lib/block"
+	"github.com/zero-os/0-stor/client/components/block"
 )
 
 // Compressor/decompressor type

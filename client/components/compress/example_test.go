@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/zero-os/0-stor/client/lib/compress"
+	"github.com/zero-os/0-stor/client/components/compress"
 	"github.com/zero-os/0-stor/client/meta"
 
-	"github.com/zero-os/0-stor/client/lib/block"
+	"github.com/zero-os/0-stor/client/components/block"
 )
 
 func Example() {

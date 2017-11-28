@@ -3,7 +3,7 @@ package chunker_test
 import (
 	"fmt"
 
-	"github.com/zero-os/0-stor/client/lib/chunker"
+	"github.com/zero-os/0-stor/client/components/chunker"
 )
 
 func Example() {
