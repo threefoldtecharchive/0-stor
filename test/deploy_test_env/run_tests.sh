@@ -40,7 +40,7 @@ install_client(){
     git branch
     echo " [*] Install zerostor client from branch : ${ZERO_STOR_CLIENT_BRANCH}"
     make cli
-    chmod 777 /gopath/src/github.com/zero-os/0-stor/cmd/zerostorcli/config.yaml
+    chmod 777 /gopath/src/github.com/zero-os/0-stor/cmd/zstor/config.yaml
     ln -sf /gopath/src/github.com/zero-os/0-stor/bin/zerostorcli /bin/zerostorcli
     hash -r
     zerostorcli --version
@@ -146,12 +146,12 @@ if [ "$TRAVIS_EVENT_TYPE" == "cron" ] || [ "$TRAVIS_EVENT_TYPE" == "api" ]; then
         zerostor_servers_ips=$(ssh root@"${container_ip:1}" cat /tmp/zerostor_servers_ips)
         etcd_servers_ips=$(ssh root@"${container_ip:1}" cat /tmp/etcd_servers_ips)
         python3 test/deploy_test_env/utils.py update_config "${zerostor_servers_ips}" "${etcd_servers_ips}"
-        cat /gopath/src/github.com/zero-os/0-stor/cmd/zerostorcli/config.yaml
+        cat /gopath/src/github.com/zero-os/0-stor/cmd/zstor/config.yaml
 
 
     elif [ "$action" == "test" ]; then
         echo " [*] Execute test case"
-        cat /gopath/src/github.com/zero-os/0-stor/cmd/zerostorcli/config.yaml
+        cat /gopath/src/github.com/zero-os/0-stor/cmd/zstor/config.yaml
         cd test && git branch && export PYTHONPATH='./' && nosetests-3.4 -vs --logging-level=WARNING --progressive-with-bar --rednose $TEST_CASE --tc-file test_suite/config.ini --tc=main.number_of_servers:${number_of_servers} --tc=main.number_of_files:${number_of_files} --tc=main.default_config_path:${default_config_path} --tc=main.iyo_user2_id:${iyo_user2_id} --tc=main.iyo_user2_secret:${iyo_user2_secret} --tc=main.iyo_user2_username:${iyo_user2_username}
 
     elif [ "$action" == "after" ]; then

@@ -19,10 +19,10 @@ all: server cli
 cli: $(OUTPUT)
 ifeq ($(GOOS), darwin)
 	GOOS=$(GOOS) GOARCH=$(GOARCH) \
-		go build -ldflags '$(ldflagsversion)' -o $(OUTPUT)/zerostorcli ./cmd/zerostorcli
+		go build -ldflags '$(ldflagsversion)' -o $(OUTPUT)/zstor ./cmd/zstor
 else
 	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) \
-		go build -ldflags '$(ldflags)$(ldflagsversion)' -o $(OUTPUT)/zerostorcli ./cmd/zerostorcli
+		go build -ldflags '$(ldflags)$(ldflagsversion)' -o $(OUTPUT)/zstor ./cmd/zstor
 endif
 
 server: $(OUTPUT)
@@ -35,7 +35,7 @@ else
 endif
 
 install: all
-	cp $(OUTPUT)/zerostorcli $(GOPATH)/bin/zerostorcli
+	cp $(OUTPUT)/zstor $(GOPATH)/bin/zstor
 	cp $(OUTPUT)/zstordb $(GOPATH)/bin/zstordb
 
 test: testserver testclient
@@ -62,6 +62,11 @@ testcodegen:
 
 ensure_deps:
 	dep ensure -v
+	make prune_deps
+
+add_dep:
+	dep ensure -v
+	dep ensure -v -add $$DEP
 	make prune_deps
 
 update_dep:

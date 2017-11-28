@@ -10,7 +10,7 @@ class ZeroStoreCLI:
 
         result = job['result']
         command = 'zerostorcli --conf %s file download %s %s' % (config_path, key, result)
-        #command = 'cd /gopath/src/github.com/zero-os/0-stor/client/cmd/zerostorcli/ && zerostorcli file download %s %s' % (key, result)
+        #command = 'cd /gopath/src/github.com/zero-os/0-stor/cmd/zstor/ && zerostorcli file download %s %s' % (key, result)
         for _ in range(10):
             out, error = self.execute_shell_commands(command)
             if error:
@@ -36,7 +36,7 @@ class ZeroStoreCLI:
         config_path = job['config_path']
         job_id = job['id']
         command = 'zerostorcli --conf %s file upload %s' % (config_path, file_path)
-        #command = 'cd /gopath/src/github.com/zero-os/0-stor/client/cmd/zerostorcli/ && zerostorcli file upload %s' % file_path
+        #command = 'cd /gopath/src/github.com/zero-os/0-stor/cmd/zstor && zerostorcli file upload %s' % file_path
         out, error = self.execute_shell_commands(command)
         if error:
             queue.put({'job_id': job_id,

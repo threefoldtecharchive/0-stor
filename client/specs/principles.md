@@ -139,7 +139,7 @@ cl.get(metadata=mdata,path=...)
 
 - implement in golang as main language
 - would do other languages by means of grpc to client which runs as daemon
-    - e.g. zeroStorClient --daemon
+    - e.g. zstor daemon
     - then grpc allows setting of params (see above) and then set, get, walk, ...
     - https://husobee.github.io/golang/rest/grpc/2016/05/28/golang-rest-v-grpc.html
 

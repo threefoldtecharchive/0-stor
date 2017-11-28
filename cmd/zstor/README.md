@@ -5,14 +5,14 @@ Simple cli to store file to 0-stor.
 ## Installation
 
 ```
- go get -u github.com/zero-os/0-stor/client/cmd/zerostorcli
+ go get -u github.com/zero-os/0-stor/cmd/zstor
 ```
 
 ## Configuration
 
-By default, the zerostorcli will look for a `config.yaml` file in the directory the zerostorcli is called from.  
-If a custom filename and/or directory needs to be provided for the config file, it can be set with the `--conf` flag. E.g.:  
-`zerostorcli --conf config/aConfigFile.yaml`
+By default, the cli client will look for a `config.yaml` file in the directory the client is called from.  
+If a custom filename and/or directory needs to be provided for the config file, it can be set with the `--config`/`-C` flag. E.g.:  
+`zstor --config config/aConfigFile.yaml`
 
 A config file should look something like this:
 ```yaml
@@ -59,63 +59,87 @@ The config used in this example will also do the following data processing when 
 The CLI expose two group of commands, file and namespace. Each group contains sub commands.
 
 - file
-  - upload: Upload a file to the 0-stor(s)
-  - download: Download a file from the 0-stor(s)
-  - delete: Delete a file from the 0-stor(s)
-  - metadata: Print the metadata of a key
-  - repair: Repair a file on the 0-stor(s)
+  - `upload`: Upload a file to the 0-stor(s)
+  - `download`: Download a file from the 0-stor(s)
+  - `delete`: Delete a file from the 0-stor(s)
+  - `metadata`: Print the metadata of a key
+  - `repair`: Repair a file on the 0-stor(s)
 - namespace
-  - create: Create a namespace by creation the required sub-organization on [ItsYou.Online][iyo]
-  - delete: Delete a namespace by deleting the sub-organizations.
-  - get-acl: Print the permission of a user for a namespace
-  - set-acl: Set the permission on a namespace for a user
+  - `create`: Create a namespace by creation the required sub-organization on [ItsYou.Online][iyo]
+  - `delete`: Delete a namespace by deleting the sub-organizations.
+  - `permission get`: Print the permission of a user for a namespace
+  - `permission set`: Set the permission on a namespace for a user
 
 ### Upload a file
 
 ```
-./zerostorcli --conf conf_file.yaml file upload data/my_file.file
+zstor --config conf_file.yaml file upload data/my_file.file
 ```
 
 Upload the file and use the file's name (`my_file.file`) as the 0-stor key.  
 If a custom key needs to be provided, the `--key` or `-k` flag can be used to set the desired key:
+
 ```
-./zerostorcli --conf conf_file.yaml file upload -k myFile data/my_file.file
+zstor --conf conf_file.yaml file upload -k myFile data/my_file.file
 ```
+
 Now the key for the file will be set to `myFile`.
+
+You can also upload a file directly from the STDIN:
+
+```
+zstor --config conf_file.yaml file upload -k myFile < data/my_file.file
+```
+
+When uploading a file directly from the STDIN the key has to be given.
 
 ### Download a file
 
 ```
-./zerostorcli --conf conf_file.yaml file download myFile downloaded.file
+zstor --config conf_file.yaml file download myFile
 ```
 
-Get value with key=`myFile` from 0-stor server and write it to `downloaded.file`
+This will get the value with key =`myFile`
+from the 0-stor server(s) and output it on the STDOUT.
+
+If you want to output the file directly to a file instead,
+you can define the `--output`/`-o` flag:
+
+```
+zstor --config conf_file.yaml file download myFile --output downloaded.file
+```
+
+This will get the value with key=`myFile`
+from 0-stor server(s) and write it to `downloaded.file` instead of the STDOUT.
 
 ### Read metadata of a file
 
 ```
-./zerostorcli --conf config_file.yaml file metadata myFile | json_pp
+zstor --config config_file.yaml file metadata myFile --json-pretty
 ```
-This will print the metadata of the object with the key `myFile` and pretty print the json output
+
+This will print the metadata of the object with the key `myFile` in a prettified JSON format.
+You can also print it as the default/compact JSON format using the `--json` flag.
+If None of these flags are given the metadata will be printed in a custom human-readable format (close to YAML).
 
 ### Repair a file
 
 ```
-./zerostorcli --conf config_file.yaml file repair myFile
+zstor --config config_file.yaml file repair myFile
 ```
 This will repair the file with the key `myFile` in the 0-stor
 
 ### Delete a file
 
 ```
-./zerostorcli --conf config_file.yaml file delete myFile
+zstor --config config_file.yaml file delete myFile
 ```
 This will delete the file with the key `myFile` in the 0-stor
 
 ### Create a namespace
 
 ```
-./zerostorcli --conf conf_file.yaml namespace create namespace_test
+zstor --config conf_file.yaml namespace create namespace_test
 ```
 
 This command will create the required sub-organization on [ItsYou.online][iyo].
@@ -127,7 +151,7 @@ This command uses the `organization` field from the configuration file. If the o
 
 ### Delete a namespace
 ```
-./zerostorcli --conf conf_file.yaml namespace delete namespace_test
+zstor --config conf_file.yaml namespace delete namespace_test
 ```
 
 This command will delete the organization `myorg.0stor.namespace_test` and all its sub-organization
@@ -135,10 +159,12 @@ This command will delete the organization `myorg.0stor.namespace_test` and all i
 ### Set rights of a user into a namespace
 
 ```
-./zerostorcli --conf conf_file.yaml namespace set-acl --namespace namespace_test --userid johndoe@email.com -r -w -d
+zstor --config conf_file.yaml namespace permission set johndoe@email.com namespace_test -rwd
 ```
 
-This command will authorize the user with it's [ItsYou.online][iyo] user ID, in this case the email address `johndoe@email.com` into the namespace `namespace_test` with the right read, write and delete.
+This command will authorize the user with it's [ItsYou.online][iyo] user ID,
+in this case the email address `johndoe@email.com` into the namespace `namespace_test`
+with the right read, write and delete.
 
 For [ItsYou.online's][iyo] user ID, following can be used reliably with 0-stor: email address
 
@@ -150,20 +176,18 @@ The different rights that can be set are:
 
 Note that once you give access to a user, he will receive an invitation from ItsYou.online to join the organization. He needs to accept the invitation before being able to access the 0-stor(s).
 
-
-To remove some right, just re-execute the command with the new rights. if no right are passed, then the user is unauthorized.
-
+To remove some right, just re-execute the command with rights the user would have after the desired removal.
+if no right are passed, then the user is unauthorized on all levels.
 
 ### Get the rights of a user
 
 ```
-./zerostorcli --conf demo.yaml namespace get-acl --namespace namespace_test --userid johndoe@email.com
+zstor --config demo.yaml namespace permission get johndoe@email.com namespace_test
 ```
 
-This command will show the rights that a user with provided [ItsYou.online][iyo] user ID has for the specified namespace:
+This command will print the rights that a user with provided [ItsYou.online][iyo] user ID has for the specified namespace:
 
 ```
-User johndoe@email.com :
 Read: true
 Write: true
 Delete: true
