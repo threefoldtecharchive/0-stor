@@ -60,7 +60,6 @@ The reference list for example, can be used to allow the client to do deduplicat
 	type Meta struct {
 		Epoch     int64  # creation epoch
 		Key       []byte # key used in the 0-stor
-		EncrKey   []byte # Encryption key used to encrypt this file
 		Chunks    []*Chunk # list of chunks of the files
 		Previous  []byte   # Key to the previous metadata entry
 		Next      []byte   # Key to the next metadata entry

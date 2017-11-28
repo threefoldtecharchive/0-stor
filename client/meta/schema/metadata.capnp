@@ -13,8 +13,6 @@ struct Metadata {
 	key @2 :Data;
 	# Key used in 0-stor
 
-	encrKey @3 :Data;
-	# Encryption key used to encrypt this file
 
 	struct Chunk {
 		key @0 :Data;
@@ -26,16 +24,16 @@ struct Metadata {
 		shards @2 :List(Text);
 		# List of shards of the chunk. It's a url the 0-stor
 	}
-	chunks @4 :List(Chunk);
+	chunks @3 :List(Chunk);
 	# List of chunks of the file.
 	# Can be only 1 if we don't split the file with chunker pipe
 
-	previous @5 :Data;
+	previous @4 :Data;
 	# Key to the previous metadata entry
 
-	next @6 :Data;
+	next @5 :Data;
 	# Key to the next metadata entry
 
-	configPtr @7 :Data;
+	configPtr @6 :Data;
 	# Key to the configuration used by the lib to set the data.
 }

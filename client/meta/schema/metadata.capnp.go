@@ -14,12 +14,12 @@ type Metadata struct{ capnp.Struct }
 const Metadata_TypeID = 0x84eb980ee3c7d21d
 
 func NewMetadata(s *capnp.Segment) (Metadata, error) {
-	st, err := capnp.NewStruct(s, capnp.ObjectSize{DataSize: 16, PointerCount: 6})
+	st, err := capnp.NewStruct(s, capnp.ObjectSize{DataSize: 16, PointerCount: 5})
 	return Metadata{st}, err
 }
 
 func NewRootMetadata(s *capnp.Segment) (Metadata, error) {
-	st, err := capnp.NewRootStruct(s, capnp.ObjectSize{DataSize: 16, PointerCount: 6})
+	st, err := capnp.NewRootStruct(s, capnp.ObjectSize{DataSize: 16, PointerCount: 5})
 	return Metadata{st}, err
 }
 
@@ -63,32 +63,18 @@ func (s Metadata) SetKey(v []byte) error {
 	return s.Struct.SetData(0, v)
 }
 
-func (s Metadata) EncrKey() ([]byte, error) {
-	p, err := s.Struct.Ptr(1)
-	return []byte(p.Data()), err
-}
-
-func (s Metadata) HasEncrKey() bool {
-	p, err := s.Struct.Ptr(1)
-	return p.IsValid() || err != nil
-}
-
-func (s Metadata) SetEncrKey(v []byte) error {
-	return s.Struct.SetData(1, v)
-}
-
 func (s Metadata) Chunks() (Metadata_Chunk_List, error) {
-	p, err := s.Struct.Ptr(2)
+	p, err := s.Struct.Ptr(1)
 	return Metadata_Chunk_List{List: p.List()}, err
 }
 
 func (s Metadata) HasChunks() bool {
-	p, err := s.Struct.Ptr(2)
+	p, err := s.Struct.Ptr(1)
 	return p.IsValid() || err != nil
 }
 
 func (s Metadata) SetChunks(v Metadata_Chunk_List) error {
-	return s.Struct.SetPtr(2, v.List.ToPtr())
+	return s.Struct.SetPtr(1, v.List.ToPtr())
 }
 
 // NewChunks sets the chunks field to a newly
@@ -98,50 +84,50 @@ func (s Metadata) NewChunks(n int32) (Metadata_Chunk_List, error) {
 	if err != nil {
 		return Metadata_Chunk_List{}, err
 	}
-	err = s.Struct.SetPtr(2, l.List.ToPtr())
+	err = s.Struct.SetPtr(1, l.List.ToPtr())
 	return l, err
 }
 
 func (s Metadata) Previous() ([]byte, error) {
-	p, err := s.Struct.Ptr(3)
+	p, err := s.Struct.Ptr(2)
 	return []byte(p.Data()), err
 }
 
 func (s Metadata) HasPrevious() bool {
-	p, err := s.Struct.Ptr(3)
+	p, err := s.Struct.Ptr(2)
 	return p.IsValid() || err != nil
 }
 
 func (s Metadata) SetPrevious(v []byte) error {
-	return s.Struct.SetData(3, v)
+	return s.Struct.SetData(2, v)
 }
 
 func (s Metadata) Next() ([]byte, error) {
-	p, err := s.Struct.Ptr(4)
+	p, err := s.Struct.Ptr(3)
 	return []byte(p.Data()), err
 }
 
 func (s Metadata) HasNext() bool {
-	p, err := s.Struct.Ptr(4)
+	p, err := s.Struct.Ptr(3)
 	return p.IsValid() || err != nil
 }
 
 func (s Metadata) SetNext(v []byte) error {
-	return s.Struct.SetData(4, v)
+	return s.Struct.SetData(3, v)
 }
 
 func (s Metadata) ConfigPtr() ([]byte, error) {
-	p, err := s.Struct.Ptr(5)
+	p, err := s.Struct.Ptr(4)
 	return []byte(p.Data()), err
 }
 
 func (s Metadata) HasConfigPtr() bool {
-	p, err := s.Struct.Ptr(5)
+	p, err := s.Struct.Ptr(4)
 	return p.IsValid() || err != nil
 }
 
 func (s Metadata) SetConfigPtr(v []byte) error {
-	return s.Struct.SetData(5, v)
+	return s.Struct.SetData(4, v)
 }
 
 // Metadata_List is a list of Metadata.
@@ -149,7 +135,7 @@ type Metadata_List struct{ capnp.List }
 
 // NewMetadata creates a new list of Metadata.
 func NewMetadata_List(s *capnp.Segment, sz int32) (Metadata_List, error) {
-	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 16, PointerCount: 6}, sz)
+	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 16, PointerCount: 5}, sz)
 	return Metadata_List{l}, err
 }
 
@@ -268,34 +254,32 @@ func (p Metadata_Chunk_Promise) Struct() (Metadata_Chunk, error) {
 	return Metadata_Chunk{s}, err
 }
 
-const schema_f4533cbae6e08506 = "x\xda\\\x91Mk\x13_\x18\xc5\xcfy\xee\xdc\x19\x0a" +
-	"i\xfb\xbfd\xfe\xd6\x8dD\\I\xc1\x97\xd6]\x11R" +
-	"\xac\x82o\x85<\xc9\xc2\xf50\x19M(\x9d\x84L*" +
-	"\xeaF(\xfa\x1d\xfc\x02\xae\xc5\xa5~\x81n\\\xa8(" +
-	"T\xa8P\xa9\xb8q!B\x85\"\xc8\xc8\xb5$\xb1\xee" +
-	"\xe6\x9cY\xdc\xdf\xf9=\xe7-\x97e\xc1\xce\x09\xa0\xc7" +
-	"mX\xde\xfav\xdan\xee\xfd\xbf\x09\xad\x91\xe5\x89\xb7" +
-	"[{3O\xbe>\x82\x95\x08X\xf8>\xcf*\x19\x01" +
-	"\xee\xd73\xfc\xf5W\x8fQ\xca\xf0\xf1\xee\x97\x97\x17[" +
-	"\xfb\xb0a\x04T\x9f\xf2g\xf59\xe7\x80\x0b/\xb8E" +
-	"\x9c)\x8b\xb4\x93\xad'\xe7\xd6M6L\xda\xc909" +
-	"\x9b&\xfd\xbc\xbf\xb4:\x8a+\xb3\x9d\x8d|\xadAj" +
-	"\xc5\x04@@\xc0]9\x05\xe8\xb2\xa1\xde\x14\x921}" +
-	"wm\x1e\xd0\xcb\x86\xda\x10:aL\x01\xdc\xea\x12\xa0" +
-	"W\x0d\xb5-\x8c\xd6\xb2\xfb\x9c\x86p\x1a\x9c-\xba\x0f" +
-	"2NA8\x05\xd6\x8bN2h\x17\x9c\x01\x1b\x86\xac" +
-	"@\xfc\xe7\x18L\xfe\x05\xab\x1ff\x0d\xc8\x89\x17\xc7\xc5" +
-	"\xda\x8a'\xd5\x93c\xcc7\x1e\xe9\x95\xa1n\x0b\xdd\x88" +
-	"\xf3\xfd\"\xa0\xaf\x0duGH9\xc4\xfc\xe0\xf7\xbc3" +
-	"\xd4]\xa13\x8ci\x00\xf7\xf1\x12\xa0\xdb\x86\xfaY\xe8" +
-	"\x02\x89\x19\x00\xee\x93\x1f\xb4c\xa8\x07BgML\x0b" +
-	"\xb8\x1f\xd7\x01\xdd7lR\xe8\xc2 f\xe8O\xe1\x1f" +
-	"?0l\x05\xbe\x8dl\xec\x0fT%\x9b@\x93\x86\xad" +
-	"\x0a\xe5\xa8\x86Z\xd6\xef\xa5\x1dZ\x08-\x8e\xd8z\x98" +
-	"\xe5\xe9\xe0\xc6$\xd7S?t,\xec\xbf\x89\x05\xf0\x8f" +
-	"\xba\xfe \xbb\xdb\xedm\x14\x00\xc6\xc6\xf3\xec\xdep\x14" +
-	"\xca\xb4\x97\xdf\xee\xdei\x0c\xc1\xc1\xa8\xfb\x1d\x00\x00\xff" +
-	"\xff\xa9#\x84\xd0"
+const schema_f4533cbae6e08506 = "x\xda\\\x90\xcfk\x13Q\x14\x85\xcf\xb9w^B\xa1" +
+	"\xbf\x1e\x19\xad\x0b%\xe0J\x0a*\xad\xbb\"\xa4P\x05" +
+	"\x15\x0b\xb9\xbap=LF\x13J\x93\x90IE]\x16" +
+	"]\xbb\xf5\x1fp\xad\x82\x82\x95\x0a\x0a\x82{Q\xe8F" +
+	"\x88T\xdc(\x88 .\x04\x19y\x96\xa4\xa6\xbbw\xce" +
+	"[\xdc\xef|\xb3\xbf\x96e\xc1\xcd\x09`G\\\xa9\xb8" +
+	"\xf6\xfd\x84\xdb\xdc=\xb4\x09\xab\x92\xc5\xb1wow\xa7" +
+	"\x1f|\xbd\x0b'e`\xe1\xc7<+d\x19\xf0\x7f\x1e" +
+	"\xe1\xbf_;L)J\xf7\x06_^\x9c\xbd\xfa\x13\xce" +
+	"\x95\x81\xcaC\xfe\xae<\xe1\x1cpf\x8b\xf7\x89\x93E" +
+	"\x9e6\xb3\xf5\xe4\xf4\xbaf\xfd\xa4\x91\xf4\x93Si\xd2" +
+	"mw\x97V\x87qe\xa6\xb9\xd1^\xab\x936\xa9\x11" +
+	"\x10\x11\xf0\xe7\x8f\x03\xb6\xac\xb4\xcbB2f\xe8.\xce" +
+	"\x03vNiu\xa1\x17\xc6\x14\xc0\xaf.\x01vAi" +
+	"\x0day-\xbb\xcd)\x08\xa7\xc0\x99\xbcu'\xe3\x04" +
+	"\x84\x13`-o&\xbdF\xcei\xb0\xae\xe4$$<" +
+	"G`r\x10\xac\xb6\x97-\"\xf7\xbdx.VW\x02" +
+	"\xa9\x1d\x1da>\x0bH\x8f\x95\xb6-\xf4C\xce\xadE" +
+	"\xc0\x9e*\xed\x95\x90\xb2\x87\xf92\xecy\xae\xb47B" +
+	"\xaf\x8c\xa9\x80\x7f\x1d\xd8\xb7\x95\xb6#\xf4\x91\xc4\x8c\x00" +
+	"\xff\xe1\x12`\xef\x956\x10z\xa71\x1d\xe0?\x86;" +
+	";J\xfb,\xf4\xa5(f\x09\xf0\x9f\xae\x006P\xda" +
+	"7\x19\x9f[\xcd\xba\x9d\xb4I\x07\xa1\xc3\x98\x95Z\x1a" +
+	"\x06\x8cD\xcc\xee\xaf\x03\xff)\xe9\xf6\xb2\x9b\xad\xceF" +
+	"\x0e`d\xb2\x9d\xdd\xea\x0fC\x91v\xda\xd7[7\xea" +
+	"}\xb07\xec\xfe\x06\x00\x00\xff\xff\xfd\xbc\x80\x9d"
 
 func init() {
 	schemas.Register(schema_f4533cbae6e08506,

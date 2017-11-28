@@ -14,15 +14,13 @@ struct Metadata {
     # creation epoch
     Key @2 :Data;
     # key used in the 0-stor
-    EncrKey @3 :Data;
-    # Encryption key used to encrypt this file
-    Shard @4 :List(Text);
+    Shard @3 :List(Text);
     # List of shard of the file. It's a url the 0-stor
-    Previous @5 :Data;
+    Previous @4 :Data;
     # Key to the previous metadata entry
-    Next @6 :Data;
+    Next @5 :Data;
     # Key to the next metadata entry
-    ConfigPtr @7 :Data;
+    ConfigPtr @6 :Data;
     # Key to the configuration used by the lib to set the data.
 }
 ```

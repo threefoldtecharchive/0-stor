@@ -70,7 +70,6 @@ func decodeChunk(chunk schema.Metadata_Chunk) (*Chunk, error) {
 type Meta struct {
 	Epoch     int64    `json:"epoch"`
 	Key       []byte   `json:"key"`
-	EncrKey   []byte   `json:"encryption_key"`
 	Chunks    []*Chunk `json:"chunks"`
 	Previous  []byte   `json:"previous"`
 	Next      []byte   `json:"next"`
@@ -126,10 +125,7 @@ func (m *Meta) createCapnpMsg() (*capnp.Message, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = md.SetEncrKey(m.EncrKey)
-	if err != nil {
-		return nil, err
-	}
+
 	md.SetEpoch(m.Epoch)
 	err = md.SetPrevious(m.Previous)
 	if err != nil {
@@ -207,10 +203,7 @@ func decodeMeta(msg *capnp.Message) (*Meta, error) {
 	if err != nil {
 		return nil, err
 	}
-	meta.EncrKey, err = md.EncrKey()
-	if err != nil {
-		return nil, err
-	}
+
 	meta.Previous, err = md.Previous()
 	if err != nil {
 		return nil, err

@@ -30,7 +30,6 @@ func createCapnpMeta(t testing.TB) *meta.Meta {
 	meta := meta.New([]byte("testkey"))
 	meta.Previous = []byte("previous")
 	meta.Next = []byte("next")
-	meta.EncrKey = []byte("secret")
 	meta.Chunks = chunks
 
 	return meta
@@ -58,7 +57,6 @@ func TestRoundTrip(t *testing.T) {
 	assert.Equal(t, md.Key, storedMd.Key, "key is different")
 	assert.Equal(t, md.Size(), storedMd.Size(), "size is different")
 	assert.Equal(t, md.Epoch, storedMd.Epoch, "epoch is different")
-	assert.Equal(t, md.EncrKey, storedMd.EncrKey, "encryption key is different")
 	assert.Equal(t, md.Previous, storedMd.Previous, "previous pointer is different")
 	assert.Equal(t, md.Next, storedMd.Next, "next pointer is different")
 	assert.Equal(t, md.ConfigPtr, storedMd.ConfigPtr, "config pointer is different")

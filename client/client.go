@@ -206,7 +206,6 @@ func (c *Client) writeFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMet
 
 		if c.policy.Encrypt {
 			block, err = aesgm.Encrypt(block)
-			md.EncrKey = []byte(c.policy.EncryptKey)
 			chunk.Size = uint64(len(block))
 		}
 

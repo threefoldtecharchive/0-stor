@@ -44,7 +44,6 @@ func createCapnpMeta(t testing.TB) *Meta {
 	meta := New([]byte("testkey"))
 	meta.Previous = []byte("previous")
 	meta.Next = []byte("next")
-	meta.EncrKey = []byte("secret")
 	meta.Chunks = chunks
 
 	return meta

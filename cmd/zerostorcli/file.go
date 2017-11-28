@@ -156,7 +156,6 @@ func metaString(m *meta.Meta) string {
 
 	buffer.WriteString(fmt.Sprintf("Key: %s\n", m.Key))
 	buffer.WriteString(fmt.Sprintf("Epoch: %d\n", m.Epoch))
-	buffer.WriteString(fmt.Sprintf("Encryption key: %s\n", m.EncrKey))
 	buffer.WriteString("Chunks:\n")
 	for _, chunk := range m.Chunks {
 		buffer.WriteString("\t")
