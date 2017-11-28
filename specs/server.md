@@ -26,7 +26,7 @@ Our design principles at hand that will guide is through the work to be done are
       + 1.3.1. [FS](#fs): contains all local FileSystem related logic;
       + 1.3.1. [Stats](#stats): a global server statistics tracker;
       + 1.3.1. [Encoding](#encoding): provides all server encoding/decoding logic;
-    + 1.4. [ztordb](#ztordb): the 0-stor server binary;
+    + 1.4. [zstordb](#zstordb): the 0-stor server binary;
     + 1.5. [Final Notes](#final-notes): some final design notes;
 
 ## Design
@@ -53,7 +53,7 @@ On top of these two layer packages, we also have some other packages:
 + `encoding`: provides the encoding/decoding logic to use and transform the raw byte data;
 
 This is all the 0-stor server package provides.
-The actual binary can be defined in a single file, `/cmd/ztordb/main.go`,
+The actual binary can be defined in a single file, `/cmd/zstordb/main.go`,
 and does only handle flag/option parsing and the creation of the server layers accordingly,
 to finally serve using the desired API layer.
 
@@ -362,9 +362,9 @@ It is however left to the implementer to decide whether or not the proposed API 
 some modifications here and there. Or to extend the API where needed.
 However, KISS!!!
 
-### ztordb
+### zstordb
 
-> defined as a single-file binary: `/cmd/ztordb/main.go` (the 0-Stor server binary)
+> defined as a single-file binary: `/cmd/zstordb/main.go` (the 0-Stor server binary)
 
 + Parse flags/options, version and app execution code;
    + should we decide to use `spf13/cobra` we'll have to redefine the flag/option and command/execute code;
