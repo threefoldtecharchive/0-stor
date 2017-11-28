@@ -60,9 +60,21 @@ testclientrace:
 testcodegen:
 	./utils/scripts/test_codegeneration.sh
 
+ensure_deps:
+	dep ensure -v
+	make prune_deps
+
+update_dep:
+	dep ensure -v
+	dep ensure -v -update $$DEP
+	make prune_deps
+
 update_deps:
 	dep ensure -v
 	dep ensure -update -v
+	make prune_deps
+
+prune_deps:
 	dep prune -v
 	# ensure we don't delete files that we don't want to prune
 	git checkout -- vendor/zombiezen.com/go/capnproto2/std/go.capnp
