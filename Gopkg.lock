@@ -26,12 +26,6 @@
   revision = "30d10be492927e2dcae0089c374c455d42414fcb"
 
 [[projects]]
-  name = "github.com/codegangsta/cli"
-  packages = ["."]
-  revision = "cfb38830724cc34fedffe9a2a29fb54fa9169cd1"
-  version = "v1.20.0"
-
-[[projects]]
   name = "github.com/coreos/bbolt"
   packages = ["."]
   revision = "583e8937c61f1af6513608ccc75c97b6abdf4ff9"
@@ -134,6 +128,12 @@
   version = "v1.3.0"
 
 [[projects]]
+  name = "github.com/inconshreveable/mousetrap"
+  packages = ["."]
+  revision = "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
+  version = "v1.0"
+
+[[projects]]
   branch = "master"
   name = "github.com/itsyouonline/identityserver"
   packages = ["clients/go/itsyouonline","clients/go/itsyouonline/goraml"]
@@ -225,6 +225,18 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/spf13/cobra"
+  packages = ["."]
+  revision = "1be1d2841c773c01bee8289f55f7463b6e2c2539"
+
+[[projects]]
+  name = "github.com/spf13/pflag"
+  packages = ["."]
+  revision = "e57e3eeb33f795204c1ca35f56c44f83227c6e66"
+  version = "v1.0.0"
+
+[[projects]]
+  branch = "master"
   name = "github.com/stretchr/testify"
   packages = ["assert","require"]
   revision = "2aa2c176b9dab406a6970f6a55f513e8a8c8b18f"
@@ -238,12 +250,6 @@
   name = "github.com/ugorji/go"
   packages = ["codec"]
   revision = "ded73eae5db7e7a0ef6f55aace87a2873c5d2b74"
-
-[[projects]]
-  name = "github.com/urfave/cli"
-  packages = ["."]
-  revision = "cfb38830724cc34fedffe9a2a29fb54fa9169cd1"
-  version = "v1.20.0"
 
 [[projects]]
   name = "github.com/xiang90/probing"
@@ -308,6 +314,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "2a242eec227ce66e942760819fdf1228c706eaa9fde7ac1af4a103312f0d5bfa"
+  inputs-digest = "f006080a5366a831bd0d42bdb1e90b9673222ea45069cbd2e1bb30474a342f44"
   solver-name = "gps-cdcl"
   solver-version = 1
