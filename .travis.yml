@@ -28,7 +28,7 @@ matrix:
       go: 1.9
       install: skip
       script: make testcov
-      after_success: bash <(curl -s https://codecov.io/bash)
+      after_success: bash <(curl -s https://codecov.io/bash) -F unittests
 
     - language: go
       go: 1.9
