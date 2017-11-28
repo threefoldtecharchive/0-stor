@@ -12,7 +12,7 @@ SERVER_PACKAGES = $(shell go list ./server/...)
 CLIENT_PACKAGES = $(shell go list ./client/...)
 
 ldflags = -extldflags "-static"
-ldflagsversion = -X main.CommitHash=$(COMMIT_HASH) -X main.BuildDate=$(BUILD_DATE) -s -w
+ldflagsversion = -X $(PACKAGE)/cmd.CommitHash=$(COMMIT_HASH) -X $(PACKAGE)/cmd.BuildDate=$(BUILD_DATE) -s -w
 
 all: server cli
 
@@ -28,15 +28,15 @@ endif
 server: $(OUTPUT)
 ifeq ($(GOOS), darwin)
 	GOOS=$(GOOS) GOARCH=$(GOARCH) \
-		go build -ldflags '$(ldflagsversion)' -o $(OUTPUT)/zerostorserver ./cmd/zerostorserver
+		go build -ldflags '$(ldflagsversion)' -o $(OUTPUT)/zstordb ./cmd/zstordb
 else
 	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) \
-		go build -ldflags '$(ldflags)$(ldflagsversion)' -o $(OUTPUT)/zerostorserver ./cmd/zerostorserver
+		go build -ldflags '$(ldflags)$(ldflagsversion)' -o $(OUTPUT)/zstordb ./cmd/zstordb
 endif
 
 install: all
 	cp $(OUTPUT)/zerostorcli $(GOPATH)/bin/zerostorcli
-	cp $(OUTPUT)/zerostorserver $(GOPATH)/bin/zerostorserver
+	cp $(OUTPUT)/zstordb $(GOPATH)/bin/zstordb
 
 test: testserver testclient
 
