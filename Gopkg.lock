@@ -137,7 +137,7 @@
   branch = "master"
   name = "github.com/itsyouonline/identityserver"
   packages = ["clients/go/itsyouonline","clients/go/itsyouonline/goraml"]
-  revision = "ba1ce747b617cc6e22285cf3a1c3b8f29af1074c"
+  revision = "0bef5af0c677792b39d45ae66f2043f197e215de"
 
 [[projects]]
   name = "github.com/jonboulle/clockwork"
