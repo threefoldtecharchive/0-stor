@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/zero-os/0-stor/client"
 	"github.com/zero-os/0-stor/client/itsyouonline"
@@ -22,9 +23,16 @@ func Execute() {
 var rootCmd = &cobra.Command{
 	Use:   "zstor",
 	Short: "Client used to manage 0-stor (meta)data and permissions.",
+	PersistentPreRun: func(*cobra.Command, []string) {
+		if rootCfg.DebugLog {
+			log.SetLevel(log.DebugLevel)
+			log.Debug("Debug logging enabled")
+		}
+	},
 }
 
 var rootCfg struct {
+	DebugLog   bool
 	ConfigFile string
 }
 
@@ -72,7 +80,9 @@ func init() {
 		cmd.VersionCmd,
 	)
 
+	rootCmd.PersistentFlags().BoolVarP(
+		&rootCfg.DebugLog, "debug", "D", false, "Enable debug logging.")
 	rootCmd.PersistentFlags().StringVarP(
-		&rootCfg.ConfigFile, "config", "c", "config.yaml",
+		&rootCfg.ConfigFile, "config", "C", "config.yaml",
 		"Path to the configuration file.")
 }

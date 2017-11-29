@@ -34,17 +34,18 @@ var rootCmd = &cobra.Command{
 	Short: "A generic object store server.",
 	Long:  `A generic object store server used by zero-os.`,
 	RunE:  rootFunc,
+	PreRun: func(*cobra.Command, []string) {
+		if rootCfg.DebugLog {
+			log.SetLevel(log.DebugLevel)
+			log.Debug("Debug logging enabled")
+		}
+		if rootCfg.AuthDisabled {
+			log.Warning("!! Authentification disabled, don't use this mode for production!!!")
+		}
+	},
 }
 
 func rootFunc(*cobra.Command, []string) error {
-	if rootCfg.DebugLog {
-		log.SetLevel(log.DebugLevel)
-		log.Debug("Debug logging enabled")
-	}
-	if rootCfg.AuthDisabled {
-		log.Warning("!! Authentification disabled, don't use this mode for production!!!")
-	}
-
 	cmd.LogVersion()
 
 	dbOpts := badgerkv.DefaultOptions
