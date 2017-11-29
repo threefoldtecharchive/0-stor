@@ -27,18 +27,17 @@ go get -u github.com/zero-os/0-stor/cmd/zstordb
 ## Running the server
 
 Here are the options of the server:
-```
-   --debug, -d               Enable debug logging
-   --bind value, -b value    Bind address (default: ":8080")
-   --data value              Data directory (default: ".db/data")
-   --meta value              Metadata directory (default: ".db/meta")
-   --profile-addr value      Enables profiling of this server as an http service
-   --auth-disable            Disable JWT authentification [$STOR_TESTING]
-   --max-msg-size value      Configure the maximum size of the message GRPC server can receive, in MiB (default: 32)
-   --async-write             enable asynchronous writes (default: false)
-   --help, -h                show help
-   --version, -v             print the version
 
+```
+      --async-write           Enable asynchronous writes in BadgerDB.
+      --data-dir string       Directory path used to store the data. (default ".db/data")
+  -D, --debug                 Enable debug logging.
+  -h, --help                  help for zstordb
+      --max-msg-size int      Configure the maximum size of the message GRPC server can receive, in MiB (default 32)
+      --meta-dir string       Directory path used to store the meta data. (default ".db/meta")
+      --no-auth               Disable JWT authentication.
+  -p, --port int              Bind the server to the given local port. (default 8080)
+      --profile-addr string   Enables profiling of this server as an http service.
 ```
 
 Start the server with listening on all interfaces and port 12345
