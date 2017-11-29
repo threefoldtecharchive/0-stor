@@ -21,7 +21,7 @@ func Execute() {
 
 var rootCmd = &cobra.Command{
 	Use:   "zstor",
-	Short: "0-stor cli used to interact with a 0-stor server.",
+	Short: "Client used to manage 0-stor (meta)data and permissions.",
 }
 
 var rootCfg struct {
