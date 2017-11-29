@@ -1,7 +1,8 @@
-# 0-stor proxy
+# 0-stor daemon
 
 ## Goal
-Giving the client the option to become a proxy with a e.g. grpc interface so that e.g. python can instruct the proxy to send/receive files.
+Giving the client the option to become a daemon with a e.g. grpc interface so that
+e.g. python can instruct the daemon to manage data, permissions and namespaces.
 
 We do this to prevent to have to re-implement all the client logic in every language we use.
 
@@ -9,7 +10,8 @@ We do this to prevent to have to re-implement all the client logic in every lang
 In a second phase we want to add a caching and autodiscovery feature to the deamon so it could be used as some kind of IPFS replacement.
 
 ## Requirements:
-- The proxy should be a separate binary with the same configuration as we would for a normal client.
+- The daemon will be part of the normal client, using the same configuration.
+- The daemon is spawned by running a seperate command (`zstor daemon`).
 - Simple interface, probably grpc. Grpc has a great number of supported language, that should give us the flexibilty we need.
 - There is no authentication needed between proxy user and the proxy because the authentication is done in the server side and the proxy is supposed to run locally and thus the user can be trusted.
 - IYO commands:
