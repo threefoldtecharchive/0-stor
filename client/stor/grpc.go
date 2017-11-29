@@ -41,7 +41,7 @@ func (c *client) Close() {
 }
 
 func (c *client) NamespaceGet() (*pb.Namespace, error) {
-	resp, err := c.namespaceService.Get(ctxWithJWT(c.jwtToken), &pb.GetNamespaceRequest{Label: c.namespace})
+	resp, err := c.namespaceService.Get(contextWithMetadata(c.jwtToken, c.namespace), &pb.GetNamespaceRequest{Label: c.namespace})
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +67,7 @@ func (c *client) NamespaceGet() (*pb.Namespace, error) {
 // }
 
 func (c *client) ObjectList(page, perPage int) ([]string, error) {
-	stream, err := c.objService.List(ctxWithJWT(c.jwtToken), &pb.ListObjectsRequest{Label: c.namespace})
+	stream, err := c.objService.List(contextWithMetadata(c.jwtToken, c.namespace), &pb.ListObjectsRequest{Label: c.namespace})
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +90,7 @@ func (c *client) ObjectList(page, perPage int) ([]string, error) {
 }
 
 func (c *client) ObjectCreate(id, data []byte, refList []string) error {
-	_, err := c.objService.Create(ctxWithJWT(c.jwtToken), &pb.CreateObjectRequest{
+	_, err := c.objService.Create(contextWithMetadata(c.jwtToken, c.namespace), &pb.CreateObjectRequest{
 		Label: c.namespace,
 		Object: &pb.Object{
 			Key:           id,
@@ -106,7 +106,7 @@ func (c *client) ObjectCreate(id, data []byte, refList []string) error {
 }
 
 func (c *client) ObjectGet(id []byte) (*pb.Object, error) {
-	resp, err := c.objService.Get(ctxWithJWT(c.jwtToken), &pb.GetObjectRequest{
+	resp, err := c.objService.Get(contextWithMetadata(c.jwtToken, c.namespace), &pb.GetObjectRequest{
 		Label: c.namespace,
 		Key:   id,
 	})
@@ -120,7 +120,7 @@ func (c *client) ObjectGet(id []byte) (*pb.Object, error) {
 }
 
 func (c *client) ObjectDelete(id []byte) error {
-	_, err := c.objService.Delete(ctxWithJWT(c.jwtToken), &pb.DeleteObjectRequest{
+	_, err := c.objService.Delete(contextWithMetadata(c.jwtToken, c.namespace), &pb.DeleteObjectRequest{
 		Label: c.namespace,
 		Key:   id,
 	})
@@ -129,7 +129,7 @@ func (c *client) ObjectDelete(id []byte) error {
 }
 
 func (c *client) ObjectExist(id []byte) (bool, error) {
-	resp, err := c.objService.Exists(ctxWithJWT(c.jwtToken), &pb.ExistsObjectRequest{
+	resp, err := c.objService.Exists(contextWithMetadata(c.jwtToken, c.namespace), &pb.ExistsObjectRequest{
 		Label: c.namespace,
 		Key:   id,
 	})
@@ -138,7 +138,7 @@ func (c *client) ObjectExist(id []byte) (bool, error) {
 }
 
 func (c *client) ReferenceSet(id []byte, refList []string) error {
-	_, err := c.objService.SetReferenceList(ctxWithJWT(c.jwtToken), &pb.UpdateReferenceListRequest{
+	_, err := c.objService.SetReferenceList(contextWithMetadata(c.jwtToken, c.namespace), &pb.UpdateReferenceListRequest{
 		Label:         c.namespace,
 		Key:           id,
 		ReferenceList: refList,
@@ -148,7 +148,7 @@ func (c *client) ReferenceSet(id []byte, refList []string) error {
 }
 
 func (c *client) ReferenceAppend(id []byte, refList []string) error {
-	_, err := c.objService.AppendReferenceList(ctxWithJWT(c.jwtToken), &pb.UpdateReferenceListRequest{
+	_, err := c.objService.AppendReferenceList(contextWithMetadata(c.jwtToken, c.namespace), &pb.UpdateReferenceListRequest{
 		Label:         c.namespace,
 		Key:           id,
 		ReferenceList: refList,
@@ -163,7 +163,7 @@ func (c *client) ObjectsCheck(ids [][]byte) ([]*pb.CheckResponse, error) {
 		sids[i] = string(id)
 	}
 
-	stream, err := c.objService.Check(ctxWithJWT(c.jwtToken), &pb.CheckRequest{Ids: sids, Label: c.namespace})
+	stream, err := c.objService.Check(contextWithMetadata(c.jwtToken, c.namespace), &pb.CheckRequest{Ids: sids, Label: c.namespace})
 	if err != nil {
 		return nil, err
 	}
@@ -188,7 +188,7 @@ func (c *client) ObjectsCheck(ids [][]byte) ([]*pb.CheckResponse, error) {
 }
 
 func (c *client) ReferenceRemove(id []byte, refList []string) error {
-	_, err := c.objService.RemoveReferenceList(ctxWithJWT(c.jwtToken), &pb.UpdateReferenceListRequest{
+	_, err := c.objService.RemoveReferenceList(contextWithMetadata(c.jwtToken, c.namespace), &pb.UpdateReferenceListRequest{
 		Label:         c.namespace,
 		Key:           id,
 		ReferenceList: refList,
@@ -196,7 +196,7 @@ func (c *client) ReferenceRemove(id []byte, refList []string) error {
 
 	return err
 }
-func ctxWithJWT(jwt string) context.Context {
-	md := metadata.Pairs("authorization", jwt)
+func contextWithMetadata(jwt, label string) context.Context {
+	md := metadata.Pairs("authorization", jwt, "label", label)
 	return metadata.NewOutgoingContext(context.Background(), md)
 }

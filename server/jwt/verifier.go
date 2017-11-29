@@ -11,9 +11,8 @@ import (
 
 	jwtgo "github.com/dgrijalva/jwt-go"
 	"github.com/karlseguin/ccache"
-	"google.golang.org/grpc/codes"
+	"github.com/zero-os/0-stor/server/grpc"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/status"
 )
 
 const (
@@ -28,9 +27,6 @@ MHYwEAYHKoZIzj0CAQYFK4EEACIDYgAES5X8XrfKdx9gYayFITc89wad4usrk0n2
 	// rough estimation size of jwtCacheVal is 150 bytes
 	// if our jwtCacheSize = 1024, it takes : 150 * 1024 bytes = 153 kilobytes
 	jwtCacheSize = 2 << 11 // 4096
-
-	// authentication key where the JWT can be found in the GRPC's context
-	authGRPCKey = "authorization"
 )
 
 var (
@@ -105,21 +101,21 @@ func (v *Verifier) ValidateJWT(ctx context.Context, method Method, label string)
 	var scopes []string
 	token, err := v.extractJWTToken(ctx)
 	if err != nil {
-		return status.Error(codes.Unauthenticated, err.Error())
+		return err
 	}
 
 	scopes, err = v.getScopes(token)
 	if err != nil {
-		return status.Error(codes.Unauthenticated, err.Error())
+		return err
 	}
 
 	expected, err := v.expectedScopes(method, label)
 	if err != nil {
-		return status.Error(codes.Unauthenticated, err.Error())
+		return err
 	}
 
 	if !v.checkPermissions(expected, scopes) {
-		return status.Error(codes.Unauthenticated, ErrWrongScopes.Error())
+		return ErrWrongScopes
 	}
 
 	return nil
@@ -169,7 +165,7 @@ func (v *Verifier) extractJWTToken(ctx context.Context) (string, error) {
 		return "", ErrNoJWTToken
 	}
 
-	token, ok := md[authGRPCKey]
+	token, ok := md[grpc.MetaAuthKey]
 	if !ok || len(token) < 1 {
 		return "", ErrNoJWTToken
 	}

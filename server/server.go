@@ -3,6 +3,7 @@ package server
 import (
 	"net"
 
+	"github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/zero-os/0-stor/server/db"
 	"github.com/zero-os/0-stor/server/db/badger"
 	"github.com/zero-os/0-stor/server/jwt"
@@ -44,20 +45,34 @@ func NewWithDB(db db.DB, jwtVerifier jwt.TokenVerifier, maxSizeMsg int) (StoreSe
 	if db == nil {
 		panic("no database given")
 	}
-	if jwtVerifier == nil {
-		jwtVerifier = jwt.NopVerifier{}
-	}
 
-	s := &grpcServer{
-		db: db,
-		grpcServer: grpc.NewServer(
+	s := &grpcServer{db: db}
+
+	// add authenticating middleware if verifier is provided
+	if jwtVerifier != nil {
+		s.grpcServer = grpc.NewServer(
+			grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(
+				streamJWTAuthInterceptor(jwtVerifier),
+				streamStatsInterceptor(),
+			)),
+			grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
+				unaryJWTAuthInterceptor(jwtVerifier),
+				unaryStatsInterceptor(),
+			)),
 			grpc.MaxRecvMsgSize(maxSizeMsg),
 			grpc.MaxSendMsgSize(maxSizeMsg),
-		),
+		)
+	} else {
+		s.grpcServer = grpc.NewServer(
+			grpc.MaxRecvMsgSize(maxSizeMsg),
+			grpc.MaxSendMsgSize(maxSizeMsg),
+			grpc.StreamInterceptor(streamStatsInterceptor()),
+			grpc.UnaryInterceptor(unaryStatsInterceptor()),
+		)
 	}
 
-	pb.RegisterObjectManagerServer(s.grpcServer, NewObjectAPI(db, jwtVerifier))
-	pb.RegisterNamespaceManagerServer(s.grpcServer, NewNamespaceAPI(db, jwtVerifier))
+	pb.RegisterObjectManagerServer(s.grpcServer, NewObjectAPI(db))
+	pb.RegisterNamespaceManagerServer(s.grpcServer, NewNamespaceAPI(db))
 	//pb.RegisterReservationManagerServer(srv.GRPCServer(), &rpc.ReservationManager{db})
 
 	return s, nil

@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/zero-os/0-stor/server/db/badger"
-	"github.com/zero-os/0-stor/server/jwt"
 	"github.com/zero-os/0-stor/server/manager"
 	pb "github.com/zero-os/0-stor/server/schema"
 )
@@ -33,7 +32,7 @@ func getTestNamespaceAPI(t *testing.T) (*NamespaceAPI, func()) {
 	}
 
 	require.NoError(err)
-	api := NewNamespaceAPI(db, jwt.NopVerifier{})
+	api := NewNamespaceAPI(db)
 
 	return api, clean
 }

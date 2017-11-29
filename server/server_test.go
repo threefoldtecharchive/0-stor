@@ -10,7 +10,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/zero-os/0-stor/client/stor"
-	"github.com/zero-os/0-stor/server/jwt"
 )
 
 const (
@@ -43,11 +42,10 @@ func TestServerMsgSize(t *testing.T) {
 
 	mib := 1024 * 1024
 
-	verifier := jwt.NopVerifier{}
 	for i := 2; i <= 64; i *= 2 {
 		t.Run(fmt.Sprintf("size %d", i), func(t *testing.T) {
 			maxSize := i
-			srv, err := New(path.Join(temp, "data"), path.Join(temp, "meta"), verifier, maxSize)
+			srv, err := New(path.Join(temp, "data"), path.Join(temp, "meta"), nil, maxSize)
 			require.NoError(err, "server should have been created")
 			defer srv.Close()
 

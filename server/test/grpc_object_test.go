@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/zero-os/0-stor/client/itsyouonline"
+	zgrpc "github.com/zero-os/0-stor/server/grpc"
 	pb "github.com/zero-os/0-stor/server/schema"
 
 	"github.com/stretchr/testify/assert"
@@ -17,9 +18,6 @@ import (
 )
 
 const (
-	// authentication key where the JWT can be found in the GRPC's context
-	authGRPCKey = "authorization"
-
 	// test organization
 	organization = "testorg"
 
@@ -51,7 +49,7 @@ func TestListObject(t *testing.T) {
 		})
 		require.NoError(t, err, "fail to generate jwt")
 
-		md := metadata.Pairs(authGRPCKey, jwt)
+		md := metadata.Pairs(zgrpc.MetaAuthKey, jwt, zgrpc.MetaLabelKey, label)
 		ctx := metadata.NewOutgoingContext(context.Background(), md)
 
 		stream, err := cl.List(ctx, &pb.ListObjectsRequest{Label: label})
@@ -82,7 +80,7 @@ func TestListObject(t *testing.T) {
 		})
 		require.NoError(t, err, "fail to generate jwt")
 
-		md := metadata.Pairs(authGRPCKey, jwt)
+		md := metadata.Pairs(zgrpc.MetaAuthKey, jwt, zgrpc.MetaLabelKey, label)
 		ctx := metadata.NewOutgoingContext(context.Background(), md)
 
 		stream, err := cl.List(ctx, &pb.ListObjectsRequest{Label: label})
@@ -107,7 +105,7 @@ func TestListObject(t *testing.T) {
 		})
 		require.NoError(t, err, "fail to generate jwt")
 
-		md := metadata.Pairs(authGRPCKey, jwt)
+		md := metadata.Pairs(zgrpc.MetaAuthKey, jwt, zgrpc.MetaLabelKey, label)
 		ctx := metadata.NewOutgoingContext(context.Background(), md)
 
 		stream, err := cl.List(ctx, &pb.ListObjectsRequest{Label: label})
@@ -155,7 +153,7 @@ func TestCheckObject(t *testing.T) {
 	}
 
 	for _, tc := range tt {
-		md := metadata.Pairs(authGRPCKey, jwt)
+		md := metadata.Pairs(zgrpc.MetaAuthKey, jwt, zgrpc.MetaLabelKey, label)
 		ctx := metadata.NewOutgoingContext(context.Background(), md)
 
 		stream, err := cl.Check(ctx, &pb.CheckRequest{

@@ -17,26 +17,18 @@ type NamespaceAPI struct {
 	jwtVerifier jwt.TokenVerifier
 }
 
-func NewNamespaceAPI(db db.DB, v jwt.TokenVerifier) *NamespaceAPI {
+func NewNamespaceAPI(db db.DB) *NamespaceAPI {
 	if db == nil {
 		panic("no database given to NamespaceAPI")
 	}
-	if v == nil {
-		panic("no jwt verifier given to NamespaceAPI")
-	}
 
 	return &NamespaceAPI{
-		db:          db,
-		jwtVerifier: v,
+		db: db,
 	}
 }
 
 func (api *NamespaceAPI) Get(ctx context.Context, req *pb.GetNamespaceRequest) (*pb.GetNamespaceReply, error) {
 	label := req.GetLabel()
-
-	if err := api.jwtVerifier.ValidateJWT(ctx, jwt.MethodAdmin, label); err != nil {
-		return nil, err
-	}
 
 	mgr := manager.NewNamespaceManager(api.db)
 

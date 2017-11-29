@@ -116,6 +116,12 @@
   revision = "316fb6d3f031ae8f4d457c6c5186b9e3ded70435"
 
 [[projects]]
+  branch = "better_docs"
+  name = "github.com/grpc-ecosystem/go-grpc-middleware"
+  packages = ["."]
+  revision = "63e69ea2fcaa6764e67826381756e528db9203ab"
+
+[[projects]]
   name = "github.com/grpc-ecosystem/go-grpc-prometheus"
   packages = ["."]
   revision = "6b7015e65d366bf3f19b2b2a000a831940f0f7e0"
@@ -314,6 +320,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f006080a5366a831bd0d42bdb1e90b9673222ea45069cbd2e1bb30474a342f44"
+  inputs-digest = "e002a8e2585dca3ec6d8651719475feb9224f9aaf7fb924fe7907d9037167e97"
   solver-name = "gps-cdcl"
   solver-version = 1
