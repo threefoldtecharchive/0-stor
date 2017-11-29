@@ -62,7 +62,7 @@ Automate the installation of the 0-stor testing environment.
 - ``number_of_machines`` : number of 0-stor nodes to be created on packet.net.
 
 - ``TEST_CASE``: testcases directory (for example: ``test_suite/test_cases/basic_tests``).
-- ``default_config_path``: default configration file path (default: ``/gopath/src/github.com/zero-os/0-stor/cmd/zerostorcli/config.yaml``)
+- ``default_config_path``: default configration file path (default: ``/gopath/src/github.com/zero-os/0-stor/cmd/zstor/config.yaml``)
 - ``number_of_files``: number of random files to be used in uploading/downloading test cases.
 - ``iyo_user2_id``: itsyou.online user_2 client id
 - ``iyo_user2_secret``: itsyou.online user_2 secret

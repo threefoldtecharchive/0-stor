@@ -87,7 +87,7 @@ calling `WriteWithMeta` or `WriteFWithMeta` methods.
 
 ## Getting started
 
-- [Getting started](../cmd/zerostorcli/README.md)
+- [Getting started](../cmd/zstor/README.md)
 
 ## Now into some technical details!
 
@@ -232,7 +232,7 @@ func main() {
 
 ## Configuration
 
-Configuration file example can be found on [config.yaml](/cmd/zerostorcli/config.yaml).
+Configuration file example can be found on [config.yaml](/cmd/zstor/config.yaml).
 
 ## Libraries
 
@@ -241,8 +241,6 @@ See [components](./components) directory for more details.
 
 ## CLI
 
-A simple cli can be found in the [cli](./cmd/zerostorcli) directory.
+A cli can be found in the [cli](./cmd/zstor) directory.
 
-## Daemon
-
-There will be a client daemon in the [daemon](./cmd/daemon) directory.
+This command-line client includes a command to spawn it as a daemon.

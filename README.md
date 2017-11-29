@@ -15,9 +15,11 @@ The 0-stor server is a generic object store that provide simple storage primitiv
 0-stor uses [badger](https://github.com/dgraph-io/badger) as the backend key value store. Badger allows storing the keys and the value onto separate devices. Because of this separation, the LSM (Log-Structured Merge) tree of keys can most of the time stay in memory. Typically the keys could be kept in memory and depending on the use case, the values could be served from an SSD or HDD.
 
 ### Installation
+
 Install the 0-stor server
+
 ```
-go get -u github.com/zero-os/0-stor/cmd/zerostorserver
+go get -u github.com/zero-os/0-stor/cmd/zstordb
 ```
 
 ### How to run the server
@@ -40,8 +42,9 @@ Here are the options of the server:
 ```
 
 Start the server with listening on all interfaces and port 12345
+
 ```shell
-./zerostorserver --bind :12345 --data /path/to/data --meta /path/to/meta
+zstordb --port 12345 --data-dir /path/to/data --meta-dir /path/to/meta
 ```
 
 ## Client

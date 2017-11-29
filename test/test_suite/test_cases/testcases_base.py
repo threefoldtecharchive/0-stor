@@ -24,7 +24,7 @@ class TestcasesBase(TestCase):
         self.default_config_path = config['main']['default_config_path']
         # if not self.default_config_path:
         #     gopath = os.environ.get('GOPATH', '/gopath')
-        #     self.default_config_path = '{gopath}/src/github.com/zero-os/0-stor/cmd/zerostorcli/config.yaml'.format(gopath=gopath)
+        #     self.default_config_path = '{gopath}/src/github.com/zero-os/0-stor/cmd/zstor/config.yaml'.format(gopath=gopath)
         self.number_of_servers = int(config['main']['number_of_servers'])
         self.number_of_files = int(config['main']['number_of_files'])
 

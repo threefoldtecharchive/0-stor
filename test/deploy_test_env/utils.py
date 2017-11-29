@@ -145,7 +145,7 @@ if __name__  == '__main__':
         zerostor_servers = sys.argv[2]
         etcd_servers = sys.argv[3]
 
-        config_path = '/gopath/src/github.com/zero-os/0-stor/cmd/zerostorcli/config.yaml'
+        config_path = '/gopath/src/github.com/zero-os/0-stor/cmd/zstor/config.yaml'
         with open(config_path, 'r') as f:
             config = yaml.load(f)
 
