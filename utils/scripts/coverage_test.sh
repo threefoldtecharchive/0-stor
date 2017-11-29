@@ -5,10 +5,15 @@ set -x
 
 echo "" > coverage.txt
 
-for d in $(go list ./... | grep -v vendor); do
-    go test -race -coverprofile=profile.out -covermode=atomic "$d"
+test_package_coverage() {
+for d in $(go list "$1/..."); do
+    go test -coverprofile=profile.out -covermode=atomic "$d"
     if [ -f profile.out ]; then
         cat profile.out >> coverage.txt
         rm profile.out
     fi
 done
+}
+
+test_package_coverage "./client"
+test_package_coverage "./server"

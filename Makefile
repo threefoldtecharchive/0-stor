@@ -10,13 +10,14 @@ BUILD_DATE = $(shell date +%FT%T%z)
 
 SERVER_PACKAGES = $(shell go list ./server/...)
 CLIENT_PACKAGES = $(shell go list ./client/...)
+CMD_PACKAGES = $(shell go list ./cmd/...)
 
 ldflags = -extldflags "-static"
 ldflagsversion = -X $(PACKAGE)/cmd.CommitHash=$(COMMIT_HASH) -X $(PACKAGE)/cmd.BuildDate=$(BUILD_DATE) -s -w
 
-all: server cli
+all: client server
 
-cli: $(OUTPUT)
+client: $(OUTPUT)
 ifeq ($(GOOS), darwin)
 	GOOS=$(GOOS) GOARCH=$(GOARCH) \
 		go build -ldflags '$(ldflagsversion)' -o $(OUTPUT)/zstor ./cmd/zstor
@@ -38,7 +39,7 @@ install: all
 	cp $(OUTPUT)/zstor $(GOPATH)/bin/zstor
 	cp $(OUTPUT)/zstordb $(GOPATH)/bin/zstordb
 
-test: testserver testclient
+test: testserver testclient testcmd
 
 testcov:
 	utils/scripts/coverage_test.sh
@@ -49,13 +50,16 @@ testserver:
 	go test -v -timeout $(TIMEOUT) $(SERVER_PACKAGES)
 
 testclient:
-	go test  -v -timeout $(TIMEOUT) $(CLIENT_PACKAGES)
+	go test -v -timeout $(TIMEOUT) $(CLIENT_PACKAGES)
+
+testcmd:
+	go test -v -timeout $(TIMEOUT) $(CMD_PACKAGES)
 
 testserverrace:
-	go test  -v -race $(SERVER_PACKAGES)
+	go test -v -race $(SERVER_PACKAGES)
 
 testclientrace:
-	go test  -v -race $(CLIENT_PACKAGES)
+	go test -v -race $(CLIENT_PACKAGES)
 
 testcodegen:
 	./utils/scripts/test_codegeneration.sh
@@ -89,4 +93,4 @@ prune_deps:
 $(OUTPUT):
 	mkdir -p $(OUTPUT)
 
-.PHONY: $(OUTPUT) zerostorcli 0storserver test testserver testclient testserverrace testcodegen testclientrace
+.PHONY: $(OUTPUT) client server install test testcov testrace testserver testclient testcmd testserverrace testclientrace testcodegen ensure_deps add_dep update_dep update_deps prune_deps
