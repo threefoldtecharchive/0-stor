@@ -90,3 +90,60 @@ func TestReferenceList(t *testing.T) {
 	require.Len(t, refListRead, len(allRefList[:160]))
 	require.Subset(t, allRefList[:160], refListRead)
 }
+
+func TestRemoveReferenceList(t *testing.T) {
+	const (
+		numServer = 3
+	)
+	etcd, err := embedserver.New()
+
+	require.NoError(t, err, "fail to start embedded etcd server")
+	defer etcd.Stop()
+
+	servers, serverClean := testGRPCServer(t, numServer)
+	defer serverClean()
+
+	shards := make([]string, len(servers))
+	for i, server := range servers {
+		shards[i] = server.Address()
+	}
+
+	policy := Policy{
+		Organization:  "testorg",
+		Namespace:     "namespace1",
+		DataShards:    shards,
+		MetaShards:    []string{etcd.ListenAddr()},
+		IYOAppID:      "id",
+		IYOSecret:     "secret",
+		ReplicationNr: numServer,
+		BlockSize:     4096,
+	}
+
+	c, err := getTestClient(policy)
+	require.NoError(t, err, "fail to create client")
+
+	// initialize test data
+	key := []byte("testkey")
+	data := make([]byte, 1024*4)
+	_, err = rand.Read(data)
+	require.NoError(t, err, "fail to read random data")
+
+	// upload data with reference list
+	refList := []string{"12345"}
+	_, err = c.Write(key, data, refList)
+	require.NoError(t, err)
+
+	// verify we have it
+	_, storedRefList, err := c.Read(key)
+	require.NoError(t, err)
+	require.Equal(t, refList, storedRefList)
+
+	// remove it
+	err = c.RemoveReferenceList(key, refList)
+	require.NoError(t, err)
+
+	// get it again and check, make sure we have no ref list
+	_, storedRefList, err = c.Read(key)
+	require.NoError(t, err)
+	require.Nil(t, storedRefList)
+}
