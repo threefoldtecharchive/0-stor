@@ -3,7 +3,7 @@ etcd1: etcd --name infra1 --listen-client-urls http://127.0.0.1:2379 --advertise
 etcd2: etcd --name infra2 --listen-client-urls http://127.0.0.1:22379 --advertise-client-urls http://127.0.0.1:22379 --listen-peer-urls http://127.0.0.1:22380 --initial-advertise-peer-urls http://127.0.0.1:22380 --initial-cluster-token etcd-cluster-1 --initial-cluster 'infra1=http://127.0.0.1:12380,infra2=http://127.0.0.1:22380,infra3=http://127.0.0.1:32380' --initial-cluster-state new
 etcd3: etcd --name infra3 --listen-client-urls http://127.0.0.1:32379 --advertise-client-urls http://127.0.0.1:32379 --listen-peer-urls http://127.0.0.1:32380 --initial-advertise-peer-urls http://127.0.0.1:32380 --initial-cluster-token etcd-cluster-1 --initial-cluster 'infra1=http://127.0.0.1:12380,infra2=http://127.0.0.1:22380,infra3=http://127.0.0.1:32380' --initial-cluster-state new
 # starts 3 0-stor server
-stor1: zstordb -D --port 12345 --data-dir stor1 --meta-dir stor1
-stor2: zstordb -D --port 12346 --data-dir stor2 --meta-dir stor2
-stor3: zstordb -D --port 12347 --data-dir stor3 --meta-dir stor3
-stor4: zstordb -D --port 12348 --data-dir stor4 --meta-dir stor4
+stor1: zstordb -D --listen :12345 --data-dir stor1 --meta-dir stor1
+stor2: zstordb -D --listen :12346 --data-dir stor2 --meta-dir stor2
+stor3: zstordb -D --listen :12347 --data-dir stor3 --meta-dir stor3
+stor4: zstordb -D --listen :12348 --data-dir stor4 --meta-dir stor4

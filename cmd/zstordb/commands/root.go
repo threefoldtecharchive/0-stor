@@ -88,7 +88,7 @@ func rootFunc(*cobra.Command, []string) error {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT)
 
-	addr, err := storServer.Listen(fmt.Sprintf(":%d", rootCfg.BindPort))
+	addr, err := storServer.Listen(rootCfg.ListenAddress.String())
 	if err != nil {
 		log.Errorf("error while launching+binding storServer: %v", err)
 		return err
@@ -140,9 +140,14 @@ func ensureStoreStat(kv db.DB, dataPath string) error {
 	return nil
 }
 
+// func validateListen(hostport string) error {
+// 	_, _, err := net.SplitHostPort(hostport)
+// 	return err
+// }
+
 var rootCfg struct {
 	DebugLog       bool
-	BindPort       int
+	ListenAddress  cmd.ListenAddress
 	ProfileAddress string
 	AuthDisabled   bool
 	MaxMsgSize     int
@@ -161,8 +166,8 @@ func init() {
 
 	rootCmd.Flags().BoolVarP(
 		&rootCfg.DebugLog, "debug", "D", false, "Enable debug logging.")
-	rootCmd.Flags().IntVarP(
-		&rootCfg.BindPort, "port", "p", 8080, "Bind the server to the given local port.")
+	rootCmd.Flags().VarP(
+		&rootCfg.ListenAddress, "listen", "L", "Bind the server to the given host and port. Format has to be host:port, with host optional (default :8080)")
 	rootCmd.Flags().StringVar(
 		&rootCfg.DB.Dirs.Data, "data-dir", ".db/data", "Directory path used to store the data.")
 	rootCmd.Flags().StringVar(

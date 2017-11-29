@@ -14,7 +14,7 @@ import (
 
 var (
 	// CurrentVersion represents the current global
-	// version of the zerodisk modules
+	// version of the zerostor modules
 	CurrentVersion = NewVersion(1, 1, 0, versionLabel("beta-2"))
 	// NilVersion represents the Nil Version.
 	NilVersion = Version{}
@@ -99,18 +99,18 @@ func NewVersion(major, minor, patch uint8, label *VersionLabel) Version {
 
 type (
 	// Version defines the version information,
-	// used by zerodisk services.
+	// used by zerostor services.
 	Version struct {
 		Number VersionNumber `valid:"required"`
 		Label  *VersionLabel `valid:"optional"`
 	}
 
 	// VersionNumber defines the semantic version number,
-	// used by zerodisk services.
+	// used by zerostor services.
 	VersionNumber uint32
 
 	// VersionLabel defines an optional version extension,
-	// used by zerodisk services.
+	// used by zerostor services.
 	VersionLabel [8]byte
 )
 
