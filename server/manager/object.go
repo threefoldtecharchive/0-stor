@@ -1,10 +1,10 @@
 package manager
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/zero-os/0-stor/server/db"
-	"github.com/zero-os/0-stor/server/errors"
 )
 
 type ObjectManager struct {
@@ -39,16 +39,30 @@ func (mgr *ObjectManager) Set(key []byte, data []byte, referenceList []string) e
 }
 
 func (mgr *ObjectManager) List(start, count int) ([][]byte, error) {
-	prefix := fmt.Sprintf("%s:%s:", mgr.namespace, db.PrefixData)
-	keys, err := mgr.db.List([]byte(prefix))
+	prefix := []byte(fmt.Sprintf("%s:%s:", mgr.namespace, db.PrefixData))
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	ch, err := mgr.db.ListItems(ctx, prefix)
 	if err != nil {
 		return nil, err
 	}
 
-	// remove namespace prefix
-	lenPrefix := len(prefix)
-	for i := range keys {
-		keys[i] = keys[i][lenPrefix:]
+	var (
+		keys      [][]byte
+		lenPrefix = len(prefix)
+	)
+	for item := range ch {
+		k := item.Key()
+		key := make([]byte, len(k)-lenPrefix)
+		copy(key, k[lenPrefix:])
+		keys = append(keys, key)
+
+		err = item.Close()
+		if err != nil {
+			return nil, err
+		}
 	}
 	return keys, nil
 }
@@ -101,7 +115,7 @@ func (mgr *ObjectManager) Check(key []byte) (CheckStatus, error) {
 
 	valid, err := obj.Validcrc()
 	if err != nil {
-		if err == errors.ErrNotFound {
+		if err == db.ErrNotFound {
 			return CheckStatusMissing, nil
 		}
 		return CheckStatus(""), err

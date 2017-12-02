@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -110,18 +111,26 @@ func ensureStoreStat(kv db.DB, dataPath string) error {
 		return err
 	}
 
-	namespaces, err := kv.List([]byte(manager.PrefixNamespace))
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	ch, err := kv.ListItems(ctx, []byte(manager.PrefixNamespace))
 	if err != nil {
 		return err
 	}
 
 	var totalReserved uint64
-	for _, namespace := range namespaces {
-		ns, err := nsMgr.Get(string(namespace))
+	for item := range ch {
+		k := item.Key()
+		ns, err := nsMgr.Get(string(k))
 		if err != nil {
 			return err
 		}
 		totalReserved += ns.Reserved
+
+		err = item.Close()
+		if err != nil {
+			return err
+		}
 	}
 
 	available = available - totalReserved

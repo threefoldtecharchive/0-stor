@@ -1,6 +1,7 @@
 package manager
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/zero-os/0-stor/server/db"
@@ -33,12 +34,23 @@ func (mgr *NamespaceManager) Get(label string) (*db.Namespace, error) {
 
 // Count return the number of object present in a namespace
 func (mgr *NamespaceManager) Count(label string) (int, error) {
-	keys, err := mgr.db.List([]byte(label))
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	ch, err := mgr.db.ListItems(ctx, []byte(label))
 	if err != nil {
 		return 0, err
 	}
 
-	return len(keys), nil
+	var count int
+	for item := range ch {
+		count++
+		err = item.Close()
+		if err != nil {
+			return 0, err
+		}
+	}
+	return count, nil
 }
 
 // Create namespace if doesn't exists
