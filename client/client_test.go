@@ -14,8 +14,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/zero-os/0-stor/client/meta/embedserver"
-	"github.com/zero-os/0-stor/server"
 	"github.com/zero-os/0-stor/server/api"
+	"github.com/zero-os/0-stor/server/api/grpc"
+	"github.com/zero-os/0-stor/server/db/badger"
 )
 
 const (
@@ -23,10 +24,10 @@ const (
 	testPubKeyPath = "./../devcert/jwt_pub.pem"
 )
 
-func testGRPCServer(t testing.TB, n int) ([]api.API, func()) {
+func testGRPCServer(t testing.TB, n int) ([]api.Server, func()) {
 	require := require.New(t)
 
-	servers := make([]api.API, n)
+	servers := make([]api.Server, n)
 	dirs := make([]string, n)
 
 	for i := 0; i < n; i++ {
@@ -35,11 +36,16 @@ func testGRPCServer(t testing.TB, n int) ([]api.API, func()) {
 		require.NoError(err)
 		dirs[i] = tmpDir
 
-		server, err := server.New(path.Join(tmpDir, "data"), path.Join(tmpDir, "meta"), nil, 4)
+		db, err := badger.New(path.Join(tmpDir, "data"), path.Join(tmpDir, "meta"))
 		require.NoError(err)
 
-		_, err = server.Listen("localhost:0")
-		require.NoError(err, "server failed to start listening")
+		server, err := grpc.New(db, nil, 4, 0)
+		require.NoError(err)
+
+		go func() {
+			err := server.Listen("localhost:0")
+			require.NoError(err, "server failed to start listening")
+		}()
 
 		servers[i] = server
 	}
@@ -70,7 +76,7 @@ func TestRoundTripGRPC(t *testing.T) {
 
 	shards := make([]string, len(servers))
 	for i, server := range servers {
-		shards[i] = server.ListenAddress()
+		shards[i] = server.Address()
 	}
 
 	policy := Policy{
@@ -249,7 +255,7 @@ func TestBlocksizes(t *testing.T) {
 
 	shards := make([]string, len(servers))
 	for i, server := range servers {
-		shards[i] = server.ListenAddress()
+		shards[i] = server.Address()
 	}
 
 	policy := Policy{
@@ -351,7 +357,7 @@ func TestMultipleDownload(t *testing.T) {
 
 	shards := make([]string, len(servers))
 	for i, server := range servers {
-		shards[i] = server.ListenAddress()
+		shards[i] = server.Address()
 	}
 
 	policy := Policy{
@@ -405,7 +411,7 @@ func TestConcurrentWriteRead(t *testing.T) {
 
 	shards := make([]string, len(servers))
 	for i, server := range servers {
-		shards[i] = server.ListenAddress()
+		shards[i] = server.Address()
 	}
 
 	policy := Policy{
@@ -478,7 +484,7 @@ func BenchmarkWriteFilesSizes(b *testing.B) {
 
 	shards := make([]string, len(servers))
 	for i, server := range servers {
-		shards[i] = server.ListenAddress()
+		shards[i] = server.Address()
 	}
 
 	policy := Policy{
@@ -553,7 +559,7 @@ func TestIssue225(t *testing.T) {
 
 	shards := make([]string, len(servers))
 	for i, server := range servers {
-		shards[i] = server.ListenAddress()
+		shards[i] = server.Address()
 	}
 
 	policy := Policy{

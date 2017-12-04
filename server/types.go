@@ -128,3 +128,34 @@ resultLoop:
 	*list = result
 	return remaining
 }
+
+// CheckStatus represents the status received after checking,
+// whether or not an object is ok
+type CheckStatus uint8
+
+const (
+	// CheckStatusMissing indicates the requested object doesn't exist
+	CheckStatusMissing CheckStatus = iota
+	// CheckStatusOK indicates the requested object exists and is healthy
+	CheckStatusOK
+	// CheckStatusCorrupted indicates the requested object exists,
+	// but its checksum indicates it is corrupted.
+	CheckStatusCorrupted
+)
+
+// String implements Stringer.String
+func (status CheckStatus) String() string {
+	str, ok := _CheckStatusValueStringMapping[status]
+	if !ok {
+		return ""
+	}
+	return str
+}
+
+const _CheckStatusStrings = "okcorruptedmissing"
+
+var _CheckStatusValueStringMapping = map[CheckStatus]string{
+	CheckStatusOK:        _CheckStatusStrings[:2],
+	CheckStatusCorrupted: _CheckStatusStrings[2:11],
+	CheckStatusMissing:   _CheckStatusStrings[11:],
+}

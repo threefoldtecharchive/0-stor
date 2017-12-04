@@ -10,6 +10,9 @@ import (
 	"google.golang.org/grpc"
 )
 
+// unaryJWTAuthInterceptor creates an interceptor for a unary server method,
+// which authenticates any method based on its label and name,
+// using the user's JWT token.
 func unaryJWTAuthInterceptor(v jwt.TokenVerifier) grpc.UnaryServerInterceptor {
 	interceptor := &jwtAuthInterceptor{v}
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
@@ -21,6 +24,9 @@ func unaryJWTAuthInterceptor(v jwt.TokenVerifier) grpc.UnaryServerInterceptor {
 	}
 }
 
+// streamJWTAuthInterceptor creates an interceptor for a streaming server method,
+// which authenticates any method based on its label and name,
+// using the user's JWT token.
 func streamJWTAuthInterceptor(v jwt.TokenVerifier) grpc.StreamServerInterceptor {
 	interceptor := &jwtAuthInterceptor{v}
 	return func(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {

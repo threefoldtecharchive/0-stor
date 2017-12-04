@@ -8,8 +8,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/zero-os/0-stor/server"
+	"github.com/zero-os/0-stor/server/db"
 	"github.com/zero-os/0-stor/server/db/badger"
-	"github.com/zero-os/0-stor/server/manager"
+	"github.com/zero-os/0-stor/server/encoding"
 	pb "github.com/zero-os/0-stor/server/schema"
 	"golang.org/x/net/context"
 )
@@ -18,8 +20,9 @@ func TestGetNamespace(t *testing.T) {
 	api, clean := getTestNamespaceAPI(t)
 	defer clean()
 
-	mgr := manager.NewNamespaceManager(api.db)
-	err := mgr.Create(label)
+	data, err := encoding.EncodeNamespace(server.Namespace{Label: []byte(label)})
+	require.NoError(t, err)
+	err = api.db.Set(db.NamespaceKey([]byte(label)), data)
 	require.NoError(t, err)
 
 	req := &pb.GetNamespaceRequest{Label: label}

@@ -517,6 +517,43 @@ func encodeRefList(list server.ReferenceList, offset int) ([]byte, error) {
 	return data, nil
 }
 
+// ValidateData can be used to validate a data slice, encoded by this package.
+// The resulting error is nil in case the given data is valid.
+//
+// `ErrInvalidData` is returned in case the given data slice,
+// is not big enough to hold any valid encoded value,
+// and thus we can concider it invalid before we put any extra work in.
+// That same error is also returned in case the data was invalid for any other reason.
+//
+// `ErrInvalidChecksum` is returned in case the given data package,
+// contained a checksum which could not be matched with
+// the freshly made data blob's checksum.
+func ValidateData(data []byte) error {
+	const minDataSize = checksumSize + 1
+	if len(data) < minDataSize {
+		return ErrInvalidData
+	}
+
+	// create validation checksum
+	validCRC := crc32.Checksum(data[checksumSize:], crc32TablePolynomial)
+
+	// read packaged checksum
+	buf := newZeroAllocReadBuffer(data[:checksumSize])
+	var packagedCRC uint32
+
+	// we do not control the encoded data,
+	// however an uint32 cannot be /not/ encoded,
+	// as any combination of 4 bytes form a valid uint32,
+	// whether that is the desired number is a different question
+	binary.Read(buf, binary.LittleEndian, &packagedCRC)
+
+	// validate checksum
+	if validCRC != packagedCRC {
+		return ErrInvalidChecksum
+	}
+	return nil
+}
+
 // packageData creates a CRC32 checksum of the data-blob-part of this data slice,
 // and writes it in the raw binary format as the first 4 bytes of the given data slice.
 func packageData(data []byte) {

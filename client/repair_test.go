@@ -20,7 +20,7 @@ func TestRepair(t *testing.T) {
 
 	shards := make([]string, len(servers))
 	for i, server := range servers {
-		shards[i] = server.ListenAddress()
+		shards[i] = server.Address()
 	}
 
 	policy := Policy{

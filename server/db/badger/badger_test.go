@@ -457,6 +457,20 @@ func TestUpdate(t *testing.T) {
 	v, err = ddb.Get(key)
 	require.NoError(err)
 	require.Equal(value, v)
+
+	// we can also return nil in our callback in order to delete the value
+	require.NoError(ddb.Update(key, func(data []byte) ([]byte, error) {
+		return nil, nil
+	}), "updating an item should always be possible for memory DB")
+	_, err = ddb.Get(key)
+	require.Equal(db.ErrNotFound, err)
+
+	// setting it to nil agian, will do nothing, as it is already deleted
+	require.NoError(ddb.Update(key, func(data []byte) ([]byte, error) {
+		return nil, nil
+	}), "updating an item should always be possible for memory DB")
+	_, err = ddb.Get(key)
+	require.Equal(db.ErrNotFound, err)
 }
 
 func TestUpdateExistsDelete(t *testing.T) {

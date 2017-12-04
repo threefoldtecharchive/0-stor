@@ -10,9 +10,10 @@ import (
 
 	jwtgo "github.com/dgrijalva/jwt-go"
 	"github.com/stretchr/testify/require"
-	"github.com/zero-os/0-stor/server/db"
-	"github.com/zero-os/0-stor/server/jwt"
-	"github.com/zero-os/0-stor/server/manager"
+	"github.com/zero-os/0-stor/server"
+	dbp "github.com/zero-os/0-stor/server/db"
+	"github.com/zero-os/0-stor/server/db/badger"
+	"github.com/zero-os/0-stor/server/encoding"
 	"github.com/zero-os/0-stor/stubs"
 )
 
@@ -35,16 +36,21 @@ const (
 	label = "testorg_0stor_testnamespace"
 )
 
-func getTestGRPCServer(t *testing.T, organization string) (*API, stubs.IYOClient, func()) {
+func getTestGRPCServer(t *testing.T, organization string) (*Server, stubs.IYOClient, func()) {
 	tmpDir, err := ioutil.TempDir("", "0stortest")
 	require.NoError(t, err)
 
-	verifier, err := getTestVerifier(testPubKeyPath)
-
-	server, err := New(path.Join(tmpDir, "data"), path.Join(tmpDir, "meta"), verifier, 4)
+	db, err := badger.New(path.Join(tmpDir, "data"), path.Join(tmpDir, "meta"))
+	require.NoError(t, err)
+	//verifier, err := getTestVerifier(testPubKeyPath)
+	//require.NoError(t, err)
+	server, err := New(db, nil, 4, 0)
 	require.NoError(t, err)
 
-	_, err = server.Listen("localhost:0")
+	go func() {
+		err := server.Listen("localhost:0")
+		require.NoError(t, err)
+	}()
 	require.NoError(t, err, "server failed to start listening")
 
 	jwtCreator, organization := getIYOClient(t, organization)
@@ -59,14 +65,14 @@ func getTestGRPCServer(t *testing.T, organization string) (*API, stubs.IYOClient
 }
 
 // returns a jwt verifier from provided public key file
-func getTestVerifier(pubKeyPath string) (*jwt.Verifier, error) {
+/*func getTestVerifier(pubKeyPath string) (*jwt.Verifier, error) {
 	pubKey, err := ioutil.ReadFile(pubKeyPath)
 	if err != nil {
 		return nil, err
 	}
 
 	return jwt.NewVerifier(string(pubKey))
-}
+}*/
 
 func getIYOClient(t testing.TB, organization string) (stubs.IYOClient, string) {
 	b, err := ioutil.ReadFile(testPrivKeyPath)
@@ -82,11 +88,15 @@ func getIYOClient(t testing.TB, organization string) (stubs.IYOClient, string) {
 }
 
 // populateDB populates a db with 10 entries that have keys `testkey0` - `testkey9`
-func populateDB(t *testing.T, label string, db db.DB) map[string][]byte {
-	nsMgr := manager.NewNamespaceManager(db)
-	objMgr := manager.NewObjectManager(label, db)
-	err := nsMgr.Create(label)
-	require.NoError(t, err)
+func populateDB(t *testing.T, label string, db dbp.DB) map[string][]byte {
+	/*
+		ns := server.Namespace{Label: []byte(label)}
+		nsData, err := encoding.EncodeNamespace(ns)
+		require.NoError(t, err)
+		require.NotNil(t, nsData)
+		err = db.Set(dbp.NamespaceKey([]byte(label)), nsData)
+		require.NoError(t, err)
+	*/
 
 	bufList := make(map[string][]byte, 10)
 
@@ -94,14 +104,23 @@ func populateDB(t *testing.T, label string, db db.DB) map[string][]byte {
 		key := fmt.Sprintf("testkey%d", i)
 		bufList[key] = make([]byte, 1024*1024)
 
-		_, err = rand.Read(bufList[key])
+		_, err := rand.Read(bufList[key])
 		require.NoError(t, err)
 
 		refList := []string{
 			"user1", "user2",
 		}
 
-		err = objMgr.Set([]byte(key), bufList[key], refList)
+		data, err := encoding.EncodeObject(server.Object{Data: bufList[key]})
+		require.NoError(t, err)
+		require.NotNil(t, data)
+		err = db.Set(dbp.DataKey([]byte(label), []byte(key)), data)
+		require.NoError(t, err)
+
+		refListData, err := encoding.EncodeReferenceList(refList)
+		require.NoError(t, err)
+		require.NotNil(t, refListData)
+		err = db.Set(dbp.ReferenceListKey([]byte(label), []byte(key)), refListData)
 		require.NoError(t, err)
 	}
 

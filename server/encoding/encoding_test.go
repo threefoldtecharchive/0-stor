@@ -339,6 +339,10 @@ func TestInvalidReferenceRemoveDecoding(t *testing.T) {
 	require.Equal(ErrInvalidData, err)
 }
 
+func TestValidateData(t *testing.T) {
+	// TODO
+}
+
 func TestDataPackaging(t *testing.T) {
 	require := require.New(t)
 

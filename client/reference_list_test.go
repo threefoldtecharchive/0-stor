@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/zero-os/0-stor/client/meta/embedserver"
-	"github.com/zero-os/0-stor/server/db"
 
 	"github.com/stretchr/testify/require"
 )
@@ -22,7 +21,7 @@ func TestReferenceList(t *testing.T) {
 
 	shards := make([]string, len(servers))
 	for i, server := range servers {
-		shards[i] = server.ListenAddress()
+		shards[i] = server.Address()
 	}
 
 	policy := Policy{
@@ -47,19 +46,14 @@ func TestReferenceList(t *testing.T) {
 	require.NoError(t, err, "fail to read random data")
 
 	// initialize ref list
-	maxAllowedRefList := db.RefIDCount
 
-	allRefList := make([]string, 0, maxAllowedRefList+1)
-	for i := 0; i < maxAllowedRefList+1; i++ {
+	allRefList := make([]string, 0, 160)
+	for i := 0; i < 160; i++ {
 		allRefList = append(allRefList, fmt.Sprintf("vdisk-%v", i))
 	}
 
-	// write data to the store with too-big refList
-	_, err = c.Write(key, data, allRefList)
-	require.Error(t, err)
-
 	// write data to the store with proper number of refList
-	refList := allRefList[:maxAllowedRefList]
+	refList := allRefList[:]
 	_, err = c.Write(key, data, refList)
 	require.NoError(t, err, "fail to write data to the store")
 
@@ -68,13 +62,14 @@ func TestReferenceList(t *testing.T) {
 	require.Equal(t, refList, refListRead)
 
 	// remove reference list
-	removeIndex := maxAllowedRefList / 2
+	removeIndex := 160 / 2
 	err = c.RemoveReferenceList(key, allRefList[removeIndex:])
 	require.NoError(t, err)
 
 	_, refListRead, err = c.Read(key)
 	require.NoError(t, err)
-	require.Equal(t, allRefList[:removeIndex], refListRead)
+	require.Len(t, refListRead, len(allRefList[:removeIndex]))
+	require.Subset(t, allRefList[:removeIndex], refListRead)
 
 	// append some of it
 	appendIndex := removeIndex + (removeIndex / 2)
@@ -83,13 +78,15 @@ func TestReferenceList(t *testing.T) {
 
 	_, refListRead, err = c.Read(key)
 	require.NoError(t, err)
-	require.Equal(t, allRefList[:appendIndex], refListRead)
+	require.Len(t, refListRead, len(allRefList[:appendIndex]))
+	require.Subset(t, allRefList[:appendIndex], refListRead)
 
 	// set again to full value
-	err = c.SetReferenceList(key, allRefList[:maxAllowedRefList])
+	err = c.SetReferenceList(key, allRefList[:160])
 	require.NoError(t, err)
 
 	_, refListRead, err = c.Read(key)
 	require.NoError(t, err)
-	require.Equal(t, allRefList[:maxAllowedRefList], refListRead)
+	require.Len(t, refListRead, len(allRefList[:160]))
+	require.Subset(t, allRefList[:160], refListRead)
 }

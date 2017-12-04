@@ -11,6 +11,9 @@ import (
 	"google.golang.org/grpc"
 )
 
+// unaryStatsInterceptor creates an interceptor for a unary server method,
+// which collects global read/write statistics.
+// The method name defines whether it counts as read or write.
 func unaryStatsInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		go statsLogger(ctx, info.FullMethod)
@@ -19,6 +22,9 @@ func unaryStatsInterceptor() grpc.UnaryServerInterceptor {
 	}
 }
 
+// streamStatsInterceptor creates an interceptor for a streaming server method,
+// which collects global read/write statistics.
+// The method name defines whether it counts as read or write.
 func streamStatsInterceptor() grpc.StreamServerInterceptor {
 	return func(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		go statsLogger(stream.Context(), info.FullMethod)

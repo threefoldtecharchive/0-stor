@@ -5,8 +5,6 @@ import (
 	"sync"
 
 	"github.com/zero-os/0-stor/client/meta"
-	"github.com/zero-os/0-stor/server/db"
-	"github.com/zero-os/0-stor/server/manager"
 )
 
 // SetReferenceList replace the complete reference list for the object pointed by key
@@ -21,10 +19,7 @@ func (c *Client) SetReferenceList(key []byte, refList []string) error {
 // SetReferenceListWithMeta is the same as SetReferenceList but take metadata instead of key
 // as argument
 func (c *Client) SetReferenceListWithMeta(md *meta.Meta, refList []string) error {
-	if len(refList) > db.RefIDCount {
-		return fmt.Errorf("too many reference list: %v, max: %v", len(refList), db.RefIDCount)
-	}
-	return c.updateRefListWithMeta(md, refList, manager.RefListOpSet)
+	return c.updateRefListWithMeta(md, refList, refListOpSet)
 }
 
 // AppendReferenceList adds some reference to the reference list of the object pointed by key
@@ -39,10 +34,7 @@ func (c *Client) AppendReferenceList(key []byte, refList []string) error {
 // AppendReferenceListWithMeta is the same as AppendReferenceList but take metadata instead of key
 // as argument
 func (c *Client) AppendReferenceListWithMeta(md *meta.Meta, refList []string) error {
-	if len(refList) > db.RefIDCount {
-		return fmt.Errorf("too many reference list: %v, max: %v", len(refList), db.RefIDCount)
-	}
-	return c.updateRefListWithMeta(md, refList, manager.RefListOpAppend)
+	return c.updateRefListWithMeta(md, refList, refListOpAppend)
 }
 
 // RemoveReferenceList removes some reference from the reference list of the object pointed by key.
@@ -58,10 +50,7 @@ func (c *Client) RemoveReferenceList(key []byte, refList []string) error {
 // RemoveReferenceListWithMeta is the same as RemoveReferenceList but take metadata
 // instead of key as argument
 func (c *Client) RemoveReferenceListWithMeta(md *meta.Meta, refList []string) error {
-	if len(refList) > db.RefIDCount {
-		return fmt.Errorf("too many reference list: %v, max: %v", len(refList), db.RefIDCount)
-	}
-	return c.updateRefListWithMeta(md, refList, manager.RefListOpRemove)
+	return c.updateRefListWithMeta(md, refList, refListOpRemove)
 }
 
 func (c *Client) updateRefListWithMeta(md *meta.Meta, refList []string, op int) error {
@@ -86,11 +75,11 @@ func (c *Client) updateRefListWithMeta(md *meta.Meta, refList []string, op int) 
 
 				// do the work
 				switch op {
-				case manager.RefListOpSet:
+				case refListOpSet:
 					err = storCli.ReferenceSet(chunk.Key, refList)
-				case manager.RefListOpAppend:
+				case refListOpAppend:
 					err = storCli.ReferenceAppend(chunk.Key, refList)
-				case manager.RefListOpRemove:
+				case refListOpRemove:
 					err = storCli.ReferenceRemove(chunk.Key, refList)
 				default:
 					err = fmt.Errorf("wrong operation: %v", op)
@@ -111,3 +100,10 @@ func (c *Client) updateRefListWithMeta(md *meta.Meta, refList []string, op int) 
 	}
 	return nil
 }
+
+const (
+	_ = iota
+	refListOpSet
+	refListOpAppend
+	refListOpRemove
+)

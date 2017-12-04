@@ -118,3 +118,16 @@ func TestReferenceList(t *testing.T) {
 		listA.RemoveReferences(rls("bar,baz,baz,bar,bong,bin")))
 	require.Equal(rl("bang"), listA)
 }
+
+func TestDefaultCheckStatus(t *testing.T) {
+	var status CheckStatus
+	require.Equal(t, CheckStatusMissing, status)
+}
+
+func TestCheckStatusString(t *testing.T) {
+	require := require.New(t)
+
+	require.Equal("ok", CheckStatusOK.String())
+	require.Equal("missing", CheckStatusMissing.String())
+	require.Equal("corrupted", CheckStatusCorrupted.String())
+}

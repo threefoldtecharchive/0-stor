@@ -1,12 +1,16 @@
 package grpc
 
 import (
-	"fmt"
+	"errors"
+
+	"golang.org/x/sync/errgroup"
 
 	"golang.org/x/net/context"
 
+	"github.com/zero-os/0-stor/server"
+	serverAPI "github.com/zero-os/0-stor/server/api"
 	"github.com/zero-os/0-stor/server/db"
-	"github.com/zero-os/0-stor/server/manager"
+	"github.com/zero-os/0-stor/server/encoding"
 	pb "github.com/zero-os/0-stor/server/schema"
 )
 
@@ -14,94 +18,244 @@ var _ (pb.ObjectManagerServer) = (*ObjectAPI)(nil)
 
 // ObjectAPI implements pb.ObjectManagerServer
 type ObjectAPI struct {
-	db db.DB
+	db       db.DB
+	jobCount int
 }
 
 // NewObjectAPI returns a new ObjectAPI
-func NewObjectAPI(db db.DB) *ObjectAPI {
+func NewObjectAPI(db db.DB, jobs int) *ObjectAPI {
 	if db == nil {
 		panic("no database given to ObjectAPI")
 	}
+	if jobs <= 0 {
+		jobs = DefaultJobCount
+	}
 
 	return &ObjectAPI{
-		db: db,
+		db:       db,
+		jobCount: jobs,
 	}
 }
 
 // Create implements ObjectManagerServer.Create
 func (api *ObjectAPI) Create(ctx context.Context, req *pb.CreateObjectRequest) (*pb.CreateObjectReply, error) {
-	label := req.GetLabel()
+	label := []byte(req.GetLabel())
 
 	obj := req.GetObject()
+	key := obj.GetKey()
 
-	mgr := manager.NewObjectManager(label, api.db)
-
-	if err := mgr.Set([]byte(obj.GetKey()), obj.GetValue(), obj.GetReferenceList()); err != nil {
+	// encode the value and store it
+	value := obj.GetValue()
+	data, err := encoding.EncodeObject(server.Object{Data: value})
+	if err != nil {
+		return nil, err
+	}
+	valueKey := db.DataKey(label, key)
+	err = api.db.Set(valueKey, data)
+	if err != nil {
 		return nil, err
 	}
 
+	// either delete the reference list, or set it.
+	refListkey := db.ReferenceListKey(label, key)
+	refList := obj.GetReferenceList()
+	if len(refList) == 0 {
+		err = api.db.Delete(refListkey)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		data, err = encoding.EncodeReferenceList(server.ReferenceList(refList))
+		if err != nil {
+			return nil, err
+		}
+		err = api.db.Set(refListkey, data)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// return the success reply
 	return &pb.CreateObjectReply{}, nil
 }
 
 // List implements ObjectManagerServer.List
 func (api *ObjectAPI) List(req *pb.ListObjectsRequest, stream pb.ObjectManager_ListServer) error {
+	label := []byte(req.GetLabel())
 
-	label := req.GetLabel()
+	ctx, cancel := context.WithCancel(stream.Context())
+	defer cancel()
 
-	mgr := manager.NewObjectManager(label, api.db)
-
-	keys, err := mgr.List(0, -1)
+	prefix := db.DataPrefix(label)
+	ch, err := api.db.ListItems(ctx, prefix)
 	if err != nil {
 		return err
 	}
 
-	for _, key := range keys {
-		obj, err := mgr.Get(key)
-		if err != nil {
-			return err
+	prefixLength := len(prefix)
+
+	type intermediateObject struct {
+		Key   []byte
+		Value []byte
+	}
+	workerCh := make(chan intermediateObject, api.jobCount)
+
+	// create an errgroup for all the worker routines,
+	// including the input one
+	group, ctx := errgroup.WithContext(ctx)
+
+	// start the input goroutine,
+	// so it can start fetching keys and values ASAP
+	group.Go(func() error {
+		// close worker channel when this channel is closed
+		// (either because of an error or because all items have been received)
+		defer close(workerCh)
+
+		// local variables reused for each iteration/item
+		var (
+			err      error
+			value    []byte
+			object   server.Object
+			imObject intermediateObject
+		)
+		for item := range ch {
+			// decode the value
+			value, err = item.Value()
+			if err != nil {
+				return err
+			}
+			object, err = encoding.DecodeObject(value)
+			if err != nil {
+				return err
+			}
+
+			// copy value, to take ownership over it
+			imObject.Value = make([]byte, len(object.Data))
+			copy(imObject.Value, object.Data)
+
+			// copy key to take ownership over it
+			key := item.Key()
+			if len(key) <= prefixLength {
+				return errors.New("invalid item key")
+			}
+			key = key[prefixLength:]
+			imObject.Key = make([]byte, len(key))
+			copy(imObject.Key, key)
+
+			// send object over the channel, if possible
+			select {
+			case workerCh <- imObject:
+			case <-ctx.Done():
+				return nil
+			}
+
+			// close current item
+			err = item.Close()
+			if err != nil {
+				return err
+			}
 		}
 
-		o, err := grpcObj(obj)
-		if err != nil {
-			return err
-		}
+		return nil
+	})
 
-		if err := stream.Send(o); err != nil {
-			return nil
-		}
+	// start all the workers
+	for i := 0; i < api.jobCount; i++ {
+		group.Go(func() error {
+			// local variables reused for each iteration/item
+			var (
+				imObject intermediateObject
+				object   pb.Object
+				open     bool
+			)
+
+			// loop while we can receive intermediate objects,
+			// or until the context is done
+			for {
+				select {
+				case <-ctx.Done():
+					return nil // early exist -> context is done
+				case imObject, open = <-workerCh:
+					if !open {
+						return nil // early exit -> worker channel closed
+					}
+				}
+
+				// set value
+				object.Key = imObject.Key
+				object.Value = imObject.Value
+
+				// get reference list (if it exists)
+				refListKey := db.ReferenceListKey(label, imObject.Key)
+				refListData, err := api.db.Get(refListKey)
+				if err == db.ErrNotFound {
+					object.ReferenceList = nil
+				} else {
+					if err != nil {
+						return err
+					}
+					object.ReferenceList, err = encoding.DecodeReferenceList(refListData)
+					if err != nil {
+						return err
+					}
+				}
+
+				// send the object over the stream
+				return stream.Send(&object)
+			}
+		})
 	}
 
-	return nil
+	// wait until all contexts are finished
+	return group.Wait()
 }
 
 // Get implements ObjectManagerServer.Get
 func (api *ObjectAPI) Get(ctx context.Context, req *pb.GetObjectRequest) (*pb.GetObjectReply, error) {
-	label, key := req.GetLabel(), req.GetKey()
+	label := []byte(req.GetLabel())
+	var object pb.Object
+	object.Key = req.GetKey()
 
-	mgr := manager.NewObjectManager(label, api.db)
-
-	obj, err := mgr.Get([]byte(key))
+	dataKey := db.DataKey(label, object.Key)
+	// fetch data
+	rawData, err := api.db.Get(dataKey)
 	if err != nil {
 		return nil, err
 	}
-
-	o, err := grpcObj(obj)
+	// decode and validate data
+	dataObject, err := encoding.DecodeObject(rawData)
 	if err != nil {
 		return nil, err
+	}
+	object.Value = dataObject.Data
+
+	// get reference list (if it exists)
+	refListKey := db.ReferenceListKey(label, object.Key)
+	refListData, err := api.db.Get(refListKey)
+	if err == db.ErrNotFound {
+		object.ReferenceList = nil
+	} else {
+		if err != nil {
+			return nil, err
+		}
+		object.ReferenceList, err = encoding.DecodeReferenceList(refListData)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &pb.GetObjectReply{
-		Object: o,
+		Object: &object,
 	}, nil
 }
 
 // Exists implements ObjectManagerServer.Exists
 func (api *ObjectAPI) Exists(ctx context.Context, req *pb.ExistsObjectRequest) (*pb.ExistsObjectReply, error) {
-	label, key := req.GetLabel(), req.GetKey()
+	label := []byte(req.GetLabel())
+	key := req.GetKey()
+	dataKey := db.DataKey(label, key)
 
-	mgr := manager.NewObjectManager(label, api.db)
-
-	exists, err := mgr.Exists([]byte(key))
+	exists, err := api.db.Exists(dataKey)
 	if err != nil {
 		return nil, err
 	}
@@ -113,110 +267,195 @@ func (api *ObjectAPI) Exists(ctx context.Context, req *pb.ExistsObjectRequest) (
 
 // Delete implements ObjectManagerServer.Delete
 func (api *ObjectAPI) Delete(ctx context.Context, req *pb.DeleteObjectRequest) (*pb.DeleteObjectReply, error) {
-	label, key := req.GetLabel(), req.GetKey()
+	label := []byte(req.GetLabel())
+	key := req.GetKey()
+	dataKey := db.DataKey(label, key)
 
-	mgr := manager.NewObjectManager(label, api.db)
-
-	if err := mgr.Delete([]byte(key)); err != nil {
+	err := api.db.Delete(dataKey)
+	if err != nil {
 		return nil, err
 	}
-
 	return &pb.DeleteObjectReply{}, nil
 }
 
 // SetReferenceList implements ObjectManagerServer.SetReferenceList
 func (api *ObjectAPI) SetReferenceList(ctx context.Context, req *pb.UpdateReferenceListRequest) (*pb.UpdateReferenceListReply, error) {
-	label, key, refList := req.GetLabel(), req.GetKey(), req.GetReferenceList()
-
-	if len(refList) > db.RefIDCount {
-		return nil, fmt.Errorf("too big reference list = %v", len(refList))
+	refList := req.GetReferenceList()
+	// encode reference list
+	data, err := encoding.EncodeReferenceList(refList)
+	if err != nil {
+		return nil, err
 	}
 
-	mgr := manager.NewObjectManager(label, api.db)
-	err := mgr.UpdateReferenceList(key, refList, manager.RefListOpSet)
+	// store reference list if possible
+	refListKey := db.ReferenceListKey([]byte(req.GetLabel()), req.GetKey())
+	err = api.db.Set(refListKey, data)
+	if err != nil {
+		return nil, err
+	}
 
-	return &pb.UpdateReferenceListReply{}, err
+	return &pb.UpdateReferenceListReply{}, nil
 }
 
 // AppendReferenceList implements ObjectManagerServer.AppendReferenceList
 func (api *ObjectAPI) AppendReferenceList(ctx context.Context, req *pb.UpdateReferenceListRequest) (*pb.UpdateReferenceListReply, error) {
-	label, key, refList := req.GetLabel(), req.GetKey(), req.GetReferenceList()
+	// get current reference list data if possible
+	refListKey := db.ReferenceListKey([]byte(req.GetLabel()), req.GetKey())
 
-	if len(refList) > db.RefIDCount {
-		return nil, fmt.Errorf("too big reference list = %v", len(refList))
+	// define update callback
+	cb := func(refListData []byte) ([]byte, error) {
+		if refListData == nil {
+			// if input of update callback is nil, the data didn't exist yet,
+			// in which case we can simply encode the target ref list as it is
+			return encoding.EncodeReferenceList(req.ReferenceList)
+		}
+		// append new list to current list,
+		// without decoding the current list
+		return encoding.AppendToEncodedReferenceList(refListData, req.ReferenceList)
 	}
 
-	mgr := manager.NewObjectManager(label, api.db)
-	err := mgr.UpdateReferenceList(key, refList, manager.RefListOpAppend)
+	// loop-update until we have no conflict
+	err := api.db.Update(refListKey, cb)
+	for err == db.ErrConflict {
+		err = api.db.Update(refListKey, cb)
+	}
+	if err != nil {
+		return nil, err
+	}
 
-	return &pb.UpdateReferenceListReply{}, err
+	return &pb.UpdateReferenceListReply{}, nil
 }
 
 // RemoveReferenceList implements ObjectManagerServer.RemoveReferenceList
 // Removes the items in the request reference list from the Object's reference list
 func (api *ObjectAPI) RemoveReferenceList(ctx context.Context, req *pb.UpdateReferenceListRequest) (*pb.UpdateReferenceListReply, error) {
-	label, key, refList := req.GetLabel(), req.GetKey(), req.GetReferenceList()
+	// get current reference list data if possible
+	refListKey := db.ReferenceListKey([]byte(req.GetLabel()), req.GetKey())
 
-	if len(refList) > db.RefIDCount {
-		return nil, fmt.Errorf("too big reference list = %v", len(refList))
+	// define update callback
+	cb := func(refListData []byte) ([]byte, error) {
+		if refListData == nil {
+			// if input of update callback is nil, the data didn't exist yet,
+			// in which case we can simply return nil, as we don't need to do anything
+			return nil, nil
+		}
+		// remove new list from current list
+		return encoding.RemoveFromEncodedReferenceList(refListData, req.ReferenceList)
 	}
 
-	mgr := manager.NewObjectManager(label, api.db)
-	err := mgr.UpdateReferenceList(key, refList, manager.RefListOpRemove)
+	// loop-update until we have no conflict
+	err := api.db.Update(refListKey, cb)
+	for err == db.ErrConflict {
+		err = api.db.Update(refListKey, cb)
+	}
+	if err != nil {
+		return nil, err
+	}
 
-	return &pb.UpdateReferenceListReply{}, err
+	return &pb.UpdateReferenceListReply{}, nil
 }
 
 // Check implements ObjectManagerServer.Check
 func (api *ObjectAPI) Check(req *pb.CheckRequest, stream pb.ObjectManager_CheckServer) error {
-	label, ids := req.GetLabel(), req.GetIds()
+	label := []byte(req.GetLabel())
 
-	mgr := manager.NewObjectManager(label, api.db)
-
-	for _, id := range ids {
-		status, err := mgr.Check([]byte(id))
+	// if no ids are given, return early
+	length := len(req.Ids)
+	if length == 0 {
+		return nil
+	}
+	// if only one id is given, simply check that object
+	if length == 1 {
+		// check status
+		status, err := serverAPI.CheckStatusForObject(label, []byte(req.Ids[0]), api.db)
 		if err != nil {
 			return err
 		}
-
-		if err := stream.Send(&pb.CheckResponse{
-			Id:     id,
-			Status: convertStatus(status),
-		}); err != nil {
-			return nil
-		}
+		protoStatus := convertStatus(status)
+		// send the status for that single object given to the callee
+		return stream.Send(&pb.CheckResponse{Id: req.Ids[0], Status: protoStatus})
 	}
 
-	return nil
+	// multiple ids are requested, let's start goroutines
+	jobCount := api.jobCount
+	if length < jobCount {
+		jobCount = length
+	}
+
+	ctx, cancel := context.WithCancel(stream.Context())
+	defer cancel()
+
+	idCh := make(chan string, jobCount)
+
+	// create an errgroup for all the worker routines,
+	// including the input one
+	group, ctx := errgroup.WithContext(ctx)
+
+	// start the input goroutine,
+	// so it can start fetching keys and values ASAP
+	group.Go(func() error {
+		// close worker channel when this channel is closed
+		// (either because of an error or because all items have been received)
+		defer close(idCh)
+		for i := range req.Ids {
+			select {
+			case idCh <- req.Ids[i]:
+			case <-ctx.Done():
+				return nil
+			}
+		}
+		return nil
+	})
+
+	// start all the workers
+	for i := 0; i < api.jobCount; i++ {
+		group.Go(func() error {
+			// local variables reused for each iteration/item
+			var (
+				response pb.CheckResponse
+				open     bool
+			)
+
+			// loop while we can receive intermediate objects,
+			// or until the context is done
+			for {
+				select {
+				case <-ctx.Done():
+					return nil // early exist -> context is done
+				case response.Id, open = <-idCh:
+					if !open {
+						return nil // early exit -> worker channel closed
+					}
+				}
+
+				// check status
+				status, err := serverAPI.CheckStatusForObject(label, []byte(response.Id), api.db)
+				if err != nil {
+					return err
+				}
+				response.Status = convertStatus(status)
+
+				// send status for the given id to the callee
+				return stream.Send(&response)
+			}
+		})
+	}
+
+	// wait until all contexts are finished
+	return group.Wait()
 }
 
 // convertStatus convert manager.CheckStatus to pb.CheckResponse_Status
-func convertStatus(status manager.CheckStatus) pb.CheckResponse_Status {
-	switch status {
-	case manager.CheckStatusOK:
-		return pb.CheckResponse_ok
-	case manager.CheckStatusMissing:
-		return pb.CheckResponse_missing
-	case manager.CheckStatusCorrupted:
-		return pb.CheckResponse_corrupted
-	default:
+func convertStatus(status server.CheckStatus) pb.CheckResponse_Status {
+	s, ok := _ProtoCheckStatusMapping[status]
+	if !ok {
 		panic("unknown CheckStatus")
 	}
+	return s
 }
 
-// grpcObj convert a db.Object to a pb.Object
-func grpcObj(obj *db.Object) (*pb.Object, error) {
-	data, err := obj.Data()
-	if err != nil {
-		return nil, err
-	}
-	refList, err := obj.GetreferenceListStr()
-	if err != nil {
-		return nil, err
-	}
-	return &pb.Object{
-		Key:           obj.Key,
-		Value:         data,
-		ReferenceList: refList,
-	}, nil
+var _ProtoCheckStatusMapping = map[server.CheckStatus]pb.CheckResponse_Status{
+	server.CheckStatusOK:        pb.CheckResponse_ok,
+	server.CheckStatusMissing:   pb.CheckResponse_missing,
+	server.CheckStatusCorrupted: pb.CheckResponse_corrupted,
 }

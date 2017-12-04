@@ -80,12 +80,6 @@
   revision = "ac7624ea8da311f2fbbd94401d8c1cf66089f9fb"
 
 [[projects]]
-  name = "github.com/docker/go-units"
-  packages = ["."]
-  revision = "0dadbb0345b35ec7ef35e228dabb8de89a65bf52"
-  version = "v0.3.2"
-
-[[projects]]
   name = "github.com/ghodss/yaml"
   packages = ["."]
   revision = "0ca9ea5df5451ffdf184b4428c902747c2c11cd7"
@@ -277,6 +271,12 @@
 
 [[projects]]
   branch = "master"
+  name = "golang.org/x/sync"
+  packages = ["errgroup"]
+  revision = "fd80eb99c8f653c847d294a001bdf2a3a6f768f5"
+
+[[projects]]
+  branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix","windows"]
   revision = "82aafbf43bf885069dc71b7e7c2f9d7a614d47da"
@@ -320,6 +320,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "e002a8e2585dca3ec6d8651719475feb9224f9aaf7fb924fe7907d9037167e97"
+  inputs-digest = "eaadc9804ced2db25b0c3d0c3ec788df81b27359e2e0858720cc9ec26dd0f842"
   solver-name = "gps-cdcl"
   solver-version = 1

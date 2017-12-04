@@ -4,7 +4,6 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/zero-os/0-stor/server/db"
-	"github.com/zero-os/0-stor/server/manager"
 	pb "github.com/zero-os/0-stor/server/schema"
 	"github.com/zero-os/0-stor/server/stats"
 )
@@ -31,9 +30,7 @@ func NewNamespaceAPI(db db.DB) *NamespaceAPI {
 func (api *NamespaceAPI) Get(ctx context.Context, req *pb.GetNamespaceRequest) (*pb.GetNamespaceReply, error) {
 	label := req.GetLabel()
 
-	mgr := manager.NewNamespaceManager(api.db)
-
-	count, err := mgr.Count(label)
+	count, err := db.CountKeys(api.db, []byte(label))
 	if err != nil {
 		return nil, err
 	}
@@ -41,12 +38,12 @@ func (api *NamespaceAPI) Get(ctx context.Context, req *pb.GetNamespaceRequest) (
 
 	resp := &pb.GetNamespaceReply{
 		Namespace: &pb.Namespace{
-			Label: label,
-			// SpaceAvailale: ,
-			// SpaceUsed: ,
+			Label:               label,
 			ReadRequestPerHour:  read,
 			WriteRequestPerHour: write,
-			NrObjects:           int64(count) - 1,
+			// there are no more seperate namespace objects,
+			// thus we do no longer need to subtract (for now)
+			NrObjects: int64(count), // - 1,
 		},
 	}
 

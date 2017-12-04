@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -10,16 +9,12 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	badgerkv "github.com/dgraph-io/badger"
-	units "github.com/docker/go-units"
 	"github.com/spf13/cobra"
 	"github.com/zero-os/0-stor/cmd"
-	"github.com/zero-os/0-stor/server"
 	"github.com/zero-os/0-stor/server/api"
-	"github.com/zero-os/0-stor/server/db"
+	"github.com/zero-os/0-stor/server/api/grpc"
 	"github.com/zero-os/0-stor/server/db/badger"
-	"github.com/zero-os/0-stor/server/fs"
 	"github.com/zero-os/0-stor/server/jwt"
-	"github.com/zero-os/0-stor/server/manager"
 )
 
 // Execute adds all child commands to the root command sets flags appropriately.
@@ -59,15 +54,17 @@ func rootFunc(*cobra.Command, []string) error {
 		return err
 	}
 
+	/* // namespaces are no longer stored as seperate keys (at least not currently in master)
 	if err := ensureStoreStat(db, rootCfg.DB.Dirs.Data); err != nil {
 		log.Fatalf("error while computing store statistics: %v", err)
 	}
+	*/
 
-	var storServer api.API
+	var storServer api.Server
 	if rootCfg.AuthDisabled {
-		storServer, err = server.NewWithDB(db, nil, rootCfg.MaxMsgSize)
+		storServer, err = grpc.New(db, nil, rootCfg.MaxMsgSize, rootCfg.JobCount)
 	} else {
-		storServer, err = server.NewWithDB(db, jwt.DefaultVerifier(), rootCfg.MaxMsgSize)
+		storServer, err = grpc.New(db, jwt.DefaultVerifier(), rootCfg.MaxMsgSize, rootCfg.JobCount)
 	}
 	if err != nil {
 		log.Errorf("error while creating database layer: %v", err)
@@ -90,43 +87,55 @@ func rootFunc(*cobra.Command, []string) error {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT)
 
-	addr, err := storServer.Listen(rootCfg.ListenAddress.String())
-	if err != nil {
-		log.Errorf("error while launching+binding storServer: %v", err)
-		return err
-	}
+	errChan := make(chan error, 1)
+
+	go func() {
+		err := storServer.Listen(rootCfg.ListenAddress.String())
+		errChan <- err
+	}()
 
 	log.Infof("Server interface: grpc")
-	log.Infof("Server listening on %s", addr)
+	log.Infof("Server listening on %s", storServer.Address())
 
-	<-sigChan // block on signal handler
-	return nil
+	select {
+	case err := <-errChan:
+		return err
+	case <-sigChan:
+		return nil
+	}
 }
 
+// It doesn't look like namespaces are still created,
+// so for now this code is disabled.
+/*
 func ensureStoreStat(kv db.DB, dataPath string) error {
-	nsMgr := manager.NewNamespaceManager(kv)
-	statMgr := manager.NewStoreStatMgr(kv)
+	var (
+		stats server.StoreStat
+		err   error
+	)
 
-	available, err := fs.FreeSpace(dataPath)
+	stats.SizeAvailable, err = fs.FreeSpace(dataPath)
 	if err != nil {
 		return err
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	ch, err := kv.ListItems(ctx, []byte(manager.PrefixNamespace))
+	ch, err := kv.ListItems(ctx, []byte(db.PrefixNamespace))
 	if err != nil {
 		return err
 	}
 
-	var totalReserved uint64
 	for item := range ch {
-		k := item.Key()
-		ns, err := nsMgr.Get(string(k))
+		value, err := item.Value()
 		if err != nil {
 			return err
 		}
-		totalReserved += ns.Reserved
+		ns, err := encoding.DecodeNamespace(value)
+		if err != nil {
+			return err
+		}
+		stats.SizeUsed += ns.Reserved
 
 		err = item.Close()
 		if err != nil {
@@ -134,21 +143,23 @@ func ensureStoreStat(kv db.DB, dataPath string) error {
 		}
 	}
 
-	available = available - totalReserved
-
-	if available <= 0 {
-		return fmt.Errorf("total reserved size exceed availale disk space")
+	stats.SizeAvailable -= stats.SizeUsed
+	if stats.SizeAvailable <= 0 {
+		return errors.New("total reserved size exceed availale disk space")
 	}
 
-	if err := statMgr.Set(available, totalReserved); err != nil {
+	encodedStoreStats := encoding.EncodeStoreStat(stats)
+	err = kv.Set([]byte(db.KeyStoreStats), encodedStoreStats)
+	if err != nil {
 		return err
 	}
 
-	log.Infof("Space reserved : %s", units.BytesSize(float64(totalReserved)))
-	log.Infof("Space available : %s", units.BytesSize(float64(available)))
+	log.Infof("Space reserved : %s", units.BytesSize(float64(stats.SizeUsed)))
+	log.Infof("Space available : %s", units.BytesSize(float64(stats.SizeAvailable)))
 
 	return nil
 }
+*/
 
 // func validateListen(hostport string) error {
 // 	_, _, err := net.SplitHostPort(hostport)
@@ -162,6 +173,7 @@ var rootCfg struct {
 	AuthDisabled   bool
 	MaxMsgSize     int
 	AsyncWrite     bool
+	JobCount       int
 
 	DB struct {
 		Dirs struct {
@@ -190,4 +202,7 @@ func init() {
 		&rootCfg.MaxMsgSize, "max-msg-size", 32, "Configure the maximum size of the message GRPC server can receive, in MiB")
 	rootCmd.Flags().BoolVar(
 		&rootCfg.AsyncWrite, "async-write", false, "Enable asynchronous writes in BadgerDB.")
+	rootCmd.Flags().IntVarP(
+		&rootCfg.JobCount, "jobs", "j", grpc.DefaultJobCount,
+		"amount of async jobs to run for heavy GRPC server commands")
 }

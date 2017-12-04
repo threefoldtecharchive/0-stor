@@ -94,18 +94,28 @@ func (mdb *DB) Update(key []byte, cb db.UpdateCallback) error {
 	defer mdb.mux.Unlock()
 
 	v := mdb.m[string(key)]
-	val := make([]byte, len(v))
-	copy(val, v)
+	input := make([]byte, len(v))
+	copy(input, v)
 
-	v, err := cb(val)
+	output, err := cb(input)
 	if err != nil {
 		log.Errorf("(*DB).Update callback returned an error: %v\n", err)
 		return err
 	}
 
-	val = make([]byte, len(v))
-	copy(val, v)
-	mdb.m[string(key)] = val
+	if output == nil {
+		if input == nil {
+			return nil // nothing to do
+		}
+		// delete value
+		delete(mdb.m, string(key))
+		return nil
+	}
+
+	// store the new value
+	v = make([]byte, len(output))
+	copy(v, output)
+	mdb.m[string(key)] = v
 	return nil
 }
 

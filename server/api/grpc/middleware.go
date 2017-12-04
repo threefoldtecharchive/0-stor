@@ -1,11 +1,10 @@
-// shared middleware logic
-
 package grpc
 
 import (
 	"errors"
 
-	"github.com/zero-os/0-stor/server/grpc"
+	"github.com/zero-os/0-stor/server/api"
+
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -26,7 +25,7 @@ func extractLabelFromContext(ctx context.Context) (string, error) {
 		return "", errors.New("no metadata found in grpc context")
 	}
 
-	label, ok := md[grpc.MetaLabelKey]
+	label, ok := md[api.GRPCMetaAuthKey]
 	if !ok || len(label) < 1 {
 		return "", errors.New("no label found in grpc context")
 	}

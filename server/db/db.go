@@ -40,6 +40,7 @@ type DB interface {
 	// The returned data in the callback is only valid within the scope of that callback,
 	// and should be copied if you want to retain the data beyond the scope of the callback.
 	// When the requested key couldn't be found, the callback will receive a nil slice.
+	// If the callback returns nil as data, it will be deleted in case it existed before.
 	Update(key []byte, cb UpdateCallback) error
 
 	// Delete deletes data from a database mapped to the given key.
@@ -107,6 +108,31 @@ func (item *ErrorItem) Error() error { return item.Err }
 
 // Close implements Item.Close
 func (item *ErrorItem) Close() error { return item.Err }
+
+// CountKeys counts the (filtered) keys found for the given Database.
+func CountKeys(db DB, prefix []byte) (int, error) {
+	if db == nil {
+		panic("no database given to count keys on")
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	ch, err := db.ListItems(ctx, prefix)
+	if err != nil {
+		return 0, err
+	}
+
+	var count int
+	for item := range ch {
+		count++
+		err = item.Close()
+		if err != nil {
+			return 0, err
+		}
+	}
+	return count, nil
+}
 
 var (
 	_ Item = (*ErrorItem)(nil)
