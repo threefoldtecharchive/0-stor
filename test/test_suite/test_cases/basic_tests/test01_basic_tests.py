@@ -2,29 +2,9 @@ from test_suite.test_cases.testcases_base import TestcasesBase
 from termcolor import colored
 from random import randint
 from parameterized import parameterized
-from unittest import skip
 
 
 class BasicTestCases(TestcasesBase):
-    def create_namespace_and_accept_invitation(self, permissions, creat_config=True):
-        self.new_namespace = "xtremx_%d" % randint(1, 10000)
-        self.assertTrue(
-            self.zero_store_cli.create_namespace(namespace=self.new_namespace, config_path=self.default_config_path))
-
-        self.assertTrue(self.zero_store_cli.set_user_acl(namespace=self.new_namespace, username=self.iyo_slave_username,
-                                                         permission_list=permissions,
-                                                         config_path=self.default_config_path))
-        results = self.iyo_slave_accept_invitation(namespace=self.new_namespace, permissions_list=permissions)
-        for status_code in results:
-            self.assertEqual(status_code, 201)
-
-        if creat_config:
-            config = {'iyo_app_id': self.iyo_slave_id,
-                      'iyo_app_secret': self.iyo_slave_secret,
-                      'namespace': self.new_namespace}
-            self.new_config_file_path = self.create_new_config_file(config)
-            print(colored(' [*] new config path : %s' % self.new_config_file_path, 'white'))
-
     def test001_upload_download_files(self):
         self.default_writer()
         self.get_uploaded_files_keys()
@@ -102,7 +82,6 @@ class BasicTestCases(TestcasesBase):
                            ('delete_write', ['-d', '-w']),
                            ('delete_write_read', ['-d', '-w', '-r']),
                            ])
-    @skip('https://github.com/zero-os/0-stor/issues/260')
     def test006_delete_file_by_iyo_slave_user(self, name, permissions):
         """ ZST-008
 
@@ -190,5 +169,20 @@ class BasicTestCases(TestcasesBase):
         self.assertTrue(self.zero_store_cli.create_namespace(namespace=namespace, config_path=self.default_config_path))
         self.assertTrue(self.zero_store_cli.delete_namespace(namespace=namespace, config_path=self.default_config_path))
 
-    # def test010_replication_size_and_block_size(self, name, replication_size, block_size):
-    #     pass
+    def test010_upload_file_to_non_existing_namespace(self):
+        """ ZST-010
+
+        **Test Scenario:**
+        #. Create random file
+        #. Update the config file with non existing namespace.
+        #. Try to upload the file, should fail
+        """
+        random_file = self.return_random_dict_elemnt(source_dict=TestcasesBase.created_files_info)
+        config = {'namespace': 'xTremx00xTremx00'}
+        new_config_file_path_upload = self.create_new_config_file(config)
+        print(colored(' [*] uploading config path : %s' % new_config_file_path_upload, 'white'))
+        self.writer(created_files_info=random_file,
+                    config_list=[new_config_file_path_upload],
+                    number_of_threads=1)
+        self.get_uploaded_files_keys()
+        self.assertIn("JWT token doesn\'t contains required scopes", self.uploaded_files_info[list(self.uploaded_files_info.keys())[0]]['key'])

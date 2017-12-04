@@ -75,11 +75,11 @@ class TestcasesBase(TestCase):
     def tearDown(self):
         pass
 
-    def create_files(self, number_of_files):
+    def create_files(self, number_of_files, file_size=None):
         self.execute_shell_commands(cmd='rm -rf /tmp/upload; rm -rf /tmp/download')
         self.execute_shell_commands(cmd='mkdir -p /tmp/upload; mkdir -p /tmp/download')
         for i in range(0, number_of_files):
-            file_size = random.randint(1024, 10 * 1024)
+            file_size = file_size or random.randint(1024, 10 * 1024)
             file_path = '/tmp/upload/upload_file_%d' % random.randint(1, 1000)
 
             with open(file_path, 'wb') as file:
@@ -90,7 +90,7 @@ class TestcasesBase(TestCase):
             TestcasesBase.created_files_info['id_%d' % i] = {'path': file_path,
                                                              'size': file_size,
                                                              'md5': ''}
-        print(colored(' [*] Create : %d files under /tmp/upload ' % number_of_files, 'white'))
+        #print(colored(' [*] Create : %d files under /tmp/upload ' % number_of_files, 'white'))
 
     def md5sum(self, file_path):
         hash = md5()
@@ -200,7 +200,7 @@ class TestcasesBase(TestCase):
                                             config_path=config)
 
         jobs_queue = list(self.writer_jobs.queue)
-        print(colored(' [*] Number of writer threads : %i' % number_of_threads, 'white'))
+        #print(colored(' [*] Number of writer threads : %i' % number_of_threads, 'white'))
         for i in range(0, number_of_threads):
             thread = threading.Thread(target=self.writer_work)
             thread.start()
@@ -386,12 +386,29 @@ class TestcasesBase(TestCase):
             elif permission == '-a':
                 suborg = 'admin'
             namespace_value = "%s.0stor.%s.%s" % (self.config_zerostor['organization'], namespace, suborg)
-
             status_code = self.iyo_slave_client.api.AcceptMembership(namespace_value, 'member',
                                                                      self.iyo_slave_username).status_code
             print(colored(' [*] namespace: %s, response status code: %d' % (namespace_value, status_code), 'yellow'))
             results.append(status_code)
         return results
+
+    def create_namespace_and_accept_invitation(self, permissions, creat_config=True):
+        self.new_namespace = "xtremx_%d_%d" % (randint(1, 10000), randint(1, 10000))
+        self.assertTrue(
+            self.zero_store_cli.create_namespace(namespace=self.new_namespace, config_path=self.default_config_path))
+        self.assertTrue(self.zero_store_cli.set_user_acl(namespace=self.new_namespace, username=self.iyo_slave_username,
+                                                         permission_list=permissions,
+                                                         config_path=self.default_config_path))
+        results = self.iyo_slave_accept_invitation(namespace=self.new_namespace, permissions_list=permissions)
+
+        for status_code in results:
+            self.assertEqual(status_code, 201)
+        if creat_config:
+            config = {'iyo_app_id': self.iyo_slave_id,
+                      'iyo_app_secret': self.iyo_slave_secret,
+                      'namespace': self.new_namespace}
+            self.new_config_file_path = self.create_new_config_file(config)
+            print(colored(' [*] new config path : %s' % self.new_config_file_path, 'white'))    
 
 class Utiles:
     def __init__(self):

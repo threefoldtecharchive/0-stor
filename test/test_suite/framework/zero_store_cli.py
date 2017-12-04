@@ -9,24 +9,21 @@ class ZeroStoreCLI:
         config_path = job['config_path']
 
         result = job['result']
-        command = 'zerostorcli --conf %s file download %s %s' % (config_path, key, result)
-        #command = 'cd /gopath/src/github.com/zero-os/0-stor/cmd/zstor/ && zerostorcli file download %s %s' % (key, result)
+        command = 'zstor --config %s file download %s -o %s' % (config_path, key, result)
         for _ in range(10):
-            out, error = self.execute_shell_commands(command)
-            if error:
+            out, return_code = self.execute_shell_commands(command)
+            if return_code:
                 time.sleep(1)
             else:
                 break
 
-        if error:
+        if return_code:
             queue.put({'job_id': job_id,
-                       'downloaded_path': 'ERROR! %s ' % error})
+                       'downloaded_path': 'ERROR! %s ' % out})
         else:
-            result = out.split(' ')
-            if '/tmp/download/' in result[3]:
-                path = result[3][:-1]
+            if 'downloaded' in out:
                 queue.put({'job_id': job_id,
-                           'downloaded_path': path})
+                           'downloaded_path': result})
             else:
                 queue.put({'job_id': job_id,
                            'downloaded_path': 'ERROR! %s ' % str(out)})
@@ -35,16 +32,15 @@ class ZeroStoreCLI:
         file_path = job['file_path']
         config_path = job['config_path']
         job_id = job['id']
-        command = 'zerostorcli --conf %s file upload %s' % (config_path, file_path)
-        #command = 'cd /gopath/src/github.com/zero-os/0-stor/cmd/zstor && zerostorcli file upload %s' % file_path
-        out, error = self.execute_shell_commands(command)
-        if error:
+        command = 'zstor --config %s file upload %s' % (config_path, file_path)
+        out, return_code = self.execute_shell_commands(command)
+        if return_code:
             queue.put({'job_id': job_id,
-                       'uploaded_key': 'ERROR! %s ' % error})
+                       'uploaded_key': 'ERROR! %s ' % out})
         else:
             result = out.split('\n')[-2]
-            if 'file uploaded' in result:
-                key = result.split(' ')[-1]
+            if 'uploaded as key =' in result:
+                key = file_path.split('/')[-1]
                 queue.put({'job_id': job_id,
                            'uploaded_key': key})
             else:
@@ -53,59 +49,57 @@ class ZeroStoreCLI:
 
     def create_namespace(self, namespace, config_path):
         print(colored(" [*] Create namespace : %s" % namespace, 'white'))
-        command = 'zerostorcli --conf %s namespace create %s' % (config_path, namespace)
-        out, error = self.execute_shell_commands(command)
-        if error:
-            print(colored(" ERROR : %s " % str(error), 'red'))
+        command = 'zstor --config %s namespace create %s' % (config_path, namespace)
+        out, return_code = self.execute_shell_commands(command)
+        if return_code:
+            print(colored(" ERROR : %s " % str(out), 'red'))
             return False
         else:
             print(colored(" [*] %s " % out, 'green'))
             return True
 
     def delete_namespace(self, namespace, config_path):
-        command = 'zerostorcli --conf %s namespace delete %s' % (config_path, namespace)
-        out, error = self.execute_shell_commands(command)
-        if error:
-            print(colored(" ERROR : %s " % str(error), 'red'))
+        command = 'zstor --config %s namespace delete %s' % (config_path, namespace)
+        out, return_code = self.execute_shell_commands(command)
+        if return_code:
+            print(colored(" ERROR : %s " % str(out), 'red'))
             # TO DO : Verify that this namespace has been deleted
             return False
         else:
             return True
 
-    def get_user_acl(self, namespace, username, config_path):
-        command = "zerostorcli %s conf namespace get-acl --namespace %s --user %s" % (config_path, namespace, username)
-        out, error = self.execute_shell_commands(command)
-        if error:
-            print(colored(" ERROR : %s " % str(error), 'red'))
+    def get_user_acl(self, namespace, usermail, config_path):
+        command = "zstor --config %s namespace permission get %s %s" % (config_path, usermail, namespace)
+        out, return_code = self.execute_shell_commands(command)
+        if return_code:
+            print(colored(" ERROR : %s " % str(out), 'red'))
             return False
         else:
             return True
 
-    def set_user_acl(self, namespace, username, permission_list, config_path):
+    def set_user_acl(self, namespace, usermail, permission_list, config_path):
         permissions = ''
         for permission in permission_list:
             permissions += permission + " "
         permissions = permissions[:-1]
-
-        command = "zerostorcli --conf %s namespace set-acl --namespace %s --user %s %s" % (config_path, namespace, username, permissions)
-        out, error = self.execute_shell_commands(command)
-        if error:
-            print(colored(" ERROR : %s " % str(error), 'red'))
+        command = "zstor --config %s namespace permission set %s %s %s" % (config_path,  usermail, namespace, permissions)
+        out, return_code = self.execute_shell_commands(command)
+        if return_code:
+            print(colored(" ERROR : %s " % str(out), 'red'))
             return False
         else:
             return True
 
     def delete_file(self, uploaded_key, config_path):
-        command = 'zerostorcli --conf %s file delete %s' % (config_path, uploaded_key)
+        command = 'zstor --config %s file delete %s' % (config_path, uploaded_key)
         for _ in range(10):
-            out, error = self.execute_shell_commands(command)
-            if error:
+            out, return_code = self.execute_shell_commands(command)
+            if return_code:
                 time.sleep(1)
             else:
                 break
-
-        if error:
-            return 'delete_result: ERROR! %s ' % error
+        if return_code:
+            return 'delete_result: ERROR! %s ' % out
         else:
             if 'file deleted successfully' in out:
                 return 'delete_result: %s ' % out
@@ -116,8 +110,9 @@ class ZeroStoreCLI:
         #print(colored(" [*] Execute: %s" % cmd, 'white'))
         process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, error = process.communicate()
+        out += error
         # if error:
         #     print(colored(' [*] Error!! %s' % error.decode('utf-8'), 'red'))
         # else:
         #     print(colored(" [*] OK.", 'green'))
-        return out.decode('utf-8'), error.decode('utf-8')
+        return out.decode('utf-8'), process.returncode
