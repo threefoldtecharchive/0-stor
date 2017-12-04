@@ -1,4 +1,4 @@
-package server
+package grpc
 
 import (
 	"crypto/rand"
@@ -17,48 +17,6 @@ import (
 	"github.com/zero-os/0-stor/server/manager"
 	pb "github.com/zero-os/0-stor/server/schema"
 )
-
-func getTestObjectAPI(require *require.Assertions) (*ObjectAPI, func()) {
-	tmpDir, err := ioutil.TempDir("", "0stortest")
-	require.NoError(err)
-
-	db, err := badger.New(path.Join(tmpDir, "data"), path.Join(tmpDir, "meta"))
-	if err != nil {
-		require.NoError(err)
-	}
-
-	clean := func() {
-		db.Close()
-		os.RemoveAll(tmpDir)
-	}
-
-	return NewObjectAPI(db), clean
-}
-
-func populateDB(require *require.Assertions, db db.DB) (string, [][]byte) {
-	nsMgr := manager.NewNamespaceManager(db)
-	objMgr := manager.NewObjectManager(label, db)
-	err := nsMgr.Create(label)
-	require.NoError(err)
-
-	bufList := make([][]byte, 10)
-
-	for i := 0; i < 10; i++ {
-		bufList[i] = make([]byte, 1024*1024)
-		_, err = rand.Read(bufList[i])
-		require.NoError(err)
-
-		refList := []string{
-			"user1", "user2",
-		}
-		key := fmt.Sprintf("testkey%d", i)
-
-		err = objMgr.Set([]byte(key), bufList[i], refList)
-		require.NoError(err)
-	}
-
-	return label, bufList
-}
 
 func TestCreateObject(t *testing.T) {
 	require := require.New(t)
@@ -110,7 +68,7 @@ func TestGetObject(t *testing.T) {
 	api, clean := getTestObjectAPI(require)
 	defer clean()
 
-	label, bufList := populateDB(require, api.db)
+	bufList := populateDB(t, label, api.db)
 
 	t.Run("valid", func(t *testing.T) {
 		key := []byte("testkey0")
@@ -125,7 +83,7 @@ func TestGetObject(t *testing.T) {
 		obj := resp.GetObject()
 
 		assert.Equal(key, obj.GetKey())
-		assert.Equal(bufList[0], obj.GetValue())
+		assert.Equal(bufList["testkey0"], obj.GetValue())
 		assert.Equal([]string{"user1", "user2"}, obj.GetReferenceList())
 	})
 
@@ -147,7 +105,7 @@ func TestExistsObject(t *testing.T) {
 	api, clean := getTestObjectAPI(require)
 	defer clean()
 
-	label, bufList := populateDB(require, api.db)
+	bufList := populateDB(t, label, api.db)
 
 	for i := 0; i < len(bufList); i++ {
 		key := fmt.Sprintf("testkey%d", i)
@@ -182,7 +140,7 @@ func TestDeleteObject(t *testing.T) {
 	api, clean := getTestObjectAPI(require)
 	defer clean()
 
-	label, _ := populateDB(require, api.db)
+	populateDB(t, label, api.db)
 	objMgr := manager.NewObjectManager(label, api.db)
 
 	t.Run("valid", func(t *testing.T) {
@@ -215,38 +173,19 @@ func TestDeleteObject(t *testing.T) {
 	})
 }
 
-func TestCheckObject(t *testing.T) {
-	require := require.New(t)
-	assert := assert.New(t)
+func getTestObjectAPI(require *require.Assertions) (*ObjectAPI, func()) {
+	tmpDir, err := ioutil.TempDir("", "0stortest")
+	require.NoError(err)
 
-	api, clean := getTestObjectAPI(require)
-	defer clean()
-
-	label, _ := populateDB(require, api.db)
-	objMgr := manager.NewObjectManager(label, api.db)
-
-	tt := []struct {
-		name           string
-		key            []byte
-		expectedStatus manager.CheckStatus
-	}{
-		{
-			name:           "valid",
-			key:            []byte("testkey1"),
-			expectedStatus: manager.CheckStatusOK,
-		},
-		{
-			name:           "missing",
-			key:            []byte("dontexsits"),
-			expectedStatus: manager.CheckStatusMissing,
-		},
+	db, err := badger.New(path.Join(tmpDir, "data"), path.Join(tmpDir, "meta"))
+	if err != nil {
+		require.NoError(err)
 	}
 
-	for _, tc := range tt {
-		t.Run(tc.name, func(t *testing.T) {
-			status, err := objMgr.Check(tc.key)
-			require.NoError(err, "failed to check status of %v", tc.key)
-			assert.Equal(tc.expectedStatus, status)
-		})
+	clean := func() {
+		db.Close()
+		os.RemoveAll(tmpDir)
 	}
+
+	return NewObjectAPI(db), clean
 }

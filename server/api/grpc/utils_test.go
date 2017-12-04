@@ -1,4 +1,4 @@
-package test
+package grpc
 
 import (
 	"crypto/rand"
@@ -8,10 +8,8 @@ import (
 	"path"
 	"testing"
 
-	log "github.com/Sirupsen/logrus"
 	jwtgo "github.com/dgrijalva/jwt-go"
 	"github.com/stretchr/testify/require"
-	"github.com/zero-os/0-stor/server"
 	"github.com/zero-os/0-stor/server/db"
 	"github.com/zero-os/0-stor/server/jwt"
 	"github.com/zero-os/0-stor/server/manager"
@@ -20,24 +18,30 @@ import (
 
 const (
 	// path to testing public key
-	testPubKeyPath = "../../devcert/jwt_pub.pem"
+	testPubKeyPath = "../../../devcert/jwt_pub.pem"
 
 	// path to testing private key
-	testPrivKeyPath = "../../devcert/jwt_key.pem"
+	testPrivKeyPath = "../../../devcert/jwt_key.pem"
 )
 
-func TestMain(m *testing.M) {
-	log.SetLevel(log.DebugLevel)
-	os.Exit(m.Run())
-}
+const (
+	// test organization
+	organization = "testorg"
 
-func getTestGRPCServer(t *testing.T, organization string) (server.StoreServer, stubs.IYOClient, func()) {
+	// test namespace
+	namespace = "testnamespace"
+
+	// test label (full iyo namespacing)
+	label = "testorg_0stor_testnamespace"
+)
+
+func getTestGRPCServer(t *testing.T, organization string) (*API, stubs.IYOClient, func()) {
 	tmpDir, err := ioutil.TempDir("", "0stortest")
 	require.NoError(t, err)
 
 	verifier, err := getTestVerifier(testPubKeyPath)
 
-	server, err := server.New(path.Join(tmpDir, "data"), path.Join(tmpDir, "meta"), verifier, 4)
+	server, err := New(path.Join(tmpDir, "data"), path.Join(tmpDir, "meta"), verifier, 4)
 	require.NoError(t, err)
 
 	_, err = server.Listen("localhost:0")
@@ -77,10 +81,11 @@ func getIYOClient(t testing.TB, organization string) (stubs.IYOClient, string) {
 	return jwtCreator, organization
 }
 
-func populateDB(t *testing.T, namespace string, db db.DB) map[string][]byte {
+// populateDB populates a db with 10 entries that have keys `testkey0` - `testkey9`
+func populateDB(t *testing.T, label string, db db.DB) map[string][]byte {
 	nsMgr := manager.NewNamespaceManager(db)
-	objMgr := manager.NewObjectManager(namespace, db)
-	err := nsMgr.Create(namespace)
+	objMgr := manager.NewObjectManager(label, db)
+	err := nsMgr.Create(label)
 	require.NoError(t, err)
 
 	bufList := make(map[string][]byte, 10)

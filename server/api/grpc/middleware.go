@@ -1,12 +1,11 @@
 // shared middleware logic
 
-package server
+package grpc
 
 import (
 	"errors"
 
 	"github.com/zero-os/0-stor/server/grpc"
-
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"

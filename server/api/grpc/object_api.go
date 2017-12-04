@@ -1,4 +1,4 @@
-package server
+package grpc
 
 import (
 	"fmt"
@@ -12,10 +12,12 @@ import (
 
 var _ (pb.ObjectManagerServer) = (*ObjectAPI)(nil)
 
+// ObjectAPI implements pb.ObjectManagerServer
 type ObjectAPI struct {
 	db db.DB
 }
 
+// NewObjectAPI returns a new ObjectAPI
 func NewObjectAPI(db db.DB) *ObjectAPI {
 	if db == nil {
 		panic("no database given to ObjectAPI")
@@ -26,6 +28,7 @@ func NewObjectAPI(db db.DB) *ObjectAPI {
 	}
 }
 
+// Create implements ObjectManagerServer.Create
 func (api *ObjectAPI) Create(ctx context.Context, req *pb.CreateObjectRequest) (*pb.CreateObjectReply, error) {
 	label := req.GetLabel()
 
@@ -40,6 +43,7 @@ func (api *ObjectAPI) Create(ctx context.Context, req *pb.CreateObjectRequest) (
 	return &pb.CreateObjectReply{}, nil
 }
 
+// List implements ObjectManagerServer.List
 func (api *ObjectAPI) List(req *pb.ListObjectsRequest, stream pb.ObjectManager_ListServer) error {
 
 	label := req.GetLabel()
@@ -70,6 +74,7 @@ func (api *ObjectAPI) List(req *pb.ListObjectsRequest, stream pb.ObjectManager_L
 	return nil
 }
 
+// Get implements ObjectManagerServer.Get
 func (api *ObjectAPI) Get(ctx context.Context, req *pb.GetObjectRequest) (*pb.GetObjectReply, error) {
 	label, key := req.GetLabel(), req.GetKey()
 
@@ -90,6 +95,7 @@ func (api *ObjectAPI) Get(ctx context.Context, req *pb.GetObjectRequest) (*pb.Ge
 	}, nil
 }
 
+// Exists implements ObjectManagerServer.Exists
 func (api *ObjectAPI) Exists(ctx context.Context, req *pb.ExistsObjectRequest) (*pb.ExistsObjectReply, error) {
 	label, key := req.GetLabel(), req.GetKey()
 
@@ -105,6 +111,7 @@ func (api *ObjectAPI) Exists(ctx context.Context, req *pb.ExistsObjectRequest) (
 	}, nil
 }
 
+// Delete implements ObjectManagerServer.Delete
 func (api *ObjectAPI) Delete(ctx context.Context, req *pb.DeleteObjectRequest) (*pb.DeleteObjectReply, error) {
 	label, key := req.GetLabel(), req.GetKey()
 
@@ -117,7 +124,7 @@ func (api *ObjectAPI) Delete(ctx context.Context, req *pb.DeleteObjectRequest) (
 	return &pb.DeleteObjectReply{}, nil
 }
 
-// SetReferenceList replace the complete reference list for the object
+// SetReferenceList implements ObjectManagerServer.SetReferenceList
 func (api *ObjectAPI) SetReferenceList(ctx context.Context, req *pb.UpdateReferenceListRequest) (*pb.UpdateReferenceListReply, error) {
 	label, key, refList := req.GetLabel(), req.GetKey(), req.GetReferenceList()
 
@@ -131,7 +138,7 @@ func (api *ObjectAPI) SetReferenceList(ctx context.Context, req *pb.UpdateRefere
 	return &pb.UpdateReferenceListReply{}, err
 }
 
-// AppendReferenceList adds some reference to the reference list of the object
+// AppendReferenceList implements ObjectManagerServer.AppendReferenceList
 func (api *ObjectAPI) AppendReferenceList(ctx context.Context, req *pb.UpdateReferenceListRequest) (*pb.UpdateReferenceListReply, error) {
 	label, key, refList := req.GetLabel(), req.GetKey(), req.GetReferenceList()
 
@@ -145,7 +152,8 @@ func (api *ObjectAPI) AppendReferenceList(ctx context.Context, req *pb.UpdateRef
 	return &pb.UpdateReferenceListReply{}, err
 }
 
-// RemoveReferenceList removes some reference from the reference list of the object
+// RemoveReferenceList implements ObjectManagerServer.RemoveReferenceList
+// Removes the items in the request reference list from the Object's reference list
 func (api *ObjectAPI) RemoveReferenceList(ctx context.Context, req *pb.UpdateReferenceListRequest) (*pb.UpdateReferenceListReply, error) {
 	label, key, refList := req.GetLabel(), req.GetKey(), req.GetReferenceList()
 
@@ -159,6 +167,7 @@ func (api *ObjectAPI) RemoveReferenceList(ctx context.Context, req *pb.UpdateRef
 	return &pb.UpdateReferenceListReply{}, err
 }
 
+// Check implements ObjectManagerServer.Check
 func (api *ObjectAPI) Check(req *pb.CheckRequest, stream pb.ObjectManager_CheckServer) error {
 	label, ids := req.GetLabel(), req.GetIds()
 

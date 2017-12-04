@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/zero-os/0-stor/cmd"
 	"github.com/zero-os/0-stor/server"
+	"github.com/zero-os/0-stor/server/api"
 	"github.com/zero-os/0-stor/server/db"
 	"github.com/zero-os/0-stor/server/db/badger"
 	"github.com/zero-os/0-stor/server/fs"
@@ -62,7 +63,7 @@ func rootFunc(*cobra.Command, []string) error {
 		log.Fatalf("error while computing store statistics: %v", err)
 	}
 
-	var storServer server.StoreServer
+	var storServer api.API
 	if rootCfg.AuthDisabled {
 		storServer, err = server.NewWithDB(db, nil, rootCfg.MaxMsgSize)
 	} else {

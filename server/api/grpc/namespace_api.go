@@ -1,10 +1,9 @@
-package server
+package grpc
 
 import (
 	"golang.org/x/net/context"
 
 	"github.com/zero-os/0-stor/server/db"
-	"github.com/zero-os/0-stor/server/jwt"
 	"github.com/zero-os/0-stor/server/manager"
 	pb "github.com/zero-os/0-stor/server/schema"
 	"github.com/zero-os/0-stor/server/stats"
@@ -12,11 +11,12 @@ import (
 
 var _ (pb.NamespaceManagerServer) = (*NamespaceAPI)(nil)
 
+// NamespaceAPI implements pb.NamespaceManagerServer
 type NamespaceAPI struct {
-	db          db.DB
-	jwtVerifier jwt.TokenVerifier
+	db db.DB
 }
 
+// NewNamespaceAPI returns a NamespaceAPI
 func NewNamespaceAPI(db db.DB) *NamespaceAPI {
 	if db == nil {
 		panic("no database given to NamespaceAPI")
@@ -27,6 +27,7 @@ func NewNamespaceAPI(db db.DB) *NamespaceAPI {
 	}
 }
 
+// Get implements NamespaceManagerServer.Get
 func (api *NamespaceAPI) Get(ctx context.Context, req *pb.GetNamespaceRequest) (*pb.GetNamespaceReply, error) {
 	label := req.GetLabel()
 

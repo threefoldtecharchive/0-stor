@@ -11,11 +11,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/zero-os/0-stor/client/meta/embedserver"
-	"github.com/zero-os/0-stor/server"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/zero-os/0-stor/client/meta/embedserver"
+	"github.com/zero-os/0-stor/server"
+	"github.com/zero-os/0-stor/server/api"
 )
 
 const (
@@ -23,10 +23,10 @@ const (
 	testPubKeyPath = "./../devcert/jwt_pub.pem"
 )
 
-func testGRPCServer(t testing.TB, n int) ([]server.StoreServer, func()) {
+func testGRPCServer(t testing.TB, n int) ([]api.API, func()) {
 	require := require.New(t)
 
-	servers := make([]server.StoreServer, n)
+	servers := make([]api.API, n)
 	dirs := make([]string, n)
 
 	for i := 0; i < n; i++ {
@@ -70,7 +70,7 @@ func TestRoundTripGRPC(t *testing.T) {
 
 	shards := make([]string, len(servers))
 	for i, server := range servers {
-		shards[i] = server.Addr()
+		shards[i] = server.ListenAddress()
 	}
 
 	policy := Policy{
@@ -249,7 +249,7 @@ func TestBlocksizes(t *testing.T) {
 
 	shards := make([]string, len(servers))
 	for i, server := range servers {
-		shards[i] = server.Addr()
+		shards[i] = server.ListenAddress()
 	}
 
 	policy := Policy{
@@ -351,7 +351,7 @@ func TestMultipleDownload(t *testing.T) {
 
 	shards := make([]string, len(servers))
 	for i, server := range servers {
-		shards[i] = server.Addr()
+		shards[i] = server.ListenAddress()
 	}
 
 	policy := Policy{
@@ -405,7 +405,7 @@ func TestConcurrentWriteRead(t *testing.T) {
 
 	shards := make([]string, len(servers))
 	for i, server := range servers {
-		shards[i] = server.Addr()
+		shards[i] = server.ListenAddress()
 	}
 
 	policy := Policy{
@@ -478,7 +478,7 @@ func BenchmarkWriteFilesSizes(b *testing.B) {
 
 	shards := make([]string, len(servers))
 	for i, server := range servers {
-		shards[i] = server.Addr()
+		shards[i] = server.ListenAddress()
 	}
 
 	policy := Policy{
@@ -553,7 +553,7 @@ func TestIssue225(t *testing.T) {
 
 	shards := make([]string, len(servers))
 	for i, server := range servers {
-		shards[i] = server.Addr()
+		shards[i] = server.ListenAddress()
 	}
 
 	policy := Policy{
@@ -604,7 +604,7 @@ func TestIssue225(t *testing.T) {
 
 // 	shards := make([]string, len(servers))
 // 	for i, server := range servers {
-// 		shards[i] = server.Addr()
+// 		shards[i] = server.ListenAddress()
 // 	}
 
 // 	conf := config.Config{

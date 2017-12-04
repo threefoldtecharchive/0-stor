@@ -19,7 +19,7 @@ func TestCheck(t *testing.T) {
 
 	shards := make([]string, len(servers))
 	for i, server := range servers {
-		shards[i] = server.Addr()
+		shards[i] = server.ListenAddress()
 	}
 
 	policy := Policy{

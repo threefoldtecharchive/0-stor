@@ -180,11 +180,11 @@ func (o *Object) AppendReferenceList(refList []string) error {
 
 // RemoveReferenceList removes given reference list from the object.
 // It won't return error in case of some or all elements of the `refList`
-// are not exist in the object.
+// do not exist in the object.
 func (o *Object) RemoveReferenceList(refList []string) error {
 	// creates map of existing reference list for easier search
-	// it might good for big refList but seems bad
-	// for the little one
+	// it might be good for big refLists but seems bad
+	// for the small ones
 	refMap := make(map[string]struct{}, len(refList))
 	for _, ref := range refList {
 		refMap[ref] = struct{}{}
