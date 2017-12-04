@@ -99,6 +99,7 @@ func (api *ObjectAPI) List(req *pb.ListObjectsRequest, stream pb.ObjectManager_L
 		Value []byte
 	}
 	workerCh := make(chan intermediateObject, api.jobCount)
+	outputCh := make(chan pb.Object, api.jobCount)
 
 	// create an errgroup for all the worker routines,
 	// including the input one
@@ -138,7 +139,7 @@ func (api *ObjectAPI) List(req *pb.ListObjectsRequest, stream pb.ObjectManager_L
 			if len(key) <= prefixLength {
 				return errors.New("invalid item key")
 			}
-			key = key[prefixLength:]
+			key = key[prefixLength+1:]
 			imObject.Key = make([]byte, len(key))
 			copy(imObject.Key, key)
 
@@ -159,6 +160,38 @@ func (api *ObjectAPI) List(req *pb.ListObjectsRequest, stream pb.ObjectManager_L
 		return nil
 	})
 
+	// start the output goroutine,
+	// as we are only allowed to send to the stream on a single goroutine
+	// (sending on multiple goroutines at once is not safe according to docs)
+	group.Go(func() error {
+		// local variables reused for each iteration/item
+		var (
+			object          pb.Object
+			workerStopCount int
+		)
+
+		// loop while we can receive intermediate objects,
+		// or until the context is done
+		for {
+			select {
+			case <-ctx.Done():
+				return nil // early exist -> context is done
+			case object = <-outputCh:
+				if object.GetKey() == nil {
+					workerStopCount++
+					if workerStopCount == api.jobCount {
+						return nil // we're done!
+					}
+					continue
+				}
+			}
+			err := stream.Send(&object)
+			if err != nil {
+				return err
+			}
+		}
+	})
+
 	// start all the workers
 	for i := 0; i < api.jobCount; i++ {
 		group.Go(func() error {
@@ -177,6 +210,12 @@ func (api *ObjectAPI) List(req *pb.ListObjectsRequest, stream pb.ObjectManager_L
 					return nil // early exist -> context is done
 				case imObject, open = <-workerCh:
 					if !open {
+						// send a nil object to indicate a worker is finished
+						select {
+						case outputCh <- pb.Object{}:
+						case <-ctx.Done():
+							return nil
+						}
 						return nil // early exit -> worker channel closed
 					}
 				}
@@ -200,8 +239,12 @@ func (api *ObjectAPI) List(req *pb.ListObjectsRequest, stream pb.ObjectManager_L
 					}
 				}
 
-				// send the object over the stream
-				return stream.Send(&object)
+				// send the object ready for output
+				select {
+				case outputCh <- object:
+				case <-ctx.Done():
+					return nil
+				}
 			}
 		})
 	}
@@ -307,11 +350,11 @@ func (api *ObjectAPI) AppendReferenceList(ctx context.Context, req *pb.UpdateRef
 		if refListData == nil {
 			// if input of update callback is nil, the data didn't exist yet,
 			// in which case we can simply encode the target ref list as it is
-			return encoding.EncodeReferenceList(req.ReferenceList)
+			return encoding.EncodeReferenceList(req.GetReferenceList())
 		}
 		// append new list to current list,
 		// without decoding the current list
-		return encoding.AppendToEncodedReferenceList(refListData, req.ReferenceList)
+		return encoding.AppendToEncodedReferenceList(refListData, req.GetReferenceList())
 	}
 
 	// loop-update until we have no conflict
@@ -340,7 +383,7 @@ func (api *ObjectAPI) RemoveReferenceList(ctx context.Context, req *pb.UpdateRef
 			return nil, nil
 		}
 		// remove new list from current list
-		return encoding.RemoveFromEncodedReferenceList(refListData, req.ReferenceList)
+		return encoding.RemoveFromEncodedReferenceList(refListData, req.GetReferenceList())
 	}
 
 	// loop-update until we have no conflict
@@ -360,20 +403,21 @@ func (api *ObjectAPI) Check(req *pb.CheckRequest, stream pb.ObjectManager_CheckS
 	label := []byte(req.GetLabel())
 
 	// if no ids are given, return early
-	length := len(req.Ids)
+	Ids := req.GetIds()
+	length := len(Ids)
 	if length == 0 {
 		return nil
 	}
 	// if only one id is given, simply check that object
 	if length == 1 {
 		// check status
-		status, err := serverAPI.CheckStatusForObject(label, []byte(req.Ids[0]), api.db)
+		status, err := serverAPI.CheckStatusForObject(label, []byte(Ids[0]), api.db)
 		if err != nil {
 			return err
 		}
 		protoStatus := convertStatus(status)
 		// send the status for that single object given to the callee
-		return stream.Send(&pb.CheckResponse{Id: req.Ids[0], Status: protoStatus})
+		return stream.Send(&pb.CheckResponse{Id: Ids[0], Status: protoStatus})
 	}
 
 	// multiple ids are requested, let's start goroutines
@@ -386,6 +430,7 @@ func (api *ObjectAPI) Check(req *pb.CheckRequest, stream pb.ObjectManager_CheckS
 	defer cancel()
 
 	idCh := make(chan string, jobCount)
+	outCh := make(chan pb.CheckResponse, jobCount)
 
 	// create an errgroup for all the worker routines,
 	// including the input one
@@ -397,9 +442,9 @@ func (api *ObjectAPI) Check(req *pb.CheckRequest, stream pb.ObjectManager_CheckS
 		// close worker channel when this channel is closed
 		// (either because of an error or because all items have been received)
 		defer close(idCh)
-		for i := range req.Ids {
+		for i := range Ids {
 			select {
-			case idCh <- req.Ids[i]:
+			case idCh <- Ids[i]:
 			case <-ctx.Done():
 				return nil
 			}
@@ -407,8 +452,40 @@ func (api *ObjectAPI) Check(req *pb.CheckRequest, stream pb.ObjectManager_CheckS
 		return nil
 	})
 
+	// start the output goroutine,
+	// as we are only allowed to send to the stream on a single goroutine
+	// (sending on multiple goroutines at once is not safe according to docs)
+	group.Go(func() error {
+		// local variables reused for each iteration/item
+		var (
+			resp            pb.CheckResponse
+			workerStopCount int
+		)
+
+		// loop while we can receive intermediate objects,
+		// or until the context is done
+		for {
+			select {
+			case <-ctx.Done():
+				return nil // early exist -> context is done
+			case resp = <-outCh:
+				if resp.GetId() == "" {
+					workerStopCount++
+					if workerStopCount == jobCount {
+						return nil // we're done!
+					}
+					continue
+				}
+			}
+			err := stream.Send(&resp)
+			if err != nil {
+				return err
+			}
+		}
+	})
+
 	// start all the workers
-	for i := 0; i < api.jobCount; i++ {
+	for i := 0; i < jobCount; i++ {
 		group.Go(func() error {
 			// local variables reused for each iteration/item
 			var (
@@ -424,6 +501,12 @@ func (api *ObjectAPI) Check(req *pb.CheckRequest, stream pb.ObjectManager_CheckS
 					return nil // early exist -> context is done
 				case response.Id, open = <-idCh:
 					if !open {
+						// send a nil response to indicate a worker is finished
+						select {
+						case outCh <- pb.CheckResponse{}:
+						case <-ctx.Done():
+							return nil
+						}
 						return nil // early exit -> worker channel closed
 					}
 				}
@@ -435,8 +518,12 @@ func (api *ObjectAPI) Check(req *pb.CheckRequest, stream pb.ObjectManager_CheckS
 				}
 				response.Status = convertStatus(status)
 
-				// send status for the given id to the callee
-				return stream.Send(&response)
+				// send the object ready for output
+				select {
+				case outCh <- response:
+				case <-ctx.Done():
+					return nil
+				}
 			}
 		})
 	}

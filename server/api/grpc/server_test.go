@@ -4,8 +4,6 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"path"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -13,27 +11,23 @@ import (
 	"github.com/zero-os/0-stor/client/itsyouonline"
 	"github.com/zero-os/0-stor/client/stor"
 	"github.com/zero-os/0-stor/server/api"
-	"github.com/zero-os/0-stor/server/db/badger"
+	"github.com/zero-os/0-stor/server/db/memory"
 	pb "github.com/zero-os/0-stor/server/schema"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
 func TestServerMsgSize(t *testing.T) {
 	require := require.New(t)
-
-	temp, err := ioutil.TempDir("", "0stor")
-	require.NoError(err)
 
 	mib := 1024 * 1024
 
 	for i := 2; i <= 64; i *= 4 {
 		t.Run(fmt.Sprintf("size %d", i), func(t *testing.T) {
 			maxSize := i
-			db, err := badger.New(path.Join(temp, "data"), path.Join(temp, "meta"))
-			require.NoError(err, "database should have been created")
-			srv, err := New(db, nil, maxSize, 0)
+			srv, err := New(memory.New(), nil, maxSize, 0)
 			require.NoError(err, "server should have been created")
 			defer srv.Close()
 
@@ -59,7 +53,6 @@ func TestServerMsgSize(t *testing.T) {
 			require.Error(err, "should have exceeded message max size")
 
 			err = cl.ObjectCreate(key, smallData, []string{})
-			fmt.Println(err)
 			require.NoError(err, "should not have exceeded message max size")
 
 			exists, err := cl.ObjectExist(key)
@@ -73,10 +66,6 @@ func TestServerMsgSize(t *testing.T) {
 	}
 }
 
-/*
-// TODO: Enable test again, for now it fails
-// not sure if its because the test that is broken,
-// or because a bug in the code
 func TestListObject(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
@@ -94,22 +83,18 @@ func TestListObject(t *testing.T) {
 	}()
 
 	cl := pb.NewObjectManagerClient(conn)
+	jwt, err := iyoCl.CreateJWT(namespace, itsyouonline.Permission{
+		Read: true,
+	})
+	require.NoError(err, "fail to generate jwt")
 	t.Run("valid object", func(t *testing.T) {
-
-		jwt, err := iyoCl.CreateJWT(namespace, itsyouonline.Permission{
-			Read: true,
-		})
-		require.NoError(err, "fail to generate jwt")
-
 		md := metadata.Pairs(api.GRPCMetaAuthKey, jwt, api.GRPCMetaLabelKey, label)
 		ctx := metadata.NewOutgoingContext(context.Background(), md)
-
 		stream, err := cl.List(ctx, &pb.ListObjectsRequest{Label: label})
 		require.NoError(err, "can't send list request to server")
 
 		objNr := 0
-		for i := 0; ; i++ {
-
+		for {
 			obj, err := stream.Recv()
 			if err == io.EOF {
 				break
@@ -119,8 +104,9 @@ func TestListObject(t *testing.T) {
 			}
 
 			objNr++
-			expectedValue, ok := bufList[string(obj.Key)]
-			require.True(ok, fmt.Sprintf("received key that was not present in db %s", obj.GetKey()))
+			key := obj.GetKey()
+			expectedValue, ok := bufList[string(key)]
+			require.True(ok, fmt.Sprintf("received key that was not present in db %s", key))
 			assert.EqualValues(expectedValue, obj.GetValue())
 		}
 		assert.Equal(len(bufList), objNr)
@@ -167,7 +153,6 @@ func TestListObject(t *testing.T) {
 		stream.CloseSend()
 	})
 }
-*/
 
 func TestCheckObject(t *testing.T) {
 	require := require.New(t)

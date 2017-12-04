@@ -2,8 +2,7 @@ package grpc
 
 import (
 	"errors"
-
-	"github.com/zero-os/0-stor/server/api"
+	"fmt"
 
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
@@ -18,22 +17,22 @@ const (
 	namespacePrefixLength = len(namespacePrefix)
 )
 
-// extractLabelFromContext extracts label from grpc context's
-func extractLabelFromContext(ctx context.Context) (string, error) {
+// extractStringFromContext extracts a string from grpc context's
+func extractStringFromContext(ctx context.Context, key string) (string, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		return "", errors.New("no metadata found in grpc context")
 	}
 
-	label, ok := md[api.GRPCMetaAuthKey]
-	if !ok || len(label) < 1 {
-		return "", errors.New("no label found in grpc context")
+	slice, ok := md[key]
+	if !ok || len(slice) < 1 {
+		return "", fmt.Errorf("no %s found metadata from grpc context", key)
 	}
 
-	return label[0], nil
+	return slice[0], nil
 }
 
-// unauthCodeError returns the provided error with a grpc Unauthenticated code
-func unauthCodeError(err error) error {
+// unauthenticatedError returns the provided error with a grpc Unauthenticated code
+func unauthenticatedError(err error) error {
 	return status.Error(codes.Unauthenticated, err.Error())
 }

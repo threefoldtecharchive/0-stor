@@ -41,9 +41,7 @@ func (api *NamespaceAPI) Get(ctx context.Context, req *pb.GetNamespaceRequest) (
 			Label:               label,
 			ReadRequestPerHour:  read,
 			WriteRequestPerHour: write,
-			// there are no more seperate namespace objects,
-			// thus we do no longer need to subtract (for now)
-			NrObjects: int64(count), // - 1,
+			NrObjects:           int64(count),
 		},
 	}
 

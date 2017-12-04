@@ -54,12 +54,6 @@ func rootFunc(*cobra.Command, []string) error {
 		return err
 	}
 
-	/* // namespaces are no longer stored as seperate keys (at least not currently in master)
-	if err := ensureStoreStat(db, rootCfg.DB.Dirs.Data); err != nil {
-		log.Fatalf("error while computing store statistics: %v", err)
-	}
-	*/
-
 	var storServer api.Server
 	if rootCfg.AuthDisabled {
 		storServer, err = grpc.New(db, nil, rootCfg.MaxMsgSize, rootCfg.JobCount)
@@ -104,67 +98,6 @@ func rootFunc(*cobra.Command, []string) error {
 		return nil
 	}
 }
-
-// It doesn't look like namespaces are still created,
-// so for now this code is disabled.
-/*
-func ensureStoreStat(kv db.DB, dataPath string) error {
-	var (
-		stats server.StoreStat
-		err   error
-	)
-
-	stats.SizeAvailable, err = fs.FreeSpace(dataPath)
-	if err != nil {
-		return err
-	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	ch, err := kv.ListItems(ctx, []byte(db.PrefixNamespace))
-	if err != nil {
-		return err
-	}
-
-	for item := range ch {
-		value, err := item.Value()
-		if err != nil {
-			return err
-		}
-		ns, err := encoding.DecodeNamespace(value)
-		if err != nil {
-			return err
-		}
-		stats.SizeUsed += ns.Reserved
-
-		err = item.Close()
-		if err != nil {
-			return err
-		}
-	}
-
-	stats.SizeAvailable -= stats.SizeUsed
-	if stats.SizeAvailable <= 0 {
-		return errors.New("total reserved size exceed availale disk space")
-	}
-
-	encodedStoreStats := encoding.EncodeStoreStat(stats)
-	err = kv.Set([]byte(db.KeyStoreStats), encodedStoreStats)
-	if err != nil {
-		return err
-	}
-
-	log.Infof("Space reserved : %s", units.BytesSize(float64(stats.SizeUsed)))
-	log.Infof("Space available : %s", units.BytesSize(float64(stats.SizeAvailable)))
-
-	return nil
-}
-*/
-
-// func validateListen(hostport string) error {
-// 	_, _, err := net.SplitHostPort(hostport)
-// 	return err
-// }
 
 var rootCfg struct {
 	DebugLog       bool

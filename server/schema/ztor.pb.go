@@ -82,12 +82,6 @@ func (m *Empty) String() string            { return proto.CompactTextString(m) }
 func (*Empty) ProtoMessage()               {}
 func (*Empty) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
 
-// message ACL {
-//     bool read = 1;
-//     bool write = 2;
-//     bool delete = 3;
-//     bool admin = 4;
-// }
 type Namespace struct {
 	Label               string `protobuf:"bytes,1,opt,name=label" json:"label,omitempty"`
 	SpaceAvailable      int64  `protobuf:"varint,2,opt,name=spaceAvailable" json:"spaceAvailable,omitempty"`

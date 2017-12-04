@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/zero-os/0-stor/server/api"
 	"github.com/zero-os/0-stor/server/stats"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -34,7 +35,7 @@ func streamStatsInterceptor() grpc.StreamServerInterceptor {
 }
 
 func statsLogger(ctx context.Context, grpcMethod string) {
-	label, err := extractLabelFromContext(ctx)
+	label, err := extractStringFromContext(ctx, api.GRPCMetaLabelKey)
 	if err != nil {
 		log.Errorf("Stat was not logged due to error: %v", err)
 	}

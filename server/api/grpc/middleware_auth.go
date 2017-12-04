@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/zero-os/0-stor/server/api"
 	"github.com/zero-os/0-stor/server/jwt"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -43,19 +44,19 @@ type jwtAuthInterceptor struct {
 }
 
 func (interceptor *jwtAuthInterceptor) jwtAuthenticator(ctx context.Context, grpcMethod string) error {
-	label, err := extractLabelFromContext(ctx)
+	label, err := extractStringFromContext(ctx, api.GRPCMetaLabelKey)
 	if err != nil {
-		return unauthCodeError(err)
+		return unauthenticatedError(err)
 	}
 
 	method, err := getJWTMethod(grpcMethod)
 	if err != nil {
-		return unauthCodeError(err)
+		return unauthenticatedError(err)
 	}
 
 	err = interceptor.v.ValidateJWT(ctx, method, label)
 	if err != nil {
-		return unauthCodeError(err)
+		return unauthenticatedError(err)
 	}
 
 	return nil
