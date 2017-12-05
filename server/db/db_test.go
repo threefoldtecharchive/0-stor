@@ -1,106 +1,71 @@
 package db_test
 
 import (
-	"crypto/rand"
-	"fmt"
-	"io/ioutil"
-	"os"
-	"path"
+	"errors"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	dbp "github.com/zero-os/0-stor/server/db"
-	"github.com/zero-os/0-stor/server/db/badger"
+	"github.com/zero-os/0-stor/server/db"
 	"github.com/zero-os/0-stor/server/db/memory"
 )
 
-func makeTestBadgerDB(t testing.TB) (dbp.DB, func()) {
-	tmpDir, err := ioutil.TempDir("", "0-stor-test")
-	require.NoError(t, err)
+func TestCountKeys(t *testing.T) {
+	require := require.New(t)
 
-	db, err := badger.New(path.Join(tmpDir, "data"), path.Join(tmpDir, "meta"))
-	require.NoError(t, err)
-	cleanup := func() {
-		db.Close()
-		os.RemoveAll(tmpDir)
-	}
-	return db, cleanup
+	// CountKeys should panic in case no db is given
+	require.Panics(func() {
+		db.CountKeys(nil, nil)
+	})
+
+	mdb := memory.New()
+	require.NotNil(mdb)
+	defer mdb.Close()
+
+	// should be 0 keys, as we haven't added anything yet
+	n, err := db.CountKeys(mdb, nil)
+	require.NoError(err)
+	require.Zero(n)
+
+	// let's add one value
+	require.NoError(mdb.Set([]byte("a"), []byte("bar")))
+
+	// count again
+	n, err = db.CountKeys(mdb, nil)
+	require.NoError(err)
+	require.Equal(1, n)
+
+	// let's add some more (prefixed) values)
+	require.NoError(mdb.Set([]byte("_b"), []byte("baz")))
+	require.NoError(mdb.Set([]byte("_f"), []byte("foo")))
+
+	// count again (unfiltered)
+	n, err = db.CountKeys(mdb, nil)
+	require.NoError(err)
+	require.Equal(3, n)
+
+	// count again (filered)
+	n, err = db.CountKeys(mdb, []byte{'_'})
+	require.NoError(err)
+	require.Equal(2, n)
+
+	// count again (filered)
+	n, err = db.CountKeys(mdb, []byte("_b"))
+	require.NoError(err)
+	require.Equal(1, n)
+	n, err = db.CountKeys(mdb, []byte{'a'})
+	require.NoError(err)
+	require.Equal(1, n)
 }
 
-func makeTestObj(t testing.TB, size uint64, db dbp.DB) (*dbp.Object, []byte, []string) {
-	obj := dbp.NewObject("testns", []byte("key"), db)
+func TestErrorItem(t *testing.T) {
+	require := require.New(t)
 
-	data := make([]byte, size)
-	_, err := rand.Read(data)
-	require.NoError(t, err)
-	obj.SetData(data)
-
-	refList := make([]string, dbp.RefIDCount)
-	for i := 0; i < dbp.RefIDCount; i++ {
-		refList[i] = fmt.Sprintf("user%d", i)
-	}
-	err = obj.SetReferenceList(refList)
-	require.NoError(t, err, "fail to set reference list")
-
-	return obj, data, refList
+	myError := errors.New("error")
+	item := db.ErrorItem{Err: myError}
+	require.Equal(myError, item.Error())
+	require.Equal(myError, item.Close())
+	require.Nil(item.Key())
+	value, err := item.Value()
+	require.Nil(value)
+	require.Equal(myError, err)
 }
-
-func TestObjectSaveLoad_Badger(t *testing.T) {
-	db, cleanup := makeTestBadgerDB(t)
-	defer cleanup()
-	testObjectSaveLoad(t, db)
-}
-
-func TestObjectSaveLoad_Memory(t *testing.T) {
-	db := memory.New()
-	defer db.Close()
-	testObjectSaveLoad(t, db)
-}
-
-func testObjectSaveLoad(t *testing.T, db dbp.DB) {
-	obj, data, refList := makeTestObj(t, 1024*4, db)
-
-	err := obj.Save()
-	require.NoError(t, err)
-
-	obj2 := dbp.NewObject("testns", []byte("key"), db)
-
-	data2, err := obj2.Data()
-	require.NoError(t, err, "fail to read data")
-	refList2, err := obj.GetreferenceListStr()
-	require.NoError(t, err, "fail to read reference list")
-
-	assert.Equal(t, refList, refList2, "reference list differs")
-	assert.Equal(t, data, data2, "data differes")
-}
-
-/*
-func TestObjectValidateCRC_Badger(t *testing.T) {
-	db, cleanup := makeTestBadgerDB(t)
-	defer cleanup()
-	testObjectValidateCRC(t, db)
-}
-
-func TestObjectValidateCRC_Memory(t *testing.T) {
-	db := memory.New()
-	defer db.Close()
-	testObjectValidateCRC(t, db)
-}
-*/
-
-/*
-func testObjectValidateCRC(t *testing.T, db dbp.DB) {
-	obj, _, _ := makeTestObj(t, 1024*4, db)
-
-	valid, err := obj.Validcrc()
-	require.NoError(t, err, "fail to validate crc")
-
-	assert.True(t, valid, "CRC should be valid")
-	for i := 0; i < 10; i++ {
-		obj.data[i] = -obj.data[i] // corrupte the data
-	}
-	valid, err = obj.Validcrc()
-	require.NoError(t, err, "fail to validate crc")
-	assert.False(t, valid, "CRC should be different")
-}*/

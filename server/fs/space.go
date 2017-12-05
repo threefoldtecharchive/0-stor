@@ -6,7 +6,6 @@ import "syscall"
 // FreeSpace return the space available on a disk in bytes
 func FreeSpace(path string) (uint64, error) {
 	var stat syscall.Statfs_t
-
 	if err := syscall.Statfs(path, &stat); err != nil {
 		return 0, err
 	}

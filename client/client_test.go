@@ -11,11 +11,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/zero-os/0-stor/client/meta/embedserver"
-	"github.com/zero-os/0-stor/server"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/zero-os/0-stor/client/meta/embedserver"
+	"github.com/zero-os/0-stor/server/api"
+	"github.com/zero-os/0-stor/server/api/grpc"
+	"github.com/zero-os/0-stor/server/db/badger"
 )
 
 const (
@@ -23,10 +24,10 @@ const (
 	testPubKeyPath = "./../devcert/jwt_pub.pem"
 )
 
-func testGRPCServer(t testing.TB, n int) ([]server.StoreServer, func()) {
+func testGRPCServer(t testing.TB, n int) ([]api.Server, func()) {
 	require := require.New(t)
 
-	servers := make([]server.StoreServer, n)
+	servers := make([]api.Server, n)
 	dirs := make([]string, n)
 
 	for i := 0; i < n; i++ {
@@ -35,11 +36,16 @@ func testGRPCServer(t testing.TB, n int) ([]server.StoreServer, func()) {
 		require.NoError(err)
 		dirs[i] = tmpDir
 
-		server, err := server.New(path.Join(tmpDir, "data"), path.Join(tmpDir, "meta"), nil, 4)
+		db, err := badger.New(path.Join(tmpDir, "data"), path.Join(tmpDir, "meta"))
 		require.NoError(err)
 
-		_, err = server.Listen("localhost:0")
-		require.NoError(err, "server failed to start listening")
+		server, err := grpc.New(db, nil, 4, 0)
+		require.NoError(err)
+
+		go func() {
+			err := server.Listen("localhost:0")
+			require.NoError(err, "server failed to start listening")
+		}()
 
 		servers[i] = server
 	}
@@ -70,7 +76,7 @@ func TestRoundTripGRPC(t *testing.T) {
 
 	shards := make([]string, len(servers))
 	for i, server := range servers {
-		shards[i] = server.Addr()
+		shards[i] = server.Address()
 	}
 
 	policy := Policy{
@@ -81,6 +87,8 @@ func TestRoundTripGRPC(t *testing.T) {
 		IYOAppID:     "id",
 		IYOSecret:    "secret",
 	}
+
+	const blockSize = 64
 
 	tt := []struct {
 		name      string
@@ -101,7 +109,7 @@ func TestRoundTripGRPC(t *testing.T) {
 		},
 		{
 			name:      "chunks",
-			BlockSize: 1024,
+			BlockSize: blockSize,
 		},
 		{
 			name:     "compress",
@@ -115,7 +123,7 @@ func TestRoundTripGRPC(t *testing.T) {
 		{
 			name:               "replication",
 			ReplicationNr:      len(shards),
-			ReplicationMaxSize: 1024 * 1024,
+			ReplicationMaxSize: blockSize * blockSize,
 		},
 		{
 			name:                   "distribution",
@@ -125,7 +133,7 @@ func TestRoundTripGRPC(t *testing.T) {
 		},
 		{
 			name:                   "chunks-distribution",
-			BlockSize:              1024,
+			BlockSize:              blockSize,
 			ReplicationMaxSize:     1, //force to use distribution over replication
 			DistributionNr:         2,
 			DistributionRedundancy: 1,
@@ -138,7 +146,7 @@ func TestRoundTripGRPC(t *testing.T) {
 		},
 		{
 			name:       "chunk-compress-encrypt",
-			BlockSize:  1024,
+			BlockSize:  blockSize,
 			Compress:   true,
 			Encrypt:    true,
 			EncryptKey: "cF0BFpIsljOS8UmaP8YRHRX0nBPVRVPw",
@@ -149,7 +157,7 @@ func TestRoundTripGRPC(t *testing.T) {
 			Encrypt:            true,
 			EncryptKey:         "cF0BFpIsljOS8UmaP8YRHRX0nBPVRVPw",
 			ReplicationNr:      len(shards),
-			ReplicationMaxSize: 1024 * 1024,
+			ReplicationMaxSize: blockSize * blockSize,
 		},
 		{
 			name:                   "compress-encrypt-distribution",
@@ -162,16 +170,16 @@ func TestRoundTripGRPC(t *testing.T) {
 		},
 		{
 			name:               "chunks-compress-encrypt-replication",
-			BlockSize:          1024,
+			BlockSize:          blockSize,
 			Compress:           true,
 			Encrypt:            true,
 			EncryptKey:         "cF0BFpIsljOS8UmaP8YRHRX0nBPVRVPw",
 			ReplicationNr:      len(shards),
-			ReplicationMaxSize: 1024 * 1024,
+			ReplicationMaxSize: blockSize * blockSize,
 		},
 		{
 			name:                   "chunks-compress-encrypt-distribution",
-			BlockSize:              1024,
+			BlockSize:              blockSize,
 			Compress:               true,
 			Encrypt:                true,
 			ReplicationMaxSize:     1, //force to use distribution over replication
@@ -196,7 +204,7 @@ func TestRoundTripGRPC(t *testing.T) {
 			c, err := getTestClient(policy)
 			require.NoError(t, err, "fail to create client")
 
-			data := make([]byte, 1024*4)
+			data := make([]byte, blockSize*4)
 			_, err = rand.Read(data)
 			refList := []string{"vdisk-1"}
 			require.NoError(t, err, "fail to read random data")
@@ -249,7 +257,7 @@ func TestBlocksizes(t *testing.T) {
 
 	shards := make([]string, len(servers))
 	for i, server := range servers {
-		shards[i] = server.Addr()
+		shards[i] = server.Address()
 	}
 
 	policy := Policy{
@@ -260,6 +268,8 @@ func TestBlocksizes(t *testing.T) {
 		IYOAppID:     "id",
 		IYOSecret:    "secret",
 	}
+
+	const blockSize = 8
 
 	tc := struct {
 		name      string
@@ -275,22 +285,18 @@ func TestBlocksizes(t *testing.T) {
 		Encrypt    bool
 		EncryptKey string
 	}{
-
-		// name: "",
-		// BlockSize:              1024,
-		Compress:   true,
-		Encrypt:    true,
-		EncryptKey: "cF0BFpIsljOS8UmaP8YRHRX0nBPVRVPw",
-		// ReplicationMaxSize:     1, //force to use distribution over replication
+		Compress:               true,
+		Encrypt:                true,
+		EncryptKey:             "cF0BFpIsljOS8UmaP8YRHRX0nBPVRVPw",
 		DistributionNr:         2,
 		DistributionRedundancy: 1,
 	}
 
 	for i := 0; i <= 5; i++ {
 		if i == 0 {
-			tc.BlockSize = 10240
+			tc.BlockSize = blockSize * 10
 		} else {
-			tc.BlockSize = 1024 * 10 * (i * 10)
+			tc.BlockSize = blockSize * 10 * (i * 10)
 		}
 
 		tc.name = fmt.Sprintf("%d", tc.BlockSize)
@@ -339,9 +345,7 @@ func TestBlocksizes(t *testing.T) {
 }
 
 func TestMultipleDownload(t *testing.T) {
-
 	// #test for https://github.com/zero-os/0-stor/issues/208
-
 	etcd, err := embedserver.New()
 	require.NoError(t, err, "fail to start embedded etcd server")
 	defer etcd.Stop()
@@ -351,8 +355,10 @@ func TestMultipleDownload(t *testing.T) {
 
 	shards := make([]string, len(servers))
 	for i, server := range servers {
-		shards[i] = server.Addr()
+		shards[i] = server.Address()
 	}
+
+	const blockSize = 256
 
 	policy := Policy{
 		Organization:           "testorg",
@@ -361,7 +367,7 @@ func TestMultipleDownload(t *testing.T) {
 		MetaShards:             []string{etcd.ListenAddr()},
 		IYOAppID:               "",
 		IYOSecret:              "",
-		BlockSize:              1024000,
+		BlockSize:              blockSize,
 		Compress:               true,
 		Encrypt:                true,
 		EncryptKey:             "cF0BFpIsljOS8UmaP8YRHRX0nBPVRVPw",
@@ -375,7 +381,7 @@ func TestMultipleDownload(t *testing.T) {
 	require.NoError(t, err, "fail to create client")
 	defer c.Close()
 
-	data := make([]byte, 57446)
+	data := make([]byte, blockSize/16)
 
 	_, err = rand.Read(data)
 	require.NoError(t, err, "fail to read random data")
@@ -405,8 +411,10 @@ func TestConcurrentWriteRead(t *testing.T) {
 
 	shards := make([]string, len(servers))
 	for i, server := range servers {
-		shards[i] = server.Addr()
+		shards[i] = server.Address()
 	}
+
+	const blockSize = 128
 
 	policy := Policy{
 		Organization:           "testorg",
@@ -415,7 +423,7 @@ func TestConcurrentWriteRead(t *testing.T) {
 		MetaShards:             []string{etcd.ListenAddr()},
 		IYOAppID:               "",
 		IYOSecret:              "",
-		BlockSize:              1024 * 64,
+		BlockSize:              blockSize,
 		Compress:               true,
 		Encrypt:                true,
 		EncryptKey:             "cF0BFpIsljOS8UmaP8YRHRX0nBPVRVPw",
@@ -447,7 +455,7 @@ func TestConcurrentWriteRead(t *testing.T) {
 
 	// Seems we can't increased the number of concurrent write more then around 32
 	for concurrent := 1; concurrent <= 64; concurrent *= 2 {
-		for size := 1024; size < 1024*10; size *= 4 {
+		for size := blockSize; size < blockSize*10; size *= 4 {
 			name := fmt.Sprintf("Concurrent client: %d - Size of the data: %d", concurrent, size)
 			t.Log(name)
 
@@ -478,7 +486,7 @@ func BenchmarkWriteFilesSizes(b *testing.B) {
 
 	shards := make([]string, len(servers))
 	for i, server := range servers {
-		shards[i] = server.Addr()
+		shards[i] = server.Address()
 	}
 
 	policy := Policy{
@@ -553,8 +561,10 @@ func TestIssue225(t *testing.T) {
 
 	shards := make([]string, len(servers))
 	for i, server := range servers {
-		shards[i] = server.Addr()
+		shards[i] = server.Address()
 	}
+
+	const blockSize = 256
 
 	policy := Policy{
 		Organization:           "testorg",
@@ -563,12 +573,12 @@ func TestIssue225(t *testing.T) {
 		MetaShards:             []string{etcd.ListenAddr()},
 		IYOAppID:               "",
 		IYOSecret:              "",
-		BlockSize:              4096,
+		BlockSize:              blockSize,
 		Compress:               true,
 		Encrypt:                true,
 		EncryptKey:             "cF0BFpIsljOS8UmaP8YRHRX0nBPVRVPw",
 		ReplicationNr:          4,
-		ReplicationMaxSize:     4096, //force to use distribution over replication
+		ReplicationMaxSize:     blockSize, //force to use distribution over replication
 		DistributionNr:         2,
 		DistributionRedundancy: 1,
 	}
@@ -577,7 +587,7 @@ func TestIssue225(t *testing.T) {
 	require.NoError(t, err, "fail to create client")
 	defer c.Close()
 
-	data := make([]byte, 44910)
+	data := make([]byte, blockSize*11)
 
 	_, err = rand.Read(data)
 	require.NoError(t, err, "fail to read random data")
@@ -604,7 +614,7 @@ func TestIssue225(t *testing.T) {
 
 // 	shards := make([]string, len(servers))
 // 	for i, server := range servers {
-// 		shards[i] = server.Addr()
+// 		shards[i] = server.ListenAddress()
 // 	}
 
 // 	conf := config.Config{

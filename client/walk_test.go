@@ -53,7 +53,7 @@ func testWalk(t *testing.T, forward bool) {
 
 	dataShards := make([]string, len(servers))
 	for i, server := range servers {
-		dataShards[i] = server.Addr()
+		dataShards[i] = server.Address()
 	}
 
 	// client policy

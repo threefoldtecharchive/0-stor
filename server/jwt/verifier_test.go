@@ -11,7 +11,7 @@ import (
 	jwtgo "github.com/dgrijalva/jwt-go"
 	"github.com/stretchr/testify/require"
 	iyo "github.com/zero-os/0-stor/client/itsyouonline"
-	"github.com/zero-os/0-stor/server/grpc"
+	"github.com/zero-os/0-stor/server/api"
 	"google.golang.org/grpc/metadata"
 )
 
@@ -25,7 +25,11 @@ func TestGetNopVerifier(t *testing.T) {
 	require.Nil(t, verifier.ValidateJWT(nil, MethodAdmin, ""))
 }
 
-func getTestVerifier(authEnabled bool) (*Verifier, error) {
+func getTestVerifier(authEnabled bool) (TokenVerifier, error) {
+	if !authEnabled {
+		return NopVerifier{}, nil
+	}
+
 	pubKey, err := ioutil.ReadFile(testPubKeyPath)
 	if err != nil {
 		return nil, err
@@ -243,13 +247,13 @@ type validateJWTCase struct {
 // runValidateJWT ranges over the provided validateJWT cases,
 // runs ValidateJWT for each case
 // and calls the validator callback
-func runValidateJWT(verifier *Verifier, cases []validateJWTCase, validator func(caseIndex int, c validateJWTCase, err error)) {
+func runValidateJWT(verifier TokenVerifier, cases []validateJWTCase, validator func(caseIndex int, c validateJWTCase, err error)) {
 	for i, c := range cases {
 		var authCtx context.Context
 		if !c.emptyCtx {
 			// set token into test context
 			md := metadata.New(map[string]string{
-				grpc.MetaAuthKey: c.tokenStr,
+				api.GRPCMetaAuthKey: c.tokenStr,
 			})
 			authCtx = metadata.NewIncomingContext(context.Background(), md)
 		} else {
@@ -290,9 +294,13 @@ func TestValidateNamespaceLabel(t *testing.T) {
 // runNamespaceValidator ranges over each test case,
 // runs ValidateNamespaceLabel
 // and calls the validator callback
-func runNamespaceValidator(verifier *Verifier, cases []string, validator func(caseStr string, err error)) {
+func runNamespaceValidator(verifier TokenVerifier, cases []string, validator func(caseStr string, err error)) {
+	v, ok := verifier.(*Verifier)
+	if !ok {
+		return
+	}
 	for _, c := range cases {
-		err := verifier.validateNamespaceLabel(c)
+		err := v.validateNamespaceLabel(c)
 		validator(c, err)
 	}
 }
@@ -300,7 +308,7 @@ func runNamespaceValidator(verifier *Verifier, cases []string, validator func(ca
 func TestCheckPermissions(t *testing.T) {
 	require := require.New(t)
 
-	verifier, err := getTestVerifier(false)
+	verifier, err := getTestVerifier(true)
 	require.NoError(err, "failed to create test verifier")
 
 	validCases := []permCase{
@@ -348,9 +356,13 @@ type permCase struct {
 
 // runCheckPermissionsValidator ranges over the provided cases
 // and calls the validator callback
-func runCheckPermissionsValidator(verifier *Verifier, cases []permCase, validator func(c permCase, result bool)) {
+func runCheckPermissionsValidator(verifier TokenVerifier, cases []permCase, validator func(c permCase, result bool)) {
+	v, ok := verifier.(*Verifier)
+	if !ok {
+		return
+	}
 	for _, c := range cases {
-		result := verifier.checkPermissions(c.expectedScopes, c.userScopes)
+		result := v.checkPermissions(c.expectedScopes, c.userScopes)
 		validator(c, result)
 	}
 }
@@ -359,7 +371,7 @@ func TestExpectedScopes(t *testing.T) {
 	require := require.New(t)
 	label := "org_0stor_ns"
 
-	verifier, err := getTestVerifier(false)
+	verifier, err := getTestVerifier(true)
 	require.NoError(err, "failed to create test verifier")
 
 	validCases := []expScopeCase{
@@ -443,9 +455,13 @@ type expScopeCase struct {
 // runExpectedScopesValidator ranges over the provided expScope cases,
 // runs ExpectedScopes for each case
 // and calls the validator callback
-func runExpectedScopesValidator(verifier *Verifier, cases []expScopeCase, validator func(caseIndex int, c expScopeCase, resultScopes []string, err error)) {
+func runExpectedScopesValidator(verifier TokenVerifier, cases []expScopeCase, validator func(caseIndex int, c expScopeCase, resultScopes []string, err error)) {
+	v, ok := verifier.(*Verifier)
+	if !ok {
+		return
+	}
 	for i, c := range cases {
-		result, err := verifier.expectedScopes(c.method, c.label)
+		result, err := v.expectedScopes(c.method, c.label)
 		validator(i, c, result, err)
 	}
 }
@@ -456,7 +472,7 @@ func TestGetScopes(t *testing.T) {
 	org := "org"
 	namespace := "ns"
 
-	verifier, err := getTestVerifier(false)
+	verifier, err := getTestVerifier(true)
 	require.NoError(err, "failed to create test verifier")
 
 	adminToken := getToken(require, iyo.Permission{Admin: true},
@@ -544,10 +560,14 @@ type getScopesCase struct {
 // runGetScopesValidator ranges over the provided getScopes cases,
 // runs GetScopes for each case
 // and calls the validator callback
-func runGetScopesValidator(verifier *Verifier, cases []getScopesCase,
+func runGetScopesValidator(verifier TokenVerifier, cases []getScopesCase,
 	validator func(c getScopesCase, resultScopes []string, err error)) {
+	v, ok := verifier.(*Verifier)
+	if !ok {
+		return
+	}
 	for _, c := range cases {
-		scopes, err := verifier.getScopes(c.tokenStr)
+		scopes, err := v.getScopes(c.tokenStr)
 		validator(c, scopes, err)
 	}
 }

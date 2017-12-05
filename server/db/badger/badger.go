@@ -157,16 +157,21 @@ func (bdb *DB) Update(key []byte, cb db.UpdateCallback) error {
 				return err
 			}
 
-			val, err := cb(val)
+			output, err := cb(val)
 			if err != nil {
 				return err
 			}
-			err = tx.Set(key, val)
-			if err != nil {
-				return err
+			if output == nil {
+				if val == nil {
+					return nil // nothing to do
+				}
+
+				// delete val
+				return tx.Delete(key)
 			}
 
-			return nil
+			// set value
+			return tx.Set(key, output)
 		},
 	)
 	if err != nil {

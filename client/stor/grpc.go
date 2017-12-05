@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/zero-os/0-stor/server/api"
 	pb "github.com/zero-os/0-stor/server/schema"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -49,22 +50,6 @@ func (c *client) NamespaceGet() (*pb.Namespace, error) {
 	namespace := resp.GetNamespace()
 	return namespace, nil
 }
-
-// func (c *client) ReservationList() (pb.Reservation, error) {
-// 	return nil, ErrNotImplemented
-// }
-
-// func (c *client) ReservationCreate(size, period int64) (r *pb.Reservation, dataToken string, reservationToken string, err error) {
-// 	return nil, "", "", ErrNotImplemented
-// }
-
-// func (c *client) ReservationGet(id []byte) (*pb.Reservation, error) {
-// 	return nil, ErrNotImplemented
-// }
-
-// func (c *client) ReservationUpdate(id []byte, size, period int64) error {
-// 	return ErrNotImplemented
-// }
 
 func (c *client) ObjectList(page, perPage int) ([]string, error) {
 	stream, err := c.objService.List(contextWithMetadata(c.jwtToken, c.namespace), &pb.ListObjectsRequest{Label: c.namespace})
@@ -197,6 +182,6 @@ func (c *client) ReferenceRemove(id []byte, refList []string) error {
 	return err
 }
 func contextWithMetadata(jwt, label string) context.Context {
-	md := metadata.Pairs("authorization", jwt, "label", label)
+	md := metadata.Pairs(api.GRPCMetaAuthKey, jwt, api.GRPCMetaLabelKey, label)
 	return metadata.NewOutgoingContext(context.Background(), md)
 }
