@@ -3,8 +3,8 @@ package grpc
 import (
 	"golang.org/x/net/context"
 
+	pb "github.com/zero-os/0-stor/server/api/grpc/schema"
 	"github.com/zero-os/0-stor/server/db"
-	pb "github.com/zero-os/0-stor/server/schema"
 	"github.com/zero-os/0-stor/server/stats"
 )
 

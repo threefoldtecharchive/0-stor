@@ -84,11 +84,7 @@ update_deps:
 	make prune_deps
 
 prune_deps:
-	dep prune -v
-	# ensure we don't delete files that we don't want to prune
-	git checkout -- vendor/zombiezen.com/go/capnproto2/std/go.capnp
-	git checkout -- vendor/zombiezen.com/go/capnproto2/capnpc-go
-	git checkout -- vendor/github.com/golang/protobuf/protoc-gen-go
+	./utils/scripts/prune_deps_safe.sh
 
 $(OUTPUT):
 	mkdir -p $(OUTPUT)

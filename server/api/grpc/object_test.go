@@ -18,10 +18,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/zero-os/0-stor/server"
+	pb "github.com/zero-os/0-stor/server/api/grpc/schema"
 	"github.com/zero-os/0-stor/server/db"
 	"github.com/zero-os/0-stor/server/db/badger"
 	"github.com/zero-os/0-stor/server/encoding"
-	pb "github.com/zero-os/0-stor/server/schema"
 )
 
 func TestCreateObject(t *testing.T) {
@@ -397,9 +397,9 @@ func TestConvertStatus(t *testing.T) {
 	require := require.New(t)
 
 	// valid responses
-	require.Equal(pb.CheckResponse_ok, convertStatus(server.CheckStatusOK))
-	require.Equal(pb.CheckResponse_missing, convertStatus(server.CheckStatusMissing))
-	require.Equal(pb.CheckResponse_corrupted, convertStatus(server.CheckStatusCorrupted))
+	require.Equal(pb.CheckStatusOK, convertStatus(server.CheckStatusOK))
+	require.Equal(pb.CheckStatusMissing, convertStatus(server.CheckStatusMissing))
+	require.Equal(pb.CheckStatusCorrupted, convertStatus(server.CheckStatusCorrupted))
 
 	// all other responses should panic
 	for i := 3; i < 256; i++ {

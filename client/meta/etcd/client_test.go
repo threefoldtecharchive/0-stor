@@ -1,7 +1,7 @@
 package etcd
 
 import (
-	"fmt"
+	"math"
 	"net"
 	"testing"
 	"time"
@@ -13,60 +13,63 @@ import (
 	"github.com/zero-os/0-stor/client/meta/embedserver"
 )
 
-func createCapnpMeta(t testing.TB) *meta.Meta {
-	// TODO: remove code duplication
-	chunks := make([]*meta.Chunk, 256)
-	for i := range chunks {
-		chunks[i] = &meta.Chunk{
-			Key:  []byte(fmt.Sprintf("chunk%d", i)),
-			Size: 1024,
-		}
-		chunks[i].Shards = make([]string, 5)
-		for y := range chunks[i].Shards {
-			chunks[i].Shards[y] = fmt.Sprintf("http://127.0.0.1:12345/stor-%d", i)
-		}
-	}
-
-	meta := meta.New([]byte("testkey"))
-	meta.Previous = []byte("previous")
-	meta.Next = []byte("next")
-	meta.Chunks = chunks
-
-	return meta
-}
 func TestRoundTrip(t *testing.T) {
+	assert := assert.New(t)
+	require := require.New(t)
+
 	etcd, err := embedserver.New()
-	require.NoError(t, err)
+	require.NoError(err)
 	defer etcd.Stop()
 
 	c, err := NewClient([]string{etcd.ListenAddr()})
-	require.NoError(t, err)
+	require.NoError(err)
 
 	// prepare the data
-	md := createCapnpMeta(t)
+	md := meta.Data{
+		Key:   []byte("two"),
+		Epoch: 123456789,
+		Chunks: []*meta.Chunk{
+			&meta.Chunk{
+				Size:   math.MaxInt64,
+				Key:    []byte("foo"),
+				Shards: nil,
+			},
+			&meta.Chunk{
+				Size:   1234,
+				Key:    []byte("bar"),
+				Shards: []string{"foo"},
+			},
+			&meta.Chunk{
+				Size:   2,
+				Key:    []byte("baz"),
+				Shards: []string{"bar", "foo"},
+			},
+		},
+		Next:     []byte("one"),
+		Previous: []byte("three"),
+	}
 
-	// put the metadata
-	err = c.Put(string(md.Key), md)
-	require.NoError(t, err)
+	// ensure metadata is not there yet
+	_, err = c.GetMetadata(md.Key)
+	require.Equal(meta.ErrNotFound, err)
+
+	// set the metadata
+	err = c.SetMetadata(md)
+	require.NoError(err)
 
 	// get it back
-	storedMd, err := c.Get(string(md.Key))
-	require.NoError(t, err)
+	storedMd, err := c.GetMetadata(md.Key)
+	require.NoError(err)
 
 	// check stored value
-	assert.Equal(t, md.Key, storedMd.Key, "key is different")
-	assert.Equal(t, md.Size(), storedMd.Size(), "size is different")
-	assert.Equal(t, md.Epoch, storedMd.Epoch, "epoch is different")
-	assert.Equal(t, md.Previous, storedMd.Previous, "previous pointer is different")
-	assert.Equal(t, md.Next, storedMd.Next, "next pointer is different")
-	assert.Equal(t, md.ConfigPtr, storedMd.ConfigPtr, "config pointer is different")
-	assert.Equal(t, md.Chunks, storedMd.Chunks, "chunks are differents")
+	assert.NotNil(storedMd)
+	assert.Equal(md, *storedMd)
 
-	err = c.Delete(string(md.Key))
-	require.NoError(t, err)
+	err = c.DeleteMetadata(md.Key)
+	require.NoError(err)
 	// make sure we can't get it back
-	_, err = c.Get(string(md.Key))
-	require.Error(t, err)
+	_, err = c.GetMetadata(md.Key)
+	require.Equal(meta.ErrNotFound, err)
 }
 
 // test that client can return gracefully when the server is not exist
@@ -80,31 +83,34 @@ func TestServerNotExist(t *testing.T) {
 
 // test that client can return gracefully when the server is down
 func TestServerDown(t *testing.T) {
+	require := require.New(t)
+
 	etcd, err := embedserver.New()
-	require.Nil(t, err)
+	require.Nil(err)
 
 	c, err := NewClient([]string{etcd.ListenAddr()})
-	require.Nil(t, err)
+	require.Nil(err)
 
-	key := "key"
-	md := meta.New([]byte(key))
+	md := meta.Data{Key: []byte("key")}
 
 	// make sure we can do some operation to server
-	err = c.Put(key, md)
-	require.Nil(t, err)
+	err = c.SetMetadata(md)
+	require.Nil(err)
 
-	_, err = c.Get(key)
-	require.Nil(t, err)
+	outMD, err := c.GetMetadata(md.Key)
+	require.Nil(err)
+	require.NotNil(outMD)
+	require.Equal(md, *outMD)
 
 	// stop the server
 	etcd.Stop()
 
-	// test the PUT
+	// test the SET
 	done := make(chan struct{}, 1)
 	go func() {
-		err = c.Put(key, md)
+		err = c.SetMetadata(md)
 		_, ok := err.(net.Error)
-		require.True(t, ok)
+		require.True(ok)
 		done <- struct{}{}
 	}()
 
@@ -119,9 +125,9 @@ func TestServerDown(t *testing.T) {
 	// test the GET
 	done = make(chan struct{}, 1)
 	go func() {
-		_, err = c.Get(key)
+		_, err = c.GetMetadata(md.Key)
 		_, ok := err.(net.Error)
-		require.True(t, ok)
+		require.True(ok)
 		done <- struct{}{}
 	}()
 

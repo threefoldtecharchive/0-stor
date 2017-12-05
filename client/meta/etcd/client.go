@@ -1,33 +1,44 @@
 package etcd
 
 import (
-	"bytes"
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/zero-os/0-stor/client/meta"
-)
-
-const (
-	metaOpTimeout = 10 * time.Second
-)
-
-var (
-	// ErrMetadataNotFound is returned when a key is not found in etcd cluster
-	ErrMetadataNotFound = fmt.Errorf("key not found in etcd")
+	"github.com/zero-os/0-stor/client/meta/encoding"
+	"github.com/zero-os/0-stor/client/meta/encoding/proto"
 )
 
 // Client defines client to store metadata
 type Client struct {
 	etcdClient *clientv3.Client
+	marshal    encoding.MarshalMetadata
+	unmarshal  encoding.UnmarshalMetadata
 }
 
-// NewClient creates new meta client
-func NewClient(shards []string) (*Client, error) {
+// NewClient creates new Metadata client, using an ETCD cluster as storage medium.
+// This default constructor uses Proto for the (un)marshaling of metadata values.
+func NewClient(endpoints []string) (*Client, error) {
+	return NewClientWithEncoding(endpoints, proto.MarshalMetadata, proto.UnmarshalMetadata)
+}
+
+// NewClientWithEncoding creates new Metadata client, using an ETCD cluster as storage medium.
+// This constructor allows you to use any valid marshal/unmarshal pair.
+// All parameters are required.
+func NewClientWithEncoding(endpoints []string, marshal encoding.MarshalMetadata, unmarshal encoding.UnmarshalMetadata) (*Client, error) {
+	if len(endpoints) == 0 {
+		panic("no endpoints given")
+	}
+	if marshal == nil {
+		panic("no metadata-marshal func given")
+	}
+	if unmarshal == nil {
+		panic("no metadata-unmarshal func given")
+	}
+
 	cli, err := clientv3.New(clientv3.Config{
-		Endpoints:   shards,
+		Endpoints:   endpoints,
 		DialTimeout: metaOpTimeout,
 	})
 	if err != nil {
@@ -35,53 +46,78 @@ func NewClient(shards []string) (*Client, error) {
 	}
 	return &Client{
 		etcdClient: cli,
+		marshal:    marshal,
+		unmarshal:  unmarshal,
 	}, nil
 }
 
-// Close closes meta client, release all resources
-func (c *Client) Close() error {
-	return c.etcdClient.Close()
-}
-
-// Put stores meta to metadata server
-func (c *Client) Put(key string, meta *meta.Meta) error {
-	buf := new(bytes.Buffer)
-	if err := meta.Encode(buf); err != nil {
+// SetMetadata implements meta.Client.SetMetadata
+func (c *Client) SetMetadata(meta meta.Data) error {
+	bytes, err := c.marshal(meta)
+	if err != nil {
 		return err
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), metaOpTimeout)
 	defer cancel()
 
-	_, err := c.etcdClient.Put(ctx, key, string(buf.Bytes()))
+	_, err = c.etcdClient.Put(ctx, string(meta.Key), string(bytes))
 	return err
 }
 
-// Get fetch metadata from metadata server
-func (c *Client) Get(key string) (*meta.Meta, error) {
+// GetMetadata implements meta.Client.GetMetadata
+func (c *Client) GetMetadata(key []byte) (*meta.Data, error) {
+	if key == nil {
+		panic("no key given")
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), metaOpTimeout)
 	defer cancel()
 
-	resp, err := c.etcdClient.Get(ctx, key)
+	resp, err := c.etcdClient.Get(ctx, string(key))
 	if err != nil {
 		return nil, err
 	}
 	if len(resp.Kvs) < 1 {
-		return nil, ErrMetadataNotFound
+		return nil, meta.ErrNotFound
 	}
 
-	return meta.Decode(resp.Kvs[0].Value)
+	var meta meta.Data
+	err = c.unmarshal(resp.Kvs[0].Value, &meta)
+	if err != nil {
+		return nil, err
+	}
+	return &meta, nil
 }
 
-// Delete a metadata entry from metadata server
-func (c *Client) Delete(key string) error {
+// DeleteMetadata implements meta.Client.DeleteMetadata
+func (c *Client) DeleteMetadata(key []byte) error {
+	if key == nil {
+		panic("no key given")
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), metaOpTimeout)
 	defer cancel()
 
-	_, err := c.etcdClient.Delete(ctx, key)
+	_, err := c.etcdClient.Delete(ctx, string(key))
 	return err
 }
 
+// Close implements meta.Client.Close
+func (c *Client) Close() error {
+	return c.etcdClient.Close()
+}
+
+// Endpoints returns the ETCD endpoints from the ETCD cluster
+// used by this client.
 func (c *Client) Endpoints() []string {
 	return c.etcdClient.Endpoints()
 }
+
+const (
+	metaOpTimeout = 10 * time.Second
+)
+
+var (
+	_ meta.Client = (*Client)(nil)
+)

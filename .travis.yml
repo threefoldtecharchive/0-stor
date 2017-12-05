@@ -69,6 +69,5 @@ matrix:
       dist: trusty
       go: 1.9
       install:
-        - ./utils/scripts/install_capnp_unix.sh
         - ./utils/scripts/install_protoc_unix.sh
       script: make testcodegen

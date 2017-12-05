@@ -9,7 +9,7 @@ import (
 
 // SetReferenceList replace the complete reference list for the object pointed by key
 func (c *Client) SetReferenceList(key []byte, refList []string) error {
-	md, err := c.metaCli.Get(string(key))
+	md, err := c.metaCli.GetMetadata(key)
 	if err != nil {
 		return err
 	}
@@ -18,13 +18,13 @@ func (c *Client) SetReferenceList(key []byte, refList []string) error {
 
 // SetReferenceListWithMeta is the same as SetReferenceList but take metadata instead of key
 // as argument
-func (c *Client) SetReferenceListWithMeta(md *meta.Meta, refList []string) error {
+func (c *Client) SetReferenceListWithMeta(md *meta.Data, refList []string) error {
 	return c.updateRefListWithMeta(md, refList, refListOpSet)
 }
 
 // AppendReferenceList adds some reference to the reference list of the object pointed by key
 func (c *Client) AppendReferenceList(key []byte, refList []string) error {
-	md, err := c.metaCli.Get(string(key))
+	md, err := c.metaCli.GetMetadata(key)
 	if err != nil {
 		return err
 	}
@@ -33,14 +33,14 @@ func (c *Client) AppendReferenceList(key []byte, refList []string) error {
 
 // AppendReferenceListWithMeta is the same as AppendReferenceList but take metadata instead of key
 // as argument
-func (c *Client) AppendReferenceListWithMeta(md *meta.Meta, refList []string) error {
+func (c *Client) AppendReferenceListWithMeta(md *meta.Data, refList []string) error {
 	return c.updateRefListWithMeta(md, refList, refListOpAppend)
 }
 
 // RemoveReferenceList removes some reference from the reference list of the object pointed by key.
 // It wont return error in case of the object doesn't have some elements of the `refList`.
 func (c *Client) RemoveReferenceList(key []byte, refList []string) error {
-	md, err := c.metaCli.Get(string(key))
+	md, err := c.metaCli.GetMetadata(key)
 	if err != nil {
 		return err
 	}
@@ -49,11 +49,11 @@ func (c *Client) RemoveReferenceList(key []byte, refList []string) error {
 
 // RemoveReferenceListWithMeta is the same as RemoveReferenceList but take metadata
 // instead of key as argument
-func (c *Client) RemoveReferenceListWithMeta(md *meta.Meta, refList []string) error {
+func (c *Client) RemoveReferenceListWithMeta(md *meta.Data, refList []string) error {
 	return c.updateRefListWithMeta(md, refList, refListOpRemove)
 }
 
-func (c *Client) updateRefListWithMeta(md *meta.Meta, refList []string, op int) error {
+func (c *Client) updateRefListWithMeta(md *meta.Data, refList []string, op int) error {
 	for _, chunk := range md.Chunks {
 
 		var (

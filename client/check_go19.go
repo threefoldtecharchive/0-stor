@@ -3,13 +3,13 @@
 package client
 
 import (
-	pb "github.com/zero-os/0-stor/server/schema"
+	pb "github.com/zero-os/0-stor/server/api/grpc/schema"
 )
 
 type CheckStatus = pb.CheckResponse_Status
 
 var (
-	CheckStatusOk        = pb.CheckResponse_ok
-	CheckStatusCorrupted = pb.CheckResponse_corrupted
-	CheckStatusMissing   = pb.CheckResponse_missing
+	CheckStatusOk        = pb.CheckStatusOK
+	CheckStatusCorrupted = pb.CheckStatusCorrupted
+	CheckStatusMissing   = pb.CheckStatusMissing
 )

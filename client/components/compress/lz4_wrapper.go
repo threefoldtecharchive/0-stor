@@ -20,7 +20,7 @@ func newLz4Writer(w block.Writer) *lz4Writer {
 	}
 }
 
-func (lw lz4Writer) WriteBlock(key, data []byte, md *meta.Meta) (*meta.Meta, error) {
+func (lw lz4Writer) WriteBlock(key, data []byte, md *meta.Data) (*meta.Data, error) {
 	buf := bytes.NewBuffer(nil)
 
 	rd := bytes.NewReader(data)
@@ -34,9 +34,8 @@ func (lw lz4Writer) WriteBlock(key, data []byte, md *meta.Meta) (*meta.Meta, err
 		return md, err
 	}
 	// update chunk size in metadata
-	// update chunk size in metadata
 	chunk := md.GetChunk(key)
-	chunk.Size = uint64(n)
+	chunk.Size = int64(n)
 
 	// flush and close the compressor
 	if err := comp.Close(); err != nil {

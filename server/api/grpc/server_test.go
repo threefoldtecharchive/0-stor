@@ -11,8 +11,8 @@ import (
 	"github.com/zero-os/0-stor/client/itsyouonline"
 	"github.com/zero-os/0-stor/client/stor"
 	"github.com/zero-os/0-stor/server/api"
+	pb "github.com/zero-os/0-stor/server/api/grpc/schema"
 	"github.com/zero-os/0-stor/server/db/memory"
-	pb "github.com/zero-os/0-stor/server/schema"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -184,12 +184,12 @@ func TestCheckObject(t *testing.T) {
 		{
 			name:           "valid",
 			keys:           []string{"testkey1", "testkey2", "testkey3"},
-			expectedStatus: pb.CheckResponse_ok,
+			expectedStatus: pb.CheckStatusOK,
 		},
 		{
 			name:           "missing",
 			keys:           []string{"dontexsits"},
-			expectedStatus: pb.CheckResponse_missing,
+			expectedStatus: pb.CheckStatusMissing,
 		},
 	}
 

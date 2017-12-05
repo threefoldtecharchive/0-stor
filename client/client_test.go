@@ -241,7 +241,7 @@ func TestRoundTripGRPC(t *testing.T) {
 			require.NoError(t, err, "failed to delete from the store")
 
 			// makes sure metadata does not exist anymore
-			_, err = c.metaCli.Get(string(key))
+			_, err = c.metaCli.GetMetadata(key)
 			require.Error(t, err)
 		})
 	}

@@ -6,7 +6,7 @@ import (
 	"io"
 
 	"github.com/zero-os/0-stor/server/api"
-	pb "github.com/zero-os/0-stor/server/schema"
+	pb "github.com/zero-os/0-stor/server/api/grpc/schema"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )

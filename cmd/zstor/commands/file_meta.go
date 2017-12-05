@@ -12,11 +12,7 @@ import (
 
 // writeMetaInHumanReadableFormat writes a meta.Meta struct
 // as a human readable format into the writer.
-func writeMetaAsHumanReadableFormat(w io.Writer, m *meta.Meta) error {
-	if m == nil {
-		return errors.New("no metadata given")
-	}
-
+func writeMetaAsHumanReadableFormat(w io.Writer, m meta.Data) error {
 	w.Write([]byte(fmt.Sprintf("Key: %s\n", m.Key)))
 	w.Write([]byte(fmt.Sprintf("Epoch: %d\n", m.Epoch)))
 
@@ -41,24 +37,50 @@ func writeMetaAsHumanReadableFormat(w io.Writer, m *meta.Meta) error {
 	if m.Next != nil {
 		w.Write([]byte(fmt.Sprintf("Next: %s\n", m.Next)))
 	}
-	if m.ConfigPtr != nil {
-		w.Write([]byte(fmt.Sprintf("Config pointer: %s\n", m.ConfigPtr)))
-	}
 
 	return nil
 }
 
 // writeMetaAsJSON writes a meta.Meta struct
 // as a (prettified) JSON.
-func writeMetaAsJSON(w io.Writer, m *meta.Meta, pretty bool) error {
-	if m == nil {
-		return errors.New("no metadata given")
-	}
-
+func writeMetaAsJSON(w io.Writer, m meta.Data, pretty bool) error {
 	encoder := json.NewEncoder(w)
 	if pretty {
 		encoder.SetIndent("", "\t")
 	}
 
-	return encoder.Encode(m)
+	// turn the in-memory metadata structure,
+	// into our custom JSON-friendly metadata structure
+	metadata := _metaDataJSON{
+		Size:     m.Size,
+		Epoch:    m.Epoch,
+		Key:      string(m.Key),
+		Previous: string(m.Previous),
+		Next:     string(m.Next),
+	}
+	for _, chunk := range m.Chunks {
+		metadata.Chunks = append(metadata.Chunks, _metaDataChunkJSON{
+			Size:   chunk.Size,
+			Key:    string(chunk.Size),
+			Shards: chunk.Shards,
+		})
+	}
+
+	// encode our JSON-friendly metadata structure
+	return encoder.Encode(metadata)
+}
+
+type _metaDataJSON struct {
+	Size     int64                `json:"size"`
+	Epoch    int64                `json:"epoch"`
+	Key      string               `json:"key"`
+	Chunks   []_metaDataChunkJSON `json:"chunks"`
+	Previous string               `json:"previous,omitempty"`
+	Next     string               `json:"next,omitempty"`
+}
+
+type _metaDataChunkJSON struct {
+	Size   int64    `json:"size"`
+	Key    string   `json:"string"`
+	Shards []string `json:"shards"`
 }

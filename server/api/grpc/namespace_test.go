@@ -9,10 +9,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/zero-os/0-stor/server"
+	pb "github.com/zero-os/0-stor/server/api/grpc/schema"
 	"github.com/zero-os/0-stor/server/db"
 	"github.com/zero-os/0-stor/server/db/badger"
 	"github.com/zero-os/0-stor/server/encoding"
-	pb "github.com/zero-os/0-stor/server/schema"
 	"golang.org/x/net/context"
 )
 

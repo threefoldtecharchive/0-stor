@@ -158,15 +158,15 @@ var fileMetadataCmd = &cobra.Command{
 		switch {
 		case fileMetadataCfg.JSONPrettyFormat:
 			log.Debugf("Printing metadata for %q in pretty JSON Format", key)
-			writeMetaAsJSON(output, meta, true)
+			writeMetaAsJSON(output, *meta, true)
 
 		case fileMetadataCfg.JSONFormat:
 			log.Debugf("Printing metadata for %q in JSON Format", key)
-			writeMetaAsJSON(output, meta, false)
+			writeMetaAsJSON(output, *meta, false)
 
 		default:
 			log.Debugf("Printing metadata for %q in custom human-readable Format", key)
-			writeMetaAsHumanReadableFormat(output, meta)
+			writeMetaAsHumanReadableFormat(output, *meta)
 		}
 
 		return nil

@@ -11,17 +11,20 @@ var (
 )
 
 // PutMeta puts metadata to metadata server
-func (c *Client) PutMeta(key []byte, md *meta.Meta) error {
+func (c *Client) PutMeta(key []byte, md *meta.Data) error {
 	if c.metaCli == nil {
 		return errNilMetaClient
 	}
-	return c.metaCli.Put(string(key), md)
+	if md == nil {
+		return c.metaCli.DeleteMetadata(key)
+	}
+	return c.metaCli.SetMetadata(*md)
 }
 
 // GetMeta gets metadata from metadata server
-func (c *Client) GetMeta(key []byte) (*meta.Meta, error) {
+func (c *Client) GetMeta(key []byte) (*meta.Data, error) {
 	if c.metaCli == nil {
 		return nil, errNilMetaClient
 	}
-	return c.metaCli.Get(string(key))
+	return c.metaCli.GetMetadata(key)
 }

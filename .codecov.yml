@@ -2,3 +2,9 @@ coverage:
   range: 50..70
   round: down
   precision: 0
+  ignore:
+    # ignore all generated files, as we do not control those
+    - server/api/grpc/schema/zstor.pb.go
+    - server/api/grp/generate.go
+    - client/meta/encoding/proto/generate.go
+    - client/meta/encoding/proto/metadata.pb.go

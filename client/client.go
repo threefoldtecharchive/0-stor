@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"runtime"
 	"sync"
+	"time"
 
 	"github.com/zero-os/0-stor/client/components"
 	"github.com/zero-os/0-stor/client/meta/etcd"
@@ -20,7 +21,7 @@ import (
 	"github.com/zero-os/0-stor/client/itsyouonline"
 	"github.com/zero-os/0-stor/client/meta"
 	"github.com/zero-os/0-stor/client/stor"
-	pb "github.com/zero-os/0-stor/server/schema"
+	pb "github.com/zero-os/0-stor/server/api/grpc/schema"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/golang/snappy"
@@ -122,11 +123,11 @@ func (c *Client) Close() error {
 }
 
 // Write write the value to the the 0-stors configured by the client policy
-func (c *Client) Write(key, value []byte, refList []string) (*meta.Meta, error) {
+func (c *Client) Write(key, value []byte, refList []string) (*meta.Data, error) {
 	return c.WriteWithMeta(key, value, nil, nil, nil, refList)
 }
 
-func (c *Client) WriteF(key []byte, r io.Reader, refList []string) (*meta.Meta, error) {
+func (c *Client) WriteF(key []byte, r io.Reader, refList []string) (*meta.Data, error) {
 	return c.writeFWithMeta(key, r, nil, nil, nil, refList)
 }
 
@@ -136,16 +137,16 @@ func (c *Client) WriteF(key []byte, r io.Reader, refList []string) (*meta.Meta, 
 // So the client won't need to fetch it back from the metadata server.
 // prevKey still need to be set it prevMeta is set
 // initialMeta is optional metadata, if user want to set his own initial metadata for example set own epoch
-func (c *Client) WriteWithMeta(key, val []byte, prevKey []byte, prevMeta, md *meta.Meta, refList []string) (*meta.Meta, error) {
+func (c *Client) WriteWithMeta(key, val []byte, prevKey []byte, prevMeta, md *meta.Data, refList []string) (*meta.Data, error) {
 	r := bytes.NewReader(val)
 	return c.writeFWithMeta(key, r, prevKey, prevMeta, md, refList)
 }
 
-func (c *Client) WriteFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMeta, md *meta.Meta, refList []string) (*meta.Meta, error) {
+func (c *Client) WriteFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMeta, md *meta.Data, refList []string) (*meta.Data, error) {
 	return c.writeFWithMeta(key, r, prevKey, prevMeta, md, refList)
 }
 
-func (c *Client) writeFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMeta, md *meta.Meta, refList []string) (*meta.Meta, error) {
+func (c *Client) writeFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMeta, md *meta.Data, refList []string) (*meta.Data, error) {
 	var (
 		blockSize int
 		err       error
@@ -164,7 +165,7 @@ func (c *Client) writeFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMet
 		// get the prev meta now than later
 		// to avoid making processing and then
 		// just found that prev meta is invalid
-		prevMeta, err = c.metaCli.Get(string(prevKey))
+		prevMeta, err = c.metaCli.GetMetadata(prevKey)
 		if err != nil {
 			return nil, err
 		}
@@ -172,7 +173,10 @@ func (c *Client) writeFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMet
 
 	// create new metadata if not given
 	if md == nil {
-		md = meta.New(key)
+		md = &meta.Data{
+			Key:   key,
+			Epoch: time.Now().UnixNano(),
+		}
 	}
 
 	// define the block size to use
@@ -206,12 +210,12 @@ func (c *Client) writeFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMet
 
 		if c.policy.Encrypt {
 			block, err = aesgm.Encrypt(block)
-			chunk.Size = uint64(len(block))
+			chunk.Size = int64(len(block))
 		}
 
 		if c.policy.Compress {
 			block = snappy.Encode(nil, block)
-			chunk.Size = uint64(len(block))
+			chunk.Size = int64(len(block))
 		}
 
 		switch {
@@ -233,7 +237,7 @@ func (c *Client) writeFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMet
 			usedShards = []string{shard}
 		}
 
-		chunk.Size = uint64(len(block))
+		chunk.Size = int64(len(block))
 		chunk.Shards = usedShards
 		md.Chunks = append(md.Chunks, chunk)
 	}
@@ -250,7 +254,7 @@ func (c *Client) writeFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMet
 // it will first try to get the metadata associated with key from the Metadata servers.
 // It returns the value and it's reference list
 func (c *Client) Read(key []byte) ([]byte, []string, error) {
-	md, err := c.metaCli.Get(string(key))
+	md, err := c.metaCli.GetMetadata(key)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -266,7 +270,7 @@ func (c *Client) Read(key []byte) ([]byte, []string, error) {
 
 // ReadF similar as Read but write the data to w instead of returning a slice of bytes
 func (c *Client) ReadF(key []byte, w io.Writer) ([]string, error) {
-	md, err := c.metaCli.Get(string(key))
+	md, err := c.metaCli.GetMetadata(key)
 	if err != nil {
 		return nil, err
 	}
@@ -275,7 +279,7 @@ func (c *Client) ReadF(key []byte, w io.Writer) ([]string, error) {
 }
 
 // ReadWithMeta reads the value described by md
-func (c *Client) ReadWithMeta(md *meta.Meta) ([]byte, []string, error) {
+func (c *Client) ReadWithMeta(md *meta.Data) ([]byte, []string, error) {
 	w := &bytes.Buffer{}
 	refList, err := c.readFWithMeta(md, w)
 	if err != nil {
@@ -285,7 +289,7 @@ func (c *Client) ReadWithMeta(md *meta.Meta) ([]byte, []string, error) {
 	return w.Bytes(), refList, nil
 }
 
-func (c *Client) readFWithMeta(md *meta.Meta, w io.Writer) (refList []string, err error) {
+func (c *Client) readFWithMeta(md *meta.Data, w io.Writer) (refList []string, err error) {
 	var (
 		aesgm encrypt.EncrypterDecrypter
 		block []byte
@@ -352,7 +356,7 @@ func (c *Client) readFWithMeta(md *meta.Meta, w io.Writer) (refList []string, er
 // Delete deletes object from the 0-stor server pointed by the key
 // It also deletes the metadata.
 func (c *Client) Delete(key []byte) error {
-	meta, err := c.metaCli.Get(string(key))
+	meta, err := c.metaCli.GetMetadata(key)
 	if err != nil {
 		log.Errorf("fail to read metadata: %v", err)
 		return err
@@ -363,7 +367,7 @@ func (c *Client) Delete(key []byte) error {
 // DeleteWithMeta deletes object from the 0-stor server pointed by the
 // given metadata
 // It also deletes the metadata.
-func (c *Client) DeleteWithMeta(meta *meta.Meta) error {
+func (c *Client) DeleteWithMeta(meta *meta.Data) error {
 	type job struct {
 		key   []byte
 		shard string
@@ -412,7 +416,7 @@ func (c *Client) DeleteWithMeta(meta *meta.Meta) error {
 	wg.Wait()
 
 	// delete metadata
-	if err := c.metaCli.Delete(string(meta.Key)); err != nil {
+	if err := c.metaCli.DeleteMetadata(meta.Key); err != nil {
 		log.Errorf("error deleting metadata :%v", err)
 		return err
 	}
@@ -421,7 +425,7 @@ func (c *Client) DeleteWithMeta(meta *meta.Meta) error {
 }
 
 func (c *Client) Check(key []byte) (CheckStatus, error) {
-	meta, err := c.metaCli.Get(string(key))
+	meta, err := c.metaCli.GetMetadata(key)
 	if err != nil {
 		log.Errorf("fail to get metadata for check: %v", err)
 		return CheckStatusCorrupted, err
@@ -823,9 +827,9 @@ func (c *Client) read(key []byte, shard string) (*pb.Object, error) {
 	return obj, nil
 }
 
-func (c *Client) linkMeta(curMd, prevMd *meta.Meta, curKey, prevKey []byte) error {
+func (c *Client) linkMeta(curMd, prevMd *meta.Data, curKey, prevKey []byte) error {
 	if len(prevKey) == 0 {
-		return c.metaCli.Put(string(curKey), curMd)
+		return c.metaCli.SetMetadata(*curMd)
 	}
 
 	// point next key of previous meta to new meta
@@ -835,12 +839,12 @@ func (c *Client) linkMeta(curMd, prevMd *meta.Meta, curKey, prevKey []byte) erro
 	curMd.Previous = prevKey
 
 	// update prev meta
-	if err := c.metaCli.Put(string(prevKey), prevMd); err != nil {
+	if err := c.metaCli.SetMetadata(*prevMd); err != nil {
 		return err
 	}
 
 	// update new meta
-	return c.metaCli.Put(string(curKey), curMd)
+	return c.metaCli.SetMetadata(*curMd)
 }
 
 func (c *Client) getRandomStor(except []string) (stor.Client, string, error) {
