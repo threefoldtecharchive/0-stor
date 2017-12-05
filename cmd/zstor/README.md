@@ -194,4 +194,13 @@ Delete: true
 Admin: true
 ```
 
+You can also change the format to JSON by specifying the `--`json` flag:
+
+```
+zstor --config demo.yaml namespace permission get johndoe@email.com namespace_test --json
+{"read":true,"write":true,"delete":true,"admin":true}
+```
+
+If you want prettified JSON, you can use the `--json-pretty` flag instead of the `--json` flag.
+
 [iyo]: https://itsyou.online/

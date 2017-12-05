@@ -1,7 +1,9 @@
 package commands
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -119,6 +121,11 @@ var namespaceSetPermissionCfg struct {
 	Read, Write, Delete, Admin bool
 }
 
+var namespaceGetPermissionCfg struct {
+	JSONFormat       bool
+	JSONPrettyFormat bool
+}
+
 // namespaceGetPermissionCmd represents the namespace-permission-get command
 var namespaceGetPermissionCmd = &cobra.Command{
 	Use:   "get <userID> <namespace>",
@@ -134,14 +141,34 @@ var namespaceGetPermissionCmd = &cobra.Command{
 		userID, namespace := args[0], args[1]
 		perm, err := iyoCl.GetPermission(namespace, userID)
 		if err != nil {
-			return fmt.Errorf("fail to retrieve permission for %s:%s: %v",
+			return fmt.Errorf("failed to retrieve permission for %s:%s: %v",
 				userID, namespace, err)
 		}
 
-		fmt.Printf("Read: %v\n", perm.Read)
-		fmt.Printf("Write: %v\n", perm.Write)
-		fmt.Printf("Delete: %v\n", perm.Delete)
-		fmt.Printf("Admin: %v\n", perm.Admin)
+		switch {
+		case namespaceGetPermissionCfg.JSONPrettyFormat, namespaceGetPermissionCfg.JSONFormat:
+			encoder := json.NewEncoder(os.Stdout)
+			if namespaceGetPermissionCfg.JSONPrettyFormat {
+				encoder.SetIndent("", "\t")
+			}
+			err := encoder.Encode(struct {
+				Read   bool `json:"read"`
+				Write  bool `json:"write"`
+				Delete bool `json:"delete"`
+				Admin  bool `json:"admin"`
+			}{perm.Read, perm.Write, perm.Delete, perm.Admin})
+			if err != nil {
+				return fmt.Errorf(
+					"failed to encode permission for %s:%s into JSON format: %v",
+					userID, namespace, err)
+			}
+
+		default:
+			fmt.Printf("Read: %v\n", perm.Read)
+			fmt.Printf("Write: %v\n", perm.Write)
+			fmt.Printf("Delete: %v\n", perm.Delete)
+			fmt.Printf("Admin: %v\n", perm.Admin)
+		}
 
 		return nil
 	},
@@ -171,4 +198,11 @@ func init() {
 	namespaceSetPermissionCmd.Flags().BoolVarP(
 		&namespaceSetPermissionCfg.Admin, "admin", "a", false,
 		"Set admin permissions for the given user and namespace.")
+
+	namespaceGetPermissionCmd.Flags().BoolVar(
+		&namespaceGetPermissionCfg.JSONFormat, "json", false,
+		"Print the permissions in JSON format instead of a custom human readable format.")
+	namespaceGetPermissionCmd.Flags().BoolVar(
+		&namespaceGetPermissionCfg.JSONPrettyFormat, "json-pretty", false,
+		"Print the permissions in prettified JSON format instead of a custom human readable format.")
 }
