@@ -4,7 +4,7 @@
 
 A Single device object store.
 
-[link to group on telegram](https://t.me/joinchat/BwOvOw2-K4AN7p9VZckpFw)
+[link to group on telegram](https://t.me/joinchat/BrOCOUGHeT035il_qrwQ2A)
 
 ## Components
 
