@@ -2,55 +2,55 @@ package db
 
 import "fmt"
 
-// DataPrefix returns the data prefix for a given namespace.
-func DataPrefix(namespace []byte) []byte {
-	if namespace == nil {
-		panic("no namespace given")
+// DataPrefix returns the data prefix for a given label.
+func DataPrefix(label []byte) []byte {
+	if label == nil {
+		panic("no label given")
 	}
 
-	return []byte(fmt.Sprintf("%s:%s", namespace, PrefixData))
+	return []byte(fmt.Sprintf("%s:%s", label, PrefixData))
 }
 
-// DataKey returns the data key for a given namespace and key.
-func DataKey(namespace, key []byte) []byte {
-	if namespace == nil {
-		panic("no namespace given")
+// DataKey returns the data key for a given label and key.
+func DataKey(label, key []byte) []byte {
+	if label == nil {
+		panic("no label given")
 	}
 	if key == nil {
 		panic("no key given")
 	}
 
-	return []byte(fmt.Sprintf("%s:%s:%s", namespace, PrefixData, key))
+	return []byte(fmt.Sprintf("%s:%s:%s", label, PrefixData, key))
 }
 
-// ReferenceListPrefix returns the reference list prefix for a given namespace.
-func ReferenceListPrefix(namespace []byte) []byte {
-	if namespace == nil {
-		panic("no namespace given")
+// ReferenceListPrefix returns the reference list prefix for a given label.
+func ReferenceListPrefix(label []byte) []byte {
+	if label == nil {
+		panic("no label given")
 	}
 
-	return []byte(fmt.Sprintf("%s:%s", namespace, PrefixReferenceList))
+	return []byte(fmt.Sprintf("%s:%s", label, PrefixReferenceList))
 }
 
-// ReferenceListKey returns the reference list key for a given namespace and key.
-func ReferenceListKey(namespace, key []byte) []byte {
-	if namespace == nil {
-		panic("no namespace given")
+// ReferenceListKey returns the reference list key for a given label and key.
+func ReferenceListKey(label, key []byte) []byte {
+	if label == nil {
+		panic("no label given")
 	}
 	if key == nil {
 		panic("no key given")
 	}
 
-	return []byte(fmt.Sprintf("%s:%s:%s", namespace, PrefixReferenceList, key))
+	return []byte(fmt.Sprintf("%s:%s:%s", label, PrefixReferenceList, key))
 }
 
-// NamespaceKey returns the namespace key for a given namespace.
-func NamespaceKey(namespace []byte) []byte {
-	if namespace == nil {
-		panic("no namespace given")
+// NamespaceKey returns the label key for a given label.
+func NamespaceKey(label []byte) []byte {
+	if label == nil {
+		panic("no label given")
 	}
 
-	return []byte(fmt.Sprintf("%s:%s", PrefixNamespace, namespace))
+	return []byte(fmt.Sprintf("%s:%s", PrefixNamespace, label))
 }
 
 const (
