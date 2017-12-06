@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/zero-os/0-stor/client/meta"
-	"github.com/zero-os/0-stor/client/meta/embedserver"
 )
 
 // blockMap is dummy block.Writer/Reader used solely for tests
@@ -44,10 +43,6 @@ func TestWalkBack(t *testing.T) {
 }
 
 func testWalk(t *testing.T, forward bool) {
-	etcd, err := embedserver.New()
-	require.Nil(t, err)
-	defer etcd.Stop()
-
 	servers, serverClean := testGRPCServer(t, 4)
 	defer serverClean()
 
@@ -61,7 +56,7 @@ func testWalk(t *testing.T, forward bool) {
 		Organization: "testorg",
 		Namespace:    "thedisk",
 		DataShards:   dataShards,
-		MetaShards:   []string{etcd.ListenAddr()},
+		MetaShards:   []string{"test"},
 		IYOAppID:     "",
 		IYOSecret:    "",
 	}

@@ -1,4 +1,4 @@
-package embedserver
+package etcd
 
 import (
 	"io/ioutil"
@@ -33,8 +33,8 @@ func (s *Server) ListenAddr() string {
 	return s.listenAddr
 }
 
-// New creates new embeddded metadata server
-func New() (*Server, error) {
+// New creates new embedded metadata server
+func NewEmbeddedServer() (*Server, error) {
 	tmpDir, err := ioutil.TempDir("", "etcd")
 	if err != nil {
 		return nil, err

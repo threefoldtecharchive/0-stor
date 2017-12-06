@@ -6,14 +6,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/zero-os/0-stor/client/meta/embedserver"
 )
 
 func TestCheck(t *testing.T) {
-	etcd, err := embedserver.New()
-	require.NoError(t, err, "fail to start embedded etcd server")
-	defer etcd.Stop()
-
 	servers, serverClean := testGRPCServer(t, 4)
 	defer serverClean()
 
@@ -26,7 +21,7 @@ func TestCheck(t *testing.T) {
 		Organization:           "testorg",
 		Namespace:              "namespace1",
 		DataShards:             shards,
-		MetaShards:             []string{etcd.ListenAddr()},
+		MetaShards:             []string{"test"},
 		IYOAppID:               "",
 		IYOSecret:              "",
 		BlockSize:              1024,

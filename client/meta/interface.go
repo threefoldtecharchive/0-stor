@@ -17,6 +17,8 @@ var (
 // It is used to set, get and delete metadata.
 // It is also used as an optional part of the the main 0-stor client,
 // in order to fetch the metadata automatically for a given key.
+//
+// A Client can always be assumed to be thread safe.
 type Client interface {
 	// SetMetadata sets the metadata,
 	// using the key defined as part of the given metadata.

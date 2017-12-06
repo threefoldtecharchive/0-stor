@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/zero-os/0-stor/client/meta"
-	"github.com/zero-os/0-stor/client/meta/embedserver"
 	"github.com/zero-os/0-stor/client/meta/encoding/proto"
 )
 
@@ -20,7 +19,7 @@ func TestRoundTrip(t *testing.T) {
 	assert := assert.New(t)
 	require := require.New(t)
 
-	etcd, err := embedserver.New()
+	etcd, err := NewEmbeddedServer()
 	require.NoError(err)
 	defer etcd.Stop()
 
@@ -112,7 +111,7 @@ func TestClientExplicitPanics(t *testing.T) {
 func TestClientNilKeys(t *testing.T) {
 	require := require.New(t)
 
-	etcd, err := embedserver.New()
+	etcd, err := NewEmbeddedServer()
 	require.NoError(err)
 
 	c, err := NewClient([]string{etcd.ListenAddr()})
@@ -132,7 +131,7 @@ func TestClientNilKeys(t *testing.T) {
 func TestInvalidMetadataObject(t *testing.T) {
 	require := require.New(t)
 
-	etcd, err := embedserver.New()
+	etcd, err := NewEmbeddedServer()
 	require.NoError(err)
 
 	c, err := NewClient([]string{etcd.ListenAddr()})
@@ -170,7 +169,7 @@ func TestInvalidMetadataObject(t *testing.T) {
 func TestServerDown(t *testing.T) {
 	require := require.New(t)
 
-	etcd, err := embedserver.New()
+	etcd, err := NewEmbeddedServer()
 	require.Nil(err)
 
 	c, err := NewClient([]string{etcd.ListenAddr()})

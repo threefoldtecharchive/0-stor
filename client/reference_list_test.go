@@ -5,17 +5,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/zero-os/0-stor/client/meta/embedserver"
-
 	"github.com/stretchr/testify/require"
 )
 
 func TestReferenceList(t *testing.T) {
-	etcd, err := embedserver.New()
-
-	require.NoError(t, err, "fail to start embebed etcd server")
-	defer etcd.Stop()
-
 	servers, serverClean := testGRPCServer(t, 1)
 	defer serverClean()
 
@@ -28,7 +21,7 @@ func TestReferenceList(t *testing.T) {
 		Organization:   "testorg",
 		Namespace:      "namespace1",
 		DataShards:     shards,
-		MetaShards:     []string{etcd.ListenAddr()},
+		MetaShards:     []string{"test"},
 		IYOAppID:       "id",
 		IYOSecret:      "secret",
 		ReplicationNr:  0,
@@ -95,11 +88,6 @@ func TestRemoveReferenceList(t *testing.T) {
 	const (
 		numServer = 3
 	)
-	etcd, err := embedserver.New()
-
-	require.NoError(t, err, "fail to start embedded etcd server")
-	defer etcd.Stop()
-
 	servers, serverClean := testGRPCServer(t, numServer)
 	defer serverClean()
 
@@ -112,7 +100,7 @@ func TestRemoveReferenceList(t *testing.T) {
 		Organization:  "testorg",
 		Namespace:     "namespace1",
 		DataShards:    shards,
-		MetaShards:    []string{etcd.ListenAddr()},
+		MetaShards:    []string{"test"},
 		IYOAppID:      "id",
 		IYOSecret:     "secret",
 		ReplicationNr: numServer,

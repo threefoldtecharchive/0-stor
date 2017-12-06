@@ -13,7 +13,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/zero-os/0-stor/client/meta/embedserver"
+	"github.com/zero-os/0-stor/client/meta/memory"
 	"github.com/zero-os/0-stor/server/api"
 	"github.com/zero-os/0-stor/server/api/grpc"
 	"github.com/zero-os/0-stor/server/db/badger"
@@ -63,14 +63,24 @@ func testGRPCServer(t testing.TB, n int) ([]api.Server, func()) {
 }
 
 func getTestClient(policy Policy) (*Client, error) {
-	return newClient(policy, nil)
+	var useMemoryMetaClient bool
+	if len(policy.MetaShards) == 1 && policy.MetaShards[0] == "test" {
+		useMemoryMetaClient = true
+		policy.MetaShards = nil
+	}
+
+	client, err := newClient(policy, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if useMemoryMetaClient {
+		client.metaCli = memory.NewClient()
+	}
+	return client, nil
 }
 
 func TestRoundTripGRPC(t *testing.T) {
-	etcd, err := embedserver.New()
-	require.NoError(t, err, "fail to start embedded etcd server")
-	defer etcd.Stop()
-
 	servers, serverClean := testGRPCServer(t, 4)
 	defer serverClean()
 
@@ -83,7 +93,7 @@ func TestRoundTripGRPC(t *testing.T) {
 		Organization: "testorg",
 		Namespace:    "namespace1",
 		DataShards:   shards,
-		MetaShards:   []string{etcd.ListenAddr()},
+		MetaShards:   []string{"test"},
 		IYOAppID:     "id",
 		IYOSecret:    "secret",
 	}
@@ -248,10 +258,6 @@ func TestRoundTripGRPC(t *testing.T) {
 }
 
 func TestBlocksizes(t *testing.T) {
-	etcd, err := embedserver.New()
-	require.NoError(t, err, "fail to start embedded etcd server")
-	defer etcd.Stop()
-
 	servers, serverClean := testGRPCServer(t, 4)
 	defer serverClean()
 
@@ -264,7 +270,7 @@ func TestBlocksizes(t *testing.T) {
 		Organization: "testorg",
 		Namespace:    "namespace1",
 		DataShards:   shards,
-		MetaShards:   []string{etcd.ListenAddr()},
+		MetaShards:   []string{"test"},
 		IYOAppID:     "id",
 		IYOSecret:    "secret",
 	}
@@ -346,9 +352,6 @@ func TestBlocksizes(t *testing.T) {
 
 func TestMultipleDownload(t *testing.T) {
 	// #test for https://github.com/zero-os/0-stor/issues/208
-	etcd, err := embedserver.New()
-	require.NoError(t, err, "fail to start embedded etcd server")
-	defer etcd.Stop()
 
 	servers, serverClean := testGRPCServer(t, 4)
 	defer serverClean()
@@ -364,7 +367,7 @@ func TestMultipleDownload(t *testing.T) {
 		Organization:           "testorg",
 		Namespace:              "namespace1",
 		DataShards:             shards,
-		MetaShards:             []string{etcd.ListenAddr()},
+		MetaShards:             []string{"test"},
 		IYOAppID:               "",
 		IYOSecret:              "",
 		BlockSize:              blockSize,
@@ -400,12 +403,6 @@ func TestMultipleDownload(t *testing.T) {
 }
 
 func TestConcurrentWriteRead(t *testing.T) {
-	t.SkipNow()
-
-	etcd, err := embedserver.New()
-	require.NoError(t, err, "fail to start embedded etcd server")
-	defer etcd.Stop()
-
 	servers, serverClean := testGRPCServer(t, 4)
 	defer serverClean()
 
@@ -420,7 +417,7 @@ func TestConcurrentWriteRead(t *testing.T) {
 		Organization:           "testorg",
 		Namespace:              "namespace1",
 		DataShards:             shards,
-		MetaShards:             []string{etcd.ListenAddr()},
+		MetaShards:             []string{"test"},
 		IYOAppID:               "",
 		IYOSecret:              "",
 		BlockSize:              blockSize,
@@ -477,10 +474,6 @@ func TestConcurrentWriteRead(t *testing.T) {
 }
 
 func BenchmarkWriteFilesSizes(b *testing.B) {
-	etcd, err := embedserver.New()
-	require.NoError(b, err, "fail to start embedded etcd server")
-	defer etcd.Stop()
-
 	servers, serverClean := testGRPCServer(b, 4)
 	defer serverClean()
 
@@ -493,7 +486,7 @@ func BenchmarkWriteFilesSizes(b *testing.B) {
 		Organization:           "testorg",
 		Namespace:              "namespace1",
 		DataShards:             shards,
-		MetaShards:             []string{etcd.ListenAddr()},
+		MetaShards:             []string{"test"},
 		IYOAppID:               "",
 		IYOSecret:              "",
 		BlockSize:              1024 * 1024, // 1MiB
@@ -552,10 +545,6 @@ func BenchmarkWriteFilesSizes(b *testing.B) {
 }
 
 func TestIssue225(t *testing.T) {
-	etcd, err := embedserver.New()
-	require.NoError(t, err, "fail to start embedded etcd server")
-	defer etcd.Stop()
-
 	servers, serverClean := testGRPCServer(t, 4)
 	defer serverClean()
 
@@ -570,7 +559,7 @@ func TestIssue225(t *testing.T) {
 		Organization:           "testorg",
 		Namespace:              "namespace1",
 		DataShards:             shards,
-		MetaShards:             []string{etcd.ListenAddr()},
+		MetaShards:             []string{"test"},
 		IYOAppID:               "",
 		IYOSecret:              "",
 		BlockSize:              blockSize,
@@ -605,10 +594,6 @@ func TestIssue225(t *testing.T) {
 }
 
 // func BenchmarkDirectWriteGRPC(b *testing.B) {
-// 	etcd, err := embedserver.New()
-// 	require.NoError(b, err, "fail to start embedded etcd server")
-// 	defer etcd.Stop()
-
 // 	servers, serverClean := testGRPCServer(b, 1)
 // 	defer serverClean()
 
@@ -622,7 +607,7 @@ func TestIssue225(t *testing.T) {
 // 		Namespace:    "testnamespace",
 //
 // 		Shards:       shards,
-// 		MetaShards:   []string{etcd.ListenAddr()},
+// 		MetaShards:   []string{"test"},
 // 		IYOAppID:     "id",
 // 		IYOSecret:    "secret",
 // 	}

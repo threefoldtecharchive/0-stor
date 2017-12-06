@@ -10,13 +10,6 @@ import (
 	"github.com/zero-os/0-stor/client/meta/encoding/proto"
 )
 
-// Client defines client to store metadata
-type Client struct {
-	etcdClient *clientv3.Client
-	marshal    encoding.MarshalMetadata
-	unmarshal  encoding.UnmarshalMetadata
-}
-
 // NewClient creates new Metadata client, using an ETCD cluster as storage medium.
 // This default constructor uses Proto for the (un)marshaling of metadata values.
 func NewClient(endpoints []string) (*Client, error) {
@@ -49,6 +42,14 @@ func NewClientWithEncoding(endpoints []string, marshal encoding.MarshalMetadata,
 		marshal:    marshal,
 		unmarshal:  unmarshal,
 	}, nil
+}
+
+// Client defines client to store metadata,
+// using ETCD (v3) as its underlying storage medium.
+type Client struct {
+	etcdClient *clientv3.Client
+	marshal    encoding.MarshalMetadata
+	unmarshal  encoding.UnmarshalMetadata
 }
 
 // SetMetadata implements meta.Client.SetMetadata
