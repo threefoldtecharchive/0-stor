@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewHasherForType(t *testing.T) {
+func TestNewHasher(t *testing.T) {
 	require := require.New(t)
 
 	testCases := []struct {
@@ -25,7 +25,7 @@ func TestNewHasherForType(t *testing.T) {
 		{math.MaxUint8, nil},
 	}
 	for _, tc := range testCases {
-		h, err := NewHasherForType(tc.Type)
+		h, err := NewHasher(tc.Type)
 		if tc.Expected == nil {
 			require.Error(err)
 			require.Nil(h)
@@ -126,13 +126,13 @@ func TestSum512(t *testing.T) {
 }
 
 func TestDefaultHasher256(t *testing.T) {
-	h, err := NewHasher256()
+	h, err := NewDefaultHasher256()
 	require.NoError(t, err)
 	testSumFunc(t, h.HashBytes, 32)
 }
 
 func TestDefaultHasher512(t *testing.T) {
-	h, err := NewHasher512()
+	h, err := NewDefaultHasher512()
 	require.NoError(t, err)
 	testSumFunc(t, h.HashBytes, 64)
 }
@@ -185,21 +185,21 @@ func BenchmarkSum512(b *testing.B) {
 
 func BenchmarkDefaultHasher256(b *testing.B) {
 	b.Run("512-bytes", func(b *testing.B) {
-		hasher, err := NewHasher256()
+		hasher, err := NewDefaultHasher256()
 		if err != nil {
 			b.Error(err)
 		}
 		benchmarkHashFunc(b, hasher.HashBytes, 512, 32)
 	})
 	b.Run("4096-bytes", func(b *testing.B) {
-		hasher, err := NewHasher256()
+		hasher, err := NewDefaultHasher256()
 		if err != nil {
 			b.Error(err)
 		}
 		benchmarkHashFunc(b, hasher.HashBytes, 4096, 32)
 	})
 	b.Run("131072-bytes", func(b *testing.B) {
-		hasher, err := NewHasher256()
+		hasher, err := NewDefaultHasher256()
 		if err != nil {
 			b.Error(err)
 		}
@@ -209,21 +209,21 @@ func BenchmarkDefaultHasher256(b *testing.B) {
 
 func BenchmarkDefaultHasher512(b *testing.B) {
 	b.Run("512-bytes", func(b *testing.B) {
-		hasher, err := NewHasher512()
+		hasher, err := NewDefaultHasher512()
 		if err != nil {
 			b.Error(err)
 		}
 		benchmarkHashFunc(b, hasher.HashBytes, 512, 64)
 	})
 	b.Run("4096-bytes", func(b *testing.B) {
-		hasher, err := NewHasher512()
+		hasher, err := NewDefaultHasher512()
 		if err != nil {
 			b.Error(err)
 		}
 		benchmarkHashFunc(b, hasher.HashBytes, 4096, 64)
 	})
 	b.Run("131072-bytes", func(b *testing.B) {
-		hasher, err := NewHasher512()
+		hasher, err := NewDefaultHasher512()
 		if err != nil {
 			b.Error(err)
 		}
@@ -251,9 +251,10 @@ func benchmarkHashFunc(b *testing.B, h HashFunc, isz, osz int) {
 func TestMyCustomHasher(t *testing.T) {
 	require := require.New(t)
 
-	hasher, err := NewHasherForType(myCustomHashType)
+	hasher, err := NewHasher(myCustomHashType)
 	require.NoError(err)
 	require.NotNil(hasher)
+	require.IsType(myCustomHasher{}, hasher)
 
 	require.Equal(
 		[]byte("01234567890123456789012345678901"),
@@ -266,8 +267,30 @@ func TestMyCustomHasher(t *testing.T) {
 		hasher.HashBytes([]byte("01234567890123456789012345678901")))
 }
 
+func TestRegisterHashExplicitPanics(t *testing.T) {
+	require := require.New(t)
+
+	require.Panics(func() {
+		RegisterHash(myCustomHashType, myCustomHashTypeStr, nil)
+	}, "no constructor given")
+
+	require.Panics(func() {
+		RegisterHash(myCustomHashTypeNumberTwo, "", newMyCustomHasher)
+	}, "no string version given for non-registered hash")
+}
+
+func TestRegisterHashIgnoreStringExistingHash(t *testing.T) {
+	require := require.New(t)
+
+	require.Equal(myCustomHashTypeStr, myCustomHashType.String())
+	RegisterHash(myCustomHashType, "foo", newMyCustomHasher)
+	require.Equal(myCustomHashTypeStr, myCustomHashType.String())
+}
+
 const (
-	myCustomHashType    = MaxStandardHashType + 1
+	myCustomHashType = iota + MaxStandardHashType + 1
+	myCustomHashTypeNumberTwo
+
 	myCustomHashTypeStr = "bad_256"
 )
 

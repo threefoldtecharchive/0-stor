@@ -19,21 +19,31 @@ func Sum512(data []byte) (hash []byte) {
 	return SumSHA512(data)
 }
 
-// NewHasher256 returns a new instance of the default hasher type.
-// The default hasher is SHA256, which produces checksums of 32 bytes.
-func NewHasher256() (Hasher, error) {
+// NewDefaultHasher256 returns a new instance of the default hasher type.
+//
+// The default hasher is currently SHA256, which produces checksums of 32 bytes.
+//
+// This package reserves the right to change the
+// default 256 bit hashing algorithm at any time,
+// but this constructor will always be available and up to date.
+func NewDefaultHasher256() (Hasher, error) {
 	return NewSHA256Hasher()
 }
 
-// NewHasher512 returns a new instance of the default hasher type.
-// The default hasher is SHA512, which produces checksums of 64 bytes.
-func NewHasher512() (Hasher, error) {
+// NewDefaultHasher512 returns a new instance of the default hasher type.
+//
+// The default hasher is currently SHA512, which produces checksums of 64 bytes.
+//
+// This package reserves the right to change the
+// default 512 bit hashing algorithm at any time,
+// but this constructor will always be available and up to date.
+func NewDefaultHasher512() (Hasher, error) {
 	return NewSHA512Hasher()
 }
 
-// NewHasherForType returns a new instance for the given hasher type.
+// NewHasher returns a new instance for the given hasher type.
 // If the hasher type is invalid, an error is returned.
-func NewHasherForType(ht HashType) (Hasher, error) {
+func NewHasher(ht HashType) (Hasher, error) {
 	hc, ok := _HashTypeValueToConstructorMapping[ht]
 	if !ok {
 		return nil, fmt.Errorf("%d is not a valid HashType value", ht)
@@ -53,7 +63,7 @@ type Hasher interface {
 	HashBytes(data []byte) (hash []byte)
 }
 
-// HashType represents
+// HashType represents a cryptographic hashing algorithm.
 type HashType uint8
 
 const (
@@ -73,10 +83,18 @@ const (
 
 	// DefaultHash256Type represents the default 256 bit
 	// Hashing algorithm as promoted by this package.
+	//
+	// This package reserves the right to change the
+	// default 256 bit hashing algorithm at any time,
+	// but this constant will always be available and up to date.
 	DefaultHash256Type = HashTypeSHA256
 
 	// DefaultHash512Type represents the default 512 bit
 	// Hashing algorithm as promoted by this package.
+	//
+	// This package reserves the right to change the
+	// default 512 bit hashing algorithm at any time,
+	// but this constant will always be available and up to date.
 	DefaultHash512Type = HashTypeSHA512
 
 	// MaxStandardHashType defines the hasher type,
@@ -126,9 +144,21 @@ func (ht *HashType) UnmarshalText(text []byte) error {
 type HasherConstructor func() (Hasher, error)
 
 // RegisterHash registers a new or overwrite an existing hash algorithm.
-// The given str will be used in a case-insensitive manner.
+// The given str will be used in a case-insensitive manner,
+// if the registered hash however overwrites an existing hash type,
+// the str parameter will be ignored and instead the already used string version will be used.
 // This is intended to be called from the init function in packages that implement hash functions.
 func RegisterHash(ht HashType, str string, hc HasherConstructor) {
+	if hc == nil {
+		panic("no hash constructor given")
+	}
+
+	if s, ok := _HashTypeValueToStringMapping[ht]; ok {
+		str = s // ignoring given string
+	} else if str == "" {
+		panic("no string version defined for new hash type")
+	}
+
 	_HashTypeValueToStringMapping[ht] = str
 	_HashTypeStringToValueMapping[str] = ht
 	_HashTypeValueToConstructorMapping[ht] = hc
