@@ -1,6 +1,7 @@
 package crypto
 
 import (
+	"crypto/hmac"
 	"crypto/sha256"
 	"crypto/sha512"
 	"hash"
@@ -8,8 +9,17 @@ import (
 
 // NewSHA256Hasher creates a new hasher,
 // using the SHA256 (32 bytes output) algorithm.
-func NewSHA256Hasher() (*SHA256Hasher, error) {
-	return &SHA256Hasher{hash: sha256.New()}, nil
+//
+// Key is an optional private key to add authentication to the output,
+// when the key is not given the hasher will produce
+// cryptographically secure checksums, without any proof of ownership.
+func NewSHA256Hasher(key []byte) (*SHA256Hasher, error) {
+	if key == nil {
+		return &SHA256Hasher{hash: sha256.New()}, nil
+	}
+
+	h := hmac.New(sha256.New, key)
+	return &SHA256Hasher{hash: h}, nil
 }
 
 // SumSHA256 creates and returns a hash,
@@ -44,8 +54,17 @@ func SumSHA512(data []byte) []byte {
 
 // NewSHA512Hasher creates a new hasher,
 // using the SHA512 (64 bytes output) algorithm.
-func NewSHA512Hasher() (*SHA512Hasher, error) {
-	return &SHA512Hasher{hash: sha512.New()}, nil
+//
+// Key is an optional private key to add authentication to the output,
+// when the key is not given the hasher will produce
+// cryptographically secure checksums, without any proof of ownership.
+func NewSHA512Hasher(key []byte) (*SHA512Hasher, error) {
+	if key == nil {
+		return &SHA512Hasher{hash: sha512.New()}, nil
+	}
+
+	h := hmac.New(sha512.New, key)
+	return &SHA512Hasher{hash: h}, nil
 }
 
 // SHA512Hasher defines a crypto-hasher, using the std SHA512 algorithm.
@@ -63,10 +82,10 @@ func (hasher SHA512Hasher) HashBytes(data []byte) []byte {
 }
 
 func init() {
-	RegisterHash(HashTypeSHA256, "sha_256", func() (Hasher, error) {
-		return NewSHA256Hasher()
+	RegisterHash(HashTypeSHA256, "sha_256", func(key []byte) (Hasher, error) {
+		return NewSHA256Hasher(key)
 	})
-	RegisterHash(HashTypeSHA512, "sha_512", func() (Hasher, error) {
-		return NewSHA512Hasher()
+	RegisterHash(HashTypeSHA512, "sha_512", func(key []byte) (Hasher, error) {
+		return NewSHA512Hasher(key)
 	})
 }

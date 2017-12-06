@@ -21,34 +21,46 @@ func Sum512(data []byte) (hash []byte) {
 
 // NewDefaultHasher256 returns a new instance of the default hasher type.
 //
+// Key is an optional private key to add authentication to the output,
+// when the key is not given the hasher will produce
+// cryptographically secure checksums, without any proof of ownership.
+//
 // The default hasher is currently SHA256, which produces checksums of 32 bytes.
 //
 // This package reserves the right to change the
 // default 256 bit hashing algorithm at any time,
 // but this constructor will always be available and up to date.
-func NewDefaultHasher256() (Hasher, error) {
-	return NewSHA256Hasher()
+func NewDefaultHasher256(key []byte) (Hasher, error) {
+	return NewSHA256Hasher(key)
 }
 
 // NewDefaultHasher512 returns a new instance of the default hasher type.
+//
+// Key is an optional private key to add authentication to the output,
+// when the key is not given the hasher will produce
+// cryptographically secure checksums, without any proof of ownership.
 //
 // The default hasher is currently SHA512, which produces checksums of 64 bytes.
 //
 // This package reserves the right to change the
 // default 512 bit hashing algorithm at any time,
 // but this constructor will always be available and up to date.
-func NewDefaultHasher512() (Hasher, error) {
-	return NewSHA512Hasher()
+func NewDefaultHasher512(key []byte) (Hasher, error) {
+	return NewSHA512Hasher(key)
 }
 
 // NewHasher returns a new instance for the given hasher type.
 // If the hasher type is invalid, an error is returned.
-func NewHasher(ht HashType) (Hasher, error) {
+//
+// Key is an optional private key to add authentication to the output,
+// when the key is not given the hasher will produce
+// cryptographically secure checksums, without any proof of ownership.
+func NewHasher(ht HashType, key []byte) (Hasher, error) {
 	hc, ok := _HashTypeValueToConstructorMapping[ht]
 	if !ok {
 		return nil, fmt.Errorf("%d is not a valid HashType value", ht)
 	}
-	return hc()
+	return hc(key)
 }
 
 // HashFunc create and returns a hash,
@@ -57,6 +69,11 @@ type HashFunc func(data []byte) (hash []byte)
 
 // Hasher defines the interface of a crypto-hasher,
 // which can be used to create a hash, given some binary input data.
+//
+// Hasher is /NEVER/ thread-safe,
+// and should only ever be used on /ONE/ goroutine at a time.
+// If you wish to hash on multiple goroutines,
+// you'll have to create one Hasher per goroutine.
 type Hasher interface {
 	// HashBytes creates a secure hash,
 	// given some input data.
@@ -141,7 +158,9 @@ func (ht *HashType) UnmarshalText(text []byte) error {
 }
 
 // HasherConstructor defines a function which can be used to create a hasher.
-type HasherConstructor func() (Hasher, error)
+// The key parameter is an optional private key which can be used,
+// to create signatures as to provide authentication.
+type HasherConstructor func(key []byte) (Hasher, error)
 
 // RegisterHash registers a new or overwrite an existing hash algorithm.
 // The given str will be used in a case-insensitive manner,

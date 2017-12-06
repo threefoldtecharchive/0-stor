@@ -24,17 +24,65 @@ func TestNewHasher(t *testing.T) {
 		{myCustomHashType, myCustomHasher{}},
 		{math.MaxUint8, nil},
 	}
-	for _, tc := range testCases {
-		h, err := NewHasher(tc.Type)
-		if tc.Expected == nil {
-			require.Error(err)
-			require.Nil(h)
-		} else {
-			require.NoError(err)
-			require.NotNil(h)
-			require.IsType(tc.Expected, h)
+
+	t.Run("without key", func(t *testing.T) {
+		for _, tc := range testCases {
+			h, err := NewHasher(tc.Type, nil)
+			if tc.Expected == nil {
+				require.Error(err)
+				require.Nil(h)
+			} else {
+				require.NoError(err)
+				require.NotNil(h)
+				require.IsType(tc.Expected, h)
+			}
 		}
-	}
+	})
+
+	t.Run("with 128 bit key", func(t *testing.T) {
+		for _, tc := range testCases {
+			h, err := NewHasher(tc.Type,
+				[]byte("0123456789012345"))
+			if tc.Expected == nil {
+				require.Error(err)
+				require.Nil(h)
+			} else {
+				require.NoError(err)
+				require.NotNil(h)
+				require.IsType(tc.Expected, h)
+			}
+		}
+	})
+
+	t.Run("with 256 bit key", func(t *testing.T) {
+		for _, tc := range testCases {
+			h, err := NewHasher(tc.Type,
+				[]byte("01234567890123456789012345678901"))
+			if tc.Expected == nil {
+				require.Error(err)
+				require.Nil(h)
+			} else {
+				require.NoError(err)
+				require.NotNil(h)
+				require.IsType(tc.Expected, h)
+			}
+		}
+	})
+
+	t.Run("with 512 bit key", func(t *testing.T) {
+		for _, tc := range testCases {
+			h, err := NewHasher(tc.Type,
+				[]byte("0123456789012345678901234567890101234567890123456789012345678901"))
+			if tc.Expected == nil {
+				require.Error(err)
+				require.Nil(h)
+			} else {
+				require.NoError(err)
+				require.NotNil(h)
+				require.IsType(tc.Expected, h)
+			}
+		}
+	})
 }
 
 func TestHashTypeMarshalUnmarshal(t *testing.T) {
@@ -125,14 +173,27 @@ func TestSum512(t *testing.T) {
 	testSumFunc(t, Sum512, 64)
 }
 
-func TestDefaultHasher256(t *testing.T) {
-	h, err := NewDefaultHasher256()
+func TestDefaultHasher256_WithoutKey(t *testing.T) {
+	h, err := NewDefaultHasher256(nil)
 	require.NoError(t, err)
 	testSumFunc(t, h.HashBytes, 32)
 }
 
-func TestDefaultHasher512(t *testing.T) {
-	h, err := NewDefaultHasher512()
+func TestDefaultHasher256_WithKey(t *testing.T) {
+	h, err := NewDefaultHasher256([]byte("01234567890123456789012345678901"))
+	require.NoError(t, err)
+	testSumFunc(t, h.HashBytes, 32)
+}
+
+func TestDefaultHasher512_WithoutKey(t *testing.T) {
+	h, err := NewDefaultHasher512(nil)
+	require.NoError(t, err)
+	testSumFunc(t, h.HashBytes, 64)
+}
+
+func TestDefaultHasher512_WithKey(t *testing.T) {
+	h, err := NewDefaultHasher512(
+		[]byte("0123456789012345678901234567890101234567890123456789012345678901"))
 	require.NoError(t, err)
 	testSumFunc(t, h.HashBytes, 64)
 }
@@ -183,54 +244,6 @@ func BenchmarkSum512(b *testing.B) {
 	})
 }
 
-func BenchmarkDefaultHasher256(b *testing.B) {
-	b.Run("512-bytes", func(b *testing.B) {
-		hasher, err := NewDefaultHasher256()
-		if err != nil {
-			b.Error(err)
-		}
-		benchmarkHashFunc(b, hasher.HashBytes, 512, 32)
-	})
-	b.Run("4096-bytes", func(b *testing.B) {
-		hasher, err := NewDefaultHasher256()
-		if err != nil {
-			b.Error(err)
-		}
-		benchmarkHashFunc(b, hasher.HashBytes, 4096, 32)
-	})
-	b.Run("131072-bytes", func(b *testing.B) {
-		hasher, err := NewDefaultHasher256()
-		if err != nil {
-			b.Error(err)
-		}
-		benchmarkHashFunc(b, hasher.HashBytes, 131072, 32)
-	})
-}
-
-func BenchmarkDefaultHasher512(b *testing.B) {
-	b.Run("512-bytes", func(b *testing.B) {
-		hasher, err := NewDefaultHasher512()
-		if err != nil {
-			b.Error(err)
-		}
-		benchmarkHashFunc(b, hasher.HashBytes, 512, 64)
-	})
-	b.Run("4096-bytes", func(b *testing.B) {
-		hasher, err := NewDefaultHasher512()
-		if err != nil {
-			b.Error(err)
-		}
-		benchmarkHashFunc(b, hasher.HashBytes, 4096, 64)
-	})
-	b.Run("131072-bytes", func(b *testing.B) {
-		hasher, err := NewDefaultHasher512()
-		if err != nil {
-			b.Error(err)
-		}
-		benchmarkHashFunc(b, hasher.HashBytes, 131072, 64)
-	})
-}
-
 func benchmarkHashFunc(b *testing.B, h HashFunc, isz, osz int) {
 	bytes := make([]byte, isz)
 	rand.Read(bytes)
@@ -251,7 +264,7 @@ func benchmarkHashFunc(b *testing.B, h HashFunc, isz, osz int) {
 func TestMyCustomHasher(t *testing.T) {
 	require := require.New(t)
 
-	hasher, err := NewHasher(myCustomHashType)
+	hasher, err := NewHasher(myCustomHashType, nil)
 	require.NoError(err)
 	require.NotNil(hasher)
 	require.IsType(myCustomHasher{}, hasher)
@@ -300,7 +313,7 @@ func (ch myCustomHasher) HashBytes([]byte) []byte {
 	return []byte("01234567890123456789012345678901")
 }
 
-func newMyCustomHasher() (Hasher, error) {
+func newMyCustomHasher([]byte) (Hasher, error) {
 	return myCustomHasher{}, nil
 }
 
