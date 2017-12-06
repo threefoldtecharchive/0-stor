@@ -56,8 +56,10 @@ func (b *ListenAddress) Set(str string) error {
 		return err
 	}
 
-	if ip := net.ParseIP(host); ip == nil {
-		return errors.New("host not valid")
+	if host != "" {
+		if ip := net.ParseIP(host); ip == nil {
+			return errors.New("host not valid")
+		}
 	}
 
 	*b = ListenAddress(str)
