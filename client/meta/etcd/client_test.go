@@ -1,6 +1,8 @@
 package etcd
 
 import (
+	"context"
+	"errors"
 	"math"
 	"net"
 	"testing"
@@ -11,6 +13,7 @@ import (
 
 	"github.com/zero-os/0-stor/client/meta"
 	"github.com/zero-os/0-stor/client/meta/embedserver"
+	"github.com/zero-os/0-stor/client/meta/encoding/proto"
 )
 
 func TestRoundTrip(t *testing.T) {
@@ -23,6 +26,9 @@ func TestRoundTrip(t *testing.T) {
 
 	c, err := NewClient([]string{etcd.ListenAddr()})
 	require.NoError(err)
+	defer c.Close()
+
+	require.Equal([]string{etcd.ListenAddr()}, c.Endpoints())
 
 	// prepare the data
 	md := meta.Data{
@@ -81,6 +87,80 @@ func TestServerNotExist(t *testing.T) {
 	require.True(t, ok)
 }
 
+func TestClientExplicitPanics(t *testing.T) {
+	require := require.New(t)
+
+	// explicit panics to guarantee all
+	// input parameters are given when creating a client
+	require.Panics(func() {
+		NewClientWithEncoding(nil, proto.MarshalMetadata, proto.UnmarshalMetadata)
+	}, "no endpoints given")
+	require.Panics(func() {
+		NewClientWithEncoding([]string{"foo"}, nil, proto.UnmarshalMetadata)
+	}, "no marshal func given")
+	require.Panics(func() {
+		NewClientWithEncoding([]string{"foo"}, proto.MarshalMetadata, nil)
+	}, "no unmarshal func given")
+	require.Panics(func() {
+		NewClientWithEncoding([]string{"foo"}, nil, nil)
+	}, "no (un)marshal funcs given")
+	require.Panics(func() {
+		NewClientWithEncoding(nil, nil, nil)
+	}, "nothing given")
+
+	etcd, err := embedserver.New()
+	require.NoError(err)
+
+	c, err := NewClient([]string{etcd.ListenAddr()})
+	require.NoError(err)
+	defer c.Close()
+
+	// explicit panics to guarantee our Get/Delete funcs get a nil-key
+	require.Panics(func() {
+		c.GetMetadata(nil)
+	}, "no key given")
+	require.Panics(func() {
+		c.DeleteMetadata(nil)
+	}, "no key given")
+}
+
+func TestInvalidMetadataObject(t *testing.T) {
+	require := require.New(t)
+
+	etcd, err := embedserver.New()
+	require.NoError(err)
+
+	c, err := NewClient([]string{etcd.ListenAddr()})
+	require.NoError(err)
+	defer c.Close()
+
+	require.Equal([]string{etcd.ListenAddr()}, c.Endpoints())
+
+	// store an invalid value
+	func() {
+		ctx, cancel := context.WithTimeout(context.Background(), metaOpTimeout)
+		defer cancel()
+
+		_, err = c.etcdClient.Put(ctx, "foo", "bar")
+		require.NoError(err)
+	}()
+
+	// now try to fetch it, and ensure that we idd get an error
+	_, err = c.GetMetadata([]byte("foo"))
+	require.Error(err)
+	require.NotEqual(meta.ErrNotFound, err)
+
+	// also ensure we get an error in case the marshaler returns an error
+	err = c.SetMetadata(meta.Data{Key: []byte("whatever-forever")})
+	require.NoError(err)
+	myEncodingErr := errors.New("encoding error: pwned")
+	c.marshal = func(md meta.Data) ([]byte, error) {
+		return nil, myEncodingErr
+	}
+	err = c.SetMetadata(meta.Data{Key: []byte("whatever-forever")})
+	require.Equal(myEncodingErr, err)
+}
+
 // test that client can return gracefully when the server is down
 func TestServerDown(t *testing.T) {
 	require := require.New(t)
@@ -90,6 +170,9 @@ func TestServerDown(t *testing.T) {
 
 	c, err := NewClient([]string{etcd.ListenAddr()})
 	require.Nil(err)
+	defer c.Close()
+
+	require.Equal([]string{etcd.ListenAddr()}, c.Endpoints())
 
 	md := meta.Data{Key: []byte("key")}
 
