@@ -16,6 +16,7 @@ import (
 	"github.com/zero-os/0-stor/client/meta/etcd"
 
 	"github.com/zero-os/0-stor/client/components/chunker"
+	"github.com/zero-os/0-stor/client/components/crypto"
 	"github.com/zero-os/0-stor/client/components/distribution"
 	"github.com/zero-os/0-stor/client/components/encrypt"
 	"github.com/zero-os/0-stor/client/itsyouonline"
@@ -25,7 +26,6 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/golang/snappy"
-	"github.com/minio/blake2b-simd"
 )
 
 var (
@@ -151,8 +151,12 @@ func (c *Client) writeFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMet
 		blockSize int
 		err       error
 		aesgm     encrypt.EncrypterDecrypter
-		blakeH    = blake2b.New256()
 	)
+
+	blakeH, err := crypto.NewBlake2bHasher(nil)
+	if err != nil {
+		return nil, err
+	}
 
 	if c.policy.Encrypt {
 		aesgm, err = encrypt.NewEncrypterDecrypter(encrypt.Config{PrivKey: c.policy.EncryptKey, Type: encrypt.TypeAESGCM})
@@ -201,9 +205,7 @@ func (c *Client) writeFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMet
 	for rd.Next() {
 		block := rd.Value()
 
-		blakeH.Reset()
-		blakeH.Write(block)
-		hashed := blakeH.Sum(nil)
+		hashed := blakeH.HashBytes(block)
 
 		chunkKey := hashed[:]
 		chunk := &meta.Chunk{Key: chunkKey}
