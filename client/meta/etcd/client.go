@@ -52,8 +52,12 @@ func NewClientWithEncoding(endpoints []string, marshal encoding.MarshalMetadata,
 }
 
 // SetMetadata implements meta.Client.SetMetadata
-func (c *Client) SetMetadata(meta meta.Data) error {
-	bytes, err := c.marshal(meta)
+func (c *Client) SetMetadata(data meta.Data) error {
+	if data.Key == nil {
+		return meta.ErrNilKey
+	}
+
+	bytes, err := c.marshal(data)
 	if err != nil {
 		return err
 	}
@@ -61,14 +65,14 @@ func (c *Client) SetMetadata(meta meta.Data) error {
 	ctx, cancel := context.WithTimeout(context.Background(), metaOpTimeout)
 	defer cancel()
 
-	_, err = c.etcdClient.Put(ctx, string(meta.Key), string(bytes))
+	_, err = c.etcdClient.Put(ctx, string(data.Key), string(bytes))
 	return err
 }
 
 // GetMetadata implements meta.Client.GetMetadata
 func (c *Client) GetMetadata(key []byte) (*meta.Data, error) {
 	if key == nil {
-		panic("no key given")
+		return nil, meta.ErrNilKey
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), metaOpTimeout)
@@ -82,18 +86,18 @@ func (c *Client) GetMetadata(key []byte) (*meta.Data, error) {
 		return nil, meta.ErrNotFound
 	}
 
-	var meta meta.Data
-	err = c.unmarshal(resp.Kvs[0].Value, &meta)
+	var data meta.Data
+	err = c.unmarshal(resp.Kvs[0].Value, &data)
 	if err != nil {
 		return nil, err
 	}
-	return &meta, nil
+	return &data, nil
 }
 
 // DeleteMetadata implements meta.Client.DeleteMetadata
 func (c *Client) DeleteMetadata(key []byte) error {
 	if key == nil {
-		panic("no key given")
+		return meta.ErrNilKey
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), metaOpTimeout)

@@ -107,6 +107,10 @@ func TestClientExplicitPanics(t *testing.T) {
 	require.Panics(func() {
 		NewClientWithEncoding(nil, nil, nil)
 	}, "nothing given")
+}
+
+func TestClientNilKeys(t *testing.T) {
+	require := require.New(t)
 
 	etcd, err := embedserver.New()
 	require.NoError(err)
@@ -115,13 +119,14 @@ func TestClientExplicitPanics(t *testing.T) {
 	require.NoError(err)
 	defer c.Close()
 
-	// explicit panics to guarantee our Get/Delete funcs get a nil-key
-	require.Panics(func() {
-		c.GetMetadata(nil)
-	}, "no key given")
-	require.Panics(func() {
-		c.DeleteMetadata(nil)
-	}, "no key given")
+	_, err = c.GetMetadata(nil)
+	require.Equal(meta.ErrNilKey, err)
+
+	err = c.SetMetadata(meta.Data{})
+	require.Equal(meta.ErrNilKey, err)
+
+	err = c.DeleteMetadata(nil)
+	require.Equal(meta.ErrNilKey, err)
 }
 
 func TestInvalidMetadataObject(t *testing.T) {

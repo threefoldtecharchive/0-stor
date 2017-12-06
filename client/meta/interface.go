@@ -7,6 +7,10 @@ var (
 	// in case metadata requested using the GetMetadata,
 	// couldn't be found.
 	ErrNotFound = errors.New("key couldn't be found")
+
+	// ErrNilKey is the error returned by metadata clients,
+	// in case a nil key is given as part of a request.
+	ErrNilKey = errors.New("nil key given")
 )
 
 // Client defines the client API of a metadata server.
