@@ -7,9 +7,9 @@ import (
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
+	pb "github.com/zero-os/0-stor/server/api/grpc/schema"
 	"github.com/zero-os/0-stor/server/db"
 	"github.com/zero-os/0-stor/server/jwt"
-	pb "github.com/zero-os/0-stor/server/schema"
 	"google.golang.org/grpc"
 
 	"github.com/grpc-ecosystem/go-grpc-middleware"

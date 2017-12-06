@@ -3,6 +3,7 @@ package compress_test
 import (
 	"bytes"
 	"fmt"
+	"time"
 
 	"github.com/zero-os/0-stor/client/components/compress"
 	"github.com/zero-os/0-stor/client/meta"
@@ -21,7 +22,7 @@ func Example() {
 	}
 
 	// we define metadata for 0-stor
-	md := meta.New(nil)
+	md := &meta.Data{Key: []byte("foo"), Epoch: time.Now().UnixNano()}
 
 	// we can compress the payload and
 	// write it to block.BytesBuffer buf

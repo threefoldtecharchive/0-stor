@@ -24,9 +24,9 @@ func newBlockMap(metaCli meta.Client) *blockMap {
 	}
 }
 
-func (bs *blockMap) WriteBlock(key, val []byte, md *meta.Meta) (*meta.Meta, error) {
+func (bs *blockMap) WriteBlock(key, val []byte, md *meta.Data) (*meta.Data, error) {
 	bs.data[string(key)] = val
-	return md, bs.metaCli.Put(string(key), md)
+	return md, bs.metaCli.SetMetadata(*md)
 }
 
 func (bs *blockMap) ReadBlock(key []byte) ([]byte, error) {
@@ -91,7 +91,7 @@ func testWalk(t *testing.T, forward bool) {
 
 	startEpoch := time.Now().UTC().UnixNano()
 	// do the write
-	var prevMd *meta.Meta
+	var prevMd *meta.Data
 	var prevKey []byte
 	var firstKey []byte
 

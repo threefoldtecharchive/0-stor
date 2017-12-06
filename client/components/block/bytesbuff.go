@@ -19,7 +19,7 @@ func NewBytesBuffer() *BytesBuffer {
 }
 
 // WriteBlock implements block.Writer interface
-func (bb *BytesBuffer) WriteBlock(key, val []byte, md *meta.Meta) (*meta.Meta, error) {
+func (bb *BytesBuffer) WriteBlock(key, val []byte, md *meta.Data) (*meta.Data, error) {
 	_, err := bb.Buffer.Write(val)
 	return md, err
 }

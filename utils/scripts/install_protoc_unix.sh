@@ -5,7 +5,7 @@ case $OSTYPE in
     *) PLATFORM_ARCH="linux-x86_64"     ;;
 esac
 
-VERSION="3.5.0"
+VERSION="3.4.0"
 PROTOC_DIR="protoc-$VERSION-$PLATFORM_ARCH"
 PROTOC_ZIP="$PROTOC_DIR.zip"
 

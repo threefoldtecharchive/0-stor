@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package proto;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+option (gogoproto.compare_all) = true;
+option (gogoproto.goproto_getters_all) = false;
+option (gogoproto.gostring_all) = true;
+option (gogoproto.populate_all) = true;
+option (gogoproto.testgen_all) = true;
+
+message Metadata {
+    // creation epoch
+    int64 epoch = 1;
+
+    // key used in 0-stor
+    bytes key = 2;
+
+    // list of chunks, containing all the data
+    repeated Chunk chunks = 3 [(gogoproto.nullable) = false];
+
+    // optional key to the previous
+    // linked metadata entry
+    bytes previous = 4;
+
+    // optional key to the next
+    // linked metadata entry
+    bytes next = 5;
+}
+
+message Chunk {
+    // size of the chunk in bytes
+    int64 size = 1 [(gogoproto.customname) = "SizeInBytes"];
+
+    // key used in 0-stor
+    bytes key = 2;
+
+    // list of shards of the chunk,
+    // where each shard is the address
+    // of a zstordb server
+    repeated string shards = 3;
+}

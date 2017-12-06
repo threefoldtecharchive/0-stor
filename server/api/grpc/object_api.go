@@ -9,9 +9,9 @@ import (
 
 	"github.com/zero-os/0-stor/server"
 	serverAPI "github.com/zero-os/0-stor/server/api"
+	pb "github.com/zero-os/0-stor/server/api/grpc/schema"
 	"github.com/zero-os/0-stor/server/db"
 	"github.com/zero-os/0-stor/server/encoding"
-	pb "github.com/zero-os/0-stor/server/schema"
 )
 
 var _ (pb.ObjectManagerServer) = (*ObjectAPI)(nil)
@@ -542,7 +542,7 @@ func convertStatus(status server.CheckStatus) pb.CheckResponse_Status {
 }
 
 var _ProtoCheckStatusMapping = map[server.CheckStatus]pb.CheckResponse_Status{
-	server.CheckStatusOK:        pb.CheckResponse_ok,
-	server.CheckStatusMissing:   pb.CheckResponse_missing,
-	server.CheckStatusCorrupted: pb.CheckResponse_corrupted,
+	server.CheckStatusOK:        pb.CheckStatusOK,
+	server.CheckStatusMissing:   pb.CheckStatusMissing,
+	server.CheckStatusCorrupted: pb.CheckStatusCorrupted,
 }

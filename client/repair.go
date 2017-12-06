@@ -6,7 +6,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/zero-os/0-stor/client/meta"
-	pb "github.com/zero-os/0-stor/server/schema"
+	pb "github.com/zero-os/0-stor/server/api/grpc/schema"
 )
 
 var (
@@ -24,7 +24,7 @@ var (
 // if the file as not been distributed or replicated, we can't repair it
 func (c *Client) Repair(key []byte) error {
 	log.Infof("Start repair of %x", key)
-	meta, err := c.metaCli.Get(string(key))
+	meta, err := c.metaCli.GetMetadata(key)
 	if err != nil {
 		log.Errorf("repair %x, error getting metadata :%v", key, err)
 		return err
@@ -47,8 +47,8 @@ func (c *Client) Repair(key []byte) error {
 		}
 	}
 
-	if err := c.metaCli.Put(string(meta.Key), meta); err != nil {
-		log.Errorf("error writing metadta after repair: %v", err)
+	if err := c.metaCli.SetMetadata(*meta); err != nil {
+		log.Errorf("error writing metadata after repair: %v", err)
 		return err
 	}
 

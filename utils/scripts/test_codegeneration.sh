@@ -29,5 +29,5 @@ generate_and_check() {
     fi
 }
 
-generate_and_check ./server
-generate_and_check ./client/meta
+generate_and_check ./server/api/grpc
+generate_and_check ./client/meta/encoding/proto

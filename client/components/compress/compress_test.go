@@ -3,6 +3,7 @@ package compress
 import (
 	"bytes"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/zero-os/0-stor/client/components/block"
@@ -42,7 +43,7 @@ func testRoundTrip(t *testing.T, conf Config) {
 	w, err := NewWriter(conf, buf)
 	assert.NoError(t, err)
 
-	md := meta.New(nil)
+	md := &meta.Data{Epoch: time.Now().UnixNano()}
 	// compress by write to the writer
 	_, err = w.WriteBlock(nil, payload, md)
 	assert.NoError(t, err)

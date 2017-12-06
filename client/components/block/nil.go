@@ -15,6 +15,6 @@ func NewNilWriter() *NilWriter {
 
 // WriteBlock implements block.Writer
 // it returns the length of the given value
-func (nw NilWriter) WriteBlock(key, value []byte, md *meta.Meta) (*meta.Meta, error) {
+func (nw NilWriter) WriteBlock(key, value []byte, md *meta.Data) (*meta.Data, error) {
 	return md, nil
 }

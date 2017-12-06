@@ -22,7 +22,7 @@ func newGzipWriter(w block.Writer, level int) *gzipWriter {
 	}
 }
 
-func (gw gzipWriter) WriteBlock(key, p []byte, md *meta.Meta) (*meta.Meta, error) {
+func (gw gzipWriter) WriteBlock(key, p []byte, md *meta.Data) (*meta.Data, error) {
 	buf := new(bytes.Buffer)
 	written, err := func() (int, error) {
 		w, err := gzip.NewWriterLevel(buf, gw.level)
@@ -55,7 +55,7 @@ func (gw gzipWriter) WriteBlock(key, p []byte, md *meta.Meta) (*meta.Meta, error
 
 	// update chunk size in metadata
 	chunk := md.GetChunk(key)
-	chunk.Size = uint64(written)
+	chunk.Size = int64(written)
 
 	return gw.w.WriteBlock(key, buf.Bytes(), md)
 }

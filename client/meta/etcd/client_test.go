@@ -1,7 +1,9 @@
 package etcd
 
 import (
-	"fmt"
+	"context"
+	"errors"
+	"math"
 	"net"
 	"testing"
 	"time"
@@ -11,62 +13,69 @@ import (
 
 	"github.com/zero-os/0-stor/client/meta"
 	"github.com/zero-os/0-stor/client/meta/embedserver"
+	"github.com/zero-os/0-stor/client/meta/encoding/proto"
 )
 
-func createCapnpMeta(t testing.TB) *meta.Meta {
-	// TODO: remove code duplication
-	chunks := make([]*meta.Chunk, 256)
-	for i := range chunks {
-		chunks[i] = &meta.Chunk{
-			Key:  []byte(fmt.Sprintf("chunk%d", i)),
-			Size: 1024,
-		}
-		chunks[i].Shards = make([]string, 5)
-		for y := range chunks[i].Shards {
-			chunks[i].Shards[y] = fmt.Sprintf("http://127.0.0.1:12345/stor-%d", i)
-		}
-	}
-
-	meta := meta.New([]byte("testkey"))
-	meta.Previous = []byte("previous")
-	meta.Next = []byte("next")
-	meta.Chunks = chunks
-
-	return meta
-}
 func TestRoundTrip(t *testing.T) {
+	assert := assert.New(t)
+	require := require.New(t)
+
 	etcd, err := embedserver.New()
-	require.NoError(t, err)
+	require.NoError(err)
 	defer etcd.Stop()
 
 	c, err := NewClient([]string{etcd.ListenAddr()})
-	require.NoError(t, err)
+	require.NoError(err)
+	defer c.Close()
+
+	require.Equal([]string{etcd.ListenAddr()}, c.Endpoints())
 
 	// prepare the data
-	md := createCapnpMeta(t)
+	md := meta.Data{
+		Key:   []byte("two"),
+		Epoch: 123456789,
+		Chunks: []*meta.Chunk{
+			&meta.Chunk{
+				Size:   math.MaxInt64,
+				Key:    []byte("foo"),
+				Shards: nil,
+			},
+			&meta.Chunk{
+				Size:   1234,
+				Key:    []byte("bar"),
+				Shards: []string{"foo"},
+			},
+			&meta.Chunk{
+				Size:   2,
+				Key:    []byte("baz"),
+				Shards: []string{"bar", "foo"},
+			},
+		},
+		Next:     []byte("one"),
+		Previous: []byte("three"),
+	}
 
-	// put the metadata
-	err = c.Put(string(md.Key), md)
-	require.NoError(t, err)
+	// ensure metadata is not there yet
+	_, err = c.GetMetadata(md.Key)
+	require.Equal(meta.ErrNotFound, err)
+
+	// set the metadata
+	err = c.SetMetadata(md)
+	require.NoError(err)
 
 	// get it back
-	storedMd, err := c.Get(string(md.Key))
-	require.NoError(t, err)
+	storedMd, err := c.GetMetadata(md.Key)
+	require.NoError(err)
 
 	// check stored value
-	assert.Equal(t, md.Key, storedMd.Key, "key is different")
-	assert.Equal(t, md.Size(), storedMd.Size(), "size is different")
-	assert.Equal(t, md.Epoch, storedMd.Epoch, "epoch is different")
-	assert.Equal(t, md.Previous, storedMd.Previous, "previous pointer is different")
-	assert.Equal(t, md.Next, storedMd.Next, "next pointer is different")
-	assert.Equal(t, md.ConfigPtr, storedMd.ConfigPtr, "config pointer is different")
-	assert.Equal(t, md.Chunks, storedMd.Chunks, "chunks are differents")
+	assert.NotNil(storedMd)
+	assert.Equal(md, *storedMd)
 
-	err = c.Delete(string(md.Key))
-	require.NoError(t, err)
+	err = c.DeleteMetadata(md.Key)
+	require.NoError(err)
 	// make sure we can't get it back
-	_, err = c.Get(string(md.Key))
-	require.Error(t, err)
+	_, err = c.GetMetadata(md.Key)
+	require.Equal(meta.ErrNotFound, err)
 }
 
 // test that client can return gracefully when the server is not exist
@@ -78,33 +87,113 @@ func TestServerNotExist(t *testing.T) {
 	require.True(t, ok)
 }
 
-// test that client can return gracefully when the server is down
-func TestServerDown(t *testing.T) {
+func TestClientExplicitPanics(t *testing.T) {
+	require := require.New(t)
+
+	// explicit panics to guarantee all
+	// input parameters are given when creating a client
+	require.Panics(func() {
+		NewClientWithEncoding(nil, proto.MarshalMetadata, proto.UnmarshalMetadata)
+	}, "no endpoints given")
+	require.Panics(func() {
+		NewClientWithEncoding([]string{"foo"}, nil, proto.UnmarshalMetadata)
+	}, "no marshal func given")
+	require.Panics(func() {
+		NewClientWithEncoding([]string{"foo"}, proto.MarshalMetadata, nil)
+	}, "no unmarshal func given")
+	require.Panics(func() {
+		NewClientWithEncoding([]string{"foo"}, nil, nil)
+	}, "no (un)marshal funcs given")
+	require.Panics(func() {
+		NewClientWithEncoding(nil, nil, nil)
+	}, "nothing given")
+
 	etcd, err := embedserver.New()
-	require.Nil(t, err)
+	require.NoError(err)
 
 	c, err := NewClient([]string{etcd.ListenAddr()})
-	require.Nil(t, err)
+	require.NoError(err)
+	defer c.Close()
 
-	key := "key"
-	md := meta.New([]byte(key))
+	// explicit panics to guarantee our Get/Delete funcs get a nil-key
+	require.Panics(func() {
+		c.GetMetadata(nil)
+	}, "no key given")
+	require.Panics(func() {
+		c.DeleteMetadata(nil)
+	}, "no key given")
+}
+
+func TestInvalidMetadataObject(t *testing.T) {
+	require := require.New(t)
+
+	etcd, err := embedserver.New()
+	require.NoError(err)
+
+	c, err := NewClient([]string{etcd.ListenAddr()})
+	require.NoError(err)
+	defer c.Close()
+
+	require.Equal([]string{etcd.ListenAddr()}, c.Endpoints())
+
+	// store an invalid value
+	func() {
+		ctx, cancel := context.WithTimeout(context.Background(), metaOpTimeout)
+		defer cancel()
+
+		_, err = c.etcdClient.Put(ctx, "foo", "bar")
+		require.NoError(err)
+	}()
+
+	// now try to fetch it, and ensure that we idd get an error
+	_, err = c.GetMetadata([]byte("foo"))
+	require.Error(err)
+	require.NotEqual(meta.ErrNotFound, err)
+
+	// also ensure we get an error in case the marshaler returns an error
+	err = c.SetMetadata(meta.Data{Key: []byte("whatever-forever")})
+	require.NoError(err)
+	myEncodingErr := errors.New("encoding error: pwned")
+	c.marshal = func(md meta.Data) ([]byte, error) {
+		return nil, myEncodingErr
+	}
+	err = c.SetMetadata(meta.Data{Key: []byte("whatever-forever")})
+	require.Equal(myEncodingErr, err)
+}
+
+// test that client can return gracefully when the server is down
+func TestServerDown(t *testing.T) {
+	require := require.New(t)
+
+	etcd, err := embedserver.New()
+	require.Nil(err)
+
+	c, err := NewClient([]string{etcd.ListenAddr()})
+	require.Nil(err)
+	defer c.Close()
+
+	require.Equal([]string{etcd.ListenAddr()}, c.Endpoints())
+
+	md := meta.Data{Key: []byte("key")}
 
 	// make sure we can do some operation to server
-	err = c.Put(key, md)
-	require.Nil(t, err)
+	err = c.SetMetadata(md)
+	require.Nil(err)
 
-	_, err = c.Get(key)
-	require.Nil(t, err)
+	outMD, err := c.GetMetadata(md.Key)
+	require.Nil(err)
+	require.NotNil(outMD)
+	require.Equal(md, *outMD)
 
 	// stop the server
 	etcd.Stop()
 
-	// test the PUT
+	// test the SET
 	done := make(chan struct{}, 1)
 	go func() {
-		err = c.Put(key, md)
+		err = c.SetMetadata(md)
 		_, ok := err.(net.Error)
-		require.True(t, ok)
+		require.True(ok)
 		done <- struct{}{}
 	}()
 
@@ -119,9 +208,9 @@ func TestServerDown(t *testing.T) {
 	// test the GET
 	done = make(chan struct{}, 1)
 	go func() {
-		_, err = c.Get(key)
+		_, err = c.GetMetadata(md.Key)
 		_, ok := err.(net.Error)
-		require.True(t, ok)
+		require.True(ok)
 		done <- struct{}{}
 	}()
 
