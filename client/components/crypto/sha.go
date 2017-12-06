@@ -6,16 +6,16 @@ import (
 	"hash"
 )
 
-// NewSHA256hasher creates a new hasher,
+// NewSHA256Hasher creates a new hasher,
 // using the SHA256 (32 bytes output) algorithm.
-func NewSHA256hasher() (*SHA256Hasher, error) {
+func NewSHA256Hasher() (*SHA256Hasher, error) {
 	return &SHA256Hasher{hash: sha256.New()}, nil
 }
 
-// SHA256Hash creates and returns a hash,
+// SumSHA256 creates and returns a hash,
 // for and given some binary input data,
 // using the std sha256 algorithm.
-func SHA256Hash(data []byte) []byte {
+func SumSHA256(data []byte) []byte {
 	hash := sha256.Sum256(data)
 	return hash[:]
 }
@@ -34,17 +34,17 @@ func (hasher SHA256Hasher) HashBytes(data []byte) []byte {
 	return hash[:]
 }
 
-// SHA512Hash creates and returns a hash,
+// SumSHA512 creates and returns a hash,
 // for and given some binary input data,
 // using the std sha512 algorithm.
-func SHA512Hash(data []byte) []byte {
+func SumSHA512(data []byte) []byte {
 	hash := sha512.Sum512(data)
 	return hash[:]
 }
 
-// NewSHA512hasher creates a new hasher,
+// NewSHA512Hasher creates a new hasher,
 // using the SHA512 (64 bytes output) algorithm.
-func NewSHA512hasher() (*SHA512Hasher, error) {
+func NewSHA512Hasher() (*SHA512Hasher, error) {
 	return &SHA512Hasher{hash: sha512.New()}, nil
 }
 
@@ -60,4 +60,13 @@ func (hasher SHA512Hasher) HashBytes(data []byte) []byte {
 	hasher.hash.Write(data)
 	hash := hasher.hash.Sum(nil)
 	return hash[:]
+}
+
+func init() {
+	RegisterHash(HashTypeSHA256, "sha_256", func() (Hasher, error) {
+		return NewSHA256Hasher()
+	})
+	RegisterHash(HashTypeSHA512, "sha_512", func() (Hasher, error) {
+		return NewSHA512Hasher()
+	})
 }

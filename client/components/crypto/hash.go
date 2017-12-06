@@ -5,35 +5,40 @@ import (
 	"strings"
 )
 
-// HashBytes create and returns a hash,
+// Sum256 create and returns a hash,
 // for and given some binary input data,
 // using the default hashing algorithm, SHA256.
-func HashBytes(data []byte) (hash []byte) {
-	return SHA256Hash(data)
+func Sum256(data []byte) (hash []byte) {
+	return SumSHA256(data)
 }
 
-// NewHasher returns a new instance of the default hasher type.
+// Sum512 create and returns a hash,
+// for and given some binary input data,
+// using the default hashing algorithm, SHA512.
+func Sum512(data []byte) (hash []byte) {
+	return SumSHA512(data)
+}
+
+// NewHasher256 returns a new instance of the default hasher type.
 // The default hasher is SHA256, which produces checksums of 32 bytes.
-func NewHasher() (Hasher, error) {
-	return NewSHA256hasher()
+func NewHasher256() (Hasher, error) {
+	return NewSHA256Hasher()
+}
+
+// NewHasher512 returns a new instance of the default hasher type.
+// The default hasher is SHA512, which produces checksums of 64 bytes.
+func NewHasher512() (Hasher, error) {
+	return NewSHA512Hasher()
 }
 
 // NewHasherForType returns a new instance for the given hasher type.
 // If the hasher type is invalid, an error is returned.
 func NewHasherForType(ht HashType) (Hasher, error) {
-	switch ht {
-	case HashTypeSHA256:
-		return NewSHA256hasher()
-
-	case HashTypeSHA512:
-		return NewSHA512hasher()
-
-	case HashTypeBlake2b:
-		return NewBlake2bHasher(nil)
-
-	default:
+	hc, ok := _HashTypeValueToConstructorMapping[ht]
+	if !ok {
 		return nil, fmt.Errorf("%d is not a valid HashType value", ht)
 	}
+	return hc()
 }
 
 // HashFunc create and returns a hash,
@@ -59,9 +64,34 @@ const (
 	// HashTypeSHA512 is the enum value which identifiers SHA512,
 	// a cryptographic hashing algorithm which produces a secure hash of 64 bytes.
 	HashTypeSHA512
-	// HashTypeBlake2b is the enum value which identifiers Blake2b,
+	// HashTypeBlake2b256 is the enum value which identifiers Blake2b-256,
 	// a cryptographic hashing algorithm which produces a secure hash of 32 bytes.
-	HashTypeBlake2b
+	HashTypeBlake2b256
+	// HashTypeBlake2b512 is the enum value which identifiers Blake2b-512,
+	// a cryptographic hashing algorithm which produces a secure hash of 64 bytes.
+	HashTypeBlake2b512
+
+	// DefaultHash256Type represents the default 256 bit
+	// Hashing algorithm as promoted by this package.
+	DefaultHash256Type = HashTypeSHA256
+
+	// DefaultHash512Type represents the default 512 bit
+	// Hashing algorithm as promoted by this package.
+	DefaultHash512Type = HashTypeSHA512
+
+	// MaxStandardHashType defines the hasher type,
+	// which has the greatest defined/used enum value.
+	// When defining your custom HashType you can do so as follows:
+	//
+	//    const (
+	//         MyHashType = iota + MaxStandardHashType + 1
+	//         MyOtherHashType
+	//         // ...
+	//    )
+	//
+	// The maximum allowed value of a custom hash type is 255,
+	// due to the underlying uint8 type.
+	MaxStandardHashType = HashTypeBlake2b512
 )
 
 // String implements Stringer.String
@@ -92,20 +122,23 @@ func (ht *HashType) UnmarshalText(text []byte) error {
 	return nil
 }
 
-// variables used to map between the HashType enum values
-// and its string representation.
+// HasherConstructor defines a function which can be used to create a hasher.
+type HasherConstructor func() (Hasher, error)
 
-const _HashTypeStrings = "sha_256sha_512blake2b_256"
+// RegisterHash registers a new or overwrite an existing hash algorithm.
+// The given str will be used in a case-insensitive manner.
+// This is intended to be called from the init function in packages that implement hash functions.
+func RegisterHash(ht HashType, str string, hc HasherConstructor) {
+	_HashTypeValueToStringMapping[ht] = str
+	_HashTypeStringToValueMapping[str] = ht
+	_HashTypeValueToConstructorMapping[ht] = hc
+}
 
-var _HashTypeValueToStringMapping = map[HashType]string{
-	HashTypeSHA256:  _HashTypeStrings[:7],
-	HashTypeSHA512:  _HashTypeStrings[7:14],
-	HashTypeBlake2b: _HashTypeStrings[14:],
-}
-var _HashTypeStringToValueMapping = map[string]HashType{
-	_HashTypeStrings[:7]:    HashTypeSHA256,
-	_HashTypeStrings[:3]:    HashTypeSHA256,
-	_HashTypeStrings[7:14]:  HashTypeSHA512,
-	_HashTypeStrings[14:]:   HashTypeBlake2b,
-	_HashTypeStrings[14:21]: HashTypeBlake2b,
-}
+// hashing algorithms mapping used to create hasher instances,
+// based on their enum value, as well as to
+// convert between the string and enum type values.
+var (
+	_HashTypeValueToStringMapping      = make(map[HashType]string)
+	_HashTypeStringToValueMapping      = make(map[string]HashType)
+	_HashTypeValueToConstructorMapping = make(map[HashType]HasherConstructor)
+)

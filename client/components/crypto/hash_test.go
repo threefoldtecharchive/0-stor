@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"math"
 	mrand "math/rand"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -18,7 +19,9 @@ func TestNewHasherForType(t *testing.T) {
 	}{
 		{HashTypeSHA256, (*SHA256Hasher)(nil)},
 		{HashTypeSHA512, (*SHA512Hasher)(nil)},
-		{HashTypeBlake2b, (*Blake2bHasher)(nil)},
+		{HashTypeBlake2b256, (*Blake2b256Hasher)(nil)},
+		{HashTypeBlake2b512, (*Blake2b512Hasher)(nil)},
+		{myCustomHashType, myCustomHasher{}},
 		{math.MaxUint8, nil},
 	}
 	for _, tc := range testCases {
@@ -40,7 +43,8 @@ func TestHashTypeMarshalUnmarshal(t *testing.T) {
 	types := []HashType{
 		HashTypeSHA256,
 		HashTypeSHA512,
-		HashTypeBlake2b,
+		HashTypeBlake2b256,
+		HashTypeBlake2b512,
 	}
 	for _, t := range types {
 		b, err := t.MarshalText()
@@ -63,7 +67,9 @@ func TestHashTypeMarshal(t *testing.T) {
 	}{
 		{HashTypeSHA256, "sha_256"},
 		{HashTypeSHA512, "sha_512"},
-		{HashTypeBlake2b, "blake2b_256"},
+		{HashTypeBlake2b256, "blake2b_256"},
+		{HashTypeBlake2b512, "blake2b_512"},
+		{myCustomHashType, myCustomHashTypeStr},
 		{math.MaxUint8, ""},
 	}
 	for _, tc := range testCases {
@@ -86,16 +92,16 @@ func TestHashTypeUnmarshal(t *testing.T) {
 		Expected HashType
 		Err      bool
 	}{
-		{"sha", HashTypeSHA256, false},
-		{"SHA", HashTypeSHA256, false},
 		{"sha_256", HashTypeSHA256, false},
 		{"SHA_256", HashTypeSHA256, false},
 		{"sha_512", HashTypeSHA512, false},
 		{"SHA_512", HashTypeSHA512, false},
-		{"Blake2b", HashTypeBlake2b, false},
-		{"BLAKE2b", HashTypeBlake2b, false},
-		{"blake2b_256", HashTypeBlake2b, false},
-		{"BLAKE2B_256", HashTypeBlake2b, false},
+		{"blake2b_256", HashTypeBlake2b256, false},
+		{"BLAKE2B_256", HashTypeBlake2b256, false},
+		{"blake2b_512", HashTypeBlake2b512, false},
+		{"BLAKE2B_512", HashTypeBlake2b512, false},
+		{myCustomHashTypeStr, myCustomHashType, false},
+		{strings.ToUpper(myCustomHashTypeStr), myCustomHashType, false},
 		{"", math.MaxUint8, true},
 	}
 	for _, tc := range testCases {
@@ -111,17 +117,27 @@ func TestHashTypeUnmarshal(t *testing.T) {
 	}
 }
 
-func TestHashBytes(t *testing.T) {
-	testHashFunc(t, HashBytes, 32)
+func TestSum256(t *testing.T) {
+	testSumFunc(t, Sum256, 32)
 }
 
-func TestDefaultHasher(t *testing.T) {
-	h, err := NewHasher()
+func TestSum512(t *testing.T) {
+	testSumFunc(t, Sum512, 64)
+}
+
+func TestDefaultHasher256(t *testing.T) {
+	h, err := NewHasher256()
 	require.NoError(t, err)
-	testHashFunc(t, h.HashBytes, 32)
+	testSumFunc(t, h.HashBytes, 32)
 }
 
-func testHashFunc(t *testing.T, h HashFunc, size int) {
+func TestDefaultHasher512(t *testing.T) {
+	h, err := NewHasher512()
+	require.NoError(t, err)
+	testSumFunc(t, h.HashBytes, 64)
+}
+
+func testSumFunc(t *testing.T, h HashFunc, size int) {
 	require := require.New(t)
 	m := make(map[string]struct{})
 	for i := 0; i < 1024; i++ {
@@ -143,39 +159,75 @@ func testHashFunc(t *testing.T, h HashFunc, size int) {
 	}
 }
 
-func BenchmarkHashBytes(b *testing.B) {
+func BenchmarkSum256(b *testing.B) {
 	b.Run("512-bytes", func(b *testing.B) {
-		benchmarkHashFunc(b, HashBytes, 512, 32)
+		benchmarkHashFunc(b, Sum256, 512, 32)
 	})
 	b.Run("4096-bytes", func(b *testing.B) {
-		benchmarkHashFunc(b, HashBytes, 4096, 32)
+		benchmarkHashFunc(b, Sum256, 4096, 32)
 	})
 	b.Run("131072-bytes", func(b *testing.B) {
-		benchmarkHashFunc(b, HashBytes, 131072, 32)
+		benchmarkHashFunc(b, Sum256, 131072, 32)
 	})
 }
 
-func BenchmarkDefaultHasher(b *testing.B) {
+func BenchmarkSum512(b *testing.B) {
 	b.Run("512-bytes", func(b *testing.B) {
-		hasher, err := NewHasher()
+		benchmarkHashFunc(b, Sum512, 512, 64)
+	})
+	b.Run("4096-bytes", func(b *testing.B) {
+		benchmarkHashFunc(b, Sum512, 4096, 64)
+	})
+	b.Run("131072-bytes", func(b *testing.B) {
+		benchmarkHashFunc(b, Sum512, 131072, 64)
+	})
+}
+
+func BenchmarkDefaultHasher256(b *testing.B) {
+	b.Run("512-bytes", func(b *testing.B) {
+		hasher, err := NewHasher256()
 		if err != nil {
 			b.Error(err)
 		}
 		benchmarkHashFunc(b, hasher.HashBytes, 512, 32)
 	})
 	b.Run("4096-bytes", func(b *testing.B) {
-		hasher, err := NewHasher()
+		hasher, err := NewHasher256()
 		if err != nil {
 			b.Error(err)
 		}
 		benchmarkHashFunc(b, hasher.HashBytes, 4096, 32)
 	})
 	b.Run("131072-bytes", func(b *testing.B) {
-		hasher, err := NewHasher()
+		hasher, err := NewHasher256()
 		if err != nil {
 			b.Error(err)
 		}
 		benchmarkHashFunc(b, hasher.HashBytes, 131072, 32)
+	})
+}
+
+func BenchmarkDefaultHasher512(b *testing.B) {
+	b.Run("512-bytes", func(b *testing.B) {
+		hasher, err := NewHasher512()
+		if err != nil {
+			b.Error(err)
+		}
+		benchmarkHashFunc(b, hasher.HashBytes, 512, 64)
+	})
+	b.Run("4096-bytes", func(b *testing.B) {
+		hasher, err := NewHasher512()
+		if err != nil {
+			b.Error(err)
+		}
+		benchmarkHashFunc(b, hasher.HashBytes, 4096, 64)
+	})
+	b.Run("131072-bytes", func(b *testing.B) {
+		hasher, err := NewHasher512()
+		if err != nil {
+			b.Error(err)
+		}
+		benchmarkHashFunc(b, hasher.HashBytes, 131072, 64)
 	})
 }
 
@@ -191,4 +243,44 @@ func benchmarkHashFunc(b *testing.B, h HashFunc, isz, osz int) {
 			b.Errorf("output hash has size %d, while expecting %d", len(hash), osz)
 		}
 	}
+}
+
+// some tests to ensure a user can register its own func,
+// without overwriting the existing hash algorithms
+
+func TestMyCustomHasher(t *testing.T) {
+	require := require.New(t)
+
+	hasher, err := NewHasherForType(myCustomHashType)
+	require.NoError(err)
+	require.NotNil(hasher)
+
+	require.Equal(
+		[]byte("01234567890123456789012345678901"),
+		hasher.HashBytes(nil))
+	require.Equal(
+		[]byte("01234567890123456789012345678901"),
+		hasher.HashBytes([]byte("foo")))
+	require.Equal(
+		[]byte("01234567890123456789012345678901"),
+		hasher.HashBytes([]byte("01234567890123456789012345678901")))
+}
+
+const (
+	myCustomHashType    = MaxStandardHashType + 1
+	myCustomHashTypeStr = "bad_256"
+)
+
+type myCustomHasher struct{}
+
+func (ch myCustomHasher) HashBytes([]byte) []byte {
+	return []byte("01234567890123456789012345678901")
+}
+
+func newMyCustomHasher() (Hasher, error) {
+	return myCustomHasher{}, nil
+}
+
+func init() {
+	RegisterHash(myCustomHashType, myCustomHashTypeStr, newMyCustomHasher)
 }

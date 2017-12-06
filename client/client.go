@@ -153,7 +153,7 @@ func (c *Client) writeFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMet
 		aesgm     encrypt.EncrypterDecrypter
 	)
 
-	blakeH, err := crypto.NewBlake2bHasher(nil)
+	blakeH, err := crypto.NewBlake2b256Hasher(nil)
 	if err != nil {
 		return nil, err
 	}
