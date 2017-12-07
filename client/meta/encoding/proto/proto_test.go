@@ -64,6 +64,22 @@ func TestMarshalUnmarshal(t *testing.T) {
 	}
 }
 
+func TestUnmarshalExplicitPanics(t *testing.T) {
+	require := require.New(t)
+
+	require.Panics(func() {
+		UnmarshalMetadata(nil, &meta.Data{})
+	}, "no data given to unmarshal")
+	require.Panics(func() {
+		UnmarshalMetadata([]byte("foo"), nil)
+	}, "no meta.Data pointer given to unmarshal to")
+}
+
+func TestUnmarshalExplicitErrors(t *testing.T) {
+	var data meta.Data
+	require.Error(t, UnmarshalMetadata([]byte("foo"), &data))
+}
+
 func TestMetaSize(t *testing.T) {
 	require := require.New(t)
 

@@ -2,7 +2,6 @@ package proto
 
 import (
 	"github.com/zero-os/0-stor/client/meta"
-	"github.com/zero-os/0-stor/client/meta/encoding"
 )
 
 // MarshalMetadata returns the gogo-proto encoding of the data parameter.
@@ -64,8 +63,3 @@ func UnmarshalMetadata(b []byte, data *meta.Data) error {
 
 	return nil
 }
-
-var (
-	_ encoding.MarshalMetadata   = MarshalMetadata
-	_ encoding.UnmarshalMetadata = UnmarshalMetadata
-)
