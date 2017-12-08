@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/zero-os/0-stor/client/components/block"
-	"github.com/zero-os/0-stor/client/meta"
+	"github.com/zero-os/0-stor/client/metastor"
 )
 
 // TestRoundTrip tests that compress and uncompress is the identity
@@ -43,7 +43,7 @@ func testRoundTrip(t *testing.T, conf Config) {
 	w, err := NewWriter(conf, buf)
 	assert.NoError(t, err)
 
-	md := &meta.Data{Epoch: time.Now().UnixNano()}
+	md := &metastor.Data{Epoch: time.Now().UnixNano()}
 	// compress by write to the writer
 	_, err = w.WriteBlock(nil, payload, md)
 	assert.NoError(t, err)

@@ -7,23 +7,23 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/zero-os/0-stor/client/meta"
+	"github.com/zero-os/0-stor/client/metastor"
 )
 
 // blockMap is dummy block.Writer/Reader used solely for tests
 type blockMap struct {
 	data    map[string][]byte
-	metaCli meta.Client
+	metaCli metastor.Client
 }
 
-func newBlockMap(metaCli meta.Client) *blockMap {
+func newBlockMap(metaCli metastor.Client) *blockMap {
 	return &blockMap{
 		metaCli: metaCli,
 		data:    make(map[string][]byte),
 	}
 }
 
-func (bs *blockMap) WriteBlock(key, val []byte, md *meta.Data) (*meta.Data, error) {
+func (bs *blockMap) WriteBlock(key, val []byte, md *metastor.Data) (*metastor.Data, error) {
 	bs.data[string(key)] = val
 	return md, bs.metaCli.SetMetadata(*md)
 }
@@ -86,7 +86,7 @@ func testWalk(t *testing.T, forward bool) {
 
 	startEpoch := time.Now().UTC().UnixNano()
 	// do the write
-	var prevMd *meta.Data
+	var prevMd *metastor.Data
 	var prevKey []byte
 	var firstKey []byte
 

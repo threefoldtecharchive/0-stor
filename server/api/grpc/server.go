@@ -21,6 +21,11 @@ var (
 	DefaultJobCount = runtime.NumCPU() * 2
 )
 
+const (
+	// DefaultMaxSizeMsg is the default size msg of a server
+	DefaultMaxSizeMsg = 32
+)
+
 // Server represents a 0-stor server GRPC Server API.
 type Server struct {
 	db         db.DB
@@ -32,12 +37,18 @@ type Server struct {
 
 // New creates a GRPC (server) API, using a given Database,
 // and optional also custom server options (e.g. authentication middleware)
+// Default maxSizeMsg is equal to DefaultMaxSizeMsg.
+// Default jobs is equal to DefaultJobCount.
 func New(db db.DB, verifier jwt.TokenVerifier, maxSizeMsg, jobs int) (*Server, error) {
 	if db == nil {
 		panic("no database given")
 	}
 
+	if maxSizeMsg <= 0 {
+		maxSizeMsg = DefaultMaxSizeMsg
+	}
 	maxSizeMsg = maxSizeMsg * 1024 * 1024 //Mib to Bytes
+
 	if jobs <= 0 {
 		jobs = DefaultJobCount
 	}

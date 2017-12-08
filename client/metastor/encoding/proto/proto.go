@@ -1,12 +1,12 @@
 package proto
 
 import (
-	"github.com/zero-os/0-stor/client/meta"
+	"github.com/zero-os/0-stor/client/metastor"
 )
 
 // MarshalMetadata returns the gogo-proto encoding of the data parameter.
 // It is important to use this function with the `UnmarshalMetadata` function of this package.
-func MarshalMetadata(data meta.Data) ([]byte, error) {
+func MarshalMetadata(data metastor.Data) ([]byte, error) {
 	s := Metadata{
 		Epoch:    data.Epoch,
 		Key:      data.Key,
@@ -31,7 +31,7 @@ func MarshalMetadata(data meta.Data) ([]byte, error) {
 // UnmarshalMetadata parses the gogo-proto encoded data
 // and stores the result in the value pointed to by the data parameter.
 // It is important to use this function with a the `MashalMetadata` function of this package.
-func UnmarshalMetadata(b []byte, data *meta.Data) error {
+func UnmarshalMetadata(b []byte, data *metastor.Data) error {
 	if b == nil {
 		panic("no bytes given to unmarshal to metadata")
 	}
@@ -51,9 +51,9 @@ func UnmarshalMetadata(b []byte, data *meta.Data) error {
 	data.Previous = s.Previous
 
 	if length := len(s.Chunks); length > 0 {
-		data.Chunks = make([]*meta.Chunk, 0, length)
+		data.Chunks = make([]*metastor.Chunk, 0, length)
 		for _, chunk := range s.Chunks {
-			data.Chunks = append(data.Chunks, &meta.Chunk{
+			data.Chunks = append(data.Chunks, &metastor.Chunk{
 				Size:   chunk.SizeInBytes,
 				Key:    chunk.Key,
 				Shards: chunk.Shards,

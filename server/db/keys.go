@@ -23,6 +23,17 @@ func DataKey(label, key []byte) []byte {
 	return []byte(fmt.Sprintf("%s:%s:%s", label, PrefixData, key))
 }
 
+// DataKeyPrefixLength returns the length of the prefix of a data key.
+// That is to say, the total length of a data key
+// minus the length of the object key.
+func DataKeyPrefixLength(label []byte) int {
+	if label == nil {
+		panic("no label given")
+	}
+
+	return len(label) + prefixDataLength + 2 // 2 -> seperators
+}
+
 // ReferenceListPrefix returns the reference list prefix for a given label.
 func ReferenceListPrefix(label []byte) []byte {
 	if label == nil {
@@ -44,6 +55,17 @@ func ReferenceListKey(label, key []byte) []byte {
 	return []byte(fmt.Sprintf("%s:%s:%s", label, PrefixReferenceList, key))
 }
 
+// ReferenceListKeyPrefixLength returns the length of the prefix of a reference list key.
+// That is to say, the total length of a reference list key
+// minus the length of the object key.
+func ReferenceListKeyPrefixLength(label []byte) int {
+	if label == nil {
+		panic("no label given")
+	}
+
+	return len(label) + prefixReferenceListLength + 2 // 2 -> seperators
+}
+
 // NamespaceKey returns the label key for a given label.
 func NamespaceKey(label []byte) []byte {
 	if label == nil {
@@ -60,6 +82,11 @@ const (
 	PrefixReferenceList = "rl"
 	// PrefixNamespace is  the prefix to be used to store namespaces
 	PrefixNamespace = "@"
+)
+
+const (
+	prefixDataLength          = len(PrefixData)
+	prefixReferenceListLength = len(PrefixReferenceList)
 )
 
 const (

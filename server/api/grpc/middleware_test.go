@@ -2,11 +2,8 @@ package grpc
 
 import (
 	"context"
-	"errors"
-	"strings"
 	"testing"
 
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 
 	"github.com/stretchr/testify/require"
@@ -32,14 +29,4 @@ func TestExtractStringFromContext(t *testing.T) {
 	label, err = extractStringFromContext(ctx, "bar")
 	require.NoError(err)
 	require.Equal("foo", label)
-}
-
-func TestUnauthenticatedError(t *testing.T) {
-	require := require.New(t)
-	err := errors.New("Hello Error")
-	require.NotNil(err)
-	statusErr := unauthenticatedError(err)
-	errStr := statusErr.Error()
-	require.True(strings.Contains(errStr, "Hello Error"))
-	require.True(strings.Contains(errStr, codes.Unauthenticated.String()))
 }

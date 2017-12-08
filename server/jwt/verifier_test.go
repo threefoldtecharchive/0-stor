@@ -11,7 +11,7 @@ import (
 	jwtgo "github.com/dgrijalva/jwt-go"
 	"github.com/stretchr/testify/require"
 	iyo "github.com/zero-os/0-stor/client/itsyouonline"
-	"github.com/zero-os/0-stor/server/api"
+	"github.com/zero-os/0-stor/server/api/grpc/rpctypes"
 	"google.golang.org/grpc/metadata"
 )
 
@@ -253,7 +253,7 @@ func runValidateJWT(verifier TokenVerifier, cases []validateJWTCase, validator f
 		if !c.emptyCtx {
 			// set token into test context
 			md := metadata.New(map[string]string{
-				api.GRPCMetaAuthKey: c.tokenStr,
+				rpctypes.MetaAuthKey: c.tokenStr,
 			})
 			authCtx = metadata.NewIncomingContext(context.Background(), md)
 		} else {

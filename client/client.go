@@ -13,16 +13,16 @@ import (
 	"time"
 
 	"github.com/zero-os/0-stor/client/components"
-	"github.com/zero-os/0-stor/client/meta/etcd"
+	"github.com/zero-os/0-stor/client/metastor/etcd"
 
 	"github.com/zero-os/0-stor/client/components/chunker"
 	"github.com/zero-os/0-stor/client/components/crypto"
 	"github.com/zero-os/0-stor/client/components/distribution"
 	"github.com/zero-os/0-stor/client/components/encrypt"
+	"github.com/zero-os/0-stor/client/datastor"
+	storgrpc "github.com/zero-os/0-stor/client/datastor/grpc"
 	"github.com/zero-os/0-stor/client/itsyouonline"
-	"github.com/zero-os/0-stor/client/meta"
-	"github.com/zero-os/0-stor/client/stor"
-	pb "github.com/zero-os/0-stor/server/api/grpc/schema"
+	"github.com/zero-os/0-stor/client/metastor"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/golang/snappy"
@@ -41,10 +41,10 @@ type Client struct {
 	policy   Policy
 	iyoToken string
 
-	storClients   map[string]stor.Client
+	storClients   map[string]datastor.Client
 	muStorClients sync.Mutex
 
-	metaCli meta.Client
+	metaCli metastor.Client
 	iyoCl   itsyouonline.IYOClient
 }
 
@@ -80,7 +80,7 @@ func newClient(policy Policy, iyoCl itsyouonline.IYOClient) (*Client, error) {
 		policy:      policy,
 		iyoToken:    iyoToken,
 		iyoCl:       iyoCl,
-		storClients: make(map[string]stor.Client, len(policy.DataShards)),
+		storClients: make(map[string]datastor.Client, len(policy.DataShards)),
 	}
 
 	// instantiate stor client for each shards.
@@ -123,30 +123,30 @@ func (c *Client) Close() error {
 }
 
 // Write write the value to the the 0-stors configured by the client policy
-func (c *Client) Write(key, value []byte, refList []string) (*meta.Data, error) {
+func (c *Client) Write(key, value []byte, refList []string) (*metastor.Data, error) {
 	return c.WriteWithMeta(key, value, nil, nil, nil, refList)
 }
 
-func (c *Client) WriteF(key []byte, r io.Reader, refList []string) (*meta.Data, error) {
+func (c *Client) WriteF(key []byte, r io.Reader, refList []string) (*metastor.Data, error) {
 	return c.writeFWithMeta(key, r, nil, nil, nil, refList)
 }
 
 // WriteWithMeta writes the key-value to the configured pipes.
 // Metadata linked list will be build if prevKey is not nil
-// prevMeta is optional previous metadata, to be used in case of user already has the prev meta.
+// prevMeta is optional previous metadata, to be used in case of user already has the prev metastor.
 // So the client won't need to fetch it back from the metadata server.
 // prevKey still need to be set it prevMeta is set
 // initialMeta is optional metadata, if user want to set his own initial metadata for example set own epoch
-func (c *Client) WriteWithMeta(key, val []byte, prevKey []byte, prevMeta, md *meta.Data, refList []string) (*meta.Data, error) {
+func (c *Client) WriteWithMeta(key, val []byte, prevKey []byte, prevMeta, md *metastor.Data, refList []string) (*metastor.Data, error) {
 	r := bytes.NewReader(val)
 	return c.writeFWithMeta(key, r, prevKey, prevMeta, md, refList)
 }
 
-func (c *Client) WriteFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMeta, md *meta.Data, refList []string) (*meta.Data, error) {
+func (c *Client) WriteFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMeta, md *metastor.Data, refList []string) (*metastor.Data, error) {
 	return c.writeFWithMeta(key, r, prevKey, prevMeta, md, refList)
 }
 
-func (c *Client) writeFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMeta, md *meta.Data, refList []string) (*meta.Data, error) {
+func (c *Client) writeFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMeta, md *metastor.Data, refList []string) (*metastor.Data, error) {
 	var (
 		blockSize int
 		err       error
@@ -177,7 +177,7 @@ func (c *Client) writeFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMet
 
 	// create new metadata if not given
 	if md == nil {
-		md = &meta.Data{
+		md = &metastor.Data{
 			Key:   key,
 			Epoch: time.Now().UnixNano(),
 		}
@@ -208,7 +208,7 @@ func (c *Client) writeFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMet
 		hashed := blakeH.HashBytes(block)
 
 		chunkKey := hashed[:]
-		chunk := &meta.Chunk{Key: chunkKey}
+		chunk := &metastor.Chunk{Key: chunkKey}
 
 		if c.policy.Encrypt {
 			block, err = aesgm.Encrypt(block)
@@ -281,7 +281,7 @@ func (c *Client) ReadF(key []byte, w io.Writer) ([]string, error) {
 }
 
 // ReadWithMeta reads the value described by md
-func (c *Client) ReadWithMeta(md *meta.Data) ([]byte, []string, error) {
+func (c *Client) ReadWithMeta(md *metastor.Data) ([]byte, []string, error) {
 	w := &bytes.Buffer{}
 	refList, err := c.readFWithMeta(md, w)
 	if err != nil {
@@ -291,11 +291,11 @@ func (c *Client) ReadWithMeta(md *meta.Data) ([]byte, []string, error) {
 	return w.Bytes(), refList, nil
 }
 
-func (c *Client) readFWithMeta(md *meta.Data, w io.Writer) (refList []string, err error) {
+func (c *Client) readFWithMeta(md *metastor.Data, w io.Writer) (refList []string, err error) {
 	var (
 		aesgm encrypt.EncrypterDecrypter
 		block []byte
-		obj   *pb.Object
+		obj   *datastor.Object
 	)
 
 	if c.policy.Encrypt {
@@ -329,7 +329,7 @@ func (c *Client) readFWithMeta(md *meta.Data, w io.Writer) (refList []string, er
 				return
 			}
 		}
-		block = obj.Value
+		block = obj.Data
 		refList = obj.ReferenceList
 
 		if c.policy.Compress {
@@ -356,7 +356,7 @@ func (c *Client) readFWithMeta(md *meta.Data, w io.Writer) (refList []string, er
 }
 
 // Delete deletes object from the 0-stor server pointed by the key
-// It also deletes the metadata.
+// It also deletes the metadatastor.
 func (c *Client) Delete(key []byte) error {
 	meta, err := c.metaCli.GetMetadata(key)
 	if err != nil {
@@ -368,8 +368,8 @@ func (c *Client) Delete(key []byte) error {
 
 // DeleteWithMeta deletes object from the 0-stor server pointed by the
 // given metadata
-// It also deletes the metadata.
-func (c *Client) DeleteWithMeta(meta *meta.Data) error {
+// It also deletes the metadatastor.
+func (c *Client) DeleteWithMeta(meta *metastor.Data) error {
 	type job struct {
 		key   []byte
 		shard string
@@ -393,7 +393,7 @@ func (c *Client) DeleteWithMeta(meta *meta.Data) error {
 					log.Errorf("error deleting object:%v", err)
 					continue
 				}
-				if err := stor.ObjectDelete(job.key); err != nil {
+				if err := stor.DeleteObject(job.key); err != nil {
 					// FIXME: probably want to handle this
 					log.Errorf("error deleting object:%v", err)
 					continue
@@ -426,11 +426,11 @@ func (c *Client) DeleteWithMeta(meta *meta.Data) error {
 	return nil
 }
 
-func (c *Client) Check(key []byte) (CheckStatus, error) {
+func (c *Client) Check(key []byte) (datastor.ObjectStatus, error) {
 	meta, err := c.metaCli.GetMetadata(key)
 	if err != nil {
 		log.Errorf("fail to get metadata for check: %v", err)
-		return CheckStatusCorrupted, err
+		return datastor.ObjectStatus(0), err
 	}
 
 	// create a map of chunk per shards, so we can ask all the check for a specific shards in one call
@@ -452,7 +452,7 @@ func (c *Client) Check(key []byte) (CheckStatus, error) {
 		// since we don't care to know what block is corrupted,
 		// as soon as something is received on this channel, we can say the file
 		// is corrupted
-		cStatus     = make(chan CheckStatus, len(idsPerShard))
+		cStatus     = make(chan datastor.ObjectStatus, len(idsPerShard))
 		wg          sync.WaitGroup
 		ctx, cancel = context.WithCancel(context.Background())
 	)
@@ -462,7 +462,7 @@ func (c *Client) Check(key []byte) (CheckStatus, error) {
 
 	wg.Add(len(idsPerShard))
 	for shard, ids := range idsPerShard {
-		go func(ctx context.Context, shard string, ids [][]byte, cStatus chan<- CheckStatus, cErr chan<- error) {
+		go func(ctx context.Context, shard string, ids [][]byte, cStatus chan<- datastor.ObjectStatus, cErr chan<- error) {
 			defer wg.Done()
 
 			store, err := c.getStor(shard)
@@ -479,16 +479,15 @@ func (c *Client) Check(key []byte) (CheckStatus, error) {
 				return
 
 			default:
-				checks, err := store.ObjectsCheck(ids)
-				if err != nil {
-					log.Errorf("error getting check status on shard %s: %v", shard, err)
-					cErr <- err
-					return
-				}
+				for _, id := range ids {
+					status, err := store.GetObjectStatus([]byte(id))
+					if err != nil {
+						log.Errorf("error getting object status on shard %s: %v", shard, err)
+						cErr <- err
+						return
+					}
 
-				for _, check := range checks {
-					status := CheckStatus(check.Status)
-					if status != CheckStatusOk {
+					if status != datastor.ObjectStatusOK {
 						// signal we found a corrupted or missing block
 						cStatus <- status
 					}
@@ -504,10 +503,10 @@ func (c *Client) Check(key []byte) (CheckStatus, error) {
 
 	select {
 	case err := <-cErr:
-		return CheckStatusCorrupted, err
+		return datastor.ObjectStatusCorrupted, err
 	case <-cDone:
 		// all is good
-		return CheckStatusOk, nil
+		return datastor.ObjectStatusOK, nil
 	case state := <-cStatus:
 		// something is wrong
 		return state, nil
@@ -516,7 +515,7 @@ func (c *Client) Check(key []byte) (CheckStatus, error) {
 
 func (c *Client) replicateWrite(key, value []byte, referenceList []string) ([]string, error) {
 	type Job struct {
-		client stor.Client
+		client datastor.Client
 		shard  string
 	}
 
@@ -539,7 +538,11 @@ func (c *Client) replicateWrite(key, value []byte, referenceList []string) ([]st
 			go func(job *Job) {
 				defer wg.Done()
 
-				err := job.client.ObjectCreate(key, value, referenceList)
+				err := job.client.SetObject(datastor.Object{
+					Key:           key,
+					Data:          value,
+					ReferenceList: referenceList,
+				})
 				if err != nil {
 					log.Errorf("replication write: error writing to store %s: %v", job.shard, err)
 					shardErr.Add([]string{job.shard}, components.ShardType0Stor, err, 0)
@@ -580,7 +583,11 @@ func (c *Client) replicateWrite(key, value []byte, referenceList []string) ([]st
 				return nil, err
 			}
 
-			err = cl.ObjectCreate(key, value, referenceList)
+			err = cl.SetObject(datastor.Object{
+				Key:           key,
+				Data:          value,
+				ReferenceList: referenceList,
+			})
 			if err != nil {
 				log.Errorf("replication write: error writing to store %s: %v", shard, err)
 				shardErr.Add([]string{shard}, components.ShardType0Stor, err, 0)
@@ -601,9 +608,9 @@ func (c *Client) replicateWrite(key, value []byte, referenceList []string) ([]st
 	return usedShards, nil
 }
 
-func (c *Client) replicateRead(key []byte, shards []string) (*pb.Object, error) {
+func (c *Client) replicateRead(key []byte, shards []string) (*datastor.Object, error) {
 	wg := sync.WaitGroup{}
-	cVal := make(chan *pb.Object)
+	cVal := make(chan datastor.Object)
 	cAllDone := make(chan struct{})
 	cQuit := make(chan struct{})
 
@@ -620,7 +627,7 @@ func (c *Client) replicateRead(key []byte, shards []string) (*pb.Object, error) 
 				log.Warningf("replication read, error getting client for %s: %v", shard, err)
 				return
 			}
-			obj, err := cl.ObjectGet(key)
+			obj, err := cl.GetObject(key)
 			if err != nil {
 				log.Warningf("replication read, error reading from %s: %v", shard, err)
 				return
@@ -628,7 +635,7 @@ func (c *Client) replicateRead(key []byte, shards []string) (*pb.Object, error) 
 
 			select {
 			case <-cQuit:
-			case cVal <- obj:
+			case cVal <- *obj:
 			}
 			return
 		}(shard)
@@ -648,7 +655,7 @@ func (c *Client) replicateRead(key []byte, shards []string) (*pb.Object, error) 
 		return nil, fmt.Errorf("can't find a valid replication of the object")
 	case val := <-cVal:
 		close(cQuit)
-		return val, nil
+		return &val, nil
 
 	}
 }
@@ -666,7 +673,7 @@ func (c *Client) distributeWrite(key, value []byte, referenceList []string) ([]s
 	}
 
 	type Job struct {
-		client stor.Client
+		client datastor.Client
 		part   []byte
 		shard  string
 	}
@@ -689,7 +696,11 @@ func (c *Client) distributeWrite(key, value []byte, referenceList []string) ([]s
 
 			go func(job *Job) {
 				defer wg.Done()
-				err := job.client.ObjectCreate(key, job.part, referenceList)
+				err := job.client.SetObject(datastor.Object{
+					Key:           key,
+					Data:          job.part,
+					ReferenceList: referenceList,
+				})
 				if err != nil {
 					log.Errorf("error writing to stor: %v", err)
 					shardErr.Add([]string{job.shard}, components.ShardType0Stor, err, 0)
@@ -732,7 +743,7 @@ func (c *Client) distributeWrite(key, value []byte, referenceList []string) ([]s
 	return usedShards, size, nil
 }
 
-func (c *Client) distributeRead(key []byte, originalSize int, shards []string) (*pb.Object, error) {
+func (c *Client) distributeRead(key []byte, originalSize int, shards []string) (*datastor.Object, error) {
 
 	dec, err := distribution.NewDecoder(c.policy.DistributionNr, c.policy.DistributionRedundancy)
 	if err != nil {
@@ -757,14 +768,13 @@ func (c *Client) distributeRead(key []byte, originalSize int, shards []string) (
 				return
 			}
 
-			obj, err := cl.ObjectGet(key)
+			obj, err := cl.GetObject(key)
 			if err != nil {
-
 				shardErr.Add([]string{shard}, components.ShardType0Stor, err, 0)
 				return
 			}
 
-			parts[i] = obj.Value
+			parts[i] = obj.Data
 			refListSlice[i] = obj.ReferenceList
 		}(i, shard)
 	}
@@ -790,9 +800,9 @@ func (c *Client) distributeRead(key []byte, originalSize int, shards []string) (
 		}
 	}
 
-	return &pb.Object{
+	return &datastor.Object{
 		Key:           key,
-		Value:         decoded,
+		Data:          decoded,
 		ReferenceList: refList,
 	}, nil
 }
@@ -808,7 +818,11 @@ func (c *Client) writeRandom(key, value []byte, referenceList []string) (string,
 
 		triedShards = append(triedShards, shard)
 
-		err = cl.ObjectCreate(key, value, referenceList)
+		err = cl.SetObject(datastor.Object{
+			Key:           key,
+			Data:          value,
+			ReferenceList: referenceList,
+		})
 		if err == nil {
 			return shard, nil
 		}
@@ -816,20 +830,15 @@ func (c *Client) writeRandom(key, value []byte, referenceList []string) (string,
 	}
 }
 
-func (c *Client) read(key []byte, shard string) (*pb.Object, error) {
+func (c *Client) read(key []byte, shard string) (*datastor.Object, error) {
 	cl, err := c.getStor(shard)
 	if err != nil {
 		return nil, err
 	}
-
-	obj, err := cl.ObjectGet(key)
-	if err != nil {
-		return nil, err
-	}
-	return obj, nil
+	return cl.GetObject(key)
 }
 
-func (c *Client) linkMeta(curMd, prevMd *meta.Data, curKey, prevKey []byte) error {
+func (c *Client) linkMeta(curMd, prevMd *metastor.Data, curKey, prevKey []byte) error {
 	if len(prevKey) == 0 {
 		return c.metaCli.SetMetadata(*curMd)
 	}
@@ -849,7 +858,7 @@ func (c *Client) linkMeta(curMd, prevMd *meta.Data, curKey, prevKey []byte) erro
 	return c.metaCli.SetMetadata(*curMd)
 }
 
-func (c *Client) getRandomStor(except []string) (stor.Client, string, error) {
+func (c *Client) getRandomStor(except []string) (datastor.Client, string, error) {
 	isIn := func(target string, list []string) bool {
 		for _, x := range list {
 			if target == x {
@@ -881,7 +890,7 @@ func (c *Client) getRandomStor(except []string) (stor.Client, string, error) {
 	return cl, shard, err
 }
 
-func (c *Client) getStor(shard string) (stor.Client, error) {
+func (c *Client) getStor(shard string) (datastor.Client, error) {
 	c.muStorClients.Lock()
 	defer c.muStorClients.Unlock()
 
@@ -893,7 +902,7 @@ func (c *Client) getStor(shard string) (stor.Client, error) {
 
 	// if not create the client and put in cache
 	namespace := fmt.Sprintf("%s_0stor_%s", c.policy.Organization, c.policy.Namespace)
-	cl, err := stor.NewClient(shard, namespace, c.iyoToken)
+	cl, err := storgrpc.NewClient(shard, namespace, c.iyoToken)
 	if err != nil {
 		return nil, err
 	}

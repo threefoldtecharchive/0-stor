@@ -3,7 +3,7 @@ package block
 import (
 	"bytes"
 
-	"github.com/zero-os/0-stor/client/meta"
+	"github.com/zero-os/0-stor/client/metastor"
 )
 
 // BytesBuffer wraps bytes.Buffer to conform to block.Writer interface
@@ -19,7 +19,7 @@ func NewBytesBuffer() *BytesBuffer {
 }
 
 // WriteBlock implements block.Writer interface
-func (bb *BytesBuffer) WriteBlock(key, val []byte, md *meta.Data) (*meta.Data, error) {
+func (bb *BytesBuffer) WriteBlock(key, val []byte, md *metastor.Data) (*metastor.Data, error) {
 	_, err := bb.Buffer.Write(val)
 	return md, err
 }

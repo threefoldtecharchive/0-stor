@@ -129,33 +129,34 @@ resultLoop:
 	return remaining
 }
 
-// CheckStatus represents the status received after checking,
+// ObjectStatus represents the status received after checking,
 // whether or not an object is ok
-type CheckStatus uint8
+type ObjectStatus uint8
 
 const (
-	// CheckStatusMissing indicates the requested object doesn't exist
-	CheckStatusMissing CheckStatus = iota
-	// CheckStatusOK indicates the requested object exists and is healthy
-	CheckStatusOK
-	// CheckStatusCorrupted indicates the requested object exists,
-	// but its checksum indicates it is corrupted.
-	CheckStatusCorrupted
+	// ObjectStatusMissing indicates the requested object doesn't exist.
+	ObjectStatusMissing ObjectStatus = iota
+	// ObjectStatusOK indicates the requested object exists and is healthy
+	ObjectStatusOK
+	// ObjectStatusCorrupted indicates the requested object exists,
+	// but its checksum indicates it is corrupted,
+	// this can be about the data itself as well as its reference list.
+	ObjectStatusCorrupted
 )
 
 // String implements Stringer.String
-func (status CheckStatus) String() string {
-	str, ok := _CheckStatusValueStringMapping[status]
+func (status ObjectStatus) String() string {
+	str, ok := _ObjectStatusValueStringMapping[status]
 	if !ok {
 		return ""
 	}
 	return str
 }
 
-const _CheckStatusStrings = "okcorruptedmissing"
+const _ObjectStatusStrings = "okcorruptedmissing"
 
-var _CheckStatusValueStringMapping = map[CheckStatus]string{
-	CheckStatusOK:        _CheckStatusStrings[:2],
-	CheckStatusCorrupted: _CheckStatusStrings[2:11],
-	CheckStatusMissing:   _CheckStatusStrings[11:],
+var _ObjectStatusValueStringMapping = map[ObjectStatus]string{
+	ObjectStatusOK:        _ObjectStatusStrings[:2],
+	ObjectStatusCorrupted: _ObjectStatusStrings[2:11],
+	ObjectStatusMissing:   _ObjectStatusStrings[11:],
 }

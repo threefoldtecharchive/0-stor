@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/zero-os/0-stor/client/components/compress"
-	"github.com/zero-os/0-stor/client/meta"
+	"github.com/zero-os/0-stor/client/metastor"
 
 	"github.com/zero-os/0-stor/client/components/block"
 )
@@ -22,7 +22,7 @@ func Example() {
 	}
 
 	// we define metadata for 0-stor
-	md := &meta.Data{Key: []byte("foo"), Epoch: time.Now().UnixNano()}
+	md := &metastor.Data{Key: []byte("foo"), Epoch: time.Now().UnixNano()}
 
 	// we can compress the payload and
 	// write it to block.BytesBuffer buf

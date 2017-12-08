@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/zero-os/0-stor/server/api"
+	"github.com/zero-os/0-stor/server/api/grpc/rpctypes"
 	"github.com/zero-os/0-stor/server/stats"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -35,7 +35,7 @@ func streamStatsInterceptor() grpc.StreamServerInterceptor {
 }
 
 func statsLogger(ctx context.Context, grpcMethod string) {
-	label, err := extractStringFromContext(ctx, api.GRPCMetaLabelKey)
+	label, err := extractStringFromContext(ctx, rpctypes.MetaLabelKey)
 	if err != nil {
 		log.Errorf("Stat was not logged due to error: %v", err)
 	}
@@ -74,17 +74,19 @@ type labelStatsFunc func(label string)
 
 var (
 	_StatsObjectMethodsMap = map[string]labelStatsFunc{
-		"Get":                 stats.IncrRead,
-		"List":                stats.IncrRead,
-		"Exists":              stats.IncrRead,
-		"Check":               stats.IncrRead,
-		"Create":              stats.IncrWrite,
-		"SetReferenceList":    stats.IncrWrite,
-		"AppendReferenceList": stats.IncrWrite,
-		"RemoveReferenceList": stats.IncrWrite,
-		"Delete":              stats.IncrWrite,
+		"GetObject":               stats.IncrRead,
+		"GetObjectStatus":         stats.IncrRead,
+		"ListObjectKeys":          stats.IncrRead,
+		"GetReferenceList":        stats.IncrRead,
+		"GetReferenceCount":       stats.IncrRead,
+		"SetObject":               stats.IncrWrite,
+		"SetReferenceList":        stats.IncrWrite,
+		"AppendToReferenceList":   stats.IncrWrite,
+		"DeleteObject":            stats.IncrWrite,
+		"DeleteReferenceList":     stats.IncrWrite,
+		"DeleteFromReferenceList": stats.IncrWrite,
 	}
 	_StatsNamespaceMethodsMap = map[string]labelStatsFunc{
-		"Get": stats.IncrRead,
+		"GetNamespace": stats.IncrRead,
 	}
 )

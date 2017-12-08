@@ -11,7 +11,7 @@ import (
 
 	jwtgo "github.com/dgrijalva/jwt-go"
 	"github.com/karlseguin/ccache"
-	"github.com/zero-os/0-stor/server/api"
+	"github.com/zero-os/0-stor/server/api/grpc/rpctypes"
 	"google.golang.org/grpc/metadata"
 )
 
@@ -165,7 +165,7 @@ func (v *Verifier) extractJWTToken(ctx context.Context) (string, error) {
 		return "", ErrNoJWTToken
 	}
 
-	token, ok := md[api.GRPCMetaAuthKey]
+	token, ok := md[rpctypes.MetaAuthKey]
 	if !ok || len(token) < 1 {
 		return "", ErrNoJWTToken
 	}

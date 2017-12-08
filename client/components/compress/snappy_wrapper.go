@@ -4,7 +4,7 @@ import (
 	"github.com/golang/snappy"
 
 	"github.com/zero-os/0-stor/client/components/block"
-	"github.com/zero-os/0-stor/client/meta"
+	"github.com/zero-os/0-stor/client/metastor"
 )
 
 type snappyWriter struct {
@@ -17,7 +17,7 @@ func newSnappyWriter(w block.Writer) *snappyWriter {
 	}
 }
 
-func (sw snappyWriter) WriteBlock(key, val []byte, md *meta.Data) (*meta.Data, error) {
+func (sw snappyWriter) WriteBlock(key, val []byte, md *metastor.Data) (*metastor.Data, error) {
 	encoded := snappy.Encode(nil, val)
 
 	// update chunk size in metadata

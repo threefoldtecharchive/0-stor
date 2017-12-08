@@ -7,7 +7,7 @@ import (
 	"github.com/pierrec/lz4"
 
 	"github.com/zero-os/0-stor/client/components/block"
-	"github.com/zero-os/0-stor/client/meta"
+	"github.com/zero-os/0-stor/client/metastor"
 )
 
 type lz4Writer struct {
@@ -20,7 +20,7 @@ func newLz4Writer(w block.Writer) *lz4Writer {
 	}
 }
 
-func (lw lz4Writer) WriteBlock(key, data []byte, md *meta.Data) (*meta.Data, error) {
+func (lw lz4Writer) WriteBlock(key, data []byte, md *metastor.Data) (*metastor.Data, error) {
 	buf := bytes.NewBuffer(nil)
 
 	rd := bytes.NewReader(data)

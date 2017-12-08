@@ -5,9 +5,7 @@ import (
 	"fmt"
 
 	"golang.org/x/net/context"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/status"
 )
 
 const (
@@ -30,9 +28,4 @@ func extractStringFromContext(ctx context.Context, key string) (string, error) {
 	}
 
 	return slice[0], nil
-}
-
-// unauthenticatedError returns the provided error with a grpc Unauthenticated code
-func unauthenticatedError(err error) error {
-	return status.Error(codes.Unauthenticated, err.Error())
 }

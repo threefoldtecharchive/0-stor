@@ -56,7 +56,7 @@ func TestReferenceList(t *testing.T) {
 
 	// remove reference list
 	removeIndex := 160 / 2
-	err = c.RemoveReferenceList(key, allRefList[removeIndex:])
+	err = c.DeleteFromReferenceList(key, allRefList[removeIndex:])
 	require.NoError(t, err)
 
 	_, refListRead, err = c.Read(key)
@@ -66,7 +66,7 @@ func TestReferenceList(t *testing.T) {
 
 	// append some of it
 	appendIndex := removeIndex + (removeIndex / 2)
-	err = c.AppendReferenceList(key, allRefList[removeIndex:appendIndex])
+	err = c.AppendToReferenceList(key, allRefList[removeIndex:appendIndex])
 	require.NoError(t, err)
 
 	_, refListRead, err = c.Read(key)
@@ -127,7 +127,7 @@ func TestRemoveReferenceList(t *testing.T) {
 	require.Equal(t, refList, storedRefList)
 
 	// remove it
-	err = c.RemoveReferenceList(key, refList)
+	err = c.DeleteFromReferenceList(key, refList)
 	require.NoError(t, err)
 
 	// get it again and check, make sure we have no ref list

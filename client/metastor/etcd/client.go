@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/coreos/etcd/clientv3"
-	"github.com/zero-os/0-stor/client/meta"
-	"github.com/zero-os/0-stor/client/meta/encoding"
-	"github.com/zero-os/0-stor/client/meta/encoding/proto"
+	"github.com/zero-os/0-stor/client/metastor"
+	"github.com/zero-os/0-stor/client/metastor/encoding"
+	"github.com/zero-os/0-stor/client/metastor/encoding/proto"
 )
 
 // NewClient creates new Metadata client, using an ETCD cluster as storage medium.
@@ -52,10 +52,10 @@ type Client struct {
 	unmarshal  encoding.UnmarshalMetadata
 }
 
-// SetMetadata implements meta.Client.SetMetadata
-func (c *Client) SetMetadata(data meta.Data) error {
+// SetMetadata implements metastor.Client.SetMetadata
+func (c *Client) SetMetadata(data metastor.Data) error {
 	if data.Key == nil {
-		return meta.ErrNilKey
+		return metastor.ErrNilKey
 	}
 
 	bytes, err := c.marshal(data)
@@ -70,10 +70,10 @@ func (c *Client) SetMetadata(data meta.Data) error {
 	return err
 }
 
-// GetMetadata implements meta.Client.GetMetadata
-func (c *Client) GetMetadata(key []byte) (*meta.Data, error) {
+// GetMetadata implements metastor.Client.GetMetadata
+func (c *Client) GetMetadata(key []byte) (*metastor.Data, error) {
 	if key == nil {
-		return nil, meta.ErrNilKey
+		return nil, metastor.ErrNilKey
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), metaOpTimeout)
@@ -84,10 +84,10 @@ func (c *Client) GetMetadata(key []byte) (*meta.Data, error) {
 		return nil, err
 	}
 	if len(resp.Kvs) < 1 {
-		return nil, meta.ErrNotFound
+		return nil, metastor.ErrNotFound
 	}
 
-	var data meta.Data
+	var data metastor.Data
 	err = c.unmarshal(resp.Kvs[0].Value, &data)
 	if err != nil {
 		return nil, err
@@ -95,10 +95,10 @@ func (c *Client) GetMetadata(key []byte) (*meta.Data, error) {
 	return &data, nil
 }
 
-// DeleteMetadata implements meta.Client.DeleteMetadata
+// DeleteMetadata implements metastor.Client.DeleteMetadata
 func (c *Client) DeleteMetadata(key []byte) error {
 	if key == nil {
-		return meta.ErrNilKey
+		return metastor.ErrNilKey
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), metaOpTimeout)
@@ -108,7 +108,7 @@ func (c *Client) DeleteMetadata(key []byte) error {
 	return err
 }
 
-// Close implements meta.Client.Close
+// Close implements metastor.Client.Close
 func (c *Client) Close() error {
 	return c.etcdClient.Close()
 }
@@ -124,5 +124,5 @@ const (
 )
 
 var (
-	_ meta.Client = (*Client)(nil)
+	_ metastor.Client = (*Client)(nil)
 )

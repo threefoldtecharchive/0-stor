@@ -3,6 +3,8 @@ package grpc
 import (
 	"golang.org/x/net/context"
 
+	log "github.com/Sirupsen/logrus"
+	"github.com/zero-os/0-stor/server/api/grpc/rpctypes"
 	pb "github.com/zero-os/0-stor/server/api/grpc/schema"
 	"github.com/zero-os/0-stor/server/db"
 	"github.com/zero-os/0-stor/server/stats"
@@ -26,23 +28,25 @@ func NewNamespaceAPI(db db.DB) *NamespaceAPI {
 	}
 }
 
-// Get implements NamespaceManagerServer.Get
-func (api *NamespaceAPI) Get(ctx context.Context, req *pb.GetNamespaceRequest) (*pb.GetNamespaceReply, error) {
-	label := req.GetLabel()
+// GetNamespace implements NamespaceManagerServer.GetNamespace
+func (api *NamespaceAPI) GetNamespace(ctx context.Context, req *pb.GetNamespaceRequest) (*pb.GetNamespaceResponse, error) {
+	label, err := extractStringFromContext(ctx, rpctypes.MetaLabelKey)
+	if err != nil {
+		return nil, rpctypes.ErrGRPCNilLabel
+	}
 
 	count, err := db.CountKeys(api.db, []byte(label))
 	if err != nil {
-		return nil, err
+		log.Errorf("Database error for key %v: %v", label, err)
+		return nil, rpctypes.ErrGRPCDatabase
 	}
 	read, write := stats.Rate(label)
 
-	resp := &pb.GetNamespaceReply{
-		Namespace: &pb.Namespace{
-			Label:               label,
-			ReadRequestPerHour:  read,
-			WriteRequestPerHour: write,
-			NrObjects:           int64(count),
-		},
+	resp := &pb.GetNamespaceResponse{
+		Label:               label,
+		ReadRequestPerHour:  read,
+		WriteRequestPerHour: write,
+		NrObjects:           int64(count),
 	}
 
 	return resp, nil

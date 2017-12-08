@@ -12,102 +12,192 @@ option (gogoproto.marshaler_all) = true;
 option (gogoproto.sizer_all) = true;
 option (gogoproto.unmarshaler_all) = true;
 
-// Types
-message Empty {
+// Zero-Stor Data Types
+
+enum ObjectStatus {
+    missing = 0 [(gogoproto.enumvalue_customname) = "ObjectStatusMissing"];
+    ok = 1 [(gogoproto.enumvalue_customname) = "ObjectStatusOK"];
+    corrupted = 2 [(gogoproto.enumvalue_customname) = "ObjectStatusCorrupted"];
 }
 
-message Namespace {
+// NamespaceManager allows you to retrieve information about a namespace.
+//
+// Metadata required (by the server)
+// for all methods of the ObjectManager:
+//
+//     "authentication"
+//     JWT token to proof you have sufficient permissions
+//     to execute the given action within the given namespace.
+//
+//     "label"
+//     Identifier of the namespace,
+//     where the manage will be stored at,
+//     or the existing object already lives at.
+//
+// This metadata cannot be enforced by this protobuf schema.
+// However, not defining any of this metadata for any given method,
+// will result in a GRPC error.
+service NamespaceManager {
+    // GetNamespace gets all available information about
+    // a requested namespace. Most of the information returned,
+    // is not stored in persistent memory,
+    // and instead computed on the fly or available
+    // from the in-memory cache.
+    rpc GetNamespace (GetNamespaceRequest) returns (GetNamespaceResponse) {}
+}
+
+message GetNamespaceRequest {}
+message GetNamespaceResponse {
     string label = 1;
-    int64 spaceAvailable = 2;
-    int64 spaceUsed = 3;
-    int64 readRequestPerHour = 4;
-    int64 writeRequestPerHour = 5;
-    int64 nrObjects = 6;
+    int64 readRequestPerHour = 2;
+    int64 writeRequestPerHour = 3;
+    int64 nrObjects = 4;
 }
 
-message Object {
+// ObjectManager allows you to Manage objects and get info about them.
+//
+// Metadata required (by the server)
+// for all methods of the ObjectManager:
+//
+//     "authentication"
+//     JWT token to proof you have sufficient permissions
+//     to execute the given action within the given namespace.
+//
+//     "label"
+//     Identifier of the namespace,
+//     where the manage will be stored at,
+//     or the existing object already lives at.
+//
+// This metadata cannot be enforced by this protobuf schema.
+// However, not defining any of this metadata for any given method,
+// will result in a GRPC error.
+//
+// All methods operate within a given namespace,
+// identified by the label given as metadata.
+// Meaning that for example the ExistObject might
+// return false because that key doesn't exist within
+// the specified namespace, even though it might exists
+// within an other namespace.
+service ObjectManager {
+    // Set an object, either overwriting an existing key,
+    // or creating a new one.
+    // If no reference list is given, no (stored) reference list is touched.
+    rpc SetObject (SetObjectRequest) returns (SetObjectResponse) {}
+
+    // Get an existing object, linked to a given key.
+    rpc GetObject (GetObjectRequest) returns (GetObjectResponse) {}
+
+    // DeleteObject deletes an object.
+    // Deleting an non-existing object is considered valid.
+    rpc DeleteObject (DeleteObjectRequest) returns (DeleteObjectResponse) {}
+
+    // GetObjectStatus returns the status of an object,
+    // indicating whether it's OK, missing or corrupt.
+    rpc GetObjectStatus (GetObjectStatusRequest) returns (GetObjectStatusResponse) {}
+
+    // ListObjectKeys lists the keys of
+    // all stored objects within the namespace (identified by the given label).
+    rpc ListObjectKeys (ListObjectKeysRequest) returns (stream ListObjectKeysResponse) {}
+
+    // SetReferenceList allows you to create a new reference list
+    // or overwrite an existing reference list,
+    // for a given object.
+    rpc SetReferenceList(SetReferenceListRequest) returns (SetReferenceListResponse) {}
+
+    // GetReferenceList returns an existing reference list
+    // for a given object.
+    rpc GetReferenceList(GetReferenceListRequest) returns (GetReferenceListResponse) {}
+
+     // GetReferenceCount returns the amount of references stored for the given object.
+    rpc GetReferenceCount(GetReferenceCountRequest) returns (GetReferenceCountResponse) {}
+
+    // AppendReferenceList appends the given references
+    // to the end of the reference list of the given object.
+    // If no reference list existed for this object prior to this call,
+    // this method will behave the same as SetReferenceList.
+    rpc AppendToReferenceList(AppendToReferenceListRequest) returns (AppendToReferenceListResponse) {}
+
+    // DeleteFromReferenceList deletes the references of the given list,
+    // from the references of the existing list.
+    // In case deleted succesfully, it will also return the new count of the list,
+    // as part of the response.
+    rpc DeleteFromReferenceList(DeleteFromReferenceListRequest) returns (DeleteFromReferenceListResponse) {}
+
+    // DeleteReferenceList deletes entirely stored reference list.
+    // If no reference list was stored for the object prior to this call, nothing will happen.
+    rpc DeleteReferenceList(DeleteReferenceListRequest) returns (DeleteReferenceListResponse) {}
+}
+
+message SetObjectRequest {
     bytes key = 1;
-    bytes value = 2;
+    bytes data = 2;
     repeated string referenceList = 3;
 }
-
-// Namespace management
-message GetNamespaceRequest {
-    string label = 1;
-}
-message GetNamespaceReply {
-    Namespace namespace = 1;
-}
-
-service NamespaceManager {
-    rpc Get (GetNamespaceRequest) returns (GetNamespaceReply) {}
-}
-
-// Object management
-message ListObjectsRequest {
-    string label = 1;
-}
-
-message CreateObjectRequest {
-    string Label = 1;
-    Object object = 2;
-}
-message CreateObjectReply {}
-
-message ExistsObjectRequest {
-    string Label = 1;
-    bytes key = 2;
-}
-message ExistsObjectReply {
-    bool exists = 1;
-}
+message SetObjectResponse {}
 
 message GetObjectRequest {
-    string Label = 1;
-    bytes key = 2;
+    bytes key = 1;
 }
-message GetObjectReply {
-    Object object = 2;
+message GetObjectResponse {
+    bytes data = 1;
+    repeated string referenceList = 2;
 }
 
 message DeleteObjectRequest {
-    string Label = 1;
-    bytes key = 2;
+    bytes key = 1;
 }
-message DeleteObjectReply {}
-
-message UpdateReferenceListRequest{
-    string label = 1;
-    bytes key = 2;
-    repeated string referenceList = 3;
+message DeleteObjectResponse {
 }
 
-message UpdateReferenceListReply {}
-
-message CheckRequest {
-    string label = 1;
-    repeated string ids = 2;
+message GetObjectStatusRequest {
+    bytes key = 1;
+}
+message GetObjectStatusResponse {
+    ObjectStatus status = 1;
 }
 
-message CheckResponse {
-    string id = 1;
-    Status status = 2;
-
-    enum Status {
-        ok = 0 [(gogoproto.enumvalue_customname) = "CheckStatusOK"];
-        corrupted = 1 [(gogoproto.enumvalue_customname) = "CheckStatusCorrupted"];
-        missing = 2 [(gogoproto.enumvalue_customname) = "CheckStatusMissing"];
-    }
+message ListObjectKeysRequest {}
+message ListObjectKeysResponse {
+    bytes key = 1;
 }
 
-service ObjectManager {
-    rpc Create (CreateObjectRequest) returns (CreateObjectReply) {}
-    rpc List (ListObjectsRequest) returns (stream Object) {}
-    rpc Get (GetObjectRequest) returns (GetObjectReply) {}
-    rpc Exists (ExistsObjectRequest) returns (ExistsObjectReply) {}
-    rpc Delete (DeleteObjectRequest) returns (DeleteObjectReply) {}
-    rpc SetReferenceList(UpdateReferenceListRequest) returns (UpdateReferenceListReply) {}
-    rpc AppendReferenceList(UpdateReferenceListRequest) returns (UpdateReferenceListReply) {}
-    rpc RemoveReferenceList(UpdateReferenceListRequest) returns (UpdateReferenceListReply) {}
-    rpc Check(CheckRequest) returns (stream CheckResponse) {}
+message SetReferenceListRequest {
+    bytes key = 1;
+    repeated string referenceList = 2;
+}
+message SetReferenceListResponse {}
+
+message GetReferenceListRequest {
+    bytes key = 1;
+}
+message GetReferenceListResponse {
+    repeated string referenceList = 1;
+}
+
+message GetReferenceCountRequest {
+    bytes key = 1;
+}
+message GetReferenceCountResponse {
+    int64 count = 1;
+}
+
+message AppendToReferenceListRequest {
+    bytes key = 1;
+    repeated string referenceList = 2;
+}
+message AppendToReferenceListResponse {
+}
+
+message DeleteFromReferenceListRequest {
+    bytes key = 1;
+    repeated string referenceList = 2;
+}
+message DeleteFromReferenceListResponse {
+    int64 count = 1;
+}
+
+message DeleteReferenceListRequest {
+    bytes key = 1;
+}
+message DeleteReferenceListResponse {
 }

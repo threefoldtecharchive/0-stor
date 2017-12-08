@@ -143,13 +143,13 @@ var fileMetadataCmd = &cobra.Command{
 	Long:  "Print the metadata from a file which is stored securely onto (a) 0-Stor server(s).",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(_cmd *cobra.Command, args []string) error {
-		cl, err := getClient()
+		cl, err := getMetaClient()
 		if err != nil {
 			return err
 		}
 
 		key := args[0]
-		meta, err := cl.GetMeta([]byte(key))
+		meta, err := cl.GetMetadata([]byte(key))
 		if err != nil {
 			return fmt.Errorf("failed to get metadata for %q: %v", key, err)
 		}
