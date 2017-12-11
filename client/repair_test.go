@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/zero-os/0-stor/client/datastor"
 )
 
 func TestRepair(t *testing.T) {
@@ -103,18 +104,18 @@ func testRepair(t *testing.T, policy Policy, repairErr error) {
 	// Check status is ok after a write
 	status, err := c.Check(meta.Key)
 	require.NoError(t, err, "fail to check object")
-	require.Equal(t, CheckStatusOk, status)
+	require.Equal(t, datastor.ObjectStatusOK, status)
 
 	// corrupt file by removing a block
 	store, err := c.getStor(meta.Chunks[0].Shards[0])
 	require.NoError(t, err)
-	err = store.ObjectDelete(meta.Chunks[0].Key)
+	err = store.DeleteObject(meta.Chunks[0].Key)
 	require.NoError(t, err)
 
 	// Check status is corrupted
 	status, err = c.Check(meta.Key)
 	require.NoError(t, err, "fail to check object")
-	require.Equal(t, CheckStatusMissing, status)
+	require.Equal(t, datastor.ObjectStatusMissing, status)
 
 	// try to repair
 	err = c.Repair(meta.Key)

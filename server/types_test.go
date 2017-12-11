@@ -119,15 +119,15 @@ func TestReferenceList(t *testing.T) {
 	require.Equal(rl("bang"), listA)
 }
 
-func TestDefaultCheckStatus(t *testing.T) {
-	var status CheckStatus
-	require.Equal(t, CheckStatusMissing, status)
+func TestDefaultObjectStatus(t *testing.T) {
+	var status ObjectStatus
+	require.Equal(t, ObjectStatusMissing, status)
 }
 
-func TestCheckStatusString(t *testing.T) {
+func TestObjectStatusString(t *testing.T) {
 	require := require.New(t)
 
-	require.Equal("ok", CheckStatusOK.String())
-	require.Equal("missing", CheckStatusMissing.String())
-	require.Equal("corrupted", CheckStatusCorrupted.String())
+	require.Equal("ok", ObjectStatusOK.String())
+	require.Equal("missing", ObjectStatusMissing.String())
+	require.Equal("corrupted", ObjectStatusCorrupted.String())
 }

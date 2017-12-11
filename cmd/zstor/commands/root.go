@@ -8,6 +8,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/zero-os/0-stor/client"
 	"github.com/zero-os/0-stor/client/itsyouonline"
+	"github.com/zero-os/0-stor/client/metastor"
+	"github.com/zero-os/0-stor/client/metastor/etcd"
 	"github.com/zero-os/0-stor/cmd"
 )
 
@@ -50,6 +52,16 @@ func getClient() (*client.Client, error) {
 	}
 
 	return cl, nil
+}
+
+func getMetaClient() (metastor.Client, error) {
+	// create policy
+	policy, err := readPolicy()
+	if err != nil {
+		return nil, err
+	}
+
+	return etcd.NewClient(policy.MetaShards)
 }
 
 func getNamespaceManager() (itsyouonline.IYOClient, error) {

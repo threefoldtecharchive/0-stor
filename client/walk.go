@@ -3,7 +3,7 @@ package client
 import (
 	"errors"
 
-	"github.com/zero-os/0-stor/client/meta"
+	"github.com/zero-os/0-stor/client/metastor"
 )
 
 var (
@@ -16,7 +16,7 @@ type WalkResult struct {
 	Key []byte
 
 	// Metadata object
-	Meta *meta.Data
+	Meta *metastor.Data
 
 	// Raw data stored in 0-stor server
 	Data []byte
@@ -32,21 +32,21 @@ type WalkResult struct {
 // nextFunc is func to get `next` pointer of metadata
 // in forward mode : next is the next key
 // in backward mode : next is the previous key
-type nextFunc func(md *meta.Data) (key []byte, err error)
+type nextFunc func(md *metastor.Data) (key []byte, err error)
 
 // func to check that the walk still meet the epoch criteria
 // - if nextKey not nil and err nil, then we should walk to next key
 // - if err is not nil, we should stop
-type checkEpochFunc func(epoch, fromEpoch, toEpoch int64, md *meta.Data) (nextKey []byte, err error)
+type checkEpochFunc func(epoch, fromEpoch, toEpoch int64, md *metastor.Data) (nextKey []byte, err error)
 
 // Walk walks over the metadata linked list in forward fashion and
 // fetch the data stored in 0-stor as described by the metadata
 func (c *Client) Walk(startKey []byte, fromEpoch, toEpoch int64) <-chan *WalkResult {
-	next := func(md *meta.Data) ([]byte, error) {
+	next := func(md *metastor.Data) ([]byte, error) {
 		return md.Next, nil
 	}
 
-	checkEpoch := func(epoch, fromEpoch, toEpoch int64, md *meta.Data) (nextKey []byte, err error) {
+	checkEpoch := func(epoch, fromEpoch, toEpoch int64, md *metastor.Data) (nextKey []byte, err error) {
 		if epoch < fromEpoch {
 			// still long way to go, proceed to next key
 			nextKey, err := next(md)
@@ -67,11 +67,11 @@ func (c *Client) Walk(startKey []byte, fromEpoch, toEpoch int64) <-chan *WalkRes
 
 // WalkBack is backward version of the Walk
 func (c *Client) WalkBack(startKey []byte, fromEpoch, toEpoch int64) <-chan *WalkResult {
-	next := func(md *meta.Data) ([]byte, error) {
+	next := func(md *metastor.Data) ([]byte, error) {
 		return md.Previous, nil
 	}
 
-	checkEpoch := func(epoch, fromEpoch, toEpoch int64, md *meta.Data) (nextKey []byte, err error) {
+	checkEpoch := func(epoch, fromEpoch, toEpoch int64, md *metastor.Data) (nextKey []byte, err error) {
 		if epoch > toEpoch {
 			// still long way to go, proceed to next key
 			nextKey, err := next(md)

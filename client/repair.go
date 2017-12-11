@@ -5,8 +5,8 @@ import (
 	"sync"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/zero-os/0-stor/client/meta"
-	pb "github.com/zero-os/0-stor/server/api/grpc/schema"
+	"github.com/zero-os/0-stor/client/datastor"
+	"github.com/zero-os/0-stor/client/metastor"
 )
 
 var (
@@ -55,7 +55,7 @@ func (c *Client) Repair(key []byte) error {
 	return nil
 }
 
-func (c *Client) repairDistributedChunk(chunk *meta.Chunk) ([]string, uint64, error) {
+func (c *Client) repairDistributedChunk(chunk *metastor.Chunk) ([]string, uint64, error) {
 
 	// distributeRead already take case of reconstrtucting the data if we have missing parts
 	obj, err := c.distributeRead(chunk.Key, int(chunk.Size), chunk.Shards)
@@ -65,10 +65,10 @@ func (c *Client) repairDistributedChunk(chunk *meta.Chunk) ([]string, uint64, er
 	}
 
 	// we just rewrite the data to new shards
-	return c.distributeWrite(chunk.Key, obj.Value, obj.ReferenceList)
+	return c.distributeWrite(chunk.Key, obj.Data, obj.ReferenceList)
 }
 
-func (c *Client) repairReplicatedChunk(chunk *meta.Chunk) ([]string, error) {
+func (c *Client) repairReplicatedChunk(chunk *metastor.Chunk) ([]string, error) {
 	// check which replicate are corrupted
 	// create a map of chunk per shards, so we can ask all the check for a specific shards in one call
 	var (
@@ -90,12 +90,12 @@ func (c *Client) repairReplicatedChunk(chunk *meta.Chunk) ([]string, error) {
 				return
 			}
 
-			status, err := store.ObjectsCheck([][]byte{chunk.Key})
+			status, err := store.GetObjectStatus(chunk.Key)
 			if err != nil {
 				cCorrupted <- shard
 				return
 			}
-			if len(status) < 1 || CheckStatus(status[0].Status) != CheckStatusOk {
+			if status != datastor.ObjectStatusOK {
 				cCorrupted <- shard
 				return
 			}
@@ -125,13 +125,13 @@ func (c *Client) repairReplicatedChunk(chunk *meta.Chunk) ([]string, error) {
 	}
 
 	// read valid block from one of the valid shard
-	var validObj *pb.Object
+	var validObj *datastor.Object
 	for _, shard := range validShards {
 		store, err := c.getStor(shard)
 		if err != nil {
 			continue
 		}
-		obj, err := store.ObjectGet(chunk.Key)
+		obj, err := store.GetObject(chunk.Key)
 		if err != nil {
 			continue
 		}
@@ -157,7 +157,11 @@ func (c *Client) repairReplicatedChunk(chunk *meta.Chunk) ([]string, error) {
 				return nil, err
 			}
 
-			err = store.ObjectCreate(chunk.Key, validObj.Value, validObj.ReferenceList)
+			err = store.SetObject(datastor.Object{
+				Key:           chunk.Key,
+				Data:          validObj.Data,
+				ReferenceList: validObj.ReferenceList,
+			})
 			if err != nil {
 				// coulnd't write data on the 0-stor return by getRandomStor
 				// we add this shard to the corrupted list

@@ -13,7 +13,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/zero-os/0-stor/client/meta/memory"
+	"github.com/zero-os/0-stor/client/metastor/memory"
 	"github.com/zero-os/0-stor/server/api"
 	"github.com/zero-os/0-stor/server/api/grpc"
 	"github.com/zero-os/0-stor/server/db/badger"

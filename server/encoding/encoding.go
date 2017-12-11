@@ -443,30 +443,35 @@ func DecodeReferenceList(data []byte) (server.ReferenceList, error) {
 //
 // A nil slice can be returned in a non-error case,
 // if and only if the resulting list is empty, after removal of the other list.
-func RemoveFromEncodedReferenceList(data []byte, other server.ReferenceList) ([]byte, error) {
+func RemoveFromEncodedReferenceList(data []byte, other server.ReferenceList) ([]byte, int, error) {
 	list, err := DecodeReferenceList(data)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	if len(other) == 0 {
 		// nothing to do, no references to remove
-		return data, nil
+		return data, len(list), nil
 	}
 
 	// Remove the other list from the decoded list
 	remaining := list.RemoveReferences(other)
+	count := len(list)
 	if len(remaining) == len(other) {
 		// nothing to do, no references were removed
-		return data, nil
+		return data, count, nil
 	}
 
-	if len(list) == 0 {
-		return nil, nil // nothing to do, and nothing to encode
+	if count == 0 {
+		return nil, count, nil // nothing to do, and nothing to encode
 	}
 
 	// encode list and return the newly encoded data
-	return EncodeReferenceList(list)
+	data, err = EncodeReferenceList(list)
+	if err != nil {
+		return nil, 0, err
+	}
+	return data, count, nil
 }
 
 func encodeRefList(list server.ReferenceList, offset int) ([]byte, error) {

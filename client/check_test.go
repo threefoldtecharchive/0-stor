@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/zero-os/0-stor/client/datastor"
 )
 
 func TestCheck(t *testing.T) {
@@ -50,7 +51,7 @@ func TestCheck(t *testing.T) {
 	// Check status is ok after a write
 	status, err := c.Check(meta.Key)
 	require.NoError(t, err, "fail to check object")
-	assert.Equal(t, CheckStatusOk, status)
+	assert.Equal(t, datastor.ObjectStatusOK, status)
 
 	// corrupt file by removing blocks
 	store, err := c.getStor(meta.Chunks[0].Shards[0])
@@ -58,7 +59,7 @@ func TestCheck(t *testing.T) {
 
 	for i := 0; i < len(meta.Chunks); i += 4 {
 		if i%4 == 0 {
-			err = store.ObjectDelete(meta.Chunks[i].Key)
+			err = store.DeleteObject(meta.Chunks[i].Key)
 			require.NoError(t, err)
 		}
 	}
@@ -66,5 +67,5 @@ func TestCheck(t *testing.T) {
 	// Check status is corrupted
 	status, err = c.Check(meta.Key)
 	require.NoError(t, err, "fail to check object")
-	assert.Equal(t, CheckStatusMissing, status)
+	assert.Equal(t, datastor.ObjectStatusMissing, status)
 }

@@ -304,7 +304,7 @@ func TestRemoveFromReferenceList(t *testing.T) {
 		require.NoError(err)
 		require.NotNil(data)
 
-		data, err = RemoveFromEncodedReferenceList(data, validTestCase.second)
+		data, count, err := RemoveFromEncodedReferenceList(data, validTestCase.second)
 		require.NoErrorf(err, "%v", validTestCase)
 
 		if len(validTestCase.result) == 0 {
@@ -316,6 +316,7 @@ func TestRemoveFromReferenceList(t *testing.T) {
 		list, err := DecodeReferenceList(data)
 		require.NoError(err)
 		require.Equal(validTestCase.result, list)
+		require.Len(list, count)
 	}
 }
 
@@ -324,18 +325,18 @@ func TestInvalidReferenceRemoveDecoding(t *testing.T) {
 
 	// invalid encodings as nil data was given,
 	// or because not enough data was given, to be even possibly valid
-	_, err := RemoveFromEncodedReferenceList([]byte{1, 2, 3, 4}, server.ReferenceList{})
+	_, _, err := RemoveFromEncodedReferenceList([]byte{1, 2, 3, 4}, server.ReferenceList{})
 	require.Equal(ErrInvalidData, err)
 
 	// invalid crc
-	_, err = RemoveFromEncodedReferenceList([]byte{1, 2, 3, 4, 5}, server.ReferenceList{})
+	_, _, err = RemoveFromEncodedReferenceList([]byte{1, 2, 3, 4, 5}, server.ReferenceList{})
 	require.Equal(ErrInvalidChecksum, err)
 
 	// invalid reference length
 	data := make([]byte, 5)
 	data[checksumSize] = 42
 	packageData(data)
-	_, err = RemoveFromEncodedReferenceList(data, server.ReferenceList{})
+	_, _, err = RemoveFromEncodedReferenceList(data, server.ReferenceList{})
 	require.Equal(ErrInvalidData, err)
 }
 

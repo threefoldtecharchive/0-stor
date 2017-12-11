@@ -7,7 +7,7 @@ import (
 	"io/ioutil"
 
 	"github.com/zero-os/0-stor/client/components/block"
-	"github.com/zero-os/0-stor/client/meta"
+	"github.com/zero-os/0-stor/client/metastor"
 )
 
 type gzipWriter struct {
@@ -22,7 +22,7 @@ func newGzipWriter(w block.Writer, level int) *gzipWriter {
 	}
 }
 
-func (gw gzipWriter) WriteBlock(key, p []byte, md *meta.Data) (*meta.Data, error) {
+func (gw gzipWriter) WriteBlock(key, p []byte, md *metastor.Data) (*metastor.Data, error) {
 	buf := new(bytes.Buffer)
 	written, err := func() (int, error) {
 		w, err := gzip.NewWriterLevel(buf, gw.level)

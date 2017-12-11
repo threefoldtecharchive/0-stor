@@ -6,5 +6,5 @@ coverage:
     # ignore all generated files, as we do not control those
     - server/api/grpc/schema/zstor.pb.go
     - server/api/grp/generate.go
-    - client/meta/encoding/proto/generate.go
-    - client/meta/encoding/proto/metadata.pb.go
+    - client/metastor/encoding/proto/generate.go
+    - client/metastor/encoding/proto/metadata.pb.go

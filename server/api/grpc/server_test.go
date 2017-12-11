@@ -8,15 +8,15 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/zero-os/0-stor/client/datastor"
+	storgrpc "github.com/zero-os/0-stor/client/datastor/grpc"
 	"github.com/zero-os/0-stor/client/itsyouonline"
-	"github.com/zero-os/0-stor/client/stor"
-	"github.com/zero-os/0-stor/server/api"
+	"github.com/zero-os/0-stor/server/api/grpc/rpctypes"
 	pb "github.com/zero-os/0-stor/server/api/grpc/schema"
 	"github.com/zero-os/0-stor/server/db/memory"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/status"
 )
 
 func TestServerMsgSize(t *testing.T) {
@@ -36,12 +36,12 @@ func TestServerMsgSize(t *testing.T) {
 				require.NoError(err, "server should have started listening")
 			}()
 
-			cl, err := stor.NewClient(srv.Address(), "testnamespace", "")
+			cl, err := storgrpc.NewClient(srv.Address(), "testnamespace", "")
 			require.NoError(err, "client should have been created")
 
 			key := []byte("foo")
 
-			bigData := make([]byte, (maxSize+10)*mib)
+			bigData := make([]byte, (maxSize*mib)+10)
 			_, err = rand.Read(bigData)
 			require.NoError(err, "should have read random data")
 
@@ -49,24 +49,30 @@ func TestServerMsgSize(t *testing.T) {
 			_, err = rand.Read(smallData)
 			require.NoError(err, "should have read random data")
 
-			err = cl.ObjectCreate(key, bigData, []string{})
+			err = cl.SetObject(datastor.Object{
+				Key:  key,
+				Data: bigData,
+			})
 			require.Error(err, "should have exceeded message max size")
 
-			err = cl.ObjectCreate(key, smallData, []string{})
+			err = cl.SetObject(datastor.Object{
+				Key:  key,
+				Data: smallData,
+			})
 			require.NoError(err, "should not have exceeded message max size")
 
-			exists, err := cl.ObjectExist(key)
+			status, err := cl.GetObjectStatus(key)
 			require.NoError(err, "object should exist")
-			require.True(exists, "object should exists")
+			require.Equal(datastor.ObjectStatusOK, status, "object should exists")
 
-			obj, err := cl.ObjectGet(key)
+			obj, err := cl.GetObject(key)
 			require.NoError(err, "should be able to read message")
-			require.Equal(smallData, obj.Value)
+			require.Equal(smallData, obj.Data)
 		})
 	}
 }
 
-func TestListObject(t *testing.T) {
+func TestServerListObjectKeys(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
 
@@ -88,9 +94,15 @@ func TestListObject(t *testing.T) {
 	})
 	require.NoError(err, "fail to generate jwt")
 	t.Run("valid object", func(t *testing.T) {
-		md := metadata.Pairs(api.GRPCMetaAuthKey, jwt, api.GRPCMetaLabelKey, label)
-		ctx := metadata.NewOutgoingContext(context.Background(), md)
-		stream, err := cl.List(ctx, &pb.ListObjectsRequest{Label: label})
+		ctx := contextWithToken(nil, jwt)
+		stream, err := cl.ListObjectKeys(ctx, &pb.ListObjectKeysRequest{})
+		require.NoError(err)
+		_, err = stream.Recv()
+		requireGRPCError(t, rpctypes.ErrNilLabel, err)
+		require.NoError(stream.CloseSend())
+
+		ctx = contextWithLabelAndToken(nil, jwt, label)
+		stream, err = cl.ListObjectKeys(ctx, &pb.ListObjectKeysRequest{})
 		require.NoError(err, "can't send list request to server")
 
 		objNr := 0
@@ -105,9 +117,8 @@ func TestListObject(t *testing.T) {
 
 			objNr++
 			key := obj.GetKey()
-			expectedValue, ok := bufList[string(key)]
+			_, ok := bufList[string(key)]
 			require.True(ok, fmt.Sprintf("received key that was not present in db %s", key))
-			assert.EqualValues(expectedValue, obj.GetValue())
 		}
 		assert.Equal(len(bufList), objNr)
 	})
@@ -118,23 +129,18 @@ func TestListObject(t *testing.T) {
 		})
 		require.NoError(err, "fail to generate jwt")
 
-		md := metadata.Pairs(api.GRPCMetaAuthKey, jwt, api.GRPCMetaLabelKey, label)
-		ctx := metadata.NewOutgoingContext(context.Background(), md)
+		ctx := contextWithLabelAndToken(nil, jwt, label)
 
-		stream, err := cl.List(ctx, &pb.ListObjectsRequest{Label: label})
+		stream, err := cl.ListObjectKeys(ctx, &pb.ListObjectKeysRequest{})
 		require.NoError(err, "failed to call List")
-		for {
-			_, err = stream.Recv()
-			if err == io.EOF {
-				break
-			}
 
-			require.Error(err)
-			statusErr, ok := status.FromError(err)
-			require.True(ok, "error is not valid rpc status error")
-			assert.Equal("JWT token doesn't contains required scopes", statusErr.Message())
-			break
+		_, err = stream.Recv()
+		if err == io.EOF {
 		}
+
+		require.Error(err)
+		err = rpctypes.Error(err)
+		assert.Equal(rpctypes.ErrPermissionDenied, err)
 	})
 
 	t.Run("admin right", func(t *testing.T) {
@@ -143,18 +149,17 @@ func TestListObject(t *testing.T) {
 		})
 		require.NoError(err, "fail to generate jwt")
 
-		md := metadata.Pairs(api.GRPCMetaAuthKey, jwt, api.GRPCMetaLabelKey, label)
-		ctx := metadata.NewOutgoingContext(context.Background(), md)
+		ctx := contextWithLabelAndToken(nil, jwt, label)
 
-		stream, err := cl.List(ctx, &pb.ListObjectsRequest{Label: label})
+		stream, err := cl.ListObjectKeys(ctx, &pb.ListObjectKeysRequest{})
 		require.NoError(err, "failed to call List")
 		_, err = stream.Recv()
-		require.NoError(err)
+		assert.NoError(err)
 		stream.CloseSend()
 	})
 }
 
-func TestCheckObject(t *testing.T) {
+func TestServerGetObjectStatus(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
 
@@ -179,47 +184,33 @@ func TestCheckObject(t *testing.T) {
 	tt := []struct {
 		name           string
 		keys           []string
-		expectedStatus pb.CheckResponse_Status
+		expectedStatus pb.ObjectStatus
 	}{
 		{
 			name:           "valid",
 			keys:           []string{"testkey1", "testkey2", "testkey3"},
-			expectedStatus: pb.CheckStatusOK,
+			expectedStatus: pb.ObjectStatusOK,
 		},
 		{
 			name:           "missing",
 			keys:           []string{"dontexsits"},
-			expectedStatus: pb.CheckStatusMissing,
+			expectedStatus: pb.ObjectStatusMissing,
 		},
 	}
 
 	for _, tc := range tt {
-		md := metadata.Pairs(api.GRPCMetaAuthKey, jwt, api.GRPCMetaLabelKey, label)
-		ctx := metadata.NewOutgoingContext(context.Background(), md)
+		ctx := contextWithLabelAndToken(nil, jwt, label)
 
-		stream, err := cl.Check(ctx, &pb.CheckRequest{
-			Label: label,
-			Ids:   tc.keys,
-		})
-		require.NoError(err, "fail to send check request")
-
-		n := 0
-		for {
-			resp, err := stream.Recv()
-			if err == io.EOF {
-				break
-			}
-			require.NoError(err, "error during check response streaming")
-
+		for _, key := range tc.keys {
+			resp, err := cl.GetObjectStatus(ctx,
+				&pb.GetObjectStatusRequest{Key: []byte(key)})
+			require.NoError(err, "fail to send request")
 			assert.Equal(tc.expectedStatus, resp.GetStatus(), fmt.Sprintf("status should be %v", tc.expectedStatus))
-			n++
 		}
-
-		assert.Equal(len(tc.keys), n)
 	}
 }
 
-func TestUpdateReferenceList(t *testing.T) {
+func TestServerUpdateReferenceList(t *testing.T) {
 	require := require.New(t)
 
 	server, iyoCl, clean := getTestGRPCServer(t, organization)
@@ -242,11 +233,9 @@ func TestUpdateReferenceList(t *testing.T) {
 
 	// set reflist
 	testKey := []byte("testkey1")
-	md := metadata.Pairs(api.GRPCMetaAuthKey, jwt, api.GRPCMetaLabelKey, label)
-	ctx := metadata.NewOutgoingContext(context.Background(), md)
+	ctx := contextWithLabelAndToken(nil, jwt, label)
 
-	_, err = cl.SetReferenceList(ctx, &pb.UpdateReferenceListRequest{
-		Label:         label,
+	_, err = cl.SetReferenceList(ctx, &pb.SetReferenceListRequest{
 		Key:           testKey,
 		ReferenceList: []string{"ref1"},
 	})
@@ -256,8 +245,7 @@ func TestUpdateReferenceList(t *testing.T) {
 	require.Equal([]string{"ref1"}, curReflist)
 
 	// append reflist with "ref2"
-	_, err = cl.AppendReferenceList(ctx, &pb.UpdateReferenceListRequest{
-		Label:         label,
+	_, err = cl.AppendToReferenceList(ctx, &pb.AppendToReferenceListRequest{
 		Key:           testKey,
 		ReferenceList: []string{"ref2"},
 	})
@@ -267,34 +255,54 @@ func TestUpdateReferenceList(t *testing.T) {
 	require.Equal([]string{"ref1", "ref2"}, curReflist)
 
 	// remove "ref2"
-	_, err = cl.RemoveReferenceList(ctx, &pb.UpdateReferenceListRequest{
-		Label:         label,
+	resp, err := cl.DeleteFromReferenceList(ctx, &pb.DeleteFromReferenceListRequest{
 		Key:           testKey,
 		ReferenceList: []string{"ref2"},
 	})
 	require.NoError(err)
+	require.Equal(int64(1), resp.GetCount())
 
 	curReflist = getCurrentReflist(ctx, require, cl, testKey, label)
 	require.Equal([]string{"ref1"}, curReflist)
 
 	// remove "ref1"
-	_, err = cl.RemoveReferenceList(ctx, &pb.UpdateReferenceListRequest{
-		Label:         label,
+	resp, err = cl.DeleteFromReferenceList(ctx, &pb.DeleteFromReferenceListRequest{
 		Key:           testKey,
 		ReferenceList: []string{"ref1"},
 	})
 	require.NoError(err)
+	require.Equal(int64(0), resp.GetCount())
 
 	curReflist = getCurrentReflist(ctx, require, cl, testKey, label)
 	require.Empty(curReflist)
 }
 
 func getCurrentReflist(ctx context.Context, require *require.Assertions, cl pb.ObjectManagerClient, key []byte, label string) []string {
-	resp, err := cl.Get(ctx, &pb.GetObjectRequest{
-		Label: label,
-		Key:   key,
+	resp, err := cl.GetReferenceList(ctx, &pb.GetReferenceListRequest{
+		Key: key,
 	})
-	require.NoError(err)
+	if err != nil {
+		err = rpctypes.Error(err)
+		if err == rpctypes.ErrKeyNotFound {
+			return nil
+		}
+		require.Fail(err.Error())
+	}
+	return resp.GetReferenceList()
+}
 
-	return resp.Object.GetReferenceList()
+func contextWithLabelAndToken(ctx context.Context, token, label string) context.Context {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	md := metadata.Pairs(rpctypes.MetaAuthKey, token, rpctypes.MetaLabelKey, label)
+	return metadata.NewOutgoingContext(ctx, md)
+}
+
+func contextWithToken(ctx context.Context, token string) context.Context {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	md := metadata.Pairs(rpctypes.MetaAuthKey, token)
+	return metadata.NewOutgoingContext(ctx, md)
 }

@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/zero-os/0-stor/client/meta"
-	"github.com/zero-os/0-stor/client/meta/encoding/proto"
+	"github.com/zero-os/0-stor/client/metastor"
+	"github.com/zero-os/0-stor/client/metastor/encoding/proto"
 )
 
 func TestRoundTrip(t *testing.T) {
@@ -30,21 +30,21 @@ func TestRoundTrip(t *testing.T) {
 	require.Equal([]string{etcd.ListenAddr()}, c.Endpoints())
 
 	// prepare the data
-	md := meta.Data{
+	md := metastor.Data{
 		Key:   []byte("two"),
 		Epoch: 123456789,
-		Chunks: []*meta.Chunk{
-			&meta.Chunk{
+		Chunks: []*metastor.Chunk{
+			&metastor.Chunk{
 				Size:   math.MaxInt64,
 				Key:    []byte("foo"),
 				Shards: nil,
 			},
-			&meta.Chunk{
+			&metastor.Chunk{
 				Size:   1234,
 				Key:    []byte("bar"),
 				Shards: []string{"foo"},
 			},
-			&meta.Chunk{
+			&metastor.Chunk{
 				Size:   2,
 				Key:    []byte("baz"),
 				Shards: []string{"bar", "foo"},
@@ -56,7 +56,7 @@ func TestRoundTrip(t *testing.T) {
 
 	// ensure metadata is not there yet
 	_, err = c.GetMetadata(md.Key)
-	require.Equal(meta.ErrNotFound, err)
+	require.Equal(metastor.ErrNotFound, err)
 
 	// set the metadata
 	err = c.SetMetadata(md)
@@ -74,7 +74,7 @@ func TestRoundTrip(t *testing.T) {
 	require.NoError(err)
 	// make sure we can't get it back
 	_, err = c.GetMetadata(md.Key)
-	require.Equal(meta.ErrNotFound, err)
+	require.Equal(metastor.ErrNotFound, err)
 }
 
 // test that client can return gracefully when the server is not exist
@@ -119,13 +119,13 @@ func TestClientNilKeys(t *testing.T) {
 	defer c.Close()
 
 	_, err = c.GetMetadata(nil)
-	require.Equal(meta.ErrNilKey, err)
+	require.Equal(metastor.ErrNilKey, err)
 
-	err = c.SetMetadata(meta.Data{})
-	require.Equal(meta.ErrNilKey, err)
+	err = c.SetMetadata(metastor.Data{})
+	require.Equal(metastor.ErrNilKey, err)
 
 	err = c.DeleteMetadata(nil)
-	require.Equal(meta.ErrNilKey, err)
+	require.Equal(metastor.ErrNilKey, err)
 }
 
 func TestInvalidMetadataObject(t *testing.T) {
@@ -152,16 +152,16 @@ func TestInvalidMetadataObject(t *testing.T) {
 	// now try to fetch it, and ensure that we idd get an error
 	_, err = c.GetMetadata([]byte("foo"))
 	require.Error(err)
-	require.NotEqual(meta.ErrNotFound, err)
+	require.NotEqual(metastor.ErrNotFound, err)
 
 	// also ensure we get an error in case the marshaler returns an error
-	err = c.SetMetadata(meta.Data{Key: []byte("whatever-forever")})
+	err = c.SetMetadata(metastor.Data{Key: []byte("whatever-forever")})
 	require.NoError(err)
 	myEncodingErr := errors.New("encoding error: pwned")
-	c.marshal = func(md meta.Data) ([]byte, error) {
+	c.marshal = func(md metastor.Data) ([]byte, error) {
 		return nil, myEncodingErr
 	}
-	err = c.SetMetadata(meta.Data{Key: []byte("whatever-forever")})
+	err = c.SetMetadata(metastor.Data{Key: []byte("whatever-forever")})
 	require.Equal(myEncodingErr, err)
 }
 
@@ -178,7 +178,7 @@ func TestServerDown(t *testing.T) {
 
 	require.Equal([]string{etcd.ListenAddr()}, c.Endpoints())
 
-	md := meta.Data{Key: []byte("key")}
+	md := metastor.Data{Key: []byte("key")}
 
 	// make sure we can do some operation to server
 	err = c.SetMetadata(md)

@@ -34,6 +34,17 @@ func TestDataKey(t *testing.T) {
 	require.Equal("42:d:大家好", s(DataKey(bs("42"), bs("大家好"))))
 }
 
+func TestDataKeyPrefixLength(t *testing.T) {
+	require := require.New(t)
+
+	require.Panics(func() {
+		DataKeyPrefixLength(nil)
+	}, "should panic when no label is given")
+
+	require.Equal(6, DataKeyPrefixLength(bs("foo")))
+	require.Equal(12, DataKeyPrefixLength(bs("大家好")))
+}
+
 func TestReferenceListPrefix(t *testing.T) {
 	require := require.New(t)
 
@@ -60,6 +71,17 @@ func TestReferenceListKey(t *testing.T) {
 
 	require.Equal("foo:rl:bar", s(ReferenceListKey(bs("foo"), bs("bar"))))
 	require.Equal("42:rl:大家好", s(ReferenceListKey(bs("42"), bs("大家好"))))
+}
+
+func TestReferenceListKeyPrefixLength(t *testing.T) {
+	require := require.New(t)
+
+	require.Panics(func() {
+		ReferenceListKeyPrefixLength(nil)
+	}, "should panic when no label is given")
+
+	require.Equal(7, ReferenceListKeyPrefixLength(bs("foo")))
+	require.Equal(13, ReferenceListKeyPrefixLength(bs("大家好")))
 }
 
 func TestNamespaceKey(t *testing.T) {

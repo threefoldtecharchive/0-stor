@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/zero-os/0-stor/client/meta"
+	"github.com/zero-os/0-stor/client/metastor"
 )
 
-// writeMetaInHumanReadableFormat writes a meta.Meta struct
+// writeMetaInHumanReadableFormat writes a metastor.Meta struct
 // as a human readable format into the writer.
-func writeMetaAsHumanReadableFormat(w io.Writer, m meta.Data) error {
+func writeMetaAsHumanReadableFormat(w io.Writer, m metastor.Data) error {
 	w.Write([]byte(fmt.Sprintf("Key: %s\n", m.Key)))
 	w.Write([]byte(fmt.Sprintf("Epoch: %d\n", m.Epoch)))
 
@@ -41,9 +41,9 @@ func writeMetaAsHumanReadableFormat(w io.Writer, m meta.Data) error {
 	return nil
 }
 
-// writeMetaAsJSON writes a meta.Meta struct
+// writeMetaAsJSON writes a metastor.Meta struct
 // as a (prettified) JSON.
-func writeMetaAsJSON(w io.Writer, m meta.Data, pretty bool) error {
+func writeMetaAsJSON(w io.Writer, m metastor.Data, pretty bool) error {
 	encoder := json.NewEncoder(w)
 	if pretty {
 		encoder.SetIndent("", "\t")

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/zero-os/0-stor/server/api"
+	"github.com/zero-os/0-stor/server/api/grpc/rpctypes"
 	"github.com/zero-os/0-stor/server/jwt"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -44,19 +44,19 @@ type jwtAuthInterceptor struct {
 }
 
 func (interceptor *jwtAuthInterceptor) jwtAuthenticator(ctx context.Context, grpcMethod string) error {
-	label, err := extractStringFromContext(ctx, api.GRPCMetaLabelKey)
+	label, err := extractStringFromContext(ctx, rpctypes.MetaLabelKey)
 	if err != nil {
-		return unauthenticatedError(err)
+		return rpctypes.ErrNilLabel
 	}
 
 	method, err := getJWTMethod(grpcMethod)
 	if err != nil {
-		return unauthenticatedError(err)
+		return rpctypes.ErrUnimplemented
 	}
 
 	err = interceptor.v.ValidateJWT(ctx, method, label)
 	if err != nil {
-		return unauthenticatedError(err)
+		return rpctypes.ErrPermissionDenied
 	}
 
 	return nil
@@ -90,17 +90,19 @@ func getJWTMethod(grpcMethod string) (jwt.Method, error) {
 
 var (
 	_JWTObjectMethodsMap = map[string]jwt.Method{
-		"Get":                 jwt.MethodRead,
-		"List":                jwt.MethodRead,
-		"Exists":              jwt.MethodRead,
-		"Check":               jwt.MethodRead,
-		"Create":              jwt.MethodWrite,
-		"SetReferenceList":    jwt.MethodWrite,
-		"AppendReferenceList": jwt.MethodWrite,
-		"RemoveReferenceList": jwt.MethodWrite,
-		"Delete":              jwt.MethodDelete,
+		"GetObject":               jwt.MethodRead,
+		"GetObjectStatus":         jwt.MethodRead,
+		"ListObjectKeys":          jwt.MethodRead,
+		"GetReferenceList":        jwt.MethodRead,
+		"GetReferenceCount":       jwt.MethodRead,
+		"SetObject":               jwt.MethodWrite,
+		"SetReferenceList":        jwt.MethodWrite,
+		"AppendToReferenceList":   jwt.MethodWrite,
+		"DeleteObject":            jwt.MethodDelete,
+		"DeleteReferenceList":     jwt.MethodDelete,
+		"DeleteFromReferenceList": jwt.MethodDelete,
 	}
 	_JWTNamespaceMethodsMap = map[string]jwt.Method{
-		"Get": jwt.MethodAdmin,
+		"GetNamespace": jwt.MethodAdmin,
 	}
 )

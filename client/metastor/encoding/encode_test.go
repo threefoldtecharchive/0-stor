@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/zero-os/0-stor/client/meta"
-	"github.com/zero-os/0-stor/client/meta/encoding/proto"
+	"github.com/zero-os/0-stor/client/metastor"
+	"github.com/zero-os/0-stor/client/metastor/encoding/proto"
 )
 
 func TestMarshalTypeMarshalUnmarshal(t *testing.T) {
@@ -110,7 +110,7 @@ func TestMyCustomMarshalFuncPair(t *testing.T) {
 	pair, err := NewMarshalFuncPair(myCustomMarshalType)
 	require.NoError(err)
 	require.NotNil(pair.Marshal)
-	_, err = pair.Marshal(meta.Data{})
+	_, err = pair.Marshal(metastor.Data{})
 	require.Equal(errMyMarshal, err)
 	require.NotNil(pair.Unmarshal)
 	err = pair.Unmarshal(nil, nil)
@@ -153,11 +153,11 @@ const (
 
 var errMyMarshal = errors.New("my marshal error")
 
-func myErrorMarsalFunc(meta.Data) ([]byte, error) {
+func myErrorMarsalFunc(metastor.Data) ([]byte, error) {
 	return nil, errMyMarshal
 }
 
-func myErrorUnmarshalFunc([]byte, *meta.Data) error {
+func myErrorUnmarshalFunc([]byte, *metastor.Data) error {
 	return errMyMarshal
 }
 
