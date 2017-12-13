@@ -10,18 +10,15 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/zero-os/0-stor/client/datastor"
+	"github.com/zero-os/0-stor/server/api/grpc/rpctypes"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/zero-os/0-stor/server/api/grpc"
-	"github.com/zero-os/0-stor/server/api/grpc/rpctypes"
-	"github.com/zero-os/0-stor/server/db/memory"
 )
 
 func TestClientWithServer_API(t *testing.T) {
 	require := require.New(t)
 
-	client, clean, err := newServerClient()
+	client, _, clean, err := newServerClient()
 	require.NoError(err)
 	defer clean()
 	require.NotNil(client)
@@ -261,7 +258,7 @@ func TestClientWithServer_AppendToReferenceListAsync(t *testing.T) {
 	// first create our database and object
 	require := require.New(t)
 
-	client, clean, err := newServerClient()
+	client, _, clean, err := newServerClient()
 	require.NoError(err)
 	defer clean()
 	require.NotNil(client)
@@ -302,7 +299,7 @@ func TestClientWithServer_DeleteFromReferenceListAsync(t *testing.T) {
 	// first create our database and object
 	require := require.New(t)
 
-	client, clean, err := newServerClient()
+	client, _, clean, err := newServerClient()
 	require.NoError(err)
 	defer clean()
 	require.NotNil(client)
@@ -351,30 +348,4 @@ func TestClientWithServer_DeleteFromReferenceListAsync(t *testing.T) {
 	referenceCount, err := client.GetReferenceCount(key)
 	require.NoError(err)
 	require.Equal(int64(0), referenceCount)
-}
-
-func newServerClient() (*Client, func(), error) {
-	server, err := grpc.New(memory.New(), nil, 0, 0)
-	if err != nil {
-		return nil, nil, err
-	}
-	go func() {
-		err := server.Listen("localhost:0")
-		if err != nil {
-			panic(err)
-		}
-	}()
-
-	clean := func() {
-		fmt.Sprintln("clean called")
-		server.Close()
-	}
-
-	client, err := NewClient(server.Address(), "myLabel", "")
-	if err != nil {
-		clean()
-		return nil, nil, err
-	}
-
-	return client, clean, nil
 }

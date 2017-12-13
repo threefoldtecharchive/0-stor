@@ -83,11 +83,11 @@ func (c *Client) updateRefListWithMeta(md *metastor.Data, refList []string, op i
 
 		wg.Add(len(chunk.Shards))
 		for _, shard := range chunk.Shards {
-			go func(shard string) {
+			go func(shardID string) {
 				defer wg.Done()
 
 				// get stor client
-				storCli, err := c.getStor(shard)
+				shard, err := c.cluster.GetShard(shardID)
 				if err != nil {
 					errCh <- err
 					return
@@ -96,14 +96,14 @@ func (c *Client) updateRefListWithMeta(md *metastor.Data, refList []string, op i
 				// do the work
 				switch op {
 				case refListOpSet:
-					err = storCli.SetReferenceList(chunk.Key, refList)
+					err = shard.SetReferenceList(chunk.Key, refList)
 				case refListOpAppendTo:
-					err = storCli.AppendToReferenceList(chunk.Key, refList)
+					err = shard.AppendToReferenceList(chunk.Key, refList)
 				case refListOpDeleteFrom:
 					// TODO: return the count value to the user?!
-					_, err = storCli.DeleteFromReferenceList(chunk.Key, refList)
+					_, err = shard.DeleteFromReferenceList(chunk.Key, refList)
 				case refListOpDelete:
-					err = storCli.DeleteReferenceList(chunk.Key)
+					err = shard.DeleteReferenceList(chunk.Key)
 				default:
 					err = fmt.Errorf("wrong operation: %v", op)
 				}

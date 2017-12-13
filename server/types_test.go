@@ -89,8 +89,8 @@ func TestReferenceList(t *testing.T) {
 	require.Empty(listA.RemoveReferences(rl()))
 	require.Equal(rls("o,c"), listA)
 
-	// let's remove "f,o,o", won't do anything except sorting it
-	require.Equal(rls("f,o,o"), listA.RemoveReferences(rls("f,o,o")))
+	// let's remove "b,a,r", won't do anything except sorting it
+	require.Equal(rls("a,b,r"), listA.RemoveReferences(rls("b,a,r")))
 	require.Equal(rls("c,o"), listA)
 
 	// appending and removing nothing doesn't change anything
@@ -117,6 +117,23 @@ func TestReferenceList(t *testing.T) {
 	require.Equal(rls("bar,baz,bin"),
 		listA.RemoveReferences(rls("bar,baz,baz,bar,bong,bin")))
 	require.Equal(rl("bang"), listA)
+}
+
+func TestReferenceListDeleteFromEnd(t *testing.T) {
+	// local util functions to easily create a reference list
+	rl := func(elements ...string) ReferenceList { return ReferenceList(elements) }
+	rls := func(str string) ReferenceList { return rl(strings.Split(str, ",")...) }
+
+	require := require.New(t)
+
+	listA := rls("foo,baz")
+	listB := rls("foo,bar")
+
+	listRem := listA.RemoveReferences(listB)
+
+	require.Equal(rl("bar"), listRem)
+	require.Equal(rl("baz"), listA)
+	require.Equal(rls("bar,foo"), listB)
 }
 
 func TestDefaultObjectStatus(t *testing.T) {

@@ -4,9 +4,8 @@ import (
 	"crypto/rand"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/zero-os/0-stor/client/datastor"
+	"github.com/zero-os/0-stor/client/components/storage"
 )
 
 func TestCheck(t *testing.T) {
@@ -51,10 +50,10 @@ func TestCheck(t *testing.T) {
 	// Check status is ok after a write
 	status, err := c.Check(meta.Key)
 	require.NoError(t, err, "fail to check object")
-	assert.Equal(t, datastor.ObjectStatusOK, status)
+	require.True(t, status == storage.ObjectCheckStatusValid || status == storage.ObjectCheckStatusOptimal)
 
 	// corrupt file by removing blocks
-	store, err := c.getStor(meta.Chunks[0].Shards[0])
+	store, err := c.cluster.GetShard(meta.Chunks[0].Shards[0])
 	require.NoError(t, err)
 
 	for i := 0; i < len(meta.Chunks); i += 4 {
@@ -67,5 +66,5 @@ func TestCheck(t *testing.T) {
 	// Check status is corrupted
 	status, err = c.Check(meta.Key)
 	require.NoError(t, err, "fail to check object")
-	assert.Equal(t, datastor.ObjectStatusMissing, status)
+	require.True(t, status == storage.ObjectCheckStatusValid || status == storage.ObjectCheckStatusInvalid)
 }

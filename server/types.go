@@ -84,6 +84,17 @@ resultLoop:
 		// compare the elements
 		if element != other[otherIndex] {
 			resultIndex++
+			if resultIndex >= len(result) {
+				continue
+			}
+			// ensure to skip any elements which are less than the current index
+			for other[otherIndex] < result[resultIndex] {
+				remaining = append(remaining, other[otherIndex])
+				otherIndex++
+				if otherIndex >= otherLength {
+					break resultLoop
+				}
+			}
 			continue
 		}
 
