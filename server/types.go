@@ -52,14 +52,14 @@ func (list *ReferenceList) AppendReferences(other ReferenceList) {
 	*list = append(*list, other...)
 }
 
-// RemoveReferences removes the elements, of the other list, from the current list.
+// DeleteReferences removes the elements, of the other list, from the current list.
 // Both the current list and other list are sorted prior to removal,
 // this is required as elements appended to a ReferenceList might
 // make that list unsorted.
 //
-// RemoveReferences returns at the end the elements that were part of other
+// DeleteReferences returns at the end the elements that were part of other
 // but weren't part of this list and thus couldn't be removed.
-func (list *ReferenceList) RemoveReferences(other ReferenceList) (rest ReferenceList) {
+func (list *ReferenceList) DeleteReferences(other ReferenceList) (rest ReferenceList) {
 	otherLength := len(other)
 	if otherLength == 0 {
 		return // nop-operation

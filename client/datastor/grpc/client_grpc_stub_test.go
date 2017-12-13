@@ -132,7 +132,7 @@ func (os *stubObjectService) DeleteFromReferenceList(ctx context.Context, in *pb
 		return nil, os.err
 	}
 	refList := server.ReferenceList(os.refList)
-	refList.RemoveReferences(server.ReferenceList(in.ReferenceList))
+	refList.DeleteReferences(server.ReferenceList(in.ReferenceList))
 	os.refList = []string(refList)
 	return &pb.DeleteFromReferenceListResponse{
 		Count: int64(len(os.refList)),

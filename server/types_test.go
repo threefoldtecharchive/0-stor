@@ -19,8 +19,8 @@ func TestReferenceList(t *testing.T) {
 	)
 
 	// removing from an empty/nil list should be possible
-	listA.RemoveReferences(rl())
-	listA.RemoveReferences(rls("a,b,c"))
+	listA.DeleteReferences(rl())
+	listA.DeleteReferences(rls("a,b,c"))
 	require.Nil(listA)
 
 	// Let's append stuff to our list
@@ -32,23 +32,23 @@ func TestReferenceList(t *testing.T) {
 	require.Equal(rls("a,a,b"), listA)
 
 	// now let's remove one "a"
-	require.Empty(listA.RemoveReferences(rl("a")))
+	require.Empty(listA.DeleteReferences(rl("a")))
 	require.Equal(rls("a,b"), listA)
 
 	// not let's remove "a,b,a"
-	require.Equal(rl("a"), listA.RemoveReferences(rls("a,b,a")))
+	require.Equal(rl("a"), listA.DeleteReferences(rls("a,b,a")))
 	require.Empty(listA)
 	// add "a,b" again
 	listA.AppendReferences(rls("a,b"))
 	require.Equal(rls("a,b"), listA)
 
 	// now let's remove "a,a"
-	require.Equal(rl("a"), listA.RemoveReferences(rls("a,a")))
+	require.Equal(rl("a"), listA.DeleteReferences(rls("a,a")))
 	require.Equal(rl("b"), listA)
 	// add "a" again and sort it
 	listA.AppendReferences(rl("a"))
 	require.Equal(rls("b,a"), listA)
-	require.Equal(rls("f,o,o"), listA.RemoveReferences(rls("f,o,o")))
+	require.Equal(rls("f,o,o"), listA.DeleteReferences(rls("f,o,o")))
 	require.Equal(rls("a,b"), listA)
 
 	// let's add some more "a"s, "b"s and one "c"
@@ -57,26 +57,26 @@ func TestReferenceList(t *testing.T) {
 
 	// now let's remove "d", this doesn't exist,
 	// it will however make our list be sorted once again
-	require.Equal(rl("d"), listA.RemoveReferences(rl("d")))
+	require.Equal(rl("d"), listA.DeleteReferences(rl("d")))
 	require.Equal(rls("a,a,a,a,b,b,b,b,c"), listA)
 
 	// now let's remove "b,a,d,a,b,a"
-	require.Equal(rl("d"), listA.RemoveReferences(rls("b,a,d,a,b,a")))
+	require.Equal(rl("d"), listA.DeleteReferences(rls("b,a,d,a,b,a")))
 	require.Equal(rls("a,b,b,c"), listA)
 
 	// now let's remove "b" and add it again
-	require.Empty(listA.RemoveReferences(rl("b")))
+	require.Empty(listA.DeleteReferences(rl("b")))
 	require.Equal(rls("a,b,c"), listA)
 	listA.AppendReferences(rl("b"))
 	require.Equal(rls("a,b,c,b"), listA)
 
 	// now let's remove "c" only
-	require.Empty(listA.RemoveReferences(rl("c")))
+	require.Empty(listA.DeleteReferences(rl("c")))
 
 	// now let's add "d,o", and remove "b,a,d,a,b,a" again
 	listA.AppendReferences(rls("d,o"))
 	require.Equal(rls("a,b,b,d,o"), listA)
-	require.Equal(rls("a,a"), listA.RemoveReferences(rls("b,a,d,a,b,a")))
+	require.Equal(rls("a,a"), listA.DeleteReferences(rls("b,a,d,a,b,a")))
 	require.Equal(rl("o"), listA)
 
 	// let's give it a "c"
@@ -86,36 +86,36 @@ func TestReferenceList(t *testing.T) {
 	// if we remove using a nil-list,
 	// we won't have sorted our current list either,
 	// as to be as lazy as possible
-	require.Empty(listA.RemoveReferences(rl()))
+	require.Empty(listA.DeleteReferences(rl()))
 	require.Equal(rls("o,c"), listA)
 
 	// let's remove "b,a,r", won't do anything except sorting it
-	require.Equal(rls("a,b,r"), listA.RemoveReferences(rls("b,a,r")))
+	require.Equal(rls("a,b,r"), listA.DeleteReferences(rls("b,a,r")))
 	require.Equal(rls("c,o"), listA)
 
 	// appending and removing nothing doesn't change anything
 	listA.AppendReferences(rl())
 	require.Equal(rls("c,o"), listA)
-	require.Empty(listA.RemoveReferences(rl()))
+	require.Empty(listA.DeleteReferences(rl()))
 	require.Equal(rls("c,o"), listA)
 	listA.AppendReferences(rl())
 	require.Equal(rls("c,o"), listA)
 
 	// now let's remove "c,o,o,c", and we're done
-	require.Equal(rls("c,o"), listA.RemoveReferences(rls("c,o,c,o")))
+	require.Equal(rls("c,o"), listA.DeleteReferences(rls("c,o,c,o")))
 	require.Empty(listA)
 
 	// let's do some testing with empty strings
 	listA.AppendReferences(rl("大家好", "", "大家好"))
 	require.Equal(rl("大家好", "", "大家好"), listA)
-	require.Equal(rl(""), listA.RemoveReferences(rl("", "大家好", "", "大家好")))
+	require.Equal(rl(""), listA.DeleteReferences(rl("", "大家好", "", "大家好")))
 	require.Empty(listA)
 
 	// let's test some more appending and removing
 	listA.AppendReferences(rls("bar,baz,bong,bang"))
 	require.Equal(rls("bar,baz,bong,bang"), listA)
 	require.Equal(rls("bar,baz,bin"),
-		listA.RemoveReferences(rls("bar,baz,baz,bar,bong,bin")))
+		listA.DeleteReferences(rls("bar,baz,baz,bar,bong,bin")))
 	require.Equal(rl("bang"), listA)
 }
 
@@ -129,7 +129,7 @@ func TestReferenceListDeleteFromEnd(t *testing.T) {
 	listA := rls("foo,baz")
 	listB := rls("foo,bar")
 
-	listRem := listA.RemoveReferences(listB)
+	listRem := listA.DeleteReferences(listB)
 
 	require.Equal(rl("bar"), listRem)
 	require.Equal(rl("baz"), listA)

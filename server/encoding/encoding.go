@@ -455,7 +455,7 @@ func RemoveFromEncodedReferenceList(data []byte, other server.ReferenceList) ([]
 	}
 
 	// Remove the other list from the decoded list
-	remaining := list.RemoveReferences(other)
+	remaining := list.DeleteReferences(other)
 	count := len(list)
 	if len(remaining) == len(other) {
 		// nothing to do, no references were removed
