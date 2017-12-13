@@ -51,10 +51,6 @@ type ObjectStorage interface {
 	// Repair will try to repair an object, already stored within the Storage.
 	// If the object could be repaired, the new StorageConfig will
 	// indicate the current shards the object has been stored on.
-	//
-	// validShards and invalidShards are optional parameters and can be given
-	// to the Storage, as to hint it which shards are known to be (in)valid,
-	// the storage type is however free to ignore these should those not be needed.
 	Repair(cfg ObjectConfig) (ObjectConfig, error)
 
 	// Close the storage and all its resources,
