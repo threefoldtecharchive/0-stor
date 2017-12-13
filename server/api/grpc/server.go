@@ -103,7 +103,7 @@ func (s *Server) Listen(addr string) error {
 	s.addressCh <- s.listener.Addr().String()
 
 	err = s.grpcServer.Serve(s.listener)
-	if err != nil && !isClosedConnError(err) {
+	if err != nil && err != grpc.ErrServerStopped && !isClosedConnError(err) {
 		return err
 	}
 	return nil
