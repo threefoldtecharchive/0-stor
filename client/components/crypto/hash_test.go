@@ -3,7 +3,7 @@ package crypto
 import (
 	"crypto/rand"
 	"math"
-	mrand "math/rand"
+	mathRand "math/rand"
 	"strings"
 	"testing"
 
@@ -118,7 +118,7 @@ func TestHashTypeMarshal(t *testing.T) {
 		{HashTypeBlake2b256, "blake2b_256"},
 		{HashTypeBlake2b512, "blake2b_512"},
 		{myCustomHashType, myCustomHashTypeStr},
-		{math.MaxUint8, ""},
+		{math.MaxUint8, "255"},
 	}
 	for _, tc := range testCases {
 		b, err := tc.Type.MarshalText()
@@ -150,7 +150,8 @@ func TestHashTypeUnmarshal(t *testing.T) {
 		{"BLAKE2B_512", HashTypeBlake2b512, false},
 		{myCustomHashTypeStr, myCustomHashType, false},
 		{strings.ToUpper(myCustomHashTypeStr), myCustomHashType, false},
-		{"", math.MaxUint8, true},
+		{"", DefaultHashType, false},
+		{"some invalid type", math.MaxUint8, true},
 	}
 	for _, tc := range testCases {
 		var o HashType
@@ -202,7 +203,7 @@ func testSumFunc(t *testing.T, h HashFunc, size int) {
 	require := require.New(t)
 	m := make(map[string]struct{})
 	for i := 0; i < 1024; i++ {
-		sz := int(mrand.Int31n(1024*8) + 128)
+		sz := int(mathRand.Int31n(1024*8) + 128)
 		b := make([]byte, sz)
 		n, err := rand.Read(b)
 		require.NoError(err)
@@ -284,11 +285,11 @@ func TestRegisterHashExplicitPanics(t *testing.T) {
 	require := require.New(t)
 
 	require.Panics(func() {
-		RegisterHash(myCustomHashType, myCustomHashTypeStr, nil)
+		RegisterHasher(myCustomHashType, myCustomHashTypeStr, nil)
 	}, "no constructor given")
 
 	require.Panics(func() {
-		RegisterHash(myCustomHashTypeNumberTwo, "", newMyCustomHasher)
+		RegisterHasher(myCustomHashTypeNumberTwo, "", newMyCustomHasher)
 	}, "no string version given for non-registered hash")
 }
 
@@ -296,8 +297,13 @@ func TestRegisterHashIgnoreStringExistingHash(t *testing.T) {
 	require := require.New(t)
 
 	require.Equal(myCustomHashTypeStr, myCustomHashType.String())
-	RegisterHash(myCustomHashType, "foo", newMyCustomHasher)
+	RegisterHasher(myCustomHashType, "foo", newMyCustomHasher)
 	require.Equal(myCustomHashTypeStr, myCustomHashType.String())
+
+	// the given string to RegisterHasher will force lower cases for all characters
+	// as to make the string<->value mapping case insensitive
+	RegisterHasher(myCustomHashTypeNumberTwo, "FOO", newMyCustomHasher)
+	require.Equal("foo", myCustomHashTypeNumberTwo.String())
 }
 
 const (
@@ -318,5 +324,5 @@ func newMyCustomHasher([]byte) (Hasher, error) {
 }
 
 func init() {
-	RegisterHash(myCustomHashType, myCustomHashTypeStr, newMyCustomHasher)
+	RegisterHasher(myCustomHashType, myCustomHashTypeStr, newMyCustomHasher)
 }

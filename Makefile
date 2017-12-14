@@ -3,6 +3,7 @@ GOOS ?= linux
 GOARCH ?= amd64
 
 TIMEOUT ?= 10m
+RACE_TIMEOUT ?= 20m
 
 PACKAGE = github.com/zero-os/0-stor
 COMMIT_HASH = $(shell git rev-parse --short HEAD 2>/dev/null)
@@ -56,10 +57,10 @@ testcmd:
 	go test -v -timeout $(TIMEOUT) $(CMD_PACKAGES)
 
 testserverrace:
-	go test -v -race $(SERVER_PACKAGES)
+	go test -race -timeout $(RACE_TIMEOUT) $(SERVER_PACKAGES)
 
 testclientrace:
-	go test -v -race $(CLIENT_PACKAGES)
+	go test -race -timeout $(RACE_TIMEOUT) $(CLIENT_PACKAGES)
 
 testcodegen:
 	./utils/scripts/test_codegeneration.sh

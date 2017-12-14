@@ -52,13 +52,6 @@ type ObjectStorage interface {
 	// If the object could be repaired, the new StorageConfig will
 	// indicate the current shards the object has been stored on.
 	Repair(cfg ObjectConfig) (ObjectConfig, error)
-
-	// Close the storage and all its resources,
-	// making the storage invalid for use after this call.
-	//
-	// Using a storage after closing it results in undefined behavior,
-	// and should never be done.
-	Close() error
 }
 
 // ObjectConfig is a configuration type,

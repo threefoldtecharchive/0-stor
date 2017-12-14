@@ -15,33 +15,38 @@ import (
 // See `ReplicatedObjectStorage` for more information.
 //
 // jobCount is optional and can be `<= 0` in order to use DefaultJobCount.
-func NewReplicatedObjectStorage(cluster datastor.Cluster, replicationNr, jobCount int) *ReplicatedObjectStorage {
+func NewReplicatedObjectStorage(cluster datastor.Cluster, dataShardCount, jobCount int) (*ReplicatedObjectStorage, error) {
 	if cluster == nil {
-		panic("no cluster given")
+		panic("ReplicatedObjectStorage: no datastor cluster given")
 	}
-	if replicationNr < 1 {
-		panic("replicationNr has to be at least 1")
+	if dataShardCount < 1 {
+		panic("ReplicatedObjectStorage: dataShardCount has to be at least 1")
+	}
+
+	if cluster.ListedShardCount() < dataShardCount {
+		return nil, errors.New("ReplicatedObjectStorage requires " +
+			"at least dataShardCount amount of listed datastor shards")
 	}
 
 	if jobCount < 1 {
 		jobCount = DefaultJobCount
 	}
 	writeJobCount := jobCount
-	if writeJobCount < replicationNr {
-		writeJobCount = replicationNr
+	if writeJobCount < dataShardCount {
+		writeJobCount = dataShardCount
 	}
 
 	return &ReplicatedObjectStorage{
-		cluster:       cluster,
-		replicationNr: replicationNr,
-		jobCount:      jobCount,
-		writeJobCount: writeJobCount,
-	}
+		cluster:        cluster,
+		dataShardCount: dataShardCount,
+		jobCount:       jobCount,
+		writeJobCount:  writeJobCount,
+	}, nil
 }
 
 // ReplicatedObjectStorage defines a storage implementation,
 // which writes an object to multiple shards at once,
-// the amount of shards which is defined by the used replicationNr.
+// the amount of shards which is defined by the used dataShardCount.
 //
 // For reading it will try to a multitude of the possible shards at once,
 // and return the object that it received first. As it is expected that all
@@ -53,13 +58,13 @@ func NewReplicatedObjectStorage(cluster datastor.Cluster, replicationNr, jobCoun
 // while the dead shards will be attempted to be replaced, if possible.
 type ReplicatedObjectStorage struct {
 	cluster                 datastor.Cluster
-	replicationNr           int
+	dataShardCount          int
 	jobCount, writeJobCount int
 }
 
 // Write implements storage.ObjectStorage.Write
 func (rs *ReplicatedObjectStorage) Write(object datastor.Object) (ObjectConfig, error) {
-	shards, err := rs.write(nil, rs.replicationNr, object)
+	shards, err := rs.write(nil, rs.dataShardCount, object)
 	if err != nil {
 		return ObjectConfig{}, err
 	}
@@ -200,7 +205,7 @@ func (rs *ReplicatedObjectStorage) Check(cfg ObjectConfig, fast bool) (ObjectChe
 			if !open {
 				return ObjectCheckStatusInvalid, nil
 			}
-			if rs.replicationNr == 1 {
+			if rs.dataShardCount == 1 {
 				return ObjectCheckStatusOptimal, nil
 			}
 			return ObjectCheckStatusValid, nil
@@ -214,7 +219,7 @@ func (rs *ReplicatedObjectStorage) Check(cfg ObjectConfig, fast bool) (ObjectChe
 	var validShardCount int
 	for range resultCh {
 		validShardCount++
-		if validShardCount == rs.replicationNr {
+		if validShardCount == rs.dataShardCount {
 			return ObjectCheckStatusOptimal, nil
 		}
 	}
@@ -256,7 +261,7 @@ func (rs *ReplicatedObjectStorage) Repair(cfg ObjectConfig) (ObjectConfig, error
 	if shardCount == 0 {
 		return ObjectConfig{}, ErrShardsUnavailable
 	}
-	if shardCount >= rs.replicationNr {
+	if shardCount >= rs.dataShardCount {
 		// if our validShard count is already good enough, we can quit
 		return ObjectConfig{
 			Key:      cfg.Key,
@@ -297,15 +302,15 @@ func (rs *ReplicatedObjectStorage) Repair(cfg ObjectConfig) (ObjectConfig, error
 	}
 
 	// write to our non-used shards
-	shards, err := rs.write(append(invalidShards, validShards...), rs.replicationNr-shardCount, *object)
+	shards, err := rs.write(append(invalidShards, validShards...), rs.dataShardCount-shardCount, *object)
 	if err != nil {
 		return ObjectConfig{}, err
 	}
 
 	// add our shards to our output cfg
-	// and return it if we have at least replicationNr amount of shards
+	// and return it if we have at least dataShardCount amount of shards
 	cfg.Shards = append(validShards, shards...)
-	if len(cfg.Shards) < rs.replicationNr {
+	if len(cfg.Shards) < rs.dataShardCount {
 		return cfg, ErrShardsUnavailable
 	}
 	return cfg, nil
@@ -391,20 +396,20 @@ func (rs *ReplicatedObjectStorage) splitShards(key []byte, allShards []string) (
 	return
 }
 
-func (rs *ReplicatedObjectStorage) write(exceptShards []string, replicationNr int, object datastor.Object) ([]string, error) {
+func (rs *ReplicatedObjectStorage) write(exceptShards []string, dataShardCount int, object datastor.Object) ([]string, error) {
 	group, ctx := errgroup.WithContext(context.Background())
 
 	jobCount := rs.jobCount
-	if jobCount > replicationNr {
-		jobCount = replicationNr
+	if jobCount > dataShardCount {
+		jobCount = dataShardCount
 	}
 
 	// request the worker goroutines,
-	// to get exactly replicationNr amount of replications.
+	// to get exactly dataShardCount amount of replications.
 	requestCh := make(chan struct{}, jobCount)
 	go func() {
 		defer close(requestCh) // closes itself
-		for i := replicationNr; i > 0; i-- {
+		for i := dataShardCount; i > 0; i-- {
 			select {
 			case requestCh <- struct{}{}:
 			case <-ctx.Done():
@@ -418,7 +423,7 @@ func (rs *ReplicatedObjectStorage) write(exceptShards []string, replicationNr in
 	shardCh := datastor.ShardIteratorChannel(ctx,
 		rs.cluster.GetRandomShardIterator(exceptShards), jobCount)
 
-	// write to replicationNr amount of shards,
+	// write to dataShardCount amount of shards,
 	// and return their identifiers over the resultCh,
 	// collection all the successfull shards' identifiers for the final output
 	resultCh := make(chan string, jobCount)
@@ -494,22 +499,17 @@ func (rs *ReplicatedObjectStorage) write(exceptShards []string, replicationNr in
 	}()
 
 	// collect the identifiers of all shards, we could write our object to
-	shards := make([]string, 0, rs.replicationNr)
+	shards := make([]string, 0, rs.dataShardCount)
 	// fetch all results
 	for id := range resultCh {
 		shards = append(shards, id)
 	}
 
 	// check if we have sufficient replications
-	if len(shards) < replicationNr {
+	if len(shards) < dataShardCount {
 		return shards, ErrShardsUnavailable
 	}
 	return shards, nil
-}
-
-// Close implements storage.ObjectStorage.Close
-func (rs *ReplicatedObjectStorage) Close() error {
-	return rs.cluster.Close()
 }
 
 var (

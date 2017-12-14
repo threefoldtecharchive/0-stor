@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"golang.org/x/sync/errgroup"
 
@@ -14,10 +15,14 @@ import (
 // NewDistributedObjectStorage creates a new DistributedObjectStorage,
 // using the given Cluster and default ReedSolomonEncoderDecoder as internal DistributedEncoderDecoder.
 // See `DistributedObjectStorage` `DistributedEncoderDecoder` for more information.
-func NewDistributedObjectStorage(cluster datastor.Cluster, k, m, jobCount int) (*DistributedObjectStorage, error) {
-	dec, err := NewReedSolomonEncoderDecoder(k, m)
+func NewDistributedObjectStorage(cluster datastor.Cluster, dataShardCount, parityShardCount, jobCount int) (*DistributedObjectStorage, error) {
+	if cluster.ListedShardCount() < dataShardCount+parityShardCount {
+		return nil, errors.New("DistributedObjectStorage requires " +
+			"at least dataShardCount+parityShardCount amount of listed datastor shards")
+	}
+	dec, err := NewReedSolomonEncoderDecoder(dataShardCount, parityShardCount)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create DistributedObjectStorage: %v", err)
 	}
 	return NewDistributedObjectStorageWithEncoderDecoder(cluster, dec, jobCount), nil
 }
@@ -27,10 +32,10 @@ func NewDistributedObjectStorage(cluster datastor.Cluster, k, m, jobCount int) (
 // See `DistributedObjectStorage` `DistributedEncoderDecoder` for more information.
 func NewDistributedObjectStorageWithEncoderDecoder(cluster datastor.Cluster, dec DistributedEncoderDecoder, jobCount int) *DistributedObjectStorage {
 	if cluster == nil {
-		panic("no Cluster given")
+		panic("DistributedObjectStorage: no datastor cluster given")
 	}
 	if dec == nil {
-		panic("no DistributedEncoderDecoder given")
+		panic("DistributedObjectStorage: no DistributedEncoderDecoder given")
 	}
 
 	if jobCount < 1 {
@@ -524,11 +529,6 @@ func (ds *DistributedObjectStorage) Repair(cfg ObjectConfig) (ObjectConfig, erro
 	return ds.Write(obj)
 }
 
-// Close implements storage.ObjectStorage.Close
-func (ds *DistributedObjectStorage) Close() error {
-	return ds.cluster.Close()
-}
-
 // DistributedEncoderDecoder is the type used internally to
 // read and write the data of objects, read and written using the DistributedObjectStorage.
 type DistributedEncoderDecoder interface {
@@ -551,23 +551,23 @@ type DistributedEncoderDecoder interface {
 
 // NewReedSolomonEncoderDecoder creates a new ReedSolomonEncoderDecoder.
 // See `ReedSolomonEncoderDecoder` for more information.
-func NewReedSolomonEncoderDecoder(k, m int) (*ReedSolomonEncoderDecoder, error) {
-	if k < 1 {
-		return nil, errors.New("k (data shard count) has to be at least 1")
+func NewReedSolomonEncoderDecoder(dataShardCount, parityShardCount int) (*ReedSolomonEncoderDecoder, error) {
+	if dataShardCount < 1 {
+		return nil, errors.New("dataShardCount has to be at least 1")
 	}
-	if m < 1 {
-		return nil, errors.New("m (parity shard count) has to be at least 1")
+	if parityShardCount < 1 {
+		return nil, errors.New("parityShardCount has to be at least 1")
 	}
 
-	er, err := reedsolomon.New(k, m)
+	er, err := reedsolomon.New(dataShardCount, parityShardCount)
 	if err != nil {
 		return nil, err
 	}
 	return &ReedSolomonEncoderDecoder{
-		k:          k,
-		m:          m,
-		shardCount: k + m,
-		er:         er,
+		dataShardCount:   dataShardCount,
+		parityShardCount: parityShardCount,
+		shardCount:       dataShardCount + parityShardCount,
+		er:               er,
 	}, nil
 }
 
@@ -577,9 +577,9 @@ func NewReedSolomonEncoderDecoder(k, m int) (*ReedSolomonEncoderDecoder, error) 
 // This implementation is also used as the default DistributedEncoderDecoder
 // for the DistributedObjectStorage storage type.
 type ReedSolomonEncoderDecoder struct {
-	k, m       int                         // data and parity count
-	shardCount int                         // k+m
-	er         reedsolomon.EncodeReconster // encoder  & decoder
+	dataShardCount, parityShardCount int                         // data and parity count
+	shardCount                       int                         // dataShardCount + parityShardCount
+	er                               reedsolomon.EncodeReconster // encoder + decoder
 }
 
 // Encode implements DistributedEncoderDecoder.Encode
@@ -589,7 +589,7 @@ func (rs *ReedSolomonEncoderDecoder) Encode(data []byte) ([][]byte, error) {
 	}
 
 	parts := rs.splitData(data)
-	parities := reedsolomon.NewMatrix(rs.m, len(parts[0]))
+	parities := reedsolomon.NewMatrix(rs.parityShardCount, len(parts[0]))
 	parts = append(parts, parities...)
 	err := rs.er.Encode(parts)
 	return parts, err
@@ -609,7 +609,7 @@ func (rs *ReedSolomonEncoderDecoder) Decode(parts [][]byte, dataSize int) ([]byt
 		data   = make([]byte, dataSize)
 		offset int
 	)
-	for i := 0; i < rs.k; i++ {
+	for i := 0; i < rs.dataShardCount; i++ {
 		copy(data[offset:], parts[i])
 		offset += len(parts[i])
 		if offset >= dataSize {
@@ -621,7 +621,7 @@ func (rs *ReedSolomonEncoderDecoder) Decode(parts [][]byte, dataSize int) ([]byt
 
 // MinimumValidShardCount implements DistributedEncoderDecoder.MinimumValidShardCount
 func (rs *ReedSolomonEncoderDecoder) MinimumValidShardCount() int {
-	return rs.k
+	return rs.dataShardCount
 }
 
 // RequiredShardCount implements DistributedEncoderDecoder.RequiredShardCount
@@ -631,10 +631,10 @@ func (rs *ReedSolomonEncoderDecoder) RequiredShardCount() int {
 
 func (rs *ReedSolomonEncoderDecoder) splitData(data []byte) [][]byte {
 	data = rs.padIfNeeded(data)
-	chunkSize := len(data) / rs.k
-	chunks := make([][]byte, rs.k)
+	chunkSize := len(data) / rs.dataShardCount
+	chunks := make([][]byte, rs.dataShardCount)
 
-	for i := 0; i < rs.k; i++ {
+	for i := 0; i < rs.dataShardCount; i++ {
 		chunks[i] = data[i*chunkSize : (i+1)*chunkSize]
 	}
 	return chunks
@@ -652,7 +652,7 @@ func (rs *ReedSolomonEncoderDecoder) padIfNeeded(data []byte) []byte {
 
 func (rs *ReedSolomonEncoderDecoder) getPadLen(dataLen int) int {
 	const padFactor = 256
-	maxPadLen := rs.k * padFactor
+	maxPadLen := rs.dataShardCount * padFactor
 	mod := dataLen % maxPadLen
 	if mod == 0 {
 		return 0

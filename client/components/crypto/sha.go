@@ -82,10 +82,10 @@ func (hasher SHA512Hasher) HashBytes(data []byte) []byte {
 }
 
 func init() {
-	RegisterHash(HashTypeSHA256, "sha_256", func(key []byte) (Hasher, error) {
+	RegisterHasher(HashTypeSHA256, "sha_256", func(key []byte) (Hasher, error) {
 		return NewSHA256Hasher(key)
 	})
-	RegisterHash(HashTypeSHA512, "sha_512", func(key []byte) (Hasher, error) {
+	RegisterHasher(HashTypeSHA512, "sha_512", func(key []byte) (Hasher, error) {
 		return NewSHA512Hasher(key)
 	})
 }

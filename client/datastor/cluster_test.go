@@ -190,6 +190,10 @@ func (sc *stubCluster) GetRandomShardIterator(exceptShards []string) ShardIterat
 	return NewRandomShardIterator(slice)
 }
 
+func (sc *stubCluster) ListedShardCount() int {
+	return len(sc.shards)
+}
+
 func (sc *stubCluster) filteredSlice(exceptShards []string) []Shard {
 	if len(exceptShards) == 0 {
 		slice := make([]Shard, len(sc.shards))
@@ -215,8 +219,6 @@ func (sc *stubCluster) filteredSlice(exceptShards []string) []Shard {
 	}
 	return filtered
 }
-
-func (sc *stubCluster) Close() error { return nil }
 
 func (ss *stubShard) Identifier() string {
 	return ss.id

@@ -104,7 +104,4 @@ type Client interface {
 	// DeleteReferenceList deletes the stored reference list for the given (object) key.
 	// Deleting a non-existent reference list not considered an error.
 	DeleteReferenceList(key []byte) error
-
-	// Close any open resources for this data client.
-	Close() error
 }

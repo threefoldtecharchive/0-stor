@@ -14,99 +14,99 @@ func TestNewReplicatedStoragePanics(t *testing.T) {
 	}, "no cluster given given")
 	require.Panics(t, func() {
 		NewReplicatedObjectStorage(dummyCluster{}, 0, -1)
-	}, "no valid replicationNr given")
+	}, "no valid dataShardCount given")
 }
 
 func TestReplicationStorageReadCheckWrite(t *testing.T) {
-	t.Run("replicationNr=1,jobCount=D", func(t *testing.T) {
+	t.Run("dataShardCount=1,jobCount=D", func(t *testing.T) {
 		cluster, cleanup, err := newGRPCServerCluster(2)
 		require.NoError(t, err)
 		defer cleanup()
 
-		storage := NewReplicatedObjectStorage(cluster, 1, 0)
-		require.NotNil(t, storage)
+		storage, err := NewReplicatedObjectStorage(cluster, 1, 0)
+		require.NoError(t, err)
 
 		testStorageReadCheckWrite(t, storage)
 	})
 
-	t.Run("replicationNr=2,jobCount=D", func(t *testing.T) {
+	t.Run("dataShardCount=2,jobCount=D", func(t *testing.T) {
 		cluster, cleanup, err := newGRPCServerCluster(4)
 		require.NoError(t, err)
 		defer cleanup()
 
-		storage := NewReplicatedObjectStorage(cluster, 2, 0)
-		require.NotNil(t, storage)
+		storage, err := NewReplicatedObjectStorage(cluster, 2, 0)
+		require.NoError(t, err)
 
 		testStorageReadCheckWrite(t, storage)
 	})
 
-	t.Run("replicationNr=2,jobCount=1", func(t *testing.T) {
+	t.Run("dataShardCount=2,jobCount=1", func(t *testing.T) {
 		cluster, cleanup, err := newGRPCServerCluster(4)
 		require.NoError(t, err)
 		defer cleanup()
 
-		storage := NewReplicatedObjectStorage(cluster, 2, 1)
-		require.NotNil(t, storage)
+		storage, err := NewReplicatedObjectStorage(cluster, 2, 1)
+		require.NoError(t, err)
 
 		testStorageReadCheckWrite(t, storage)
 	})
 
-	t.Run("replicationNr=16,jobCount=D", func(t *testing.T) {
+	t.Run("dataShardCount=16,jobCount=D", func(t *testing.T) {
 		cluster, cleanup, err := newGRPCServerCluster(32)
 		require.NoError(t, err)
 		defer cleanup()
 
-		storage := NewReplicatedObjectStorage(cluster, 16, 0)
-		require.NotNil(t, storage)
+		storage, err := NewReplicatedObjectStorage(cluster, 16, 0)
+		require.NoError(t, err)
 
 		testStorageReadCheckWrite(t, storage)
 	})
 
-	t.Run("replicationNr=16,jobCount=1", func(t *testing.T) {
+	t.Run("dataShardCount=16,jobCount=1", func(t *testing.T) {
 		cluster, cleanup, err := newGRPCServerCluster(32)
 		require.NoError(t, err)
 		defer cleanup()
 
-		storage := NewReplicatedObjectStorage(cluster, 16, 1)
-		require.NotNil(t, storage)
+		storage, err := NewReplicatedObjectStorage(cluster, 16, 1)
+		require.NoError(t, err)
 
 		testStorageReadCheckWrite(t, storage)
 	})
 }
 
 func TestReplicatedStorageCheckRepair(t *testing.T) {
-	t.Run("replicationNr=1,jobCount=1", func(t *testing.T) {
+	t.Run("dataShardCount=1,jobCount=1", func(t *testing.T) {
 		testReplicatedStorageCheckRepair(t, 1, 1)
 	})
-	t.Run("replicationNr=1,jobCount=D", func(t *testing.T) {
+	t.Run("dataShardCount=1,jobCount=D", func(t *testing.T) {
 		testReplicatedStorageCheckRepair(t, 1, 0)
 	})
-	t.Run("replicationNr=2,jobCount=1", func(t *testing.T) {
+	t.Run("dataShardCount=2,jobCount=1", func(t *testing.T) {
 		testReplicatedStorageCheckRepair(t, 2, 1)
 	})
-	t.Run("replicationNr=2,jobCount=D", func(t *testing.T) {
+	t.Run("dataShardCount=2,jobCount=D", func(t *testing.T) {
 		testReplicatedStorageCheckRepair(t, 2, 0)
 	})
-	t.Run("replicationNr=4,jobCount=D", func(t *testing.T) {
+	t.Run("dataShardCount=4,jobCount=D", func(t *testing.T) {
 		testReplicatedStorageCheckRepair(t, 4, 0)
 	})
-	t.Run("replicationNr=4,jobCount=1", func(t *testing.T) {
+	t.Run("dataShardCount=4,jobCount=1", func(t *testing.T) {
 		testReplicatedStorageCheckRepair(t, 4, 1)
 	})
-	t.Run("replicationNr=16,jobCount=D", func(t *testing.T) {
+	t.Run("dataShardCount=16,jobCount=D", func(t *testing.T) {
 		testReplicatedStorageCheckRepair(t, 16, 0)
 	})
 }
 
-func testReplicatedStorageCheckRepair(t *testing.T, replicationNr, jobCount int) {
+func testReplicatedStorageCheckRepair(t *testing.T, dataShardCount, jobCount int) {
 	require := require.New(t)
 
-	cluster, cleanup, err := newGRPCServerCluster(replicationNr * 2)
+	cluster, cleanup, err := newGRPCServerCluster(dataShardCount * 2)
 	require.NoError(err)
 	defer cleanup()
 
-	storage := NewReplicatedObjectStorage(cluster, replicationNr, jobCount)
-	require.NotNil(storage)
+	storage, err := NewReplicatedObjectStorage(cluster, dataShardCount, jobCount)
+	require.NoError(err)
 
 	const (
 		dataSize = 512
@@ -134,7 +134,7 @@ func testReplicatedStorageCheckRepair(t *testing.T, replicationNr, jobCount int)
 
 	status, err = storage.Check(cfg, true)
 	require.NoError(err)
-	if replicationNr == 1 {
+	if dataShardCount == 1 {
 		require.Equal(ObjectCheckStatusOptimal, status)
 	} else {
 		require.Equal(ObjectCheckStatusValid, status)
@@ -146,7 +146,7 @@ func testReplicatedStorageCheckRepair(t *testing.T, replicationNr, jobCount int)
 
 	// now let's drop shards, as long as there is still 2 replications it should be fine
 
-	for n := 1; n < replicationNr-1; n++ {
+	for n := 1; n < dataShardCount-1; n++ {
 		invalidateShards(t, cfg.Shards, n, key, cluster)
 
 		// now that our shards have been messed with,
@@ -170,7 +170,7 @@ func testReplicatedStorageCheckRepair(t *testing.T, replicationNr, jobCount int)
 		cfg, err = storage.Repair(cfg)
 		require.NoError(err)
 		require.Equal(inputObject.Key, cfg.Key)
-		require.Len(cfg.Shards, replicationNr)
+		require.Len(cfg.Shards, dataShardCount)
 		require.Equal(dataSize, cfg.DataSize)
 
 		// now we should get an optimal check result again
@@ -186,12 +186,12 @@ func testReplicatedStorageCheckRepair(t *testing.T, replicationNr, jobCount int)
 
 	// if we have only 1 shard, we should be able to repair
 
-	invalidateShards(t, cfg.Shards, replicationNr-1, key, cluster)
+	invalidateShards(t, cfg.Shards, dataShardCount-1, key, cluster)
 
 	status, err = storage.Check(cfg, false)
 	require.NoError(err)
 
-	if replicationNr == 1 {
+	if dataShardCount == 1 {
 		require.Equal(ObjectCheckStatusOptimal, status)
 	} else {
 		require.Equal(ObjectCheckStatusValid, status)
@@ -199,7 +199,7 @@ func testReplicatedStorageCheckRepair(t *testing.T, replicationNr, jobCount int)
 
 	status, err = storage.Check(cfg, true)
 	require.NoError(err)
-	if replicationNr == 1 {
+	if dataShardCount == 1 {
 		require.Equal(ObjectCheckStatusOptimal, status)
 	} else {
 		require.Equal(ObjectCheckStatusValid, status)
@@ -212,7 +212,7 @@ func testReplicatedStorageCheckRepair(t *testing.T, replicationNr, jobCount int)
 	cfg, err = storage.Repair(cfg)
 	require.NoError(err)
 	require.Equal(inputObject.Key, cfg.Key)
-	require.Len(cfg.Shards, replicationNr)
+	require.Len(cfg.Shards, dataShardCount)
 	require.Equal(dataSize, cfg.DataSize)
 
 	outputObject, err = storage.Read(cfg)
@@ -229,7 +229,7 @@ func testReplicatedStorageCheckRepair(t *testing.T, replicationNr, jobCount int)
 	// now let's invalidate it all, this should make our check fail,
 	// and it should make repairing impossible
 
-	invalidateShards(t, cfg.Shards, replicationNr, key, cluster)
+	invalidateShards(t, cfg.Shards, dataShardCount, key, cluster)
 
 	status, err = storage.Check(cfg, false)
 	require.NoError(err)

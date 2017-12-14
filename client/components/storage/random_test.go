@@ -17,8 +17,8 @@ func TestRandomStorageReadCheckWrite(t *testing.T) {
 	require.NoError(t, err)
 	defer cleanup()
 
-	storage := NewRandomObjectStorage(cluster)
-	require.NotNil(t, storage)
+	storage, err := NewRandomObjectStorage(cluster)
+	require.NoError(t, err)
 
 	testStorageReadCheckWrite(t, storage)
 }
@@ -26,13 +26,8 @@ func TestRandomStorageReadCheckWrite(t *testing.T) {
 func TestRandomStorageRepair(t *testing.T) {
 	require := require.New(t)
 
-	storage := NewRandomObjectStorage(dummyCluster{})
-	require.NotNil(storage)
-
-	defer func() {
-		err := storage.Close()
-		require.NoError(err)
-	}()
+	storage, err := NewRandomObjectStorage(dummyCluster{})
+	require.NoError(err)
 
 	cfg, err := storage.Repair(ObjectConfig{})
 	require.Equal(ErrNotSupported, err)

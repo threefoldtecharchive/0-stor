@@ -9,7 +9,7 @@
 // which is used by the HashType in order to implement the
 // TextMarshaler and TextUnmarshaler interfaces.
 //
-// You can use the RegisterHash function to
+// You can use the RegisterHasher function to
 // register your own hash by giving a unique HashType enum value,
 // string version and constructor.
 // This will make the hash type a first-class citizen of this package.

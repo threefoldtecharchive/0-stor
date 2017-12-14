@@ -182,6 +182,11 @@ func (cluster *Cluster) Close() error {
 	return nil
 }
 
+// ListedShardCount implements datastor.Cluster.ListedShardCount
+func (cluster *Cluster) ListedShardCount() int {
+	return int(cluster.listedCount)
+}
+
 // Shard implements datastor.Shard for
 // GRPC clients, to make those clients work within a cluster of other GRPC clients.
 type Shard struct {

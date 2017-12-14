@@ -83,10 +83,10 @@ func (hasher Blake2b512Hasher) HashBytes(data []byte) []byte {
 }
 
 func init() {
-	RegisterHash(HashTypeBlake2b256, "blake2b_256", func(key []byte) (Hasher, error) {
+	RegisterHasher(HashTypeBlake2b256, "blake2b_256", func(key []byte) (Hasher, error) {
 		return NewBlake2b256Hasher(key)
 	})
-	RegisterHash(HashTypeBlake2b512, "blake2b_512", func(key []byte) (Hasher, error) {
+	RegisterHasher(HashTypeBlake2b512, "blake2b_512", func(key []byte) (Hasher, error) {
 		return NewBlake2b512Hasher(key)
 	})
 }

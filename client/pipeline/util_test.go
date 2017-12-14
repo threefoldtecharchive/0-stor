@@ -1,11 +1,9 @@
-package storage
+package pipeline
 
 import (
 	"errors"
 	"fmt"
-	"math"
 
-	"github.com/zero-os/0-stor/client/datastor"
 	clientGRPC "github.com/zero-os/0-stor/client/datastor/grpc"
 	serverGRPC "github.com/zero-os/0-stor/server/api/grpc"
 	"github.com/zero-os/0-stor/server/db/memory"
@@ -74,18 +72,3 @@ func newGRPCServerClient() (*clientGRPC.Client, string, func(), error) {
 
 	return client, server.Address(), clean, nil
 }
-
-type dummyCluster struct{}
-
-func (dc dummyCluster) GetShard(id string) (datastor.Shard, error) { panic("dummy::GetShard") }
-func (dc dummyCluster) GetRandomShard() (datastor.Shard, error)    { panic("dummy::GetRandomShard") }
-func (dc dummyCluster) GetRandomShardIterator(exceptShards []string) datastor.ShardIterator {
-	panic("dummy::GetRandomShardIterator")
-}
-func (dc dummyCluster) ListedShardCount() int {
-	return int(math.MaxInt32)
-}
-
-var (
-	_ datastor.Cluster = dummyCluster{}
-)

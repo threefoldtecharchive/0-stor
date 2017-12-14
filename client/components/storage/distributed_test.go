@@ -20,13 +20,13 @@ func TestNewDistributedStoragePanics(t *testing.T) {
 
 func TestNewDistributedStorageErrors(t *testing.T) {
 	_, err := NewDistributedObjectStorage(dummyCluster{}, 0, 1, -1)
-	require.Error(t, err, "no valid k (data shard count) given")
+	require.Error(t, err, "no valid dataShardCount (data shard count) given")
 	_, err = NewDistributedObjectStorage(dummyCluster{}, 1, 0, -1)
-	require.Error(t, err, "no valid m (parity shard count) given")
+	require.Error(t, err, "no valid parityShardCount (parity shard count) given")
 }
 
 func TestDistributedStorageReadCheckWrite(t *testing.T) {
-	t.Run("k=1,m=1,jobCount=D", func(t *testing.T) {
+	t.Run("dataShardCount=1,parityShardCount=1,jobCount=D", func(t *testing.T) {
 		cluster, cleanup, err := newGRPCServerCluster(4)
 		require.NoError(t, err)
 		defer cleanup()
@@ -37,7 +37,7 @@ func TestDistributedStorageReadCheckWrite(t *testing.T) {
 		testStorageReadCheckWrite(t, storage)
 	})
 
-	t.Run("k=2,m=1,jobCount=D", func(t *testing.T) {
+	t.Run("dataShardCount=2,parityShardCount=1,jobCount=D", func(t *testing.T) {
 		cluster, cleanup, err := newGRPCServerCluster(6)
 		require.NoError(t, err)
 		defer cleanup()
@@ -48,7 +48,7 @@ func TestDistributedStorageReadCheckWrite(t *testing.T) {
 		testStorageReadCheckWrite(t, storage)
 	})
 
-	t.Run("k=1,m=2,jobCount=D", func(t *testing.T) {
+	t.Run("dataShardCount=1,parityShardCount=2,jobCount=D", func(t *testing.T) {
 		cluster, cleanup, err := newGRPCServerCluster(6)
 		require.NoError(t, err)
 		defer cleanup()
@@ -59,7 +59,7 @@ func TestDistributedStorageReadCheckWrite(t *testing.T) {
 		testStorageReadCheckWrite(t, storage)
 	})
 
-	t.Run("k=2,m=2,jobCount=1", func(t *testing.T) {
+	t.Run("dataShardCount=2,parityShardCount=2,jobCount=1", func(t *testing.T) {
 		cluster, cleanup, err := newGRPCServerCluster(8)
 		require.NoError(t, err)
 		defer cleanup()
@@ -70,7 +70,7 @@ func TestDistributedStorageReadCheckWrite(t *testing.T) {
 		testStorageReadCheckWrite(t, storage)
 	})
 
-	t.Run("k=8,m=8,jobCount=D", func(t *testing.T) {
+	t.Run("dataShardCount=8,parityShardCount=8,jobCount=D", func(t *testing.T) {
 		cluster, cleanup, err := newGRPCServerCluster(16)
 		require.NoError(t, err)
 		defer cleanup()
@@ -81,7 +81,7 @@ func TestDistributedStorageReadCheckWrite(t *testing.T) {
 		testStorageReadCheckWrite(t, storage)
 	})
 
-	t.Run("k=4,m=8,jobCount=D", func(t *testing.T) {
+	t.Run("dataShardCount=4,parityShardCount=8,jobCount=D", func(t *testing.T) {
 		cluster, cleanup, err := newGRPCServerCluster(16)
 		require.NoError(t, err)
 		defer cleanup()
@@ -92,7 +92,7 @@ func TestDistributedStorageReadCheckWrite(t *testing.T) {
 		testStorageReadCheckWrite(t, storage)
 	})
 
-	t.Run("k=8,m=4,jobCount=D", func(t *testing.T) {
+	t.Run("dataShardCount=8,parityShardCount=4,jobCount=D", func(t *testing.T) {
 		cluster, cleanup, err := newGRPCServerCluster(16)
 		require.NoError(t, err)
 		defer cleanup()
@@ -103,7 +103,7 @@ func TestDistributedStorageReadCheckWrite(t *testing.T) {
 		testStorageReadCheckWrite(t, storage)
 	})
 
-	t.Run("k=8,m=8,jobCount=1", func(t *testing.T) {
+	t.Run("dataShardCount=8,parityShardCount=8,jobCount=1", func(t *testing.T) {
 		cluster, cleanup, err := newGRPCServerCluster(16)
 		require.NoError(t, err)
 		defer cleanup()
@@ -116,34 +116,34 @@ func TestDistributedStorageReadCheckWrite(t *testing.T) {
 }
 
 func TestDistributedStorageCheckRepair(t *testing.T) {
-	t.Run("k=1,m=1,jobCount=1", func(t *testing.T) {
+	t.Run("dataShardCount=1,parityShardCount=1,jobCount=1", func(t *testing.T) {
 		testDistributedStorageCheckRepair(t, 1, 1, 1)
 	})
-	t.Run("k=1,m=1,jobCount=D", func(t *testing.T) {
+	t.Run("dataShardCount=1,parityShardCount=1,jobCount=D", func(t *testing.T) {
 		testDistributedStorageCheckRepair(t, 1, 1, 0)
 	})
-	t.Run("k=4,m=2,jobCount=1", func(t *testing.T) {
+	t.Run("dataShardCount=4,parityShardCount=2,jobCount=1", func(t *testing.T) {
 		testDistributedStorageCheckRepair(t, 4, 2, 1)
 	})
-	t.Run("k=4,m=2,jobCount=D", func(t *testing.T) {
+	t.Run("dataShardCount=4,parityShardCount=2,jobCount=D", func(t *testing.T) {
 		testDistributedStorageCheckRepair(t, 4, 2, 0)
 	})
-	t.Run("k=10,m=3,jobCount=D", func(t *testing.T) {
+	t.Run("dataShardCount=10,parityShardCount=3,jobCount=D", func(t *testing.T) {
 		testDistributedStorageCheckRepair(t, 10, 3, 0)
 	})
-	t.Run("k=10,m=3,jobCount=1", func(t *testing.T) {
+	t.Run("dataShardCount=10,parityShardCount=3,jobCount=1", func(t *testing.T) {
 		testDistributedStorageCheckRepair(t, 10, 3, 1)
 	})
 }
 
-func testDistributedStorageCheckRepair(t *testing.T, k, m, jobCount int) {
+func testDistributedStorageCheckRepair(t *testing.T, dataShardCount, parityShardCount, jobCount int) {
 	require := require.New(t)
 
-	cluster, cleanup, err := newGRPCServerCluster((k + m) * 2)
+	cluster, cleanup, err := newGRPCServerCluster((dataShardCount + parityShardCount) * 2)
 	require.NoError(err)
 	defer cleanup()
 
-	storage, err := NewDistributedObjectStorage(cluster, k, m, jobCount)
+	storage, err := NewDistributedObjectStorage(cluster, dataShardCount, parityShardCount, jobCount)
 	require.NoError(err)
 	require.NotNil(storage)
 
@@ -181,7 +181,7 @@ func testDistributedStorageCheckRepair(t *testing.T, k, m, jobCount int) {
 
 	// now let's drop shards, as long as this still results in a valid, but not optimal result
 
-	for n := 1; n <= m; n++ {
+	for n := 1; n <= parityShardCount; n++ {
 		invalidateShards(t, cfg.Shards, n, key, cluster)
 
 		// now that our shards have been messed with,
@@ -205,7 +205,7 @@ func testDistributedStorageCheckRepair(t *testing.T, k, m, jobCount int) {
 		cfg, err = storage.Repair(cfg)
 		require.NoError(err)
 		require.Equal(inputObject.Key, cfg.Key)
-		require.Len(cfg.Shards, k+m)
+		require.Len(cfg.Shards, dataShardCount+parityShardCount)
 		require.Equal(dataSize, cfg.DataSize)
 
 		// now we should get an optimal check result again
@@ -221,7 +221,7 @@ func testDistributedStorageCheckRepair(t *testing.T, k, m, jobCount int) {
 
 	// now let's drop more than the allowed shard count,
 	// this should always make our check fail, and repairing/reading should never be possible
-	for n := m + 1; n <= k+m; n++ {
+	for n := parityShardCount + 1; n <= dataShardCount+parityShardCount; n++ {
 		invalidateShards(t, cfg.Shards, n, key, cluster)
 
 		status, err := storage.Check(cfg, false)
@@ -289,14 +289,14 @@ func TestReedSolomonEncoderDecoderErrors(t *testing.T) {
 	require := require.New(t)
 
 	_, err := NewReedSolomonEncoderDecoder(0, 1)
-	require.Error(err, "k is too small")
+	require.Error(err, "dataShardCount is too small")
 	_, err = NewReedSolomonEncoderDecoder(1, 0)
-	require.Error(err, "m is too small")
+	require.Error(err, "parityShardCount is too small")
 
 	_, err = NewReedSolomonEncoderDecoder(0, 1)
-	require.Error(err, "k is too small")
+	require.Error(err, "dataShardCount is too small")
 	_, err = NewReedSolomonEncoderDecoder(1, 0)
-	require.Error(err, "m is too small")
+	require.Error(err, "parityShardCount is too small")
 
 	require.Error(func() error {
 		ed, err := NewReedSolomonEncoderDecoder(1, 1)
@@ -313,83 +313,83 @@ func TestReedSolomonEncoderDecoderErrors(t *testing.T) {
 }
 
 func TestReedSolomonEncoderDecoder(t *testing.T) {
-	t.Run("k=1, m=1", func(t *testing.T) {
+	t.Run("dataShardCount=1, parityShardCount=1", func(t *testing.T) {
 		testReedSolomonEncoderDecoder(t, 1, 1)
 	})
-	t.Run("k=1, m=4", func(t *testing.T) {
+	t.Run("dataShardCount=1, parityShardCount=4", func(t *testing.T) {
 		testReedSolomonEncoderDecoder(t, 1, 4)
 	})
-	t.Run("k=4, m=1", func(t *testing.T) {
+	t.Run("dataShardCount=4, parityShardCount=1", func(t *testing.T) {
 		testReedSolomonEncoderDecoder(t, 4, 1)
 	})
-	t.Run("k=4, m=4", func(t *testing.T) {
+	t.Run("dataShardCount=4, parityShardCount=4", func(t *testing.T) {
 		testReedSolomonEncoderDecoder(t, 4, 4)
 	})
-	t.Run("k=16, m=1", func(t *testing.T) {
+	t.Run("dataShardCount=16, parityShardCount=1", func(t *testing.T) {
 		testReedSolomonEncoderDecoder(t, 16, 1)
 	})
-	t.Run("k=1, m=16", func(t *testing.T) {
+	t.Run("dataShardCount=1, parityShardCount=16", func(t *testing.T) {
 		testReedSolomonEncoderDecoder(t, 1, 16)
 	})
-	t.Run("k=16, m=16", func(t *testing.T) {
+	t.Run("dataShardCount=16, parityShardCount=16", func(t *testing.T) {
 		testReedSolomonEncoderDecoder(t, 16, 16)
 	})
 }
 
 func TestReedSolomonEncoderDecoderAsyncUsage(t *testing.T) {
-	t.Run("k=1, m=1, jc=2", func(t *testing.T) {
+	t.Run("dataShardCount=1, parityShardCount=1, jc=2", func(t *testing.T) {
 		testReedSolomonEncoderDecoderAsyncUsage(t, 1, 1, 2)
 	})
-	t.Run("k=1, m=1, jc=16", func(t *testing.T) {
+	t.Run("dataShardCount=1, parityShardCount=1, jc=16", func(t *testing.T) {
 		testReedSolomonEncoderDecoderAsyncUsage(t, 1, 1, 16)
 	})
-	t.Run("k=4, m=4, jc=2", func(t *testing.T) {
+	t.Run("dataShardCount=4, parityShardCount=4, jc=2", func(t *testing.T) {
 		testReedSolomonEncoderDecoderAsyncUsage(t, 4, 4, 2)
 	})
-	t.Run("k=4, m=4, jc=16", func(t *testing.T) {
+	t.Run("dataShardCount=4, parityShardCount=4, jc=16", func(t *testing.T) {
 		testReedSolomonEncoderDecoderAsyncUsage(t, 4, 4, 16)
 	})
-	t.Run("k=16, m=16, jc=2", func(t *testing.T) {
+	t.Run("dataShardCount=16, parityShardCount=16, jc=2", func(t *testing.T) {
 		testReedSolomonEncoderDecoderAsyncUsage(t, 16, 16, 2)
 	})
-	t.Run("k=16, m=16, jc=16", func(t *testing.T) {
+	t.Run("dataShardCount=16, parityShardCount=16, jc=16", func(t *testing.T) {
 		testReedSolomonEncoderDecoderAsyncUsage(t, 16, 16, 16)
 	})
-	t.Run("k=16, m=16, jc=16", func(t *testing.T) {
+	t.Run("dataShardCount=16, parityShardCount=16, jc=16", func(t *testing.T) {
 		testReedSolomonEncoderDecoderAsyncUsage(t, 16, 16, 128)
 	})
 }
 
 func TestReedSolomonEncoderDecoderResilience(t *testing.T) {
-	t.Run("k=1, m=1", func(t *testing.T) {
+	t.Run("dataShardCount=1, parityShardCount=1", func(t *testing.T) {
 		testReedSolomonEncoderDecoderResilience(t, 1, 1)
 	})
-	t.Run("k=2, m=1", func(t *testing.T) {
+	t.Run("dataShardCount=2, parityShardCount=1", func(t *testing.T) {
 		testReedSolomonEncoderDecoderResilience(t, 2, 1)
 	})
-	t.Run("k=1, m=2", func(t *testing.T) {
+	t.Run("dataShardCount=1, parityShardCount=2", func(t *testing.T) {
 		testReedSolomonEncoderDecoderResilience(t, 1, 2)
 	})
-	t.Run("k=5, m=2", func(t *testing.T) {
+	t.Run("dataShardCount=5, parityShardCount=2", func(t *testing.T) {
 		testReedSolomonEncoderDecoderResilience(t, 5, 2)
 	})
-	t.Run("k=10, m=3", func(t *testing.T) {
+	t.Run("dataShardCount=10, parityShardCount=3", func(t *testing.T) {
 		testReedSolomonEncoderDecoderResilience(t, 10, 3)
 	})
-	t.Run("k=16, m=16", func(t *testing.T) {
+	t.Run("dataShardCount=16, parityShardCount=16", func(t *testing.T) {
 		testReedSolomonEncoderDecoderResilience(t, 16, 16)
 	})
 }
 
-func testReedSolomonEncoderDecoderAsyncUsage(t *testing.T, k, m, jobCount int) {
+func testReedSolomonEncoderDecoderAsyncUsage(t *testing.T, dataShardCount, parityShardCount, jobCount int) {
 	assert := assert.New(t)
 
-	ed, err := NewReedSolomonEncoderDecoder(k, m)
+	ed, err := NewReedSolomonEncoderDecoder(dataShardCount, parityShardCount)
 	require.NoError(t, err)
 	require.NotNil(t, ed)
 
-	require.Equal(t, k, ed.MinimumValidShardCount())
-	require.Equal(t, k+m, ed.RequiredShardCount())
+	require.Equal(t, dataShardCount, ed.MinimumValidShardCount())
+	require.Equal(t, dataShardCount+parityShardCount, ed.RequiredShardCount())
 
 	var wg sync.WaitGroup
 	wg.Add(jobCount)
@@ -415,15 +415,15 @@ func testReedSolomonEncoderDecoderAsyncUsage(t *testing.T, k, m, jobCount int) {
 	wg.Wait()
 }
 
-func testReedSolomonEncoderDecoder(t *testing.T, k, m int) {
+func testReedSolomonEncoderDecoder(t *testing.T, dataShardCount, parityShardCount int) {
 	require := require.New(t)
 
-	ed, err := NewReedSolomonEncoderDecoder(k, m)
+	ed, err := NewReedSolomonEncoderDecoder(dataShardCount, parityShardCount)
 	require.NoError(err)
 	require.NotNil(ed)
 
-	require.Equal(k, ed.MinimumValidShardCount())
-	require.Equal(k+m, ed.RequiredShardCount())
+	require.Equal(dataShardCount, ed.MinimumValidShardCount())
+	require.Equal(dataShardCount+parityShardCount, ed.RequiredShardCount())
 
 	testCases := []string{
 		"a",
@@ -448,10 +448,10 @@ func testReedSolomonEncoderDecoder(t *testing.T, k, m int) {
 	}
 }
 
-func testReedSolomonEncoderDecoderResilience(t *testing.T, k, m int) {
+func testReedSolomonEncoderDecoderResilience(t *testing.T, dataShardCount, parityShardCount int) {
 	require := assert.New(t)
 
-	ed, err := NewReedSolomonEncoderDecoder(k, m)
+	ed, err := NewReedSolomonEncoderDecoder(dataShardCount, parityShardCount)
 	require.NoError(err)
 	require.NotNil(ed)
 
@@ -460,8 +460,8 @@ func testReedSolomonEncoderDecoderResilience(t *testing.T, k, m int) {
 		dataSize    = 512
 	)
 
-	require.Equal(k, ed.MinimumValidShardCount())
-	require.Equal(k+m, ed.RequiredShardCount())
+	require.Equal(dataShardCount, ed.MinimumValidShardCount())
+	require.Equal(dataShardCount+parityShardCount, ed.RequiredShardCount())
 
 	for tryCount := 0; tryCount < repeatCount; tryCount++ {
 		input := make([]byte, dataSize)
@@ -472,10 +472,10 @@ func testReedSolomonEncoderDecoderResilience(t *testing.T, k, m int) {
 		require.NoError(err)
 		require.NotEmpty(parts)
 
-		// test recovery, which should be possible, as long as `len(parts) >= k`
-		for n := 0; n <= m; n++ {
+		// test recovery, which should be possible, as long as `len(parts) >= dataShardCount`
+		for n := 0; n <= parityShardCount; n++ {
 			parts := getAllPartsMinusNParts(parts, n)
-			require.True(len(parts) >= k)
+			require.True(len(parts) >= dataShardCount)
 
 			output, err := ed.Decode(parts, dataSize)
 			require.NoErrorf(err, "tryCount=%d; n=%d", tryCount, n)

@@ -42,7 +42,13 @@ type Client struct {
 	storage storage.ObjectStorage
 	// does not have to be closed by client,
 	// as storage already closes it
-	cluster datastor.Cluster
+	cluster clusterCloser
+}
+
+type clusterCloser interface {
+	datastor.Cluster
+
+	Close() error
 }
 
 // New creates new client from the given config
@@ -88,11 +94,17 @@ func newClient(policy Policy, iyoCl itsyouonline.IYOClient) (*Client, error) {
 		}
 
 	case policy.ReplicationNr > 1:
-		objectStorage = storage.NewReplicatedObjectStorage(
+		objectStorage, err = storage.NewReplicatedObjectStorage(
 			cluster, policy.ReplicationNr, 0)
+		if err != nil {
+			return nil, err
+		}
 
 	default:
-		objectStorage = storage.NewRandomObjectStorage(cluster)
+		objectStorage, err = storage.NewRandomObjectStorage(cluster)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	client := Client{
@@ -120,7 +132,7 @@ func (c *Client) Close() error {
 	if c.metaCli != nil {
 		c.metaCli.Close()
 	}
-	return c.storage.Close()
+	return c.cluster.Close()
 }
 
 // Write write the value to the the 0-stors configured by the client policy

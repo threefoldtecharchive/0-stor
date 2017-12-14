@@ -3,6 +3,8 @@ package crypto
 import (
 	"fmt"
 	"strings"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 // Sum256 create and returns a hash,
@@ -58,7 +60,7 @@ func NewDefaultHasher512(key []byte) (Hasher, error) {
 func NewHasher(ht HashType, key []byte) (Hasher, error) {
 	hc, ok := _HashTypeValueToConstructorMapping[ht]
 	if !ok {
-		return nil, fmt.Errorf("%d is not a valid HashType value", ht)
+		return nil, fmt.Errorf("'%s' is not a valid/registered HashType value", ht)
 	}
 	return hc(key)
 }
@@ -84,17 +86,17 @@ type Hasher interface {
 type HashType uint8
 
 const (
-	// HashTypeSHA256 is the enum value which identifiers SHA256,
+	// HashTypeSHA256 is the enum constant which identifies SHA256,
 	// a cryptographic hashing algorithm which produces a secure hash of 32 bytes.
 	// This type is also the default HashType.
 	HashTypeSHA256 HashType = iota
-	// HashTypeSHA512 is the enum value which identifiers SHA512,
+	// HashTypeSHA512 is the enum constant which identifies SHA512,
 	// a cryptographic hashing algorithm which produces a secure hash of 64 bytes.
 	HashTypeSHA512
-	// HashTypeBlake2b256 is the enum value which identifiers Blake2b-256,
+	// HashTypeBlake2b256 is the enum constant which identifies Blake2b-256,
 	// a cryptographic hashing algorithm which produces a secure hash of 32 bytes.
 	HashTypeBlake2b256
-	// HashTypeBlake2b512 is the enum value which identifiers Blake2b-512,
+	// HashTypeBlake2b512 is the enum constant which identifies Blake2b-512,
 	// a cryptographic hashing algorithm which produces a secure hash of 64 bytes.
 	HashTypeBlake2b512
 
@@ -107,19 +109,27 @@ const (
 	DefaultHash256Type = HashTypeSHA256
 
 	// DefaultHash512Type represents the default 512 bit
-	// Hashing algorithm as promoted by this package.
+	// hashing algorithm as promoted by this package.
 	//
 	// This package reserves the right to change the
 	// default 512 bit hashing algorithm at any time,
 	// but this constant will always be available and up to date.
 	DefaultHash512Type = HashTypeSHA512
 
+	// DefaultHashType represents the default
+	// hashing algorithm as promoted by this package.
+	//
+	// For now it will be an alias for the default 256-bit hash type,
+	// but this package reserves the right to change this,
+	// should this be required for security reasons in the future.
+	DefaultHashType = DefaultHash256Type
+
 	// MaxStandardHashType defines the hasher type,
 	// which has the greatest defined/used enum value.
 	// When defining your custom HashType you can do so as follows:
 	//
 	//    const (
-	//         MyHashType = iota + MaxStandardHashType + 1
+	//         MyHashType = iota + processing.MaxStandardHashType + 1
 	//         MyOtherHashType
 	//         // ...
 	//    )
@@ -133,7 +143,7 @@ const (
 func (ht HashType) String() string {
 	str, ok := _HashTypeValueToStringMapping[ht]
 	if !ok {
-		return ""
+		return fmt.Sprint(uint8(ht))
 	}
 	return str
 }
@@ -142,17 +152,22 @@ func (ht HashType) String() string {
 func (ht HashType) MarshalText() ([]byte, error) {
 	str := ht.String()
 	if str == "" {
-		return nil, fmt.Errorf("%d is not a valid HashType value", ht)
+		return nil, fmt.Errorf("'%s' is not a valid HashType value", ht)
 	}
 	return []byte(str), nil
 }
 
 // UnmarshalText implements encoding.TextUnmarshaler.UnmarshalText
 func (ht *HashType) UnmarshalText(text []byte) error {
+	if len(text) == 0 {
+		*ht = DefaultHashType
+		return nil
+	}
+
 	var ok bool
 	*ht, ok = _HashTypeStringToValueMapping[strings.ToLower(string(text))]
 	if !ok {
-		return fmt.Errorf("%q is not a valid HashType string", text)
+		return fmt.Errorf("'%s' is not a valid HashType string", text)
 	}
 	return nil
 }
@@ -162,20 +177,25 @@ func (ht *HashType) UnmarshalText(text []byte) error {
 // to create signatures as to provide authentication.
 type HasherConstructor func(key []byte) (Hasher, error)
 
-// RegisterHash registers a new or overwrite an existing hash algorithm.
+// RegisterHasher registers a new or overwrite an existing hash algorithm.
 // The given str will be used in a case-insensitive manner,
 // if the registered hash however overwrites an existing hash type,
 // the str parameter will be ignored and instead the already used string version will be used.
 // This is intended to be called from the init function in packages that implement hash functions.
-func RegisterHash(ht HashType, str string, hc HasherConstructor) {
+func RegisterHasher(ht HashType, str string, hc HasherConstructor) {
 	if hc == nil {
 		panic("no hash constructor given")
 	}
 
 	if s, ok := _HashTypeValueToStringMapping[ht]; ok {
+		log.Infof("overwriting HasherConstructor for hash type %s", ht)
 		str = s // ignoring given string
 	} else if str == "" {
 		panic("no string version defined for new hash type")
+	} else {
+		// enforce lower cases
+		// as to make the string<->value mapping case insensitive
+		str = strings.ToLower(str)
 	}
 
 	_HashTypeValueToStringMapping[ht] = str
