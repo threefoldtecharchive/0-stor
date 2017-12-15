@@ -31,3 +31,4 @@ generate_and_check() {
 
 generate_and_check ./server/api/grpc
 generate_and_check ./client/metastor/encoding/proto
+generate_and_check ./daemon/api/grpc

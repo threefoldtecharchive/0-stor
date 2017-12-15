@@ -1,0 +1,219 @@
+syntax = "proto3";
+package proxy;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+// IYO permission
+message Permission {
+	bool write = 1;
+	bool read = 2;
+	bool delete = 3;
+	bool admin = 4;
+}
+
+message CreateJWTRequest {
+	string namespace = 1;
+	Permission permission = 2;
+}
+
+message CreateJWTReply {
+	string token = 1;
+}
+
+message NamespaceRequest {
+	string namespace = 1;
+}
+
+message NamespaceReply {
+}
+
+message EditPermissionRequest {
+	string namespace = 1;
+	string userID = 2;
+	Permission permission = 3;
+}
+
+message EditPermissionReply {
+
+}
+
+message GetPermissionRequest {
+	string namespace = 1;
+	string userID = 2;
+}
+
+message GetPermissionReply {
+	Permission permission = 1;
+}
+
+service NamespaceService {
+	rpc CreateJWT(CreateJWTRequest) returns (CreateJWTReply){}
+	rpc CreateNamespace(NamespaceRequest) returns(NamespaceReply){}
+	rpc DeleteNamespace(NamespaceRequest) returns(NamespaceReply){}
+	rpc GivePermission(EditPermissionRequest) returns(EditPermissionReply){}
+	rpc RemovePermission(EditPermissionRequest) returns(EditPermissionReply){}
+	rpc GetPermission(GetPermissionRequest) returns(GetPermissionReply){}
+}
+
+message Chunk {
+	int64 size = 1;
+	bytes key = 2;
+	repeated string shards = 3;
+}
+
+message Meta {
+	int64 epoch = 1;
+	bytes key = 2;
+	bytes encrKey = 3;
+	repeated Chunk chunks = 4;
+	bytes previous = 5;
+	bytes next = 6;
+}
+
+message WriteRequest {
+	bytes key = 1;
+	Meta meta = 2;
+	bytes value = 3;
+	repeated string referenceList = 4;
+	string prevKey = 5;
+	Meta prevMeta = 6;
+}
+
+message WriteReply {
+	Meta meta = 1;
+}
+
+message WriteFileRequest {
+	bytes key = 1;
+	Meta meta = 2;
+	string filePath = 3;
+	repeated string referenceList = 4;
+	string prevKey = 5;
+	Meta prevMeta = 6;
+}
+
+
+message WriteFileReply {
+	Meta meta = 1;
+}
+
+message WriteStreamRequest {
+	bytes key = 1;
+	Meta meta = 2;
+	bytes value = 3;
+	repeated string referenceList = 4;
+	bytes prevKey = 5;
+	Meta prevMeta = 6;	
+}
+
+message WriteStreamReply {
+	Meta meta = 1;
+}
+
+message ReadRequest {
+	bytes key = 1;
+	Meta meta = 2;
+}
+
+message ReadReply {
+	bytes value = 1;
+	repeated string referenceList = 2;
+}
+
+message ReadFileRequest {
+	bytes key = 1;
+	string filePath = 3;
+}
+
+message ReadFileReply {
+	repeated string referenceList = 1;
+}
+
+message ReadStreamRequest {
+	bytes key = 1;
+}
+
+message ReadStreamReply {
+	bytes value = 1;
+	repeated string referenceList = 2;
+}
+
+message DeleteRequest {
+	bytes key = 1;
+	Meta meta = 2;
+}
+
+message DeleteReply {
+}
+
+message WalkRequest {
+	bytes startKey = 1;
+	int64 fromEpoch = 2;
+	int64 toEpoch = 3;
+}
+
+message WalkReply {
+	bytes key = 1;
+	Meta meta = 2;
+	bytes value = 3;
+	repeated string referenceList = 4;
+}
+
+message AppendReferenceListRequest {
+	bytes key = 1;
+	Meta meta = 2;
+	repeated string referenceList = 3;
+}
+
+message RemoveReferenceListRequest {
+	bytes key = 1;
+	Meta meta = 2;
+	repeated string referenceList = 3;
+}
+
+message AppendReferenceListReply {
+}
+
+message RemoveReferenceListReply {
+}
+
+message CheckRequest {
+	bytes key = 1;
+}
+
+message CheckReply {
+	enum Status {
+		invalid = 0 [(gogoproto.enumvalue_customname) = "CheckReplyStatusInvalid"];
+		valid = 1 [(gogoproto.enumvalue_customname) = "CheckReplyStatusValid"];
+		optimal = 2 [(gogoproto.enumvalue_customname) = "CheckReplyStatusOptimal"];
+	}
+	Status  status = 1;
+}
+
+message RepairRequest {
+	bytes key = 1;
+}
+
+message RepairReply {
+}
+
+
+service ObjectService {
+	rpc Write(WriteRequest) returns (WriteReply) {}
+	rpc WriteFile(WriteFileRequest) returns (WriteFileReply) {}
+	rpc WriteStream(stream WriteStreamRequest) returns (WriteStreamReply) {}
+
+	rpc Read(ReadRequest) returns (ReadReply) {}
+	rpc ReadFile(ReadFileRequest) returns (ReadFileReply) {}
+	rpc ReadStream(ReadStreamRequest) returns (stream ReadStreamReply) {}
+
+	rpc Delete(DeleteRequest) returns (DeleteReply) {}
+
+	rpc Walk(WalkRequest) returns (stream WalkReply) {}
+
+	rpc AppendReferenceList(AppendReferenceListRequest) returns (AppendReferenceListReply){}
+	rpc RemoveReferenceList(RemoveReferenceListRequest) returns (RemoveReferenceListReply){}
+
+	rpc Check(CheckRequest) returns (CheckReply) {}
+	rpc Repair(RepairRequest) returns (RepairReply) {}
+}

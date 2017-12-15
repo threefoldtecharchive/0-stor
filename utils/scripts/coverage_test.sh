@@ -18,3 +18,4 @@ done
 test_package_coverage "./client/..."
 test_package_coverage "./server/..."
 test_package_coverage "./cmd"
+test_package_coverage "./daemon/..."
