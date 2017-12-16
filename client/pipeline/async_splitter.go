@@ -11,8 +11,8 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/zero-os/0-stor/client/components/storage"
 	"github.com/zero-os/0-stor/client/metastor"
+	"github.com/zero-os/0-stor/client/pipeline/storage"
 )
 
 // NewAsyncSplitterPipeline creates a parallel pipeline,

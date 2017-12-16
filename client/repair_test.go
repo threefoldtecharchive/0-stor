@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/zero-os/0-stor/client/components/storage"
+	"github.com/zero-os/0-stor/client/pipeline/storage"
 )
 
 func TestRepair(t *testing.T) {

@@ -6,9 +6,9 @@ import (
 	"io"
 	"io/ioutil"
 
-	"github.com/zero-os/0-stor/client/components/storage"
 	"github.com/zero-os/0-stor/client/datastor"
 	"github.com/zero-os/0-stor/client/metastor"
+	"github.com/zero-os/0-stor/client/pipeline/storage"
 )
 
 // NewSingleObjectPipeline creates single-threaded pipeline

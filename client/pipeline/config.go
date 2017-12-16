@@ -6,9 +6,9 @@ import (
 
 	"github.com/zero-os/0-stor/client/datastor"
 
-	"github.com/zero-os/0-stor/client/components/crypto"
-	"github.com/zero-os/0-stor/client/components/storage"
+	"github.com/zero-os/0-stor/client/pipeline/crypto"
 	"github.com/zero-os/0-stor/client/pipeline/processing"
+	"github.com/zero-os/0-stor/client/pipeline/storage"
 )
 
 var (

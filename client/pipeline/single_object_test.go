@@ -3,10 +3,10 @@ package pipeline
 import (
 	"testing"
 
+	"github.com/zero-os/0-stor/client/pipeline/crypto"
 	"github.com/zero-os/0-stor/client/pipeline/processing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/zero-os/0-stor/client/components/crypto"
 )
 
 func TestNewSingleObjectPipelinePanics(t *testing.T) {

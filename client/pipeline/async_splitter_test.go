@@ -7,9 +7,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/zero-os/0-stor/client/components/crypto"
-	"github.com/zero-os/0-stor/client/components/storage"
+	"github.com/zero-os/0-stor/client/pipeline/crypto"
 	"github.com/zero-os/0-stor/client/pipeline/processing"
+	"github.com/zero-os/0-stor/client/pipeline/storage"
 	"golang.org/x/sync/errgroup"
 )
 

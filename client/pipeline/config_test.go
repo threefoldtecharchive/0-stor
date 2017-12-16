@@ -9,7 +9,7 @@ import (
 
 	"gopkg.in/yaml.v2"
 
-	"github.com/zero-os/0-stor/client/components/crypto"
+	"github.com/zero-os/0-stor/client/pipeline/crypto"
 	"github.com/zero-os/0-stor/client/pipeline/processing"
 
 	"github.com/stretchr/testify/require"

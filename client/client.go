@@ -12,13 +12,13 @@ import (
 	"github.com/zero-os/0-stor/client/metastor/etcd"
 
 	"github.com/zero-os/0-stor/client/components/chunker"
-	"github.com/zero-os/0-stor/client/components/crypto"
 	"github.com/zero-os/0-stor/client/components/encrypt"
-	"github.com/zero-os/0-stor/client/components/storage"
 	"github.com/zero-os/0-stor/client/datastor"
 	storgrpc "github.com/zero-os/0-stor/client/datastor/grpc"
 	"github.com/zero-os/0-stor/client/itsyouonline"
 	"github.com/zero-os/0-stor/client/metastor"
+	"github.com/zero-os/0-stor/client/pipeline/crypto"
+	"github.com/zero-os/0-stor/client/pipeline/storage"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/golang/snappy"
