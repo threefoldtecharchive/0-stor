@@ -5,17 +5,11 @@ matrix:
       dist: trusty
       python: 3.5
       install:
-        - sudo apt install git -y
-        - pip3 install -U "git+https://github.com/zero-os/0-core.git@${core_0_branch}#subdirectory=client/py-client"
-        - pip3 install -U "git+https://github.com/zero-os/0-orchestrator.git@${orchestrator_branch}#subdirectory=pyclient"
-        - curl -s https://install.zerotier.com/ | sudo bash
-        - pip3 install -r test/deploy_test_env/requirements.txt
+        - pip3 install -r test/deploy_zstor_in_travis/requirements.txt
       before_script:
-        - bash test/deploy_test_env/run_tests.sh before
+        - bash test/deploy_zstor_in_travis/run_tests.sh before
       script:
-        - bash test/deploy_test_env/run_tests.sh test $TEST_CASE
-      after_script:
-        - bash test/deploy_test_env/run_tests.sh after
+        - bash test/deploy_zstor_in_travis/run_tests.sh test
 
     - language: go
       sudo: true
