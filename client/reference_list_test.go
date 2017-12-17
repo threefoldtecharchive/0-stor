@@ -17,19 +17,11 @@ func TestReferenceList(t *testing.T) {
 		shards[i] = server.Address()
 	}
 
-	policy := Policy{
-		Organization:   "testorg",
-		Namespace:      "namespace1",
-		DataShards:     shards,
-		MetaShards:     []string{"test"},
-		IYOAppID:       "id",
-		IYOSecret:      "secret",
-		ReplicationNr:  0,
-		DistributionNr: 0,
-		BlockSize:      4096,
-	}
+	config := newDefaultConfig(shards, 4096)
+	config.Pipeline.Distribution.DataShardCount = 0
+	config.Pipeline.Distribution.ParityShardCount = 0
 
-	c, err := getTestClient(policy)
+	c, err := getTestClient(config)
 	require.NoError(t, err, "fail to create client")
 
 	// initialize test data
@@ -96,18 +88,11 @@ func TestRemoveReferenceList(t *testing.T) {
 		shards[i] = server.Address()
 	}
 
-	policy := Policy{
-		Organization:  "testorg",
-		Namespace:     "namespace1",
-		DataShards:    shards,
-		MetaShards:    []string{"test"},
-		IYOAppID:      "id",
-		IYOSecret:     "secret",
-		ReplicationNr: numServer,
-		BlockSize:     4096,
-	}
+	config := newDefaultConfig(shards, 4096)
+	config.Pipeline.Distribution.DataShardCount = numServer
+	config.Pipeline.Distribution.ParityShardCount = 0
 
-	c, err := getTestClient(policy)
+	c, err := getTestClient(config)
 	require.NoError(t, err, "fail to create client")
 
 	// initialize test data

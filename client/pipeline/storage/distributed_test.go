@@ -2,7 +2,6 @@ package storage
 
 import (
 	"crypto/rand"
-	"fmt"
 	"sync"
 	"testing"
 
@@ -268,7 +267,6 @@ func invalidateShards(t *testing.T, shards []string, n int, key []byte, cluster 
 		}
 	}
 
-	fmt.Println("len(validIndices) = ", len(validIndices))
 	// invalidate the shards, which have non-valid indices
 	for i, shardID := range shards {
 		if len(validIndices) > 0 && validIndices[0] == i {

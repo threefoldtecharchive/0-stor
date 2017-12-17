@@ -53,12 +53,12 @@ func NewPipeline(cfg Config, cluster datastor.Cluster, jobCount int) (Pipeline, 
 	}
 
 	// return a sequential pipeline
-	if cfg.ChunkSize <= 0 {
+	if cfg.BlockSize <= 0 {
 		return NewSingleObjectPipeline(os, pc, hc), nil
 	}
 
 	// return a async splitter pipeline
-	return NewAsyncSplitterPipeline(os, cfg.ChunkSize, pc, hc, jobCount), nil
+	return NewAsyncSplitterPipeline(os, cfg.BlockSize, pc, hc, jobCount), nil
 }
 
 // NewProcessorConstructor creates a constructor, used to create a processor,
@@ -172,11 +172,12 @@ func NewObjectStorage(cfg ObjectDistributionConfig, cluster datastor.Cluster, jo
 // This is definitely the case in case you lose any credentials,
 // such as a private key used for encryption (and hashing).
 type Config struct {
-	// ChunkSize defines the size of chunks,
-	// all the to be written objects should be split into.
-	// If the ChunkSize has a value of 0 or lower, no object will be split
+	// BlockSize defines the "fixed-size" of objects,
+	// meaning that if to be written data is larger than this size,
+	// it will be split up into multiple objects in order to satisfy this request.
+	// If the BlockSize has a value of 0 or lower, no object will be split
 	// into multiple objects prior to writing.
-	ChunkSize int `json:"chunk_size" yaml:"chunk_size"`
+	BlockSize int `yaml:"block_size" json:"block_size"`
 
 	// Hashing can not be disabled, as it is an essential part of the pipeline.
 	// The keys of all stored blocks (in zstordb), are generated and
@@ -190,14 +191,14 @@ type Config struct {
 	// If, as recommended, a private key is available, a signature will be produced instead.
 	//
 	// See `HashingConfig` for more about its individual properties.
-	Hashing HashingConfig `json:"hashing" yaml:"hashing"`
+	Hashing HashingConfig `yaml:"hashing" json:"hashing"`
 
 	// Compressor Processor Configuration, disabled by default.
 	// Defining, if enabled, how to compress each block, while writing it,
 	// and decompressing it while reading those blocks.
 	//
 	// See `CompressionConfig` for more about its individual properties.
-	Compression CompressionConfig `json:"compression" yaml:"compression"`
+	Compression CompressionConfig `yaml:"compression" json:"compression"`
 
 	// Encryption algorithm configuration, defining, when enabled,
 	// how to encrypt all blocks prior to writing, and decrypt them once again when reading.
@@ -211,7 +212,7 @@ type Config struct {
 	// It is recommended to use encryption, and do so using the AES_256 algorithm.
 	//
 	// See EncryptionConfig for more information about its individual properties.
-	Encryption EncryptionConfig `json:"encryption" yaml:"encryption"`
+	Encryption EncryptionConfig `yaml:"encryption" json:"encryption"`
 
 	// Distribution defines how all blocks should-be/are distributed.
 	// These properties are optional, and when not given,
@@ -232,7 +233,7 @@ type Config struct {
 	// returning an error upon creation.
 	//
 	// See ObjectDistributionConfig for more information about its individual properties.
-	Distribution ObjectDistributionConfig `json:"distribution" yaml:"distribution"`
+	Distribution ObjectDistributionConfig `yaml:"distribution" json:"distribution"`
 }
 
 // HashingConfig defines the configuration used to create a
@@ -248,7 +249,7 @@ type HashingConfig struct {
 	// In case you've registered a custom hashing algorithm,
 	// or have overridden a standard hashing algorithm, using `crypto.RegisterHasher`
 	// you'll be able to use that registered hasher, by providing its (stringified) type here.
-	Type crypto.HashType `json:"type" yaml:"type"`
+	Type crypto.HashType `yaml:"type" json:"type"`
 
 	// PrivateKey is used to authorize the hash, proving ownership.
 	// If not given, and you do use Encryption for all your data blocks,
@@ -269,7 +270,7 @@ type HashingConfig struct {
 	// you need/want a different private key for both hashing and encryption,
 	// or in case for an even weirder reason, you want crypto-hashing,
 	// while disabling encryption for the storage of the data (blocks).
-	PrivateKey string `json:"private_key" yaml:"private_key"`
+	PrivateKey string `yaml:"private_key" json:"private_key"`
 }
 
 // CompressionConfig defines the configuration used to create a
@@ -284,7 +285,7 @@ type CompressionConfig struct {
 	// no compressor will be created.
 	//
 	// All standard compression modes available are: default, best_speed, best_compression
-	Mode processing.CompressionMode `json:"mode" yaml:"mode"`
+	Mode processing.CompressionMode `yaml:"mode" json:"mode"`
 
 	// The type of compression algorithm to use,
 	// defining both the compressing and decompressing logic.
@@ -296,7 +297,7 @@ type CompressionConfig struct {
 	// In case you've registered a custom compression algorithm,
 	// or have overridden a standard compression algorithm, using `processing.RegisterCompressorDecompressor`
 	// you'll be able to use that compressor-decompressor, by providing its (stringified) type here.
-	Type processing.CompressionType `json:"type" yaml:"type"`
+	Type processing.CompressionType `yaml:"type" json:"type"`
 }
 
 // EncryptionConfig defines the configuration used to create an
@@ -307,7 +308,7 @@ type EncryptionConfig struct {
 	//
 	// This key will also used by the crypto-hashing algorithm given,
 	// if you did not define a separate key within the hashing configuration.
-	PrivateKey string `json:"private_key" yaml:"private_key"`
+	PrivateKey string `yaml:"private_key" json:"private_key"`
 
 	// The type of encryption algorithm to use,
 	// defining both the encrypting and decrypting logic.
@@ -323,7 +324,7 @@ type EncryptionConfig struct {
 	// In case you've registered a custom encryption algorithm,
 	// or have overridden a standard encryption algorithm, using `processing.RegisterEncrypterDecrypter`
 	// you'll be able to use that encrypter-decrypting, by providing its (stringified) type here.
-	Type processing.EncryptionType `json:"type" yaml:"yaml"`
+	Type processing.EncryptionType `yaml:"type" json:"type"`
 }
 
 // ObjectDistributionConfig defines the configuration used to create
@@ -334,7 +335,7 @@ type ObjectDistributionConfig struct {
 	// If only the DataShardCount is given, replication is used.
 	// If used in combination with a positive ParityCount,
 	// erasure-code distribution is used.
-	DataShardCount int `json:"data_shards" yaml:"data_shards"`
+	DataShardCount int `yaml:"data_shards" json:"data_shards"`
 
 	// Number of parity shards to use for each stored block.
 	// When both this value and DataShardCount are positive, each,
@@ -358,5 +359,5 @@ type ObjectDistributionConfig struct {
 	// If, in our example, you would have less than 13 shards, but more than 6,
 	// you would still be able to read data, writing and repairing would no longer be possible.
 	// There in our example it would be better if we provide more than 13 shards.
-	ParityShardCount int `json:"parity_shards" yaml:"parity_shards"`
+	ParityShardCount int `yaml:"parity_shards" json:"parity_shards"`
 }

@@ -11,7 +11,7 @@ import (
 // NewCluster creates a new cluster,
 // and pre-loading it with a client for each of the listed (and thus known) shards.
 // Unlisted shards's clients are also stored, bu those are loaded on the fly, only when needed.
-func NewCluster(addresses []string, label, jwtToken string) (*Cluster, error) {
+func NewCluster(addresses []string, label string, jwtTokenGetter datastor.JWTTokenGetter) (*Cluster, error) {
 	if len(addresses) == 0 {
 		return nil, errors.New("no listed addresses given")
 	}
@@ -26,7 +26,7 @@ func NewCluster(addresses []string, label, jwtToken string) (*Cluster, error) {
 	)
 	// create all shards, one by one
 	for _, address := range addresses {
-		client, err := NewClient(address, label, jwtToken)
+		client, err := NewClient(address, label, jwtTokenGetter)
 		if err != nil {
 			// close all shards already opened
 			var closeErr error
@@ -50,12 +50,12 @@ func NewCluster(addresses []string, label, jwtToken string) (*Cluster, error) {
 
 	// return valid cluster, ready for usage
 	return &Cluster{
-		listed:      listed,
-		listedSlice: listedSlice,
-		listedCount: int64(listedCount),
-		unlisted:    make(map[string]*Shard),
-		label:       label,
-		jwtToken:    jwtToken,
+		listed:         listed,
+		listedSlice:    listedSlice,
+		listedCount:    int64(listedCount),
+		unlisted:       make(map[string]*Shard),
+		label:          label,
+		jwtTokenGetter: jwtTokenGetter,
 	}, nil
 }
 
@@ -69,8 +69,8 @@ type Cluster struct {
 	unlisted    map[string]*Shard
 	unlistedMux sync.Mutex
 
-	label    string
-	jwtToken string
+	label          string
+	jwtTokenGetter datastor.JWTTokenGetter
 }
 
 // GetShard implements datastor.Cluster.GetShard
@@ -91,7 +91,7 @@ func (cluster *Cluster) GetShard(address string) (datastor.Shard, error) {
 
 	// create and return an unknown unlisted client,
 	// making it known for next time it is needed
-	client, err := NewClient(address, cluster.label, cluster.jwtToken)
+	client, err := NewClient(address, cluster.label, cluster.jwtTokenGetter)
 	if err != nil {
 		return nil, err
 	}

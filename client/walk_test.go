@@ -52,16 +52,9 @@ func testWalk(t *testing.T, forward bool) {
 	}
 
 	// client policy
-	policy := Policy{
-		Organization: "testorg",
-		Namespace:    "thedisk",
-		DataShards:   dataShards,
-		MetaShards:   []string{"test"},
-		IYOAppID:     "",
-		IYOSecret:    "",
-	}
+	config := newDefaultConfig(dataShards, 0)
 
-	cli, err := getTestClient(policy)
+	cli, err := getTestClient(config)
 	require.Nil(t, err)
 
 	// override the storWriter and reader

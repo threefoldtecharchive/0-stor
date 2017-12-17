@@ -1,8 +1,10 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 	"os"
+	"runtime"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -36,52 +38,40 @@ var rootCmd = &cobra.Command{
 var rootCfg struct {
 	DebugLog   bool
 	ConfigFile string
+	JobCount   int
 }
 
 func getClient() (*client.Client, error) {
-	// create policy
-	policy, err := readPolicy()
+	cfg, err := client.ReadConfig(rootCfg.ConfigFile)
 	if err != nil {
 		return nil, err
 	}
-
 	// create client
-	cl, err := client.New(policy)
+	cl, err := client.NewClientFromConfig(cfg, rootCfg.JobCount)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create client: %v", err)
+		return nil, fmt.Errorf("failed to create 0-stor client: %v", err)
 	}
 
 	return cl, nil
 }
 
 func getMetaClient() (metastor.Client, error) {
-	// create policy
-	policy, err := readPolicy()
+	cfg, err := client.ReadConfig(rootCfg.ConfigFile)
 	if err != nil {
 		return nil, err
 	}
-
-	return etcd.NewClient(policy.MetaShards)
+	if len(cfg.MetaStor.Shards) == 0 {
+		return nil, errors.New("failed to create metastor client: no metastor shards defined")
+	}
+	return etcd.NewClient(cfg.MetaStor.Shards)
 }
 
-func getNamespaceManager() (itsyouonline.IYOClient, error) {
-	policy, err := readPolicy()
+func getNamespaceManager() (*itsyouonline.Client, error) {
+	cfg, err := client.ReadConfig(rootCfg.ConfigFile)
 	if err != nil {
 		return nil, err
 	}
-
-	return itsyouonline.NewClient(policy.Organization, policy.IYOAppID, policy.IYOSecret), nil
-}
-
-func readPolicy() (client.Policy, error) {
-	// read config file
-	f, err := os.Open(rootCfg.ConfigFile)
-	if err != nil {
-		return client.Policy{}, err
-	}
-
-	// parse config file and return it as a policy object if possible
-	return client.NewPolicyFromReader(f)
+	return itsyouonline.NewClient(cfg.IYO)
 }
 
 func init() {
@@ -97,4 +87,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(
 		&rootCfg.ConfigFile, "config", "C", "config.yaml",
 		"Path to the configuration file.")
+	rootCmd.PersistentFlags().IntVarP(
+		&rootCfg.JobCount, "jobs", "J", runtime.NumCPU()*2,
+		"number of parallel jobs to run for tasks that support this")
 }

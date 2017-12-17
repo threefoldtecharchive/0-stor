@@ -535,6 +535,11 @@ func (asp *AsyncSplitterPipeline) Read(chunks []metastor.Chunk, w io.Writer) (re
 	return referenceList, nil
 }
 
+// GetObjectStorage implements Pipeline.GetObjectStorage
+func (asp *AsyncSplitterPipeline) GetObjectStorage() storage.ObjectStorage {
+	return asp.storage
+}
+
 type indexedDataChunk struct {
 	Index int
 	Data  []byte

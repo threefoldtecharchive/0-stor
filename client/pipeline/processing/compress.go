@@ -29,7 +29,9 @@ func NewCompressorDecompressor(ct CompressionType, mode CompressionMode) (Proces
 //
 // See SnappyCompressorDecompressor for more information.
 func NewSnappyCompressorDecompressor(cm CompressionMode) (*SnappyCompressorDecompressor, error) {
-	log.Warningf("Snappy does not support compression mode, ignoring desired mode: '%s'", cm)
+	if cm != CompressionModeDefault {
+		log.Warningf("Snappy does not support compression mode, ignoring desired mode: '%s'", cm)
+	}
 	return &SnappyCompressorDecompressor{
 		readBuffer:  bytes.NewBuffer(nil),
 		writeBuffer: bytes.NewBuffer(nil),
@@ -86,7 +88,9 @@ func (cd *SnappyCompressorDecompressor) SharedReadBuffer() bool { return true }
 //
 // See LZ4CompressorDecompressor for more information.
 func NewLZ4CompressorDecompressor(cm CompressionMode) (*LZ4CompressorDecompressor, error) {
-	log.Warningf("LZ4 does not support compression mode, ignoring desired mode: '%s'", cm)
+	if cm != CompressionModeDefault {
+		log.Warningf("LZ4 does not support compression mode, ignoring desired mode: '%s'", cm)
+	}
 	return &LZ4CompressorDecompressor{
 		readBuffer:  bytes.NewBuffer(nil),
 		writeBuffer: bytes.NewBuffer(nil),

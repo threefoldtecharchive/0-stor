@@ -107,10 +107,10 @@ var configTestCases = []struct {
 	}},
 
 	// chunk-only configs
-	{"chunk_1", Config{ChunkSize: 1}},
-	{"chunk_42", Config{ChunkSize: 42}},
-	{"chunk_128", Config{ChunkSize: 128}},
-	{"chunk_4096", Config{ChunkSize: 4096}},
+	{"chunk_1", Config{BlockSize: 1}},
+	{"chunk_42", Config{BlockSize: 42}},
+	{"chunk_128", Config{BlockSize: 128}},
+	{"chunk_4096", Config{BlockSize: 4096}},
 
 	// distribution-only configs
 	{"replication_2", Config{
@@ -134,29 +134,29 @@ var configTestCases = []struct {
 
 	// no-processor configs
 	{"chunk(1)+replication(2)", Config{
-		ChunkSize:    1,
+		BlockSize:    1,
 		Distribution: ObjectDistributionConfig{DataShardCount: 2},
 	}},
 	{"chunk(42)+erasure_code(k=4_m=2)", Config{
-		ChunkSize: 42,
+		BlockSize: 42,
 		Distribution: ObjectDistributionConfig{
 			DataShardCount:   4,
 			ParityShardCount: 2,
 		},
 	}},
 	{"chunk(42)+replication(2)", Config{
-		ChunkSize:    42,
+		BlockSize:    42,
 		Distribution: ObjectDistributionConfig{DataShardCount: 2},
 	}},
 	{"chunk(127)+erasure_code(k=1_m=1)", Config{
-		ChunkSize: 127,
+		BlockSize: 127,
 		Distribution: ObjectDistributionConfig{
 			DataShardCount:   1,
 			ParityShardCount: 1,
 		},
 	}},
 	{"hashing(blake2b_512)+chunk(129)+erasure_code(k=1_m=1)", Config{
-		ChunkSize: 129,
+		BlockSize: 129,
 		Hashing:   HashingConfig{Type: crypto.HashTypeBlake2b512},
 		Distribution: ObjectDistributionConfig{
 			DataShardCount:   1,
@@ -165,7 +165,7 @@ var configTestCases = []struct {
 	}},
 
 	{"hashing(default)+chunk(128)+encryption(default_256)+replication(1)", Config{
-		ChunkSize:  128,
+		BlockSize:  128,
 		Hashing:    HashingConfig{Type: crypto.DefaultHash256Type},
 		Encryption: EncryptionConfig{PrivateKey: randomString(32)},
 		Distribution: ObjectDistributionConfig{
@@ -173,7 +173,7 @@ var configTestCases = []struct {
 		},
 	}},
 	{"hashing(default)+chunk(64)+compression(default)+replication(1)", Config{
-		ChunkSize:   64,
+		BlockSize:   64,
 		Hashing:     HashingConfig{Type: crypto.DefaultHash256Type},
 		Compression: CompressionConfig{Mode: processing.CompressionModeDefault},
 		Distribution: ObjectDistributionConfig{
@@ -181,7 +181,7 @@ var configTestCases = []struct {
 		},
 	}},
 	{"hashing(blake2b_256)+chunk(32)+encryption(default_256)+replication(1)", Config{
-		ChunkSize:  32,
+		BlockSize:  32,
 		Hashing:    HashingConfig{Type: crypto.HashTypeBlake2b256},
 		Encryption: EncryptionConfig{PrivateKey: randomString(32)},
 		Distribution: ObjectDistributionConfig{
@@ -189,7 +189,7 @@ var configTestCases = []struct {
 		},
 	}},
 	{"hashing(blake2b_256)+chunk(128)+compression(default)+replication(1)", Config{
-		ChunkSize:   128,
+		BlockSize:   128,
 		Hashing:     HashingConfig{Type: crypto.HashTypeBlake2b256},
 		Compression: CompressionConfig{Mode: processing.CompressionModeDefault},
 		Distribution: ObjectDistributionConfig{
@@ -197,7 +197,7 @@ var configTestCases = []struct {
 		},
 	}},
 	{"hashing(blake2b_256)+chunk(128)+compression(default)+encryption(default_256)+erasure_code(k=1_m=1)", Config{
-		ChunkSize:   128,
+		BlockSize:   128,
 		Hashing:     HashingConfig{Type: crypto.HashTypeBlake2b256},
 		Compression: CompressionConfig{Mode: processing.CompressionModeDefault},
 		Encryption:  EncryptionConfig{PrivateKey: randomString(32)},
@@ -207,7 +207,7 @@ var configTestCases = []struct {
 		},
 	}},
 	{"hashing(blake2b_512)+chunk(8)+compression(gzip_speed)+encryption(aes_256)+erasure_code(k=10_m=3)", Config{
-		ChunkSize: 8,
+		BlockSize: 8,
 		Hashing:   HashingConfig{Type: crypto.HashTypeBlake2b512},
 		Compression: CompressionConfig{
 			Type: processing.CompressionTypeGZip,
@@ -227,26 +227,26 @@ var yamlConfigTestCases = []struct {
 }{
 	{`nil-config`, `---
 `}, {`hashing(blake2b_512)+chunk(64)+erasure_code(k=1_m=1)`, `---
-chunk_size: 64
+block_size: 64
 hashing:
     type: blake2b_512
 distribution:
     data_shards: 1
     parity_shards: 1
 `}, {`chunk(32)+erasure_code(k=1_m=1)`, `---
-chunk_size: 32
+block_size: 32
 distribution:
     data_shards: 1
     parity_shards: 1
 `}, {`chunk(16)+compression(default)+erasure_code(k=1_m=1)`, `---
-chunk_size: 16
+block_size: 16
 compression:
     mode: default
 distribution:
     data_shards: 1
     parity_shards: 1
 `}, {`hashing(blake2b_256)+chunk(19)+compression(default)+encryption(default_256)+erasure_code(k=1_m=1)`, `---
-chunk_size: 19
+block_size: 19
 hashing:
     type: blake2b_256
 encryption:
@@ -255,7 +255,7 @@ distribution:
    data_shards: 1
    parity_shards: 1
 `}, {`hashing(blake2b_256+key)+chunk(32)+compression(gzip_speed)+encryption(aes_256)+erasure_code(k=10_m=3)`, `---
-chunk_size: 32
+block_size: 32
 hashing:
     type: blake2b_256
     private_key: 12345678901234567890123456789012

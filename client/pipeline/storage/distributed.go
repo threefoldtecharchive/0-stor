@@ -282,9 +282,7 @@ func (ds *DistributedObjectStorage) Read(cfg ObjectConfig) (datastor.Object, err
 				shard  indexedShard
 			)
 			for {
-				// fetch a random shard,
-				// it's an error if this is not possible,
-				// as a shard is expected to be still available at this stage
+				// fetch a random shard
 				select {
 				case shard, open = <-shardCh:
 					if !open {
@@ -311,8 +309,8 @@ func (ds *DistributedObjectStorage) Read(cfg ObjectConfig) (datastor.Object, err
 				select {
 				case resultCh <- result:
 				case <-ctx.Done():
-					return errors.New("context was unexpectedly cancelled, " +
-						"while returning the data part, freshly fetched from a shard for a distribute-read request")
+					// this can be expected in case we reached the minimum shards needed
+					return nil
 				}
 			}
 		})

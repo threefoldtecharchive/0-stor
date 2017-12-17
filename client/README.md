@@ -120,115 +120,46 @@ It can be used for example to reconstruct the stored sequential data.
 
 ## Using 0-stor client examples:
 
-In below example, when we store the data, the data will be processed as follow:
+### Hello World
+
+File: [/examples/hello_world/main.go](/examples/hello_world/main.go)
+
+In this example, when we store the data, the data will be processed as follow:
 plain data -> compress -> encrypt -> distribution/erasure encoding (which send to 0-stor server and write metadata)
 
 When we get the data from 0-stor, the reverse process will happen:
 distribution/erasure decoding (which reads metadata & Get data from 0-stor) -> decrypt -> decompress -> plain data.
 
 To run this example, you need to run:
-- 0-stor server at port 12345
-- 0-stor server at port 12346
-- 0-stor server at port 12347
+- 0-stor no-auth server at port 12345
+- 0-stor no-auth server at port 12346
+- 0-stor no-auth server at port 12347
 - etcd server at port 2379
 
-```go
-package main
-
-import (
-	"log"
-
-	"github.com/zero-os/0-stor/client"
-)
-
-func main() {
-	policy := client.Policy{
-		Organization:           "labhijau",
-		Namespace:              "thedisk",
-		DataShards:             []string{"127.0.0.1:12345", "127.0.0.1:12346", "127.0.0.1:12347"},
-		MetaShards:             []string{"127.0.0.1:2379"},
-		IYOAppID:               "the_id",
-		IYOSecret:              "the_secret",
-		Compress:               true,
-		Encrypt:                true,
-		EncryptKey:             "ab345678901234567890123456789012",
-		BlockSize:              4096,
-		ReplicationNr:          0, // force to use distribution
-		ReplicationMaxSize:     0, // force to use distribution
-		DistributionNr:         2,
-		DistributionRedundancy: 1,
-	}
-	c, err := client.New(policy)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	data := []byte("hello 0-stor")
-	key := []byte("hi guys")
-
-	// store onto 0-stor
-	_, err = c.Write(key, data, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// read the data
-	stored, _, err := c.Read(key)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Printf("stored data=%v\n", string(stored))
-}
-```
-
-### Example using configuration file
-
-```go
-package main
-
-import (
-	"log"
-	"os"
-
-	"github.com/zero-os/0-stor/client"
-)
-
-func main() {
-	f, err := os.Open("./config.yaml")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-
-	policy, err := client.NewPolicyFromReader(f)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	client, err := client.New(policy)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	data := []byte("hello 0-stor")
-	key := []byte("hello")
-	refList := []string{"ref-1"}
-
-	// stor to 0-stor
-	_, err = client.Write(key, data, refList)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// read data
-	stored, storedRefList, err := client.Read(key)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Printf("stored value=%v\nreflist=%v\n", string(stored), storedRefList)
-}
+Than you can run the example as follows:
 
 ```
+go run examples/hello_world/main.go
+```
+
+Please check out the source code to see how this example works.
+
+### Hello World: Config File Edition
+
+File: [/examples/hello_config/main.go](/examples/hello_config/main.go)
+
+In this file we are doing exactly the same,
+and you'll need to run the same servers as were required before.
+
+However this time we create the client, using a file-based config.
+
+You can run the example as follows:
+
+```
+go run examples/hello_config/main.go
+```
+
+Please check out the source code to see how this example works.
 
 ## Configuration
 

@@ -4,24 +4,21 @@ import (
 	"bytes"
 	"errors"
 	"io"
-	"io/ioutil"
 	"runtime"
 	"sync"
 	"time"
 
+	"github.com/zero-os/0-stor/client/pipeline"
+
 	"github.com/zero-os/0-stor/client/metastor/etcd"
 
-	"github.com/zero-os/0-stor/client/components/chunker"
-	"github.com/zero-os/0-stor/client/components/encrypt"
 	"github.com/zero-os/0-stor/client/datastor"
 	storgrpc "github.com/zero-os/0-stor/client/datastor/grpc"
 	"github.com/zero-os/0-stor/client/itsyouonline"
 	"github.com/zero-os/0-stor/client/metastor"
-	"github.com/zero-os/0-stor/client/pipeline/crypto"
 	"github.com/zero-os/0-stor/client/pipeline/storage"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/golang/snappy"
 )
 
 var (
@@ -30,112 +27,100 @@ var (
 	errNoDataShardAvailable = errors.New("no more data shard available")
 )
 
-var _ (itsyouonline.IYOClient) = (*Client)(nil) // build time check that we implement itsyouonline.IYOClient interface
-
 // Client defines 0-stor client
 type Client struct {
-	policy Policy
+	datastorCluster datastor.Cluster
+	dataPipeline    pipeline.Pipeline
 
-	metaCli metastor.Client
-	iyoCl   itsyouonline.IYOClient
-
-	storage storage.ObjectStorage
-	// does not have to be closed by client,
-	// as storage already closes it
-	cluster clusterCloser
+	metastorClient metastor.Client
 }
 
-type clusterCloser interface {
-	datastor.Cluster
-
-	Close() error
-}
-
-// New creates new client from the given config
-func New(policy Policy) (*Client, error) {
-	var iyoCl itsyouonline.IYOClient
-	if policy.Organization != "" && policy.IYOAppID != "" && policy.IYOSecret != "" {
-		iyoCl = itsyouonline.NewClient(policy.Organization, policy.IYOAppID, policy.IYOSecret)
-	}
-
-	return newClient(policy, iyoCl)
-}
-
-func newClient(policy Policy, iyoCl itsyouonline.IYOClient) (*Client, error) {
+// NewClientFromConfig creates new 0-stor client using the given config.
+func NewClientFromConfig(cfg Config, jobCount int) (*Client, error) {
 	var (
-		err      error
-		iyoToken string
+		err             error
+		datastorCluster datastor.Cluster
 	)
-
-	if iyoCl != nil {
-		iyoToken, err = iyoCl.CreateJWT(policy.Namespace, itsyouonline.Permission{
-			Write:  true,
-			Read:   true,
-			Delete: true,
-		})
-		if err != nil {
-			log.Error(err.Error())
-			return nil, err
+	// create datastor cluster
+	if cfg.IYO != (itsyouonline.Config{}) {
+		client, err := itsyouonline.NewClient(cfg.IYO)
+		if err == nil {
+			tokenGetter := &iyoJWTTokenGetter{client}
+			datastorCluster, err = storgrpc.NewCluster(cfg.DataStor.Shards, cfg.Namespace, tokenGetter)
 		}
+	} else {
+		datastorCluster, err = storgrpc.NewCluster(cfg.DataStor.Shards, cfg.Namespace, nil)
 	}
-
-	cluster, err := storgrpc.NewCluster(policy.DataShards, policy.Namespace, iyoToken)
 	if err != nil {
 		return nil, err
 	}
 
-	var objectStorage storage.ObjectStorage
-	switch {
-	case policy.DistributionEnabled():
-		objectStorage, err = storage.NewDistributedObjectStorage(
-			cluster, policy.DistributionNr, policy.DistributionRedundancy, 0)
-		if err != nil {
-			return nil, err
-		}
-
-	case policy.ReplicationNr > 1:
-		objectStorage, err = storage.NewReplicatedObjectStorage(
-			cluster, policy.ReplicationNr, 0)
-		if err != nil {
-			return nil, err
-		}
-
-	default:
-		objectStorage, err = storage.NewRandomObjectStorage(cluster)
-		if err != nil {
-			return nil, err
-		}
+	// create data pipeline, using our datastor cluster
+	dataPipeline, err := pipeline.NewPipeline(cfg.Pipeline, datastorCluster, jobCount)
+	if err != nil {
+		return nil, err
 	}
 
-	client := Client{
-		policy:  policy,
-		iyoCl:   iyoCl,
-		storage: objectStorage,
-		cluster: cluster,
+	// if no metadata shards are given, return an error,
+	// as we require a metastor client
+	// TODO: allow a more flexible kind of metastor client configuration,
+	// so we can also allow other types of metastor clients,
+	// as we do really need one.
+	if len(cfg.MetaStor.Shards) == 0 {
+		return nil, errors.New("no metadata storage given")
 	}
 
-	// instantiate meta client
-	if len(policy.MetaShards) > 0 {
-		// meta client
-		metaCli, err := etcd.NewClient(policy.MetaShards)
+	// create metastor client first,
+	// and than create our master 0-stor client with all features.
+	metastorClient, err := etcd.NewClient(cfg.MetaStor.Shards)
+	if err != nil {
+		return nil, err
+	}
+	return NewClient(datastorCluster, metastorClient, dataPipeline)
+}
+
+// NewClient creates a 0-stor client,
+// with the data (zstordb) cluster already created,
+// used to read/write object data and reference lists,
+// as well as the metastor client, which is used to read/write the metadata of the objects.
+//
+// The given data pipeline is optional and a default one will be created should it not be defined.
+func NewClient(dataCluster datastor.Cluster, metaClient metastor.Client, dataPipeline pipeline.Pipeline) (*Client, error) {
+	if dataCluster == nil {
+		panic("0-stor Client: no datastor cluster given")
+	}
+	if metaClient == nil {
+		panic("0-stor Client: no metastor client given")
+	}
+
+	// create default pipeline
+	if dataPipeline == nil {
+		pipeline, err := pipeline.NewPipeline(pipeline.Config{}, dataCluster, -1)
 		if err != nil {
 			return nil, err
 		}
-		client.metaCli = metaCli
+		dataPipeline = pipeline
 	}
 
-	return &client, nil
+	return &Client{
+		datastorCluster: dataCluster,
+		dataPipeline:    dataPipeline,
+		metastorClient:  metaClient,
+	}, nil
 }
 
 // Close the client
 func (c *Client) Close() error {
-	if c.metaCli != nil {
-		c.metaCli.Close()
+	c.metastorClient.Close()
+	if closer, ok := c.datastorCluster.(interface {
+		Close() error
+	}); ok {
+		return closer.Close()
 	}
-	return c.cluster.Close()
+	return nil
 }
 
-// Write write the value to the the 0-stors configured by the client policy
+// Write write the value to the the 0-stors configured by the client config
 func (c *Client) Write(key, value []byte, refList []string) (*metastor.Data, error) {
 	return c.WriteWithMeta(key, value, nil, nil, nil, refList)
 }
@@ -160,32 +145,9 @@ func (c *Client) WriteFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMet
 }
 
 func (c *Client) writeFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMeta, md *metastor.Data, refList []string) (*metastor.Data, error) {
-	var (
-		blockSize int
-		err       error
-		aesgm     encrypt.EncrypterDecrypter
-	)
-
-	blakeH, err := crypto.NewDefaultHasher256([]byte(c.policy.EncryptKey))
+	chunks, err := c.dataPipeline.Write(r, refList)
 	if err != nil {
 		return nil, err
-	}
-
-	if c.policy.Encrypt {
-		aesgm, err = encrypt.NewEncrypterDecrypter(encrypt.Config{PrivKey: c.policy.EncryptKey, Type: encrypt.TypeAESGCM})
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if len(prevKey) > 0 && prevMeta == nil {
-		// get the prev meta now than later
-		// to avoid making processing and then
-		// just found that prev meta is invalid
-		prevMeta, err = c.metaCli.GetMetadata(prevKey)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	// create new metadata if not given
@@ -196,56 +158,11 @@ func (c *Client) writeFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMet
 		}
 	}
 
-	// define the block size to use
-	// if policy block size is set to 0:
-	//		 we read all content of r, get the size of the data
-	// 		 and configuer the chuner with this size, so there is going to be only one chunk
-	// else use the block size from the policy
-	if c.policy.BlockSize <= 0 {
-		b, err := ioutil.ReadAll(r)
-		if err != nil {
-			return nil, err
-		}
-		blockSize = len(b)
-		r = bytes.NewReader(b)
-	} else {
-		blockSize = c.policy.BlockSize
-	}
-
-	rd := chunker.NewReader(r, chunker.Config{ChunkSize: blockSize})
-
-	var storCfg storage.ObjectConfig
-	for rd.Next() {
-		block := rd.Value()
-
-		hashed := blakeH.HashBytes(block)
-
-		chunkKey := hashed[:]
-		chunk := &metastor.Chunk{Key: chunkKey}
-
-		if c.policy.Encrypt {
-			block, err = aesgm.Encrypt(block)
-			chunk.Size = int64(len(block))
-		}
-
-		if c.policy.Compress {
-			block = snappy.Encode(nil, block)
-			chunk.Size = int64(len(block))
-		}
-
-		storCfg, err = c.storage.Write(datastor.Object{
-			Key:           chunkKey,
-			Data:          block,
-			ReferenceList: refList,
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		chunk.Key = storCfg.Key
-		chunk.Size = int64(storCfg.DataSize)
-		chunk.Shards = storCfg.Shards
-		md.Chunks = append(md.Chunks, chunk)
+	// update chunks in metadata
+	// TODO: fix this (pointer) difference in API
+	md.Chunks = make([]*metastor.Chunk, len(chunks))
+	for index := range chunks {
+		md.Chunks[index] = &chunks[index]
 	}
 
 	err = c.linkMeta(md, prevMeta, key, prevKey)
@@ -256,11 +173,11 @@ func (c *Client) writeFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMet
 	return md, nil
 }
 
-// Read reads value with given key from the 0-stors configured by the client policy
+// Read reads value with given key from the 0-stors configured by the client cnfig
 // it will first try to get the metadata associated with key from the Metadata servers.
 // It returns the value and it's reference list
 func (c *Client) Read(key []byte) ([]byte, []string, error) {
-	md, err := c.metaCli.GetMetadata(key)
+	md, err := c.metastorClient.GetMetadata(key)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -276,7 +193,7 @@ func (c *Client) Read(key []byte) ([]byte, []string, error) {
 
 // ReadF similar as Read but write the data to w instead of returning a slice of bytes
 func (c *Client) ReadF(key []byte, w io.Writer) ([]string, error) {
-	md, err := c.metaCli.GetMetadata(key)
+	md, err := c.metastorClient.GetMetadata(key)
 	if err != nil {
 		return nil, err
 	}
@@ -296,59 +213,19 @@ func (c *Client) ReadWithMeta(md *metastor.Data) ([]byte, []string, error) {
 }
 
 func (c *Client) readFWithMeta(md *metastor.Data, w io.Writer) (refList []string, err error) {
-	var (
-		aesgm encrypt.EncrypterDecrypter
-		block []byte
-		obj   datastor.Object
-	)
-
-	if c.policy.Encrypt {
-		aesgm, err = encrypt.NewEncrypterDecrypter(encrypt.Config{PrivKey: c.policy.EncryptKey, Type: encrypt.TypeAESGCM})
-		if err != nil {
-			return
-		}
+	// get chunks from metadata
+	// TODO: fix this (pointer) difference in API
+	chunks := make([]metastor.Chunk, len(md.Chunks))
+	for index := range md.Chunks {
+		chunks[index] = *md.Chunks[index]
 	}
-
-	for _, chunk := range md.Chunks {
-		obj, err = c.storage.Read(storage.ObjectConfig{
-			Key:      chunk.Key,
-			Shards:   chunk.Shards,
-			DataSize: int(chunk.Size),
-		})
-		if err != nil {
-			return
-		}
-
-		block = obj.Data
-		refList = obj.ReferenceList
-
-		if c.policy.Compress {
-			block, err = snappy.Decode(nil, block)
-			if err != nil {
-				return
-			}
-		}
-
-		if c.policy.Encrypt {
-			block, err = aesgm.Decrypt(block)
-			if err != nil {
-				return
-			}
-		}
-
-		_, err = w.Write(block)
-		if err != nil {
-			return
-		}
-	}
-
-	return
+	return c.dataPipeline.Read(chunks, w)
 }
 
 // Delete deletes object from the 0-stor server pointed by the key
 // It also deletes the metadatastor.
 func (c *Client) Delete(key []byte) error {
-	meta, err := c.metaCli.GetMetadata(key)
+	meta, err := c.metastorClient.GetMetadata(key)
 	if err != nil {
 		log.Errorf("fail to read metadata: %v", err)
 		return err
@@ -377,7 +254,7 @@ func (c *Client) DeleteWithMeta(meta *metastor.Data) error {
 			defer wg.Done()
 
 			for job := range cJob {
-				shard, err := c.cluster.GetShard(job.shard)
+				shard, err := c.datastorCluster.GetShard(job.shard)
 				if err != nil {
 					// FIXME: probably want to handle this
 					log.Errorf("error deleting object:%v", err)
@@ -408,7 +285,7 @@ func (c *Client) DeleteWithMeta(meta *metastor.Data) error {
 	wg.Wait()
 
 	// delete metadata
-	if err := c.metaCli.DeleteMetadata(meta.Key); err != nil {
+	if err := c.metastorClient.DeleteMetadata(meta.Key); err != nil {
 		log.Errorf("error deleting metadata :%v", err)
 		return err
 	}
@@ -417,14 +294,14 @@ func (c *Client) DeleteWithMeta(meta *metastor.Data) error {
 }
 
 func (c *Client) Check(key []byte) (storage.ObjectCheckStatus, error) {
-	meta, err := c.metaCli.GetMetadata(key)
+	meta, err := c.metastorClient.GetMetadata(key)
 	if err != nil {
 		log.Errorf("fail to get metadata for check: %v", err)
 		return storage.ObjectCheckStatus(0), err
 	}
 
 	for _, chunk := range meta.Chunks {
-		status, err := c.storage.Check(storage.ObjectConfig{
+		status, err := c.dataPipeline.GetObjectStorage().Check(storage.ObjectConfig{
 			Key:      chunk.Key,
 			Shards:   chunk.Shards,
 			DataSize: int(chunk.Size),
@@ -438,7 +315,7 @@ func (c *Client) Check(key []byte) (storage.ObjectCheckStatus, error) {
 
 func (c *Client) linkMeta(curMd, prevMd *metastor.Data, curKey, prevKey []byte) error {
 	if len(prevKey) == 0 {
-		return c.metaCli.SetMetadata(*curMd)
+		return c.metastorClient.SetMetadata(*curMd)
 	}
 
 	// point next key of previous meta to new meta
@@ -448,29 +325,10 @@ func (c *Client) linkMeta(curMd, prevMd *metastor.Data, curKey, prevKey []byte) 
 	curMd.Previous = prevKey
 
 	// update prev meta
-	if err := c.metaCli.SetMetadata(*prevMd); err != nil {
+	if err := c.metastorClient.SetMetadata(*prevMd); err != nil {
 		return err
 	}
 
 	// update new meta
-	return c.metaCli.SetMetadata(*curMd)
-}
-
-func (c *Client) CreateJWT(namespace string, perm itsyouonline.Permission) (string, error) {
-	return c.iyoCl.CreateJWT(namespace, perm)
-}
-func (c *Client) CreateNamespace(namespace string) error {
-	return c.iyoCl.CreateNamespace(namespace)
-}
-func (c *Client) DeleteNamespace(namespace string) error {
-	return c.iyoCl.DeleteNamespace(namespace)
-}
-func (c *Client) GivePermission(namespace, userID string, perm itsyouonline.Permission) error {
-	return c.iyoCl.GivePermission(namespace, userID, perm)
-}
-func (c *Client) RemovePermission(namespace, userID string, perm itsyouonline.Permission) error {
-	return c.iyoCl.RemovePermission(namespace, userID, perm)
-}
-func (c *Client) GetPermission(namespace, userID string) (itsyouonline.Permission, error) {
-	return c.iyoCl.GetPermission(namespace, userID)
+	return c.metastorClient.SetMetadata(*curMd)
 }

@@ -171,6 +171,11 @@ func (sop *SingleObjectPipeline) Read(chunks []metastor.Chunk, w io.Writer) (ref
 	return obj.ReferenceList, err
 }
 
+// GetObjectStorage implements Pipeline.GetObjectStorage
+func (sop *SingleObjectPipeline) GetObjectStorage() storage.ObjectStorage {
+	return sop.storage
+}
+
 var (
 	_ Pipeline = (*SingleObjectPipeline)(nil)
 )

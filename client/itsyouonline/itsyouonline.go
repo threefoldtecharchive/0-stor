@@ -21,33 +21,35 @@ var (
 	ErrForbidden = errors.New("forbidden action")
 )
 
-// IYOClient defines the interface to manage namespaces and permissions on ItsYouOnline
-type IYOClient interface {
-	CreateJWT(namespace string, perm Permission) (string, error)
-	CreateNamespace(namespace string) error
-	DeleteNamespace(namespace string) error
-	GivePermission(namespace, userID string, perm Permission) error
-	RemovePermission(namespace, userID string, perm Permission) error
-	GetPermission(namespace, userID string) (Permission, error)
+// Config is used to create an IYO client.
+type Config struct {
+	Organization      string `yaml:"organization" json:"organization"`
+	ApplicationID     string `yaml:"app_id" json:"app_id"`
+	ApplicationSecret string `yaml:"app_secret" json:"app_secret"`
 }
 
 // Client defines itsyouonline client which is designed to help 0-stor user.
 // It is not replacement for official itsyouonline client
 type Client struct {
-	org       string
-	clientID  string
-	secret    string
+	cfg       Config
 	iyoClient *itsyouonline.Itsyouonline
 }
 
 // NewClient creates new client
-func NewClient(org, clientID, secret string) *Client {
-	return &Client{
-		org:       org,
-		clientID:  clientID,
-		secret:    secret,
-		iyoClient: itsyouonline.NewItsyouonline(),
+func NewClient(cfg Config) (*Client, error) {
+	if cfg.Organization == "" {
+		return nil, errors.New("IYO: organization not defined")
 	}
+	if cfg.ApplicationID == "" {
+		return nil, errors.New("IYO: application ID not defined")
+	}
+	if cfg.ApplicationSecret == "" {
+		return nil, errors.New("IYO: application Secret not defined")
+	}
+	return &Client{
+		cfg:       cfg,
+		iyoClient: itsyouonline.NewItsyouonline(),
+	}, nil
 }
 
 // CreateJWT creates itsyouonline JWT token with these scopes:
@@ -57,12 +59,12 @@ func NewClient(org, clientID, secret string) *Client {
 func (c *Client) CreateJWT(namespace string, perm Permission) (string, error) {
 	qp := map[string]interface{}{
 		"grant_type":    "client_credentials",
-		"client_id":     c.clientID,
-		"client_secret": c.secret,
+		"client_id":     c.cfg.ApplicationID,
+		"client_secret": c.cfg.ApplicationSecret,
 	}
 
 	// build scopes query
-	scopes := perm.Scopes(c.org, "0stor"+"."+namespace)
+	scopes := perm.Scopes(c.cfg.Organization, "0stor"+"."+namespace)
 	if len(scopes) == 0 {
 		return "", errNoPermission
 	}
@@ -98,17 +100,18 @@ func (c *Client) CreateJWT(namespace string, perm Permission) (string, error) {
 // - org.0stor.namespace.write
 // - org.0stor.namespace.write
 func (c *Client) CreateNamespace(namespace string) error {
-	_, _, _, err := c.iyoClient.LoginWithClientCredentials(c.clientID, c.secret)
+	err := c.login()
 	if err != nil {
-		return fmt.Errorf("login failed:%v", err)
+		return err
 	}
 
 	// create namespace org
-	namespaceID := c.org + "." + "0stor"
+	namespaceID := c.cfg.Organization + "." + "0stor"
 	org := itsyouonline.Organization{
 		Globalid: namespaceID,
 	}
-	_, resp, err := c.iyoClient.Organizations.CreateNewSubOrganization(c.org, org, nil, nil)
+	_, resp, err := c.iyoClient.Organizations.CreateNewSubOrganization(
+		c.cfg.Organization, org, nil, nil)
 	if err != nil {
 		return fmt.Errorf("code=%v, err=%v", resp.StatusCode, err)
 	}
@@ -136,7 +139,8 @@ func (c *Client) CreateNamespace(namespace string) error {
 		org := itsyouonline.Organization{
 			Globalid: namespaceID + "." + perm,
 		}
-		_, resp, err := c.iyoClient.Organizations.CreateNewSubOrganization(namespaceID, org, nil, nil)
+		_, resp, err := c.iyoClient.Organizations.CreateNewSubOrganization(
+			namespaceID, org, nil, nil)
 		if err != nil {
 			return fmt.Errorf("code=%v, err=%v", resp.StatusCode, err)
 		}
@@ -146,14 +150,17 @@ func (c *Client) CreateNamespace(namespace string) error {
 
 // DeleteNamespace deletes the namespace sub organization and all of it's sub organizations
 func (c *Client) DeleteNamespace(namespace string) error {
-	_, _, _, err := c.iyoClient.LoginWithClientCredentials(c.clientID, c.secret)
+	err := c.login()
 	if err != nil {
-		return fmt.Errorf("login failed: %v", err)
+		return err
 	}
 
-	resp, err := c.iyoClient.Organizations.DeleteOrganization(c.namespaceID(namespace), nil, nil)
+	resp, err := c.iyoClient.Organizations.DeleteOrganization(
+		c.createNamespaceID(namespace), nil, nil)
 	if err != nil {
-		return fmt.Errorf("deleting namespace failed: IYO returned status %+v \nwith error message: %v", resp.Status, err)
+		return fmt.Errorf(
+			"deleting namespace failed: IYO returned status %+v \nwith error message: %v",
+			resp.Status, err)
 	}
 
 	if resp.StatusCode == http.StatusForbidden {
@@ -165,17 +172,17 @@ func (c *Client) DeleteNamespace(namespace string) error {
 
 // GivePermission give a user some permission on a namespace
 func (c *Client) GivePermission(namespace, userID string, perm Permission) error {
-	_, _, _, err := c.iyoClient.LoginWithClientCredentials(c.clientID, c.secret)
+	err := c.login()
 	if err != nil {
-		return fmt.Errorf("login failed: %v", err)
+		return err
 	}
 
 	var org string
 	for _, perm := range perm.perms() {
 		if perm == "admin" {
-			org = c.namespaceID(namespace)
+			org = c.createNamespaceID(namespace)
 		} else {
-			org = c.namespaceID(namespace) + "." + perm
+			org = c.createNamespaceID(namespace) + "." + perm
 		}
 		user := itsyouonline.OrganizationsGlobalidMembersPostReqBody{Searchstring: userID}
 		_, resp, err := c.iyoClient.Organizations.AddOrganizationMember(org, user, nil, nil)
@@ -192,17 +199,17 @@ func (c *Client) GivePermission(namespace, userID string, perm Permission) error
 
 // RemovePermission remove some permission from a user on a namespace
 func (c *Client) RemovePermission(namespace, userID string, perm Permission) error {
-	_, _, _, err := c.iyoClient.LoginWithClientCredentials(c.clientID, c.secret)
+	err := c.login()
 	if err != nil {
-		return fmt.Errorf("login failed: %v", err)
+		return err
 	}
 
 	var org string
 	for _, perm := range perm.perms() {
 		if perm == "admin" {
-			org = c.namespaceID(namespace)
+			org = c.createNamespaceID(namespace)
 		} else {
-			org = c.namespaceID(namespace) + "." + perm
+			org = c.createNamespaceID(namespace) + "." + perm
 		}
 		resp, err := c.iyoClient.Organizations.RemoveOrganizationMember(userID, org, nil, nil)
 		if err != nil {
@@ -221,16 +228,16 @@ func (c *Client) GetPermission(namespace, userID string) (Permission, error) {
 		org        string
 	)
 
-	_, _, _, err := c.iyoClient.LoginWithClientCredentials(c.clientID, c.secret)
+	err := c.login()
 	if err != nil {
-		return permission, fmt.Errorf("login failed: %v", err)
+		return permission, err
 	}
 
 	for _, perm := range []string{"read", "write", "delete", "admin"} {
 		if perm == "admin" {
-			org = c.namespaceID(namespace)
+			org = c.createNamespaceID(namespace)
 		} else {
-			org = c.namespaceID(namespace) + "." + perm
+			org = c.createNamespaceID(namespace) + "." + perm
 		}
 
 		invitations, resp, err := c.iyoClient.Organizations.GetInvitations(org, nil, nil)
@@ -273,6 +280,19 @@ func (c *Client) GetPermission(namespace, userID string) (Permission, error) {
 	return permission, nil
 }
 
+func (c *Client) login() error {
+	_, _, _, err := c.iyoClient.LoginWithClientCredentials(
+		c.cfg.ApplicationID, c.cfg.ApplicationSecret)
+	if err != nil {
+		return fmt.Errorf("login failed:%v", err)
+	}
+	return nil
+}
+
+func (c *Client) createNamespaceID(namespace string) string {
+	return c.cfg.Organization + "." + "0stor" + "." + namespace
+}
+
 func hasPermission(target string, members []itsyouonline.OrganizationUser, invitations []itsyouonline.JoinOrganizationInvitation) bool {
 	return isMember(target, members) || isInvited(target, invitations)
 }
@@ -293,10 +313,6 @@ func isInvited(target string, invitations []itsyouonline.JoinOrganizationInvitat
 		}
 	}
 	return false
-}
-
-func (c *Client) namespaceID(namespace string) string {
-	return c.org + "." + "0stor" + "." + namespace
 }
 
 func buildQueryString(req *http.Request, qs map[string]interface{}) string {

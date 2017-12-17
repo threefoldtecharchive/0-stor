@@ -25,9 +25,8 @@ type Client struct {
 	objService       pb.ObjectManagerClient
 	namespaceService pb.NamespaceManagerClient
 
-	jwtToken        string
-	jwtTokenDefined bool
-	label           string
+	contextConstructor func(context.Context) (context.Context, error)
+	label              string
 }
 
 // NewClient create a new data client,
@@ -35,7 +34,7 @@ type Client struct {
 // The addres to the zstordb server is required,
 // and so is the label, as the latter serves as the identifier of the to be used namespace.
 // The jwtToken is required, only if the connected zstordb server requires this.
-func NewClient(addr, label, jwtToken string) (*Client, error) {
+func NewClient(addr, label string, jwtTokenGetter datastor.JWTTokenGetter) (*Client, error) {
 	if len(addr) == 0 {
 		panic("no zstordb address give")
 	}
@@ -53,19 +52,41 @@ func NewClient(addr, label, jwtToken string) (*Client, error) {
 		return nil, err
 	}
 
-	return &Client{
+	client := &Client{
 		conn:             conn,
 		objService:       pb.NewObjectManagerClient(conn),
 		namespaceService: pb.NewNamespaceManagerClient(conn),
-		jwtToken:         jwtToken,
-		jwtTokenDefined:  len(jwtToken) != 0,
 		label:            label,
-	}, nil
+	}
+
+	if jwtTokenGetter == nil {
+		client.contextConstructor = client.defaultContextConstructor
+		return client, nil
+	}
+
+	client.contextConstructor = func(ctx context.Context) (context.Context, error) {
+		jwtToken, err := jwtTokenGetter.GetJWTToken(client.label)
+		if err != nil {
+			return nil, err
+		}
+		if ctx == nil {
+			ctx = context.Background()
+		}
+		md := metadata.Pairs(
+			rpctypes.MetaAuthKey, jwtToken,
+			rpctypes.MetaLabelKey, client.label)
+		return metadata.NewOutgoingContext(ctx, md), nil
+	}
+	return client, nil
 }
 
 // SetObject implements datastor.Client.SetObject
 func (c *Client) SetObject(object datastor.Object) error {
-	_, err := c.objService.SetObject(c.contextWithMetadata(nil), &pb.SetObjectRequest{
+	ctx, err := c.contextConstructor(nil)
+	if err != nil {
+		return err
+	}
+	_, err = c.objService.SetObject(ctx, &pb.SetObjectRequest{
 		Key:           object.Key,
 		Data:          object.Data,
 		ReferenceList: object.ReferenceList,
@@ -78,8 +99,11 @@ func (c *Client) SetObject(object datastor.Object) error {
 
 // GetObject implements datastor.Client.GetObject
 func (c *Client) GetObject(key []byte) (*datastor.Object, error) {
-	resp, err := c.objService.GetObject(c.contextWithMetadata(nil),
-		&pb.GetObjectRequest{Key: key})
+	ctx, err := c.contextConstructor(nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := c.objService.GetObject(ctx, &pb.GetObjectRequest{Key: key})
 	if err != nil {
 		return nil, toErr(err)
 	}
@@ -97,9 +121,12 @@ func (c *Client) GetObject(key []byte) (*datastor.Object, error) {
 
 // DeleteObject implements datastor.Client.DeleteObject
 func (c *Client) DeleteObject(key []byte) error {
+	ctx, err := c.contextConstructor(nil)
+	if err != nil {
+		return err
+	}
 	// delete the objects from the server
-	_, err := c.objService.DeleteObject(
-		c.contextWithMetadata(nil), &pb.DeleteObjectRequest{Key: key})
+	_, err = c.objService.DeleteObject(ctx, &pb.DeleteObjectRequest{Key: key})
 	if err != nil {
 		return toErr(err)
 	}
@@ -108,8 +135,11 @@ func (c *Client) DeleteObject(key []byte) error {
 
 // GetObjectStatus implements datastor.Client.GetObjectStatus
 func (c *Client) GetObjectStatus(key []byte) (datastor.ObjectStatus, error) {
-	resp, err := c.objService.GetObjectStatus(
-		c.contextWithMetadata(nil), &pb.GetObjectStatusRequest{Key: key})
+	ctx, err := c.contextConstructor(nil)
+	if err != nil {
+		return datastor.ObjectStatus(0), err
+	}
+	resp, err := c.objService.GetObjectStatus(ctx, &pb.GetObjectStatusRequest{Key: key})
 	if err != nil {
 		return datastor.ObjectStatus(0), toErr(err)
 	}
@@ -134,8 +164,11 @@ func (c *Client) ExistObject(key []byte) (bool, error) {
 
 // GetNamespace implements datastor.Client.GetNamespace
 func (c *Client) GetNamespace() (*datastor.Namespace, error) {
-	resp, err := c.namespaceService.GetNamespace(
-		c.contextWithMetadata(nil), &pb.GetNamespaceRequest{})
+	ctx, err := c.contextConstructor(nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := c.namespaceService.GetNamespace(ctx, &pb.GetNamespaceRequest{})
 	if err != nil {
 		return nil, toErr(err)
 	}
@@ -159,13 +192,15 @@ func (c *Client) ListObjectKeyIterator(ctx context.Context) (<-chan datastor.Obj
 	}
 
 	group, ctx := errgroup.WithContext(ctx)
-	ctx = c.contextWithMetadata(ctx)
+	grpcCtx, err := c.contextConstructor(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	// create stream
-	stream, err := c.objService.ListObjectKeys(ctx,
-		&pb.ListObjectKeysRequest{})
+	stream, err := c.objService.ListObjectKeys(grpcCtx, &pb.ListObjectKeysRequest{})
 	if err != nil {
-		return nil, toContextErr(ctx, err)
+		return nil, toContextErr(grpcCtx, err)
 	}
 
 	// create output channel and start fetching from the stream
@@ -238,8 +273,11 @@ func (c *Client) ListObjectKeyIterator(ctx context.Context) (<-chan datastor.Obj
 
 // SetReferenceList implements datastor.Client.SetReferenceList
 func (c *Client) SetReferenceList(key []byte, refList []string) error {
-	_, err := c.objService.SetReferenceList(
-		c.contextWithMetadata(nil),
+	ctx, err := c.contextConstructor(nil)
+	if err != nil {
+		return err
+	}
+	_, err = c.objService.SetReferenceList(ctx,
 		&pb.SetReferenceListRequest{Key: key, ReferenceList: refList})
 	if err != nil {
 		return toErr(err)
@@ -249,8 +287,11 @@ func (c *Client) SetReferenceList(key []byte, refList []string) error {
 
 // GetReferenceList implements datastor.Client.GetReferenceList
 func (c *Client) GetReferenceList(key []byte) ([]string, error) {
-	resp, err := c.objService.GetReferenceList(
-		c.contextWithMetadata(nil), &pb.GetReferenceListRequest{Key: key})
+	ctx, err := c.contextConstructor(nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := c.objService.GetReferenceList(ctx, &pb.GetReferenceListRequest{Key: key})
 	if err != nil {
 		return nil, toErr(err)
 	}
@@ -263,8 +304,11 @@ func (c *Client) GetReferenceList(key []byte) ([]string, error) {
 
 // GetReferenceCount implements datastor.Client.GetReferenceCount
 func (c *Client) GetReferenceCount(key []byte) (int64, error) {
-	resp, err := c.objService.GetReferenceCount(
-		c.contextWithMetadata(nil), &pb.GetReferenceCountRequest{Key: key})
+	ctx, err := c.contextConstructor(nil)
+	if err != nil {
+		return 0, err
+	}
+	resp, err := c.objService.GetReferenceCount(ctx, &pb.GetReferenceCountRequest{Key: key})
 	if err != nil {
 		return 0, toErr(err)
 	}
@@ -273,8 +317,11 @@ func (c *Client) GetReferenceCount(key []byte) (int64, error) {
 
 // AppendToReferenceList implements datastor.Client.AppendToReferenceList
 func (c *Client) AppendToReferenceList(key []byte, refList []string) error {
-	_, err := c.objService.AppendToReferenceList(
-		c.contextWithMetadata(nil),
+	ctx, err := c.contextConstructor(nil)
+	if err != nil {
+		return err
+	}
+	_, err = c.objService.AppendToReferenceList(ctx,
 		&pb.AppendToReferenceListRequest{Key: key, ReferenceList: refList})
 	if err != nil {
 		return toErr(err)
@@ -284,8 +331,11 @@ func (c *Client) AppendToReferenceList(key []byte, refList []string) error {
 
 // DeleteFromReferenceList implements datastor.Client.DeleteFromReferenceList
 func (c *Client) DeleteFromReferenceList(key []byte, refList []string) (int64, error) {
-	resp, err := c.objService.DeleteFromReferenceList(
-		c.contextWithMetadata(nil),
+	ctx, err := c.contextConstructor(nil)
+	if err != nil {
+		return 0, err
+	}
+	resp, err := c.objService.DeleteFromReferenceList(ctx,
 		&pb.DeleteFromReferenceListRequest{Key: key, ReferenceList: refList})
 	if err != nil {
 		return 0, toErr(err)
@@ -295,8 +345,11 @@ func (c *Client) DeleteFromReferenceList(key []byte, refList []string) (int64, e
 
 // DeleteReferenceList implements datastor.Client.DeleteReferenceList
 func (c *Client) DeleteReferenceList(key []byte) error {
-	_, err := c.objService.DeleteReferenceList(
-		c.contextWithMetadata(nil), &pb.DeleteReferenceListRequest{Key: key})
+	ctx, err := c.contextConstructor(nil)
+	if err != nil {
+		return err
+	}
+	_, err = c.objService.DeleteReferenceList(ctx, &pb.DeleteReferenceListRequest{Key: key})
 	if err != nil {
 		return toErr(err)
 	}
@@ -308,21 +361,12 @@ func (c *Client) Close() error {
 	return c.conn.Close()
 }
 
-func (c *Client) contextWithMetadata(ctx context.Context) context.Context {
+func (c *Client) defaultContextConstructor(ctx context.Context) (context.Context, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-
-	var md metadata.MD
-	if c.jwtTokenDefined {
-		md = metadata.Pairs(
-			rpctypes.MetaAuthKey, c.jwtToken,
-			rpctypes.MetaLabelKey, c.label)
-	} else {
-		md = metadata.Pairs(rpctypes.MetaLabelKey, c.label)
-	}
-
-	return metadata.NewOutgoingContext(ctx, md)
+	md := metadata.Pairs(rpctypes.MetaLabelKey, c.label)
+	return metadata.NewOutgoingContext(ctx, md), nil
 }
 
 func toErr(err error) error {

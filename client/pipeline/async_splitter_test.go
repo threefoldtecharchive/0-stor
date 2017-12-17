@@ -26,38 +26,38 @@ func TestNewAsyncSplitterPipeline(t *testing.T) {
 
 	require.Panics(t, func() {
 		NewAsyncSplitterPipeline(storage, 0, nil, nil, -1)
-	}, "no chunk size given")
+	}, "no block size given")
 }
 
 func TestDefaultAsyncSplitterPipelines(t *testing.T) {
-	t.Run("chunk_size=1+pure-default", func(t *testing.T) {
+	t.Run("block_size=1+pure-default", func(t *testing.T) {
 		testDefaultAsyncSplitterPipeline(t, ObjectDistributionConfig{}, 1, nil, nil)
 	})
-	t.Run("chunk_size=1+distribution(k=1)", func(t *testing.T) {
+	t.Run("block_size=1+distribution(k=1)", func(t *testing.T) {
 		testDefaultAsyncSplitterPipeline(t, ObjectDistributionConfig{
 			DataShardCount: 1,
 		}, 1, nil, nil)
 	})
-	t.Run("chunk_size=8+distribution(k=1+m=1)", func(t *testing.T) {
+	t.Run("block_size=8+distribution(k=1+m=1)", func(t *testing.T) {
 		testDefaultAsyncSplitterPipeline(t, ObjectDistributionConfig{
 			DataShardCount:   1,
 			ParityShardCount: 1,
 		}, 8, nil, nil)
 	})
-	t.Run("chunk_size=256+secure_hasher", func(t *testing.T) {
+	t.Run("block_size=256+secure_hasher", func(t *testing.T) {
 		pk := []byte(randomString(32))
 		hc := func() (crypto.Hasher, error) {
 			return crypto.NewBlake2b256Hasher(pk)
 		}
 		testDefaultAsyncSplitterPipeline(t, ObjectDistributionConfig{}, 256, nil, hc)
 	})
-	t.Run("chunk_size=42+gzip_speed_compressor", func(t *testing.T) {
+	t.Run("block_size=42+gzip_speed_compressor", func(t *testing.T) {
 		pc := func() (processing.Processor, error) {
 			return processing.NewGZipCompressorDecompressor(processing.CompressionModeBestSpeed)
 		}
 		testDefaultAsyncSplitterPipeline(t, ObjectDistributionConfig{}, 42, pc, nil)
 	})
-	t.Run("chunk_size=64+secure_hasher+lz4_compressor", func(t *testing.T) {
+	t.Run("block_size=64+secure_hasher+lz4_compressor", func(t *testing.T) {
 		pc := func() (processing.Processor, error) {
 			return processing.NewLZ4CompressorDecompressor(processing.CompressionModeDefault)
 		}
@@ -67,7 +67,7 @@ func TestDefaultAsyncSplitterPipelines(t *testing.T) {
 		}
 		testDefaultAsyncSplitterPipeline(t, ObjectDistributionConfig{}, 64, pc, hc)
 	})
-	t.Run("chunk_size=128+distribution(k=10+m=3)+secure_hasher+lz4_compressor", func(t *testing.T) {
+	t.Run("block_size=128+distribution(k=10+m=3)+secure_hasher+lz4_compressor", func(t *testing.T) {
 		pc := func() (processing.Processor, error) {
 			return processing.NewLZ4CompressorDecompressor(processing.CompressionModeDefault)
 		}
@@ -82,7 +82,7 @@ func TestDefaultAsyncSplitterPipelines(t *testing.T) {
 	})
 }
 
-func testDefaultAsyncSplitterPipeline(t *testing.T, cfg ObjectDistributionConfig, chunkSize int, pc ProcessorConstructor, hc HasherConstructor) {
+func testDefaultAsyncSplitterPipeline(t *testing.T, cfg ObjectDistributionConfig, blockSize int, pc ProcessorConstructor, hc HasherConstructor) {
 	require := require.New(t)
 
 	cluster, cleanup, err := newGRPCServerCluster(requiredShardCount(cfg))
@@ -92,14 +92,14 @@ func testDefaultAsyncSplitterPipeline(t *testing.T, cfg ObjectDistributionConfig
 	os, err := NewObjectStorage(cfg, cluster, -1)
 	require.NoError(err)
 
-	pipeline := NewAsyncSplitterPipeline(os, chunkSize, pc, hc, -1)
+	pipeline := NewAsyncSplitterPipeline(os, blockSize, pc, hc, -1)
 	testPipelineWriteRead(t, pipeline)
 }
 
 func TestAsyncDataSplitter(t *testing.T) {
 	testCases := []struct {
 		Input          string
-		ChunkSize      int
+		BlockSize      int
 		ExpectedOutput []string
 	}{
 		{"", 1, nil},
@@ -117,15 +117,15 @@ func TestAsyncDataSplitter(t *testing.T) {
 		for i, str := range testCase.ExpectedOutput {
 			output[i] = []byte(str)
 		}
-		testAsyncDataSplitterCycle(t, input, output, testCase.ChunkSize)
+		testAsyncDataSplitterCycle(t, input, output, testCase.BlockSize)
 	}
 }
 
-func testAsyncDataSplitterCycle(t *testing.T, input []byte, output [][]byte, chunkSize int) {
+func testAsyncDataSplitterCycle(t *testing.T, input []byte, output [][]byte, blockSize int) {
 	r := bytes.NewReader(input)
 	group, ctx := errgroup.WithContext(context.Background())
 
-	inputCh, splitter := newAsyncDataSplitter(ctx, r, chunkSize, len(output))
+	inputCh, splitter := newAsyncDataSplitter(ctx, r, blockSize, len(output))
 	group.Go(splitter)
 
 	outputLength := len(output)

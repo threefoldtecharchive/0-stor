@@ -6,6 +6,7 @@ import (
 	"github.com/zero-os/0-stor/client/metastor"
 	"github.com/zero-os/0-stor/client/pipeline/crypto"
 	"github.com/zero-os/0-stor/client/pipeline/processing"
+	"github.com/zero-os/0-stor/client/pipeline/storage"
 )
 
 // Pipeline defines the interface to write and read content
@@ -28,6 +29,9 @@ type Pipeline interface {
 	// Read content from a zstordb cluster,
 	// the details depend upon the specific implementation.
 	Read(chunks []metastor.Chunk, w io.Writer) (refList []string, err error)
+
+	// GetObjectStorage returns the underlying and used ObjectStorage
+	GetObjectStorage() storage.ObjectStorage
 }
 
 // Constructor types which are used to create unique instances of the types involved,
