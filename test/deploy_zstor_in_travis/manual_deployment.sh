@@ -95,7 +95,8 @@ install_zstor_server(){
 }
 
 run_zstor_server(){
-    echo "data_shards:" > data_shards
+    echo "datastor:" > data_shards
+    echo -e "  shards:" >> data_shards
     for ((i=0; i<$NUMBER_OF_SERVERS; i++)); do
         port=$((8080+$i))
         zstordb -L 0.0.0.0:$port --meta-dir /zstor/meta_$port --data-dir /zstor/data_$port &
@@ -106,25 +107,23 @@ run_zstor_server(){
 }
 
 update_zsrordb_config_file(){
-    echo """organization: $ORGANIZATION
+    echo """iyo:
+  organization: $ORGANIZATION
+  app_id: $IYO_APP_ID
+  app_secret: $IYO_APP_SECRET
 namespace: $NAMESPACE
-iyo_app_id: $IYO_APP_ID
-iyo_app_secret: $IYO_APP_SECRET
-protocol: grpc
-
-meta_shards:
+metastor:
+  shards:
     - http://127.0.0.1:2379
-
-block_size: 4096
-replication_nr: $NUMBER_OF_SERVERS
-replication_max_size: 4096
-
-distribution_data: $(($NUMBER_OF_SERVERS-1))
-distribution_parity: 1
-
-compress: true
-encrypt: true
-encrypt_key: ab345678901234567890123456789012
+pipeline:
+  block_size: 4096
+  compression:
+    mode: default
+  encryption:
+    private_key: ab345678901234567890123456789012
+  distribution:
+    data_shards: $(($NUMBER_OF_SERVERS-1))
+    parity_shards: 1
 """ > /gopath/src/github.com/zero-os/0-stor/cmd/zstor/config.yaml
 cat data_shards >> /gopath/src/github.com/zero-os/0-stor/cmd/zstor/config.yaml
 rm -rf data_shards
