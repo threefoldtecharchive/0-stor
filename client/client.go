@@ -161,8 +161,11 @@ func (c *Client) writeFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMet
 	// update chunks in metadata
 	// TODO: fix this (pointer) difference in API
 	md.Chunks = make([]*metastor.Chunk, len(chunks))
+	md.Size = 0
 	for index := range chunks {
-		md.Chunks[index] = &chunks[index]
+		chunk := &chunks[index]
+		md.Chunks[index] = chunk
+		md.Size += chunk.Size
 	}
 
 	err = c.linkMeta(md, prevMeta, key, prevKey)

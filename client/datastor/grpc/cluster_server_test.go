@@ -12,12 +12,29 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+func TestNewClusterImplicitErrors(t *testing.T) {
+	require := require.New(t)
+
+	cluster, err := NewCluster([]string{""}, "foo", nil)
+	require.Error(err, "can't connect to first given address")
+	require.Nil(cluster)
+
+	addr, cleanup, err := newServer()
+	require.NoError(err)
+	defer cleanup()
+
+	cluster, err = NewCluster([]string{addr, ""}, "foo", nil)
+	require.Error(err, "can't connect to second given address")
+	require.Nil(cluster)
+}
+
 func TestGetShard(t *testing.T) {
 	require := require.New(t)
 
 	cluster, clusterCleanup, err := newServerCluster(1)
 	require.NoError(err)
 	defer clusterCleanup()
+	require.Equal(1, cluster.ListedShardCount())
 
 	_, addr, clientCleanup, err := newServerClient()
 	require.NoError(err)
@@ -45,6 +62,7 @@ func TestGetRandomShards(t *testing.T) {
 	cluster, clusterCleanup, err := newServerCluster(3)
 	require.NoError(err)
 	defer clusterCleanup()
+	require.Equal(3, cluster.ListedShardCount())
 
 	var ids []string
 	for _, shard := range cluster.listedSlice {
@@ -112,6 +130,7 @@ func TestGetRandomShardAsync(t *testing.T) {
 	cluster, clusterCleanup, err := newServerCluster(jobs)
 	require.NoError(err)
 	defer clusterCleanup()
+	require.Equal(jobs, cluster.ListedShardCount())
 
 	group, ctx := errgroup.WithContext(context.Background())
 
@@ -211,6 +230,7 @@ func TestGetRandomShardIteratorAsync(t *testing.T) {
 	cluster, clusterCleanup, err := newServerCluster(jobs)
 	require.NoError(err)
 	defer clusterCleanup()
+	require.Equal(jobs, cluster.ListedShardCount())
 
 	group, ctx := errgroup.WithContext(context.Background())
 

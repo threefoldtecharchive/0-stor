@@ -17,12 +17,13 @@ import (
 func TestNewClientPanics(t *testing.T) {
 	require := require.New(t)
 
-	require.Panics(func() {
-		NewClient("", "", nil)
-	}, "no address given")
-	require.Panics(func() {
-		NewClient("foo", "", nil)
-	}, "no label given")
+	client, err := NewClient("", "", nil)
+	require.Error(err, "no address given")
+	require.Nil(client)
+
+	client, err = NewClient("foo", "", nil)
+	require.Error(err, "no label given")
+	require.Nil(client)
 }
 
 func TestClientSetObject(t *testing.T) {

@@ -2,6 +2,8 @@ package grpc
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io"
 	"math"
 
@@ -36,12 +38,13 @@ type Client struct {
 // The jwtToken is required, only if the connected zstordb server requires this.
 func NewClient(addr, label string, jwtTokenGetter datastor.JWTTokenGetter) (*Client, error) {
 	if len(addr) == 0 {
-		panic("no zstordb address give")
+		return nil, errors.New("no/empty zstordb address given")
 	}
 	if len(label) == 0 {
-		panic("no label given")
+		return nil, errors.New("no/empty label (namespace identifier) given")
 	}
 
+	// ensure that we have a valid connection
 	conn, err := grpc.Dial(addr,
 		grpc.WithInsecure(),
 		grpc.WithDefaultCallOptions(
@@ -49,7 +52,9 @@ func NewClient(addr, label string, jwtTokenGetter datastor.JWTTokenGetter) (*Cli
 			grpc.MaxCallSendMsgSize(math.MaxInt32),
 		))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf(
+			"couldn't connect to zstordb server %s: %v",
+			addr, err)
 	}
 
 	client := &Client{
