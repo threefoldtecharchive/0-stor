@@ -98,6 +98,7 @@ func (s *Server) Listen(addr string) error {
 	var err error
 	s.listener, err = net.Listen("tcp", addr)
 	if err != nil {
+		s.addressCh <- ""
 		return err
 	}
 	s.addressCh <- s.listener.Addr().String()

@@ -86,3 +86,43 @@ func TestListenAddressFlag(t *testing.T) {
 		})
 	}
 }
+
+func TestProfileModeFlag(t *testing.T) {
+	tt := []struct {
+		input string
+		value string
+	}{
+		{
+			"cpu",
+			"cpu",
+		},
+		{
+			"mem",
+			"mem",
+		},
+		{
+			"block",
+			"block",
+		},
+		{
+			"trace",
+			"trace",
+		},
+		{
+			"foo",
+			"",
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.input, func(t *testing.T) {
+			var p ProfileMode
+			err := p.Set(tc.input)
+			if tc.value == "" {
+				require.Error(t, err)
+				return
+			}
+			require.Equal(t, tc.value, p.String())
+		})
+	}
+}

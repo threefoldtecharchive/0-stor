@@ -9,6 +9,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	badgerkv "github.com/dgraph-io/badger"
+	"github.com/pkg/profile"
 	"github.com/spf13/cobra"
 	"github.com/zero-os/0-stor/cmd"
 	"github.com/zero-os/0-stor/server/api"
@@ -78,6 +79,44 @@ func rootFunc(*cobra.Command, []string) error {
 		}()
 	}
 
+	if rootCfg.ProfileMode.String() != "" {
+		stat, err := os.Stat(rootCfg.ProfileOutput)
+		if err != nil {
+			if !os.IsNotExist(err) {
+				return err
+			}
+			if err := os.MkdirAll(rootCfg.ProfileOutput, 0660); err != nil {
+				return fmt.Errorf("fail to create profile output directory: %v", err)
+			}
+		}
+		if !stat.IsDir() {
+			return fmt.Errorf("profile-output (%s) is not a directory", rootCfg.ProfileOutput)
+		}
+
+		switch rootCfg.ProfileMode {
+		case cmd.ProfileModeCPU:
+			defer profile.Start(
+				profile.NoShutdownHook,
+				profile.ProfilePath(rootCfg.ProfileOutput),
+				profile.CPUProfile).Stop()
+		case cmd.ProfileModeMem:
+			defer profile.Start(
+				profile.NoShutdownHook,
+				profile.ProfilePath(rootCfg.ProfileOutput),
+				profile.MemProfile).Stop()
+		case cmd.ProfileModeTrace:
+			defer profile.Start(
+				profile.NoShutdownHook,
+				profile.ProfilePath(rootCfg.ProfileOutput),
+				profile.TraceProfile).Stop()
+		case cmd.ProfileModeBlock:
+			defer profile.Start(
+				profile.NoShutdownHook,
+				profile.ProfilePath(rootCfg.ProfileOutput),
+				profile.BlockProfile).Stop()
+		}
+	}
+
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT)
 
@@ -103,6 +142,8 @@ var rootCfg struct {
 	DebugLog       bool
 	ListenAddress  cmd.ListenAddress
 	ProfileAddress string
+	ProfileMode    cmd.ProfileMode
+	ProfileOutput  string
 	AuthDisabled   bool
 	MaxMsgSize     int
 	AsyncWrite     bool
@@ -122,13 +163,17 @@ func init() {
 	rootCmd.Flags().BoolVarP(
 		&rootCfg.DebugLog, "debug", "D", false, "Enable debug logging.")
 	rootCmd.Flags().VarP(
-		&rootCfg.ListenAddress, "listen", "L", "Bind the server to the given host and port. Format has to be host:port, with host optional (default :8080)")
+		&rootCfg.ListenAddress, "listen", "L", rootCfg.ListenAddress.Description())
 	rootCmd.Flags().StringVar(
 		&rootCfg.DB.Dirs.Data, "data-dir", ".db/data", "Directory path used to store the data.")
 	rootCmd.Flags().StringVar(
 		&rootCfg.DB.Dirs.Meta, "meta-dir", ".db/meta", "Directory path used to store the meta data.")
 	rootCmd.Flags().StringVar(
 		&rootCfg.ProfileAddress, "profile-addr", "", "Enables profiling of this server as an http service.")
+	rootCmd.Flags().VarP(
+		&rootCfg.ProfileMode, "profile-mode", "", rootCfg.ProfileMode.Description())
+	rootCmd.Flags().StringVar(
+		&rootCfg.ProfileOutput, "profile-output", ".", "Path of the directory where profiling files are written")
 	rootCmd.Flags().BoolVar(
 		&rootCfg.AuthDisabled, "no-auth", false, "Disable JWT authentication.")
 	rootCmd.Flags().IntVar(
