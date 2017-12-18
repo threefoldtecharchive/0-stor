@@ -106,6 +106,13 @@ func BenchmarkSHA256Hasher_WithoutKey(b *testing.B) {
 		}
 		benchmarkHashFunc(b, hasher.HashBytes, 131072, 32)
 	})
+	b.Run("1048576-bytes", func(b *testing.B) {
+		hasher, err := NewSHA256Hasher(nil)
+		if err != nil {
+			b.Error(err)
+		}
+		benchmarkHashFunc(b, hasher.HashBytes, 1048576, 32)
+	})
 }
 
 func BenchmarkSHA256Hasher_WithKey(b *testing.B) {
@@ -130,6 +137,13 @@ func BenchmarkSHA256Hasher_WithKey(b *testing.B) {
 		}
 		benchmarkHashFunc(b, hasher.HashBytes, 131072, 32)
 	})
+	b.Run("1048576-bytes", func(b *testing.B) {
+		hasher, err := NewSHA256Hasher([]byte("012345678901234567890123456789001"))
+		if err != nil {
+			b.Error(err)
+		}
+		benchmarkHashFunc(b, hasher.HashBytes, 1048576, 32)
+	})
 }
 
 func BenchmarkSHA512Hasher_WithoutKey(b *testing.B) {
@@ -153,6 +167,13 @@ func BenchmarkSHA512Hasher_WithoutKey(b *testing.B) {
 			b.Error(err)
 		}
 		benchmarkHashFunc(b, hasher.HashBytes, 131072, 64)
+	})
+	b.Run("1048576-bytes", func(b *testing.B) {
+		hasher, err := NewSHA512Hasher(nil)
+		if err != nil {
+			b.Error(err)
+		}
+		benchmarkHashFunc(b, hasher.HashBytes, 1048576, 64)
 	})
 }
 
@@ -180,5 +201,13 @@ func BenchmarkSHA512Hasher_WithKey(b *testing.B) {
 			b.Error(err)
 		}
 		benchmarkHashFunc(b, hasher.HashBytes, 131072, 64)
+	})
+	b.Run("1048576-bytes", func(b *testing.B) {
+		hasher, err := NewSHA512Hasher(
+			[]byte("012345678901234567890123456789001012345678901234567890123456789001"))
+		if err != nil {
+			b.Error(err)
+		}
+		benchmarkHashFunc(b, hasher.HashBytes, 1048576, 64)
 	})
 }

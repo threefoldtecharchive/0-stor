@@ -97,6 +97,13 @@ func BenchmarkSumBlake2b256er_WithoutKey(b *testing.B) {
 		}
 		benchmarkHashFunc(b, hasher.HashBytes, 131072, 32)
 	})
+	b.Run("1048576-bytes", func(b *testing.B) {
+		hasher, err := NewBlake2b256Hasher(nil)
+		if err != nil {
+			b.Error(err)
+		}
+		benchmarkHashFunc(b, hasher.HashBytes, 131072, 32)
+	})
 }
 
 func BenchmarkSumBlake2b256er_WithKey(b *testing.B) {
@@ -121,6 +128,13 @@ func BenchmarkSumBlake2b256er_WithKey(b *testing.B) {
 		}
 		benchmarkHashFunc(b, hasher.HashBytes, 131072, 32)
 	})
+	b.Run("1048576-bytes", func(b *testing.B) {
+		hasher, err := NewBlake2b256Hasher([]byte("01234567890123456789012345678901"))
+		if err != nil {
+			b.Error(err)
+		}
+		benchmarkHashFunc(b, hasher.HashBytes, 1048576, 32)
+	})
 }
 
 func BenchmarkSumBlake2b512er_WithoutKey(b *testing.B) {
@@ -144,6 +158,13 @@ func BenchmarkSumBlake2b512er_WithoutKey(b *testing.B) {
 			b.Error(err)
 		}
 		benchmarkHashFunc(b, hasher.HashBytes, 131072, 64)
+	})
+	b.Run("1048576-bytes", func(b *testing.B) {
+		hasher, err := NewBlake2b512Hasher(nil)
+		if err != nil {
+			b.Error(err)
+		}
+		benchmarkHashFunc(b, hasher.HashBytes, 1048576, 64)
 	})
 }
 
@@ -171,5 +192,13 @@ func BenchmarkSumBlake2b512er_WithKey(b *testing.B) {
 			b.Error(err)
 		}
 		benchmarkHashFunc(b, hasher.HashBytes, 131072, 64)
+	})
+	b.Run("1048576-bytes", func(b *testing.B) {
+		hasher, err := NewBlake2b512Hasher(
+			[]byte("0123456789012345678901234567890101234567890123456789012345678901"))
+		if err != nil {
+			b.Error(err)
+		}
+		benchmarkHashFunc(b, hasher.HashBytes, 1048576, 64)
 	})
 }
