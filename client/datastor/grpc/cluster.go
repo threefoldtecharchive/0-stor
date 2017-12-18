@@ -11,12 +11,12 @@ import (
 // NewCluster creates a new cluster,
 // and pre-loading it with a client for each of the listed (and thus known) shards.
 // Unlisted shards's clients are also stored, bu those are loaded on the fly, only when needed.
-func NewCluster(addresses []string, label string, jwtTokenGetter datastor.JWTTokenGetter) (*Cluster, error) {
+func NewCluster(addresses []string, namespace string, jwtTokenGetter datastor.JWTTokenGetter) (*Cluster, error) {
 	if len(addresses) == 0 {
 		return nil, errors.New("no listed addresses given")
 	}
-	if label == "" {
-		return nil, errors.New("no label given")
+	if namespace == "" {
+		return nil, errors.New("no namespace given")
 	}
 
 	var (
@@ -26,7 +26,7 @@ func NewCluster(addresses []string, label string, jwtTokenGetter datastor.JWTTok
 	)
 	// create all shards, one by one
 	for _, address := range addresses {
-		client, err := NewClient(address, label, jwtTokenGetter)
+		client, err := NewClient(address, namespace, jwtTokenGetter)
 		if err != nil {
 			// close all shards already opened
 			var closeErr error
@@ -54,7 +54,7 @@ func NewCluster(addresses []string, label string, jwtTokenGetter datastor.JWTTok
 		listedSlice:    listedSlice,
 		listedCount:    int64(listedCount),
 		unlisted:       make(map[string]*Shard),
-		label:          label,
+		namespace:      namespace,
 		jwtTokenGetter: jwtTokenGetter,
 	}, nil
 }
@@ -69,7 +69,7 @@ type Cluster struct {
 	unlisted    map[string]*Shard
 	unlistedMux sync.Mutex
 
-	label          string
+	namespace      string
 	jwtTokenGetter datastor.JWTTokenGetter
 }
 
@@ -91,7 +91,7 @@ func (cluster *Cluster) GetShard(address string) (datastor.Shard, error) {
 
 	// create and return an unknown unlisted client,
 	// making it known for next time it is needed
-	client, err := NewClient(address, cluster.label, cluster.jwtTokenGetter)
+	client, err := NewClient(address, cluster.namespace, cluster.jwtTokenGetter)
 	if err != nil {
 		return nil, err
 	}

@@ -28,7 +28,8 @@ type Client struct {
 	namespaceService pb.NamespaceManagerClient
 
 	contextConstructor func(context.Context) (context.Context, error)
-	label              string
+
+	label string
 }
 
 // NewClient create a new data client,
@@ -36,12 +37,12 @@ type Client struct {
 // The addres to the zstordb server is required,
 // and so is the label, as the latter serves as the identifier of the to be used namespace.
 // The jwtToken is required, only if the connected zstordb server requires this.
-func NewClient(addr, label string, jwtTokenGetter datastor.JWTTokenGetter) (*Client, error) {
+func NewClient(addr, namespace string, jwtTokenGetter datastor.JWTTokenGetter) (*Client, error) {
 	if len(addr) == 0 {
 		return nil, errors.New("no/empty zstordb address given")
 	}
-	if len(label) == 0 {
-		return nil, errors.New("no/empty label (namespace identifier) given")
+	if len(namespace) == 0 {
+		return nil, errors.New("no/empty namespace given")
 	}
 
 	// ensure that we have a valid connection
@@ -61,16 +62,20 @@ func NewClient(addr, label string, jwtTokenGetter datastor.JWTTokenGetter) (*Cli
 		conn:             conn,
 		objService:       pb.NewObjectManagerClient(conn),
 		namespaceService: pb.NewNamespaceManagerClient(conn),
-		label:            label,
 	}
 
 	if jwtTokenGetter == nil {
-		client.contextConstructor = client.defaultContextConstructor
+		client.contextConstructor = defaultContextConstructor(namespace)
+		client.label = namespace
 		return client, nil
 	}
 
+	label, err := jwtTokenGetter.GetLabel(namespace)
+	if err != nil {
+		return nil, err
+	}
 	client.contextConstructor = func(ctx context.Context) (context.Context, error) {
-		jwtToken, err := jwtTokenGetter.GetJWTToken(client.label)
+		jwtToken, err := jwtTokenGetter.GetJWTToken(namespace)
 		if err != nil {
 			return nil, err
 		}
@@ -79,9 +84,10 @@ func NewClient(addr, label string, jwtTokenGetter datastor.JWTTokenGetter) (*Cli
 		}
 		md := metadata.Pairs(
 			rpctypes.MetaAuthKey, jwtToken,
-			rpctypes.MetaLabelKey, client.label)
+			rpctypes.MetaLabelKey, label)
 		return metadata.NewOutgoingContext(ctx, md), nil
 	}
+	client.label = label
 	return client, nil
 }
 
@@ -366,12 +372,14 @@ func (c *Client) Close() error {
 	return c.conn.Close()
 }
 
-func (c *Client) defaultContextConstructor(ctx context.Context) (context.Context, error) {
-	if ctx == nil {
-		ctx = context.Background()
+func defaultContextConstructor(namespace string) func(ctx context.Context) (context.Context, error) {
+	return func(ctx context.Context) (context.Context, error) {
+		if ctx == nil {
+			ctx = context.Background()
+		}
+		md := metadata.Pairs(rpctypes.MetaLabelKey, namespace)
+		return metadata.NewOutgoingContext(ctx, md), nil
 	}
-	md := metadata.Pairs(rpctypes.MetaLabelKey, c.label)
-	return metadata.NewOutgoingContext(ctx, md), nil
 }
 
 func toErr(err error) error {

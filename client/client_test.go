@@ -78,7 +78,8 @@ func getTestClient(cfg Config) (*Client, error) {
 	if cfg.IYO != (itsyouonline.Config{}) {
 		client, err := itsyouonline.NewClient(cfg.IYO)
 		if err == nil {
-			tokenGetter := &iyoJWTTokenGetter{client}
+			tokenGetter := jwtTokenGetterFromIYOClient(
+				cfg.IYO.Organization, client)
 			datastorCluster, err = storgrpc.NewCluster(cfg.DataStor.Shards, cfg.Namespace, tokenGetter)
 		}
 	} else {

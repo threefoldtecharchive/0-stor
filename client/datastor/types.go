@@ -96,6 +96,9 @@ var _ObjectStatusEnumToStringMapping = map[ObjectStatus]string{
 // should it not be possible to return a valid JWT Token for whatever reason,
 // if no error is returned, it should be assumed that the returned value is valid.
 type JWTTokenGetter interface {
-	// Get a cached JWT token or create a new JWT token should it be invalid.
+	// GetJWTToken gets a cached JWT token or create a new JWT token should it be invalid.
 	GetJWTToken(namespace string) (string, error)
+
+	// GetLabel gets the label for the given namespace
+	GetLabel(namespace string) (string, error)
 }
