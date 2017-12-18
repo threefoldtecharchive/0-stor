@@ -1,5 +1,21 @@
 coverage:
-  range: 50..70
+  status:
+    patch: off
+    project:
+      default: false
+      server:
+        paths: "server/**"
+        target: 80%
+        threshold: 5%
+      client:
+        paths: "client/**"
+        target: 75%
+        threshold: 5%
+      other:
+        paths: "cmd/**"
+        target: 65%
+        threshold: 5%
+  range: 50..75
   round: down
   precision: 0
   ignore:

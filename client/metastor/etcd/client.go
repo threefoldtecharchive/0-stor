@@ -119,8 +119,8 @@ func (c *Client) Endpoints() []string {
 	return c.etcdClient.Endpoints()
 }
 
-const (
-	metaOpTimeout = 10 * time.Second
+var (
+	metaOpTimeout = 30 * time.Second
 )
 
 var (

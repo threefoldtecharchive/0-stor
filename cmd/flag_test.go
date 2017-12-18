@@ -7,6 +7,31 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestStringsFlag(t *testing.T) {
+	require := require.New(t)
+
+	// nil flag should work fine
+	var flagA Strings
+	require.Empty(flagA.String())
+	require.Empty(flagA.Strings())
+
+	// setting our flag should work
+	require.NoError(flagA.Set("foo,bar"))
+	require.Equal("foo,bar", flagA.String())
+	require.Equal([]string{"foo", "bar"}, flagA.Strings())
+
+	// unsetting our flag is possible as well
+	require.NoError(flagA.Set(""))
+	require.Empty(flagA.String())
+	require.Empty(flagA.Strings())
+
+	// no nil-ptr protection for flags
+	var nilPtrFlag *Strings
+	require.Panics(func() {
+		nilPtrFlag.Set("foo")
+	}, "there is no nil-pointer protection for flags")
+}
+
 func TestListenAddressFlag(t *testing.T) {
 	tt := []struct {
 		input string

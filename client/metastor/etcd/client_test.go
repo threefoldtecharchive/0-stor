@@ -193,37 +193,53 @@ func TestServerDown(t *testing.T) {
 	etcd.Stop()
 
 	// test the SET
-	done := make(chan struct{}, 1)
+	startCh := make(chan struct{}, 1)
+	errCh := make(chan error, 1)
 	go func() {
-		err = c.SetMetadata(md)
-		_, ok := err.(net.Error)
-		require.True(ok)
-		done <- struct{}{}
+		startCh <- struct{}{}
+		err := c.SetMetadata(md)
+		errCh <- err
 	}()
 
+	// wait until goroutine has started,
+	// otherwise our timing (wait) might be off
+	<-startCh
+
 	select {
-	case <-time.After(metaOpTimeout + (5 * time.Second)):
+	case err := <-errCh:
+		netErr, ok := err.(net.Error)
+		require.True(ok)
+		require.True(netErr.Timeout())
+		t.Logf("operation exited successfully")
+	case <-time.After(metaOpTimeout * 2):
 		// the put operation should be exited before the timeout
 		t.Error("the operation should already returns with error")
-	case <-done:
-		t.Logf("operation exited successfully")
 	}
 
 	// test the GET
-	done = make(chan struct{}, 1)
 	go func() {
-		_, err = c.GetMetadata(md.Key)
-		_, ok := err.(net.Error)
-		require.True(ok)
-		done <- struct{}{}
+		startCh <- struct{}{}
+		_, err := c.GetMetadata(md.Key)
+		errCh <- err
 	}()
 
+	// wait until goroutine has started,
+	// otherwise our timing (wait) might be off
+	<-startCh
+
 	select {
-	case <-time.After(metaOpTimeout + (5 * time.Second)):
+	case err := <-errCh:
+		netErr, ok := err.(net.Error)
+		require.True(ok)
+		require.True(netErr.Timeout())
+		t.Logf("operation exited successfully")
+	case <-time.After(metaOpTimeout * 2):
 		// the Get operation should be exited before the timeout
 		t.Error("the operation should already returns with error")
-	case <-done:
-		t.Logf("operation exited successfully")
 	}
 
+}
+
+func init() {
+	metaOpTimeout = time.Second * 5
 }

@@ -26,9 +26,10 @@ func (s Strings) Strings() []string {
 // Set implements spf13/pflag.Value.Set
 func (s *Strings) Set(str string) error {
 	if len(str) == 0 {
-		return errors.New("no strings given")
+		*s = nil
+	} else {
+		*s = strings.Split(str, ",")
 	}
-	*s = strings.Split(str, ",")
 	return nil
 }
 
