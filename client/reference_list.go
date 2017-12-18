@@ -9,7 +9,7 @@ import (
 
 // SetReferenceList replace the complete reference list for the object pointed by key
 func (c *Client) SetReferenceList(key []byte, refList []string) error {
-	md, err := c.metaCli.GetMetadata(key)
+	md, err := c.metastorClient.GetMetadata(key)
 	if err != nil {
 		return err
 	}
@@ -25,7 +25,7 @@ func (c *Client) SetReferenceListWithMeta(md *metastor.Data, refList []string) e
 // AppendToReferenceList appends some reference to the (non-)existing reference list
 // of the object pointed by key.
 func (c *Client) AppendToReferenceList(key []byte, refList []string) error {
-	md, err := c.metaCli.GetMetadata(key)
+	md, err := c.metastorClient.GetMetadata(key)
 	if err != nil {
 		return err
 	}
@@ -42,7 +42,7 @@ func (c *Client) AppendToReferenceListWithMeta(md *metastor.Data, refList []stri
 // reference list of the object pointed by key.
 // It wont return error in case of the object doesn't have some elements of the `refList`.
 func (c *Client) DeleteFromReferenceList(key []byte, refList []string) error {
-	md, err := c.metaCli.GetMetadata(key)
+	md, err := c.metastorClient.GetMetadata(key)
 	if err != nil {
 		return err
 	}
@@ -58,7 +58,7 @@ func (c *Client) DeleteFromReferenceListWithMeta(md *metastor.Data, refList []st
 // DeleteReferenceList deletes the (non-)existing
 // reference list of the object pointed by key.
 func (c *Client) DeleteReferenceList(key []byte) error {
-	md, err := c.metaCli.GetMetadata(key)
+	md, err := c.metastorClient.GetMetadata(key)
 	if err != nil {
 		return err
 	}
@@ -87,7 +87,7 @@ func (c *Client) updateRefListWithMeta(md *metastor.Data, refList []string, op i
 				defer wg.Done()
 
 				// get stor client
-				shard, err := c.cluster.GetShard(shardID)
+				shard, err := c.datastorCluster.GetShard(shardID)
 				if err != nil {
 					errCh <- err
 					return

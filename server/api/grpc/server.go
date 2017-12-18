@@ -121,12 +121,12 @@ func isClosedConnError(err error) bool {
 // Close implements Server.Close
 func (s *Server) Close() {
 	if s.listener != nil {
-		log.Infoln("stop listener")
+		log.Debugln("stop listener")
 		s.listener.Close()
 	}
-	log.Infoln("stop grpc server")
+	log.Debugln("stop grpc server")
 	s.grpcServer.GracefulStop()
-	log.Infoln("closing database")
+	log.Debugln("closing database")
 	s.db.Close()
 }
 

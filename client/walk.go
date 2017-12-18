@@ -101,7 +101,7 @@ func (c *Client) walk(startKey []byte, fromEpoch, toEpoch int64, next nextFunc,
 
 		for {
 			// get the meta
-			md, err := c.metaCli.GetMetadata(key)
+			md, err := c.metastorClient.GetMetadata(key)
 			if err != nil {
 				wrCh <- &WalkResult{
 					Error: err,

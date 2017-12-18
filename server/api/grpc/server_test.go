@@ -36,7 +36,7 @@ func TestServerMsgSize(t *testing.T) {
 				require.NoError(err, "server should have started listening")
 			}()
 
-			cl, err := storgrpc.NewClient(srv.Address(), "testnamespace", "")
+			cl, err := storgrpc.NewClient(srv.Address(), "testnamespace", nil)
 			require.NoError(err, "client should have been created")
 
 			key := []byte("foo")

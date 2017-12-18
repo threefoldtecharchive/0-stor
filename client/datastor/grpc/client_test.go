@@ -17,12 +17,13 @@ import (
 func TestNewClientPanics(t *testing.T) {
 	require := require.New(t)
 
-	require.Panics(func() {
-		NewClient("", "", "")
-	}, "no address given")
-	require.Panics(func() {
-		NewClient("foo", "", "")
-	}, "no label given")
+	client, err := NewClient("", "", nil)
+	require.Error(err, "no address given")
+	require.Nil(client)
+
+	client, err = NewClient("foo", "", nil)
+	require.Error(err, "no label given")
+	require.Nil(client)
 }
 
 func TestClientSetObject(t *testing.T) {
@@ -30,6 +31,7 @@ func TestClientSetObject(t *testing.T) {
 
 	var os stubObjectService
 	client := Client{objService: &os}
+	client.contextConstructor = client.defaultContextConstructor
 
 	err := client.SetObject(datastor.Object{})
 	require.NoError(err, "server returns no error -> no error")
@@ -49,6 +51,7 @@ func TestClientGetObject(t *testing.T) {
 
 	var os stubObjectService
 	client := Client{objService: &os}
+	client.contextConstructor = client.defaultContextConstructor
 
 	obj, err := client.GetObject(nil)
 	require.Equal(datastor.ErrMissingData, err)
@@ -79,6 +82,7 @@ func TestClientDeleteObject(t *testing.T) {
 
 	var os stubObjectService
 	client := Client{objService: &os}
+	client.contextConstructor = client.defaultContextConstructor
 
 	err := client.DeleteObject(nil)
 	require.NoError(err, "server returns no error -> no error")
@@ -98,6 +102,7 @@ func TestClientGetObjectStatus(t *testing.T) {
 
 	var os stubObjectService
 	client := Client{objService: &os}
+	client.contextConstructor = client.defaultContextConstructor
 
 	status, err := client.GetObjectStatus(nil)
 	require.NoError(err)
@@ -130,6 +135,7 @@ func TestClientExistObject(t *testing.T) {
 
 	var os stubObjectService
 	client := Client{objService: &os}
+	client.contextConstructor = client.defaultContextConstructor
 
 	exists, err := client.ExistObject(nil)
 	require.NoError(err)
@@ -172,6 +178,7 @@ func TestClientGetNamespace(t *testing.T) {
 
 	var nss stubNamespaceService
 	client := Client{namespaceService: &nss, label: "myLabel"}
+	client.contextConstructor = client.defaultContextConstructor
 
 	ns, err := client.GetNamespace()
 	require.Equal(datastor.ErrInvalidLabel, err, "returned label should be equal to client's label")
@@ -203,15 +210,6 @@ func TestClientGetNamespace(t *testing.T) {
 	require.Equal(int64(math.MaxInt64), ns.WriteRequestPerHour)
 	require.Equal(int64(42), ns.NrObjects)
 
-	client.jwtTokenDefined = true
-	ns, err = client.GetNamespace()
-	require.NoError(err)
-	require.NotNil(ns)
-	require.Equal("myLabel", ns.Label)
-	require.Equal(int64(1023), ns.ReadRequestPerHour)
-	require.Equal(int64(math.MaxInt64), ns.WriteRequestPerHour)
-	require.Equal(int64(42), ns.NrObjects)
-
 	client.label = "foo"
 	ns, err = client.GetNamespace()
 	require.Equal(datastor.ErrInvalidLabel, err, "returned label should be equal to client's label")
@@ -223,6 +221,7 @@ func TestClientListObjectKeys(t *testing.T) {
 
 	var os stubObjectService
 	client := Client{objService: &os}
+	client.contextConstructor = client.defaultContextConstructor
 
 	require.Panics(func() {
 		client.ListObjectKeyIterator(nil)
@@ -290,6 +289,7 @@ func TestClientSetReferenceList(t *testing.T) {
 
 	var os stubObjectService
 	client := Client{objService: &os}
+	client.contextConstructor = client.defaultContextConstructor
 
 	err := client.SetReferenceList(nil, nil)
 	require.NoError(err, "server returns no error -> no error")
@@ -309,6 +309,7 @@ func TestClientGetReferenceList(t *testing.T) {
 
 	var os stubObjectService
 	client := Client{objService: &os}
+	client.contextConstructor = client.defaultContextConstructor
 
 	refList, err := client.GetReferenceList(nil)
 	require.Equal(datastor.ErrMissingRefList, err)
@@ -336,6 +337,7 @@ func TestClientGetReferenceCount(t *testing.T) {
 
 	var os stubObjectService
 	client := Client{objService: &os}
+	client.contextConstructor = client.defaultContextConstructor
 
 	count, err := client.GetReferenceCount(nil)
 	require.NoError(err, "server returns no error -> no error")
@@ -363,6 +365,7 @@ func TestClientAppendToReferenceList(t *testing.T) {
 
 	var os stubObjectService
 	client := Client{objService: &os}
+	client.contextConstructor = client.defaultContextConstructor
 
 	err := client.AppendToReferenceList(nil, nil)
 	require.NoError(err, "server returns no error -> no error")
@@ -382,6 +385,7 @@ func TestClientDeleteFromReferenceList(t *testing.T) {
 
 	var os stubObjectService
 	client := Client{objService: &os}
+	client.contextConstructor = client.defaultContextConstructor
 
 	count, err := client.DeleteFromReferenceList(nil, nil)
 	require.NoError(err, "server returns no error -> no error")
@@ -413,6 +417,7 @@ func TestClientDeleteReferenceList(t *testing.T) {
 
 	var os stubObjectService
 	client := Client{objService: &os}
+	client.contextConstructor = client.defaultContextConstructor
 
 	err := client.DeleteReferenceList(nil)
 	require.NoError(err, "server returns no error -> no error")

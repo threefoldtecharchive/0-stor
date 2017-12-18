@@ -28,7 +28,7 @@ func newServerCluster(count int) (*Cluster, func(), error) {
 		addressSlice = append(addressSlice, addr)
 	}
 
-	cluster, err := NewCluster(addressSlice, "myLabel", "")
+	cluster, err := NewCluster(addressSlice, "myLabel", nil)
 	if err != nil {
 		for _, cleanup := range cleanupSlice {
 			cleanup()
@@ -45,10 +45,10 @@ func newServerCluster(count int) (*Cluster, func(), error) {
 	return cluster, cleanup, nil
 }
 
-func newServerClient() (*Client, string, func(), error) {
+func newServer() (string, func(), error) {
 	server, err := grpc.New(memory.New(), nil, 0, 0)
 	if err != nil {
-		return nil, "", nil, err
+		return "", nil, err
 	}
 	go func() {
 		err := server.Listen("localhost:0")
@@ -56,18 +56,26 @@ func newServerClient() (*Client, string, func(), error) {
 			panic(err)
 		}
 	}()
+	return server.Address(), server.Close, nil
+}
 
-	client, err := NewClient(server.Address(), "myLabel", "")
+func newServerClient() (*Client, string, func(), error) {
+	addr, cleanup, err := newServer()
 	if err != nil {
-		server.Close()
+		return nil, "", nil, err
+	}
+
+	client, err := NewClient(addr, "myLabel", nil)
+	if err != nil {
+		cleanup()
 		return nil, "", nil, err
 	}
 
 	clean := func() {
 		fmt.Sprintln("clean called")
 		client.Close()
-		server.Close()
+		cleanup()
 	}
 
-	return client, server.Address(), clean, nil
+	return client, addr, clean, nil
 }

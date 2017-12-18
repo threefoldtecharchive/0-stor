@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/zero-os/0-stor/client/components/storage"
+	"github.com/zero-os/0-stor/client/pipeline/storage"
 )
 
 func TestRepair(t *testing.T) {
@@ -18,74 +18,46 @@ func TestRepair(t *testing.T) {
 		shards[i] = server.Address()
 	}
 
-	policy := Policy{
-		Organization:           "testorg",
-		Namespace:              "namespace1",
-		DataShards:             shards,
-		MetaShards:             []string{"test"},
-		IYOAppID:               "",
-		IYOSecret:              "",
-		BlockSize:              1024,
-		Compress:               true,
-		Encrypt:                true,
-		EncryptKey:             "cF0BFpIsljOS8UmaP8YRHRX0nBPVRVPw",
-		ReplicationNr:          0,
-		ReplicationMaxSize:     1, //force to use distribution over replication
-		DistributionNr:         3,
-		DistributionRedundancy: 1,
-	}
+	config := newDefaultConfig(shards, 1024)
 
 	tt := []struct {
 		name string
 
-		ReplicationNr      int
-		ReplicationMaxSize int
+		DataShardCount   int
+		ParityShardCount int
 
-		DistributionNr         int
-		DistributionRedundancy int
-		repairErr              error
+		repairErr error
 	}{
 		{
-			name:                   "replication",
-			ReplicationNr:          4,
-			ReplicationMaxSize:     1024 * 10,
-			DistributionNr:         0,
-			DistributionRedundancy: 0,
-			repairErr:              nil,
+			name:           "replication",
+			DataShardCount: 4,
+			repairErr:      nil,
 		},
 		{
-			name:                   "distribution",
-			ReplicationNr:          0,
-			ReplicationMaxSize:     0,
-			DistributionNr:         3,
-			DistributionRedundancy: 1,
-			repairErr:              nil,
+			name:             "distribution",
+			DataShardCount:   3,
+			ParityShardCount: 1,
+			repairErr:        nil,
 		},
 		{
-			name:                   "no-repair-suport",
-			ReplicationNr:          0,
-			ReplicationMaxSize:     0,
-			DistributionNr:         0,
-			DistributionRedundancy: 0,
-			repairErr:              ErrRepairSupport,
+			name:             "no-repair-suport",
+			DataShardCount:   0,
+			ParityShardCount: 0,
+			repairErr:        ErrRepairSupport,
 		},
 	}
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			policy.DistributionNr = tc.DistributionNr
-			policy.DistributionRedundancy = tc.DistributionRedundancy
-			policy.ReplicationNr = tc.ReplicationNr
-			policy.ReplicationMaxSize = tc.ReplicationMaxSize
-			testRepair(t, policy, tc.repairErr)
+			config.Pipeline.Distribution.DataShardCount = tc.DataShardCount
+			config.Pipeline.Distribution.ParityShardCount = tc.ParityShardCount
+			testRepair(t, config, tc.repairErr)
 		})
-
 	}
-
 }
 
-func testRepair(t *testing.T, policy Policy, repairErr error) {
-	c, err := getTestClient(policy)
+func testRepair(t *testing.T, config Config, repairErr error) {
+	c, err := getTestClient(config)
 	require.NoError(t, err, "fail to create client")
 	defer c.Close()
 
@@ -107,7 +79,7 @@ func testRepair(t *testing.T, policy Policy, repairErr error) {
 	require.True(t, status == storage.ObjectCheckStatusValid || status == storage.ObjectCheckStatusOptimal)
 
 	// corrupt file by removing a block
-	store, err := c.cluster.GetShard(meta.Chunks[0].Shards[0])
+	store, err := c.datastorCluster.GetShard(meta.Chunks[0].Shards[0])
 	require.NoError(t, err)
 	err = store.DeleteObject(meta.Chunks[0].Key)
 	require.NoError(t, err)

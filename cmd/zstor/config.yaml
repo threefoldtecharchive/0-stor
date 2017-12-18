@@ -1,28 +1,29 @@
-organization: myorg         # itsyou.online organization name
-namespace: namespace1       # itsyou.online namespace
-protocol: grpc
-iyo_app_id: appID
-iyo_app_secret: secret
-# the address(es) of 0-stor server
-data_shards:
+iyo:
+  organization: myorg  # itsyou.online organization name
+  app_id: appID
+  app_secret: secret
+namespace: namespace1  # itsyou.online namespace
+datastor:
+  # the address(es) of a zstordb cluster
+  shards:
     - 127.0.0.1:12345
     - 127.0.0.1:12346
     - 127.0.0.1:12347
     - 127.0.0.1:12348
-# the address(es) of an etcd server cluster
-meta_shards:
-    - http://127.0.0.1:2379
-    - http://127.0.0.1:22379
-    - http://127.0.0.1:32379
-
-block_size: 4096
-
-replication_nr: 4
-replication_max_size: 4096
-
-distribution_data: 3
-distribution_parity: 1
-
-compress: true
-encrypt: true
-encrypt_key: ab345678901234567890123456789012
+metastor:
+  # the address(es) of an etcd server cluster
+  shards:
+    - 127.0.0.1:2379
+    - 127.0.0.1:22379
+    - 127.0.0.1:32379
+pipeline:
+  block_size: 4096
+  compression:
+    type: snappy # snappy is the default, other options: lz4, gzip
+    mode: default # default is the default, other options: best_speed, best_compression
+  encryption:
+    type: aes # aes is the default and only standard option
+    private_key: ab345678901234567890123456789012
+  distribution:
+    data_shards: 3
+    parity_shards: 1

@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/zero-os/0-stor/client/components/storage"
+	"github.com/zero-os/0-stor/client/pipeline/storage"
 )
 
 func TestCheck(t *testing.T) {
@@ -17,24 +17,9 @@ func TestCheck(t *testing.T) {
 		shards[i] = server.Address()
 	}
 
-	policy := Policy{
-		Organization:           "testorg",
-		Namespace:              "namespace1",
-		DataShards:             shards,
-		MetaShards:             []string{"test"},
-		IYOAppID:               "",
-		IYOSecret:              "",
-		BlockSize:              1024,
-		Compress:               true,
-		Encrypt:                true,
-		EncryptKey:             "cF0BFpIsljOS8UmaP8YRHRX0nBPVRVPw",
-		ReplicationNr:          0,
-		ReplicationMaxSize:     1, //force to use distribution over replication
-		DistributionNr:         2,
-		DistributionRedundancy: 1,
-	}
+	config := newDefaultConfig(shards, 1024)
 
-	c, err := getTestClient(policy)
+	c, err := getTestClient(config)
 	require.NoError(t, err, "fail to create client")
 	defer c.Close()
 
@@ -53,7 +38,7 @@ func TestCheck(t *testing.T) {
 	require.True(t, status == storage.ObjectCheckStatusValid || status == storage.ObjectCheckStatusOptimal)
 
 	// corrupt file by removing blocks
-	store, err := c.cluster.GetShard(meta.Chunks[0].Shards[0])
+	store, err := c.datastorCluster.GetShard(meta.Chunks[0].Shards[0])
 	require.NoError(t, err)
 
 	for i := 0; i < len(meta.Chunks); i += 4 {
