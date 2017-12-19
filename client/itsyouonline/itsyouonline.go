@@ -112,7 +112,10 @@ func (c *Client) CreateNamespace(namespace string) error {
 	}
 	_, resp, err := c.iyoClient.Organizations.CreateNewSubOrganization(
 		c.cfg.Organization, org, nil, nil)
-	if err != nil {
+	// make sure to ignore a StatusConflict (409) error,
+	// as this error is expected in case the 0stor suborganization already exists,
+	// which is the case if you created a 0-stor namespace before
+	if err != nil && resp.StatusCode != http.StatusConflict {
 		return fmt.Errorf("code=%v, err=%v", resp.StatusCode, err)
 	}
 
@@ -122,8 +125,11 @@ func (c *Client) CreateNamespace(namespace string) error {
 		Globalid: namespaceID + "." + namespace,
 	}
 	_, resp, err = c.iyoClient.Organizations.CreateNewSubOrganization(namespaceID, org, nil, nil)
-
 	if err != nil {
+		if resp.StatusCode == http.StatusConflict {
+			// provide a more user-friendly error message for known/expected errors
+			return fmt.Errorf("namespace %[1]s (%[2]s.%[1]s) already exists", namespace, namespaceID)
+		}
 		return fmt.Errorf("code=%v, err=%v", resp.StatusCode, err)
 	}
 
