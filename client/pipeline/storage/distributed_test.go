@@ -1,13 +1,18 @@
 package storage
 
 import (
+	"bytes"
+	"context"
 	"crypto/rand"
+	"errors"
+	"io/ioutil"
+	mathRand "math/rand"
 	"sync"
 	"testing"
 
-	"github.com/zero-os/0-stor/client/metastor"
-
 	"github.com/zero-os/0-stor/client/datastor"
+	"github.com/zero-os/0-stor/client/metastor"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -327,6 +332,182 @@ func TestReedSolomonEncoderDecoder(t *testing.T) {
 	t.Run("dataShardCount=16, parityShardCount=16", func(t *testing.T) {
 		testReedSolomonEncoderDecoder(t, 16, 16)
 	})
+}
+
+func TestReedSolomonEncoderDecoder_Issue225(t *testing.T) {
+	t.Run("dataShardCount=1, parityShardCount=1", func(t *testing.T) {
+		testReedSolomonEncoderDecoderIssue225Cycle(t, 1, 1)
+	})
+	t.Run("dataShardCount=4, parityShardCount=2", func(t *testing.T) {
+		testReedSolomonEncoderDecoderIssue225Cycle(t, 4, 2)
+	})
+	t.Run("dataShardCount=10, parityShardCount=3", func(t *testing.T) {
+		testReedSolomonEncoderDecoderIssue225Cycle(t, 10, 3)
+	})
+}
+
+func testReedSolomonEncoderDecoderIssue225Cycle(t *testing.T, k, m int) {
+	ed, err := NewReedSolomonEncoderDecoder(k, m)
+	require.NoError(t, err)
+	require.NotNil(t, ed)
+
+	input, err := ioutil.ReadFile("../../../fixtures/client/issue_225.txt")
+	require.NoError(t, err)
+
+	parts, err := ed.Encode(input)
+	require.NoError(t, err)
+
+	output, err := ed.Decode(parts, int64(len(input)))
+	require.NoError(t, err)
+	require.Equal(t, input, output)
+}
+
+func TestReedSolomonEncoderDecoder_Issue225_Async(t *testing.T) {
+	t.Run("dataShardCount=1, parityShardCount=1", func(t *testing.T) {
+		testReedSolomonEncoderDecoderIssue225AsyncCycle(t, 1, 1)
+	})
+	t.Run("dataShardCount=4, parityShardCount=2", func(t *testing.T) {
+		testReedSolomonEncoderDecoderIssue225AsyncCycle(t, 4, 2)
+	})
+	t.Run("dataShardCount=10, parityShardCount=3", func(t *testing.T) {
+		testReedSolomonEncoderDecoderIssue225AsyncCycle(t, 10, 3)
+	})
+}
+
+func testReedSolomonEncoderDecoderIssue225AsyncCycle(t *testing.T, k, m int) {
+	ed, err := NewReedSolomonEncoderDecoder(k, m)
+	require.NoError(t, err)
+	require.NotNil(t, ed)
+
+	const (
+		blockCount   = 32
+		maxBlockSize = 4096
+	)
+
+	// Write Direction: Generate and encode all parts
+
+	group, ctx := errgroup.WithContext(context.Background())
+	subGroup, ctx := errgroup.WithContext(ctx)
+
+	inputCh := make(chan []byte, blockCount)
+	subGroup.Go(func() error {
+		defer close(inputCh)
+		for i := 0; i < blockCount; i++ {
+			data := make([]byte, mathRand.Int31n(maxBlockSize-32)+32)
+			for i := range data {
+				data[i] = '7'
+			}
+			select {
+			case inputCh <- data:
+			case <-ctx.Done():
+				return nil
+			}
+		}
+		return nil
+	})
+
+	type partsPackage struct {
+		Parts    [][]byte
+		DataSize int64
+	}
+
+	partsCh := make(chan partsPackage, blockCount)
+	for i := 0; i < DefaultJobCount; i++ {
+		subGroup.Go(func() error {
+			for input := range inputCh {
+				parts, err := ed.Encode(input)
+				if err != nil {
+					return err
+				}
+				select {
+				case partsCh <- partsPackage{parts, int64(len(input))}:
+				case <-ctx.Done():
+					return nil
+				}
+			}
+			return nil
+		})
+	}
+
+	group.Go(func() error {
+		err := subGroup.Wait()
+		close(partsCh)
+		return err
+	})
+
+	var allParts []partsPackage
+	group.Go(func() error {
+		for parts := range partsCh {
+			allParts = append(allParts, parts)
+		}
+		return nil
+	})
+
+	err = group.Wait()
+	require.NoError(t, err)
+	require.Len(t, allParts, blockCount)
+
+	// Read Direction: Decode all parts and validate they are correct
+
+	group, ctx = errgroup.WithContext(context.Background())
+	subGroup, ctx = errgroup.WithContext(ctx)
+
+	expectedBlock := make([]byte, maxBlockSize)
+	for i := range expectedBlock {
+		expectedBlock[i] = '7'
+	}
+
+	partsCh = make(chan partsPackage, blockCount)
+	subGroup.Go(func() error {
+		defer close(partsCh)
+		for _, parts := range allParts {
+			select {
+			case partsCh <- parts:
+			case <-ctx.Done():
+				return nil
+			}
+		}
+		return nil
+	})
+
+	inputCh = make(chan []byte, blockCount)
+	for i := 0; i < DefaultJobCount; i++ {
+		subGroup.Go(func() error {
+			for parts := range partsCh {
+				input, err := ed.Decode(parts.Parts, parts.DataSize)
+				if err != nil {
+					return err
+				}
+				select {
+				case inputCh <- input:
+				case <-ctx.Done():
+					return nil
+				}
+			}
+			return nil
+		})
+	}
+
+	group.Go(func() error {
+		err := subGroup.Wait()
+		close(inputCh)
+		return err
+	})
+
+	var allBlocks [][]byte
+	group.Go(func() error {
+		for input := range inputCh {
+			if bytes.Compare(expectedBlock[:len(input)], input) != 0 {
+				return errors.New("input doesn't equal the expected content")
+			}
+			allBlocks = append(allBlocks, input)
+		}
+		return nil
+	})
+
+	err = group.Wait()
+	require.NoError(t, err)
+	require.Len(t, allBlocks, blockCount)
 }
 
 func TestReedSolomonEncoderDecoderAsyncUsage(t *testing.T) {

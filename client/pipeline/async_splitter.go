@@ -504,9 +504,9 @@ func newAsyncDataSplitter(ctx context.Context, r io.Reader, chunkSize, bufferSiz
 	return inputCh, func() error {
 		defer close(inputCh)
 		var index int
+		buf := make([]byte, chunkSize)
 		for {
-			data := make([]byte, chunkSize)
-			n, err := r.Read(data)
+			n, err := r.Read(buf)
 			if err != nil {
 				if err == io.EOF {
 					// we'll concider an EOF
@@ -515,8 +515,10 @@ func newAsyncDataSplitter(ctx context.Context, r io.Reader, chunkSize, bufferSiz
 				}
 				return err
 			}
+			data := make([]byte, n)
+			copy(data, buf)
 			select {
-			case inputCh <- indexedDataChunk{index, data[:n]}:
+			case inputCh <- indexedDataChunk{index, data}:
 				index++
 			case <-ctx.Done():
 				return nil
