@@ -13,7 +13,6 @@ import (
 	"google.golang.org/grpc/metadata"
 
 	"golang.org/x/net/context"
-	"golang.org/x/sync/errgroup"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -78,9 +77,8 @@ func TestSetObject(t *testing.T) {
 	require.NoError(err)
 
 	req := &pb.SetObjectRequest{
-		Key:           []byte("testkey"),
-		Data:          buf,
-		ReferenceList: []string{"user1", "user2"},
+		Key:  []byte("testkey"),
+		Data: buf,
 	}
 
 	_, err = api.SetObject(contextWithLabel(nil, label), req)
@@ -93,15 +91,6 @@ func TestSetObject(t *testing.T) {
 	obj, err := encoding.DecodeObject(objRawData)
 	require.NoError(err)
 	require.Equal(req.Data, obj.Data)
-
-	// get reference list, and validate it's correct
-	refListRawData, err := api.db.Get(db.ReferenceListKey([]byte(label), []byte("testkey")))
-	require.NoError(err)
-	require.NotNil(refListRawData)
-	refList, err := encoding.DecodeReferenceList(refListRawData)
-	require.NoError(err)
-	require.Len(refList, len(req.ReferenceList))
-	require.Subset(req.ReferenceList, refList)
 }
 
 func TestGetObjectErrors(t *testing.T) {
@@ -133,11 +122,6 @@ func TestGetObjectErrors(t *testing.T) {
 	require.NoError(t, err)
 	_, err = api.GetObject(ctx, req)
 	require.NoError(t, err)
-
-	err = api.db.Set(db.ReferenceListKey([]byte(label), []byte("myKey")), []byte("someCorruptedRefList"))
-	require.NoError(t, err)
-	_, err = api.GetObject(ctx, req)
-	requireGRPCError(t, rpctypes.ErrObjectRefListCorrupted, err)
 }
 
 func TestGetObject(t *testing.T) {
@@ -159,7 +143,6 @@ func TestGetObject(t *testing.T) {
 		require.NoError(err)
 
 		assert.Equal(bufList["testkey0"], resp.GetData())
-		assert.Equal([]string{"user1", "user2"}, resp.GetReferenceList())
 	})
 
 	t.Run("non existing", func(t *testing.T) {
@@ -183,22 +166,12 @@ func TestListObjectkeys(t *testing.T) {
 	bufList := populateDB(t, label, api.db)
 	require.NotEmpty(bufList)
 
-	// remove the reference list for half of them
-	var index int
+	req := pb.ListObjectKeysRequest{}
+
 	keyMapping := make(map[string]struct{}, len(bufList))
 	for key := range bufList {
 		keyMapping[key] = struct{}{}
-		index++
-		if index%2 == 0 {
-			continue
-		}
-
-		_, err := api.DeleteReferenceList(contextWithLabel(nil, label),
-			&pb.DeleteReferenceListRequest{Key: []byte(key)})
-		require.NoError(err)
 	}
-
-	req := pb.ListObjectKeysRequest{}
 
 	stream := listServerStream{
 		ServerStream: nil,
@@ -277,9 +250,8 @@ func TestDeleteObject(t *testing.T) {
 
 	// create a key
 	_, err := api.SetObject(ctx, &pb.SetObjectRequest{
-		Key:           key,
-		Data:          []byte{1, 2, 3, 4},
-		ReferenceList: []string{"user1"},
+		Key:  key,
+		Data: []byte{1, 2, 3, 4},
 	})
 	require.NoError(err)
 
@@ -359,308 +331,6 @@ func TestGetObjectStatus(t *testing.T) {
 	resp, err = api.GetObjectStatus(ctx, req)
 	require.NoError(t, err)
 	require.Equal(t, pb.ObjectStatusOK, resp.GetStatus())
-
-	err = api.db.Set(db.ReferenceListKey([]byte(label), req.Key), []byte("someCorruptedRefList"))
-	require.NoError(t, err)
-	resp, err = api.GetObjectStatus(ctx, req)
-	require.NoError(t, err)
-	require.Equal(t, pb.ObjectStatusCorrupted, resp.GetStatus())
-
-	data, err = encoding.EncodeReferenceList(server.ReferenceList{"user1"})
-	require.NoError(t, err)
-	err = api.db.Set(db.ReferenceListKey([]byte(label), []byte("myKey")), data)
-	require.NoError(t, err)
-	resp, err = api.GetObjectStatus(ctx, req)
-	require.NoError(t, err)
-	require.Equal(t, pb.ObjectStatusOK, resp.GetStatus())
-}
-
-// we'll append one ref at a time, one 255 different goroutines at once,
-// as to ensure that conflicts are resolved correctly
-func TestAppendToReferenceListAsync(t *testing.T) {
-	// first create our database and object
-	require := require.New(t)
-
-	api, clean := getTestObjectAPI(require)
-	defer clean()
-
-	ctx := contextWithLabel(nil, label)
-	key := []byte("testkey1")
-	value := []byte{1, 2, 3, 4}
-
-	_, err := api.SetObject(ctx, &pb.SetObjectRequest{
-		Key:  key,
-		Data: value,
-	})
-	require.NoError(err)
-
-	// now append our reference list
-	group, ctx := errgroup.WithContext(ctx)
-	var expectedList []string
-	for i := 0; i < 256; i++ {
-		userID := fmt.Sprintf("user%d", i)
-		expectedList = append(expectedList, userID)
-		group.Go(func() error {
-			_, err := api.AppendToReferenceList(ctx, &pb.AppendToReferenceListRequest{
-				Key:           key,
-				ReferenceList: []string{userID},
-			})
-			return err
-		})
-	}
-	require.NoError(group.Wait())
-
-	// now ensure our ref list is idd correct, even though we don't know the order
-	rawRefList, err := api.db.Get(db.ReferenceListKey([]byte(label), key))
-	require.NoError(err)
-	require.NotNil(rawRefList)
-	refList, err := encoding.DecodeReferenceList(rawRefList)
-	require.NoError(err)
-	require.Len(refList, len(expectedList))
-	require.Subset(expectedList, refList)
-}
-
-// we'll append one ref at a time, one 255 different goroutines at once,
-// as to ensure that conflicts are resolved correctly
-func TestDeleteFromReferenceListAsync(t *testing.T) {
-	// first create our database and object
-	require := require.New(t)
-
-	api, clean := getTestObjectAPI(require)
-	defer clean()
-
-	ctx := contextWithLabel(nil, label)
-	key := []byte("testkey1")
-	value := []byte{1, 2, 3, 4}
-
-	const refCount = 256
-
-	var startRefList []string
-	for i := 0; i < refCount; i++ {
-		startRefList = append(startRefList, fmt.Sprintf("user%d", i))
-	}
-
-	_, err := api.SetObject(ctx, &pb.SetObjectRequest{
-		Key:           key,
-		Data:          value,
-		ReferenceList: startRefList,
-	})
-	require.NoError(err)
-
-	// ensure we have our ref list
-	rawRefList, err := api.db.Get(db.ReferenceListKey([]byte(label), key))
-	require.NoError(err)
-	require.NotNil(rawRefList)
-	refList, err := encoding.DecodeReferenceList(rawRefList)
-	require.NoError(err)
-	require.Len(refList, len(startRefList))
-	require.Subset(startRefList, refList)
-
-	// now remove from our reference list, one by one
-	group, ctx := errgroup.WithContext(ctx)
-	for i := 0; i < refCount; i++ {
-		userID := fmt.Sprintf("user%d", i)
-		group.Go(func() error {
-			_, err := api.DeleteFromReferenceList(ctx, &pb.DeleteFromReferenceListRequest{
-				Key:           key,
-				ReferenceList: []string{userID},
-			})
-			return err
-		})
-	}
-	require.NoError(group.Wait())
-
-	// now ensure our ref list is now gone
-	_, err = api.db.Get(db.ReferenceListKey([]byte(label), key))
-	require.Equal(db.ErrNotFound, err)
-}
-
-func TestSetReferenceListErrors(t *testing.T) {
-	api, clean := getTestObjectAPI(require.New(t))
-	defer clean()
-
-	req := &pb.SetReferenceListRequest{}
-
-	ctx := context.Background()
-	_, err := api.SetReferenceList(ctx, req)
-	requireGRPCError(t, rpctypes.ErrNilLabel, err)
-
-	ctx = contextWithLabel(ctx, label)
-	_, err = api.SetReferenceList(ctx, req)
-	requireGRPCError(t, rpctypes.ErrNilKey, err)
-
-	req.Key = []byte("myKey")
-	_, err = api.SetReferenceList(ctx, req)
-	requireGRPCError(t, rpctypes.ErrNilRefList, err)
-
-	req.ReferenceList = []string{"user1"}
-	_, err = api.SetReferenceList(ctx, req)
-	require.NoError(t, err)
-}
-
-func TestGetReferenceListErrors(t *testing.T) {
-	api, clean := getTestObjectAPI(require.New(t))
-	defer clean()
-
-	req := &pb.GetReferenceListRequest{}
-
-	ctx := context.Background()
-	_, err := api.GetReferenceList(ctx, req)
-	requireGRPCError(t, rpctypes.ErrNilLabel, err)
-
-	ctx = contextWithLabel(ctx, label)
-	_, err = api.GetReferenceList(ctx, req)
-	requireGRPCError(t, rpctypes.ErrNilKey, err)
-
-	req.Key = []byte("myKey")
-	_, err = api.GetReferenceList(ctx, req)
-	requireGRPCError(t, rpctypes.ErrKeyNotFound, err)
-
-	err = api.db.Set(db.ReferenceListKey([]byte(label), req.Key), []byte("someCorruptedRefList"))
-	require.NoError(t, err)
-	_, err = api.GetReferenceList(ctx, req)
-	requireGRPCError(t, rpctypes.ErrObjectRefListCorrupted, err)
-
-	data, err := encoding.EncodeReferenceList(server.ReferenceList{"user1"})
-	require.NoError(t, err)
-	err = api.db.Set(db.ReferenceListKey([]byte(label), req.Key), data)
-	require.NoError(t, err)
-	resp, err := api.GetReferenceList(ctx, req)
-	require.NoError(t, err)
-	require.Equal(t, []string{"user1"}, resp.GetReferenceList())
-}
-
-func TestGetReferenceCountErrors(t *testing.T) {
-	api, clean := getTestObjectAPI(require.New(t))
-	defer clean()
-
-	req := &pb.GetReferenceCountRequest{}
-
-	ctx := context.Background()
-	_, err := api.GetReferenceCount(ctx, req)
-	requireGRPCError(t, rpctypes.ErrNilLabel, err)
-
-	ctx = contextWithLabel(ctx, label)
-	_, err = api.GetReferenceCount(ctx, req)
-	requireGRPCError(t, rpctypes.ErrNilKey, err)
-
-	req.Key = []byte("myKey")
-	resp, err := api.GetReferenceCount(ctx, req)
-	require.NoError(t, err)
-	require.Equal(t, int64(0), resp.GetCount())
-
-	err = api.db.Set(db.ReferenceListKey([]byte(label), req.Key), []byte("someCorruptedRefList"))
-	require.NoError(t, err)
-	_, err = api.GetReferenceCount(ctx, req)
-	requireGRPCError(t, rpctypes.ErrObjectRefListCorrupted, err)
-}
-
-func TestGetReferenceCount(t *testing.T) {
-	api, clean := getTestObjectAPI(require.New(t))
-	defer clean()
-
-	req := &pb.GetReferenceCountRequest{Key: []byte("myKey")}
-	ctx := contextWithLabel(nil, label)
-
-	resp, err := api.GetReferenceCount(ctx, req)
-	require.NoError(t, err)
-	require.Equal(t, int64(0), resp.GetCount())
-
-	data, err := encoding.EncodeReferenceList(server.ReferenceList{"user1"})
-	require.NoError(t, err)
-	err = api.db.Set(db.ReferenceListKey([]byte(label), req.Key), data)
-	require.NoError(t, err)
-	resp, err = api.GetReferenceCount(ctx, req)
-	require.NoError(t, err)
-	require.Equal(t, int64(1), resp.GetCount())
-
-	data, err = encoding.EncodeReferenceList(server.ReferenceList{"user1", "user3", "user5"})
-	require.NoError(t, err)
-	err = api.db.Set(db.ReferenceListKey([]byte(label), req.Key), data)
-	require.NoError(t, err)
-	resp, err = api.GetReferenceCount(ctx, req)
-	require.NoError(t, err)
-	require.Equal(t, int64(3), resp.GetCount())
-}
-
-func TestAppendToReferenceListErrors(t *testing.T) {
-	api, clean := getTestObjectAPI(require.New(t))
-	defer clean()
-
-	req := &pb.AppendToReferenceListRequest{}
-
-	ctx := context.Background()
-	_, err := api.AppendToReferenceList(ctx, req)
-	requireGRPCError(t, rpctypes.ErrNilLabel, err)
-
-	ctx = contextWithLabel(ctx, label)
-	_, err = api.AppendToReferenceList(ctx, req)
-	requireGRPCError(t, rpctypes.ErrNilKey, err)
-
-	req.Key = []byte("myKey")
-	_, err = api.AppendToReferenceList(ctx, req)
-	requireGRPCError(t, rpctypes.ErrNilRefList, err)
-
-	err = api.db.Set(db.ReferenceListKey([]byte(label), req.Key), []byte("someCorruptedRefList"))
-	require.NoError(t, err)
-	req.ReferenceList = []string{"user1"}
-	_, err = api.AppendToReferenceList(ctx, req)
-	requireGRPCError(t, rpctypes.ErrObjectRefListCorrupted, err)
-
-	err = api.db.Delete(db.ReferenceListKey([]byte(label), req.Key))
-	require.NoError(t, err)
-	_, err = api.AppendToReferenceList(ctx, req)
-	require.NoError(t, err)
-}
-
-func TestDeleteFromReferenceListErrors(t *testing.T) {
-	api, clean := getTestObjectAPI(require.New(t))
-	defer clean()
-
-	req := &pb.DeleteFromReferenceListRequest{}
-
-	ctx := context.Background()
-	_, err := api.DeleteFromReferenceList(ctx, req)
-	requireGRPCError(t, rpctypes.ErrNilLabel, err)
-
-	ctx = contextWithLabel(ctx, label)
-	_, err = api.DeleteFromReferenceList(ctx, req)
-	requireGRPCError(t, rpctypes.ErrNilKey, err)
-
-	req.Key = []byte("myKey")
-	_, err = api.DeleteFromReferenceList(ctx, req)
-	requireGRPCError(t, rpctypes.ErrNilRefList, err)
-
-	err = api.db.Set(db.ReferenceListKey([]byte(label), req.Key), []byte("someCorruptedRefList"))
-	require.NoError(t, err)
-	req.ReferenceList = []string{"user1"}
-	_, err = api.DeleteFromReferenceList(ctx, req)
-	requireGRPCError(t, rpctypes.ErrObjectRefListCorrupted, err)
-
-	err = api.db.Delete(db.ReferenceListKey([]byte(label), req.Key))
-	require.NoError(t, err)
-	resp, err := api.DeleteFromReferenceList(ctx, req)
-	require.NoError(t, err)
-	require.Equal(t, int64(0), resp.GetCount())
-}
-
-func TestDeleteReferenceListErrors(t *testing.T) {
-	api, clean := getTestObjectAPI(require.New(t))
-	defer clean()
-
-	req := &pb.DeleteReferenceListRequest{}
-
-	ctx := context.Background()
-	_, err := api.DeleteReferenceList(ctx, req)
-	requireGRPCError(t, rpctypes.ErrNilLabel, err)
-
-	ctx = contextWithLabel(ctx, label)
-	_, err = api.DeleteReferenceList(ctx, req)
-	requireGRPCError(t, rpctypes.ErrNilKey, err)
-
-	req.Key = []byte("myKey")
-	_, err = api.DeleteReferenceList(ctx, req)
-	require.NoError(t, err)
 }
 
 func TestConvertStatus(t *testing.T) {

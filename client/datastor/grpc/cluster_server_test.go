@@ -147,17 +147,9 @@ func TestGetRandomShardAsync(t *testing.T) {
 			data := make([]byte, mathRand.Int31n(4096)+1)
 			rand.Read(data)
 
-			refList := make([]string, mathRand.Int31n(16)+1)
-			for i := range refList {
-				id := make([]byte, mathRand.Int31n(128)+1)
-				rand.Read(id)
-				refList[i] = string(id)
-			}
-
 			object := datastor.Object{
-				Key:           key,
-				Data:          data,
-				ReferenceList: refList,
+				Key:  key,
+				Data: data,
 			}
 
 			shard, err := cluster.GetRandomShard()
@@ -211,8 +203,6 @@ func TestGetRandomShardAsync(t *testing.T) {
 			require.Equal(object.Key, outputObject.Key)
 			require.Len(outputObject.Data, len(object.Data))
 			require.Equal(outputObject.Data, object.Data)
-			require.Len(outputObject.ReferenceList, len(object.ReferenceList))
-			require.Equal(outputObject.ReferenceList, object.ReferenceList)
 
 			return nil
 		})
@@ -250,17 +240,9 @@ func TestGetRandomShardIteratorAsync(t *testing.T) {
 			data := make([]byte, mathRand.Int31n(4096)+1)
 			rand.Read(data)
 
-			refList := make([]string, mathRand.Int31n(16)+1)
-			for i := range refList {
-				id := make([]byte, mathRand.Int31n(128)+1)
-				rand.Read(id)
-				refList[i] = string(id)
-			}
-
 			object := datastor.Object{
-				Key:           key,
-				Data:          data,
-				ReferenceList: refList,
+				Key:  key,
+				Data: data,
 			}
 
 			var shard datastor.Shard
@@ -316,8 +298,6 @@ func TestGetRandomShardIteratorAsync(t *testing.T) {
 			require.Equal(object.Key, outputObject.Key)
 			require.Len(outputObject.Data, len(object.Data))
 			require.Equal(outputObject.Data, object.Data)
-			require.Len(outputObject.ReferenceList, len(object.ReferenceList))
-			require.Equal(outputObject.ReferenceList, object.ReferenceList)
 
 			return nil
 		})

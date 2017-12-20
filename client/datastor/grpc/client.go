@@ -98,9 +98,8 @@ func (c *Client) SetObject(object datastor.Object) error {
 		return err
 	}
 	_, err = c.objService.SetObject(ctx, &pb.SetObjectRequest{
-		Key:           object.Key,
-		Data:          object.Data,
-		ReferenceList: object.ReferenceList,
+		Key:  object.Key,
+		Data: object.Data,
 	})
 	if err != nil {
 		return toErr(err)
@@ -120,9 +119,8 @@ func (c *Client) GetObject(key []byte) (*datastor.Object, error) {
 	}
 
 	dataObject := &datastor.Object{
-		Key:           key,
-		Data:          resp.GetData(),
-		ReferenceList: resp.GetReferenceList(),
+		Key:  key,
+		Data: resp.GetData(),
 	}
 	if len(dataObject.Data) == 0 {
 		return nil, datastor.ErrMissingData
@@ -282,91 +280,6 @@ func (c *Client) ListObjectKeyIterator(ctx context.Context) (<-chan datastor.Obj
 	return ch, nil
 }
 
-// SetReferenceList implements datastor.Client.SetReferenceList
-func (c *Client) SetReferenceList(key []byte, refList []string) error {
-	ctx, err := c.contextConstructor(nil)
-	if err != nil {
-		return err
-	}
-	_, err = c.objService.SetReferenceList(ctx,
-		&pb.SetReferenceListRequest{Key: key, ReferenceList: refList})
-	if err != nil {
-		return toErr(err)
-	}
-	return nil
-}
-
-// GetReferenceList implements datastor.Client.GetReferenceList
-func (c *Client) GetReferenceList(key []byte) ([]string, error) {
-	ctx, err := c.contextConstructor(nil)
-	if err != nil {
-		return nil, err
-	}
-	resp, err := c.objService.GetReferenceList(ctx, &pb.GetReferenceListRequest{Key: key})
-	if err != nil {
-		return nil, toErr(err)
-	}
-	refList := resp.GetReferenceList()
-	if len(refList) == 0 {
-		return nil, datastor.ErrMissingRefList
-	}
-	return refList, nil
-}
-
-// GetReferenceCount implements datastor.Client.GetReferenceCount
-func (c *Client) GetReferenceCount(key []byte) (int64, error) {
-	ctx, err := c.contextConstructor(nil)
-	if err != nil {
-		return 0, err
-	}
-	resp, err := c.objService.GetReferenceCount(ctx, &pb.GetReferenceCountRequest{Key: key})
-	if err != nil {
-		return 0, toErr(err)
-	}
-	return resp.GetCount(), nil
-}
-
-// AppendToReferenceList implements datastor.Client.AppendToReferenceList
-func (c *Client) AppendToReferenceList(key []byte, refList []string) error {
-	ctx, err := c.contextConstructor(nil)
-	if err != nil {
-		return err
-	}
-	_, err = c.objService.AppendToReferenceList(ctx,
-		&pb.AppendToReferenceListRequest{Key: key, ReferenceList: refList})
-	if err != nil {
-		return toErr(err)
-	}
-	return nil
-}
-
-// DeleteFromReferenceList implements datastor.Client.DeleteFromReferenceList
-func (c *Client) DeleteFromReferenceList(key []byte, refList []string) (int64, error) {
-	ctx, err := c.contextConstructor(nil)
-	if err != nil {
-		return 0, err
-	}
-	resp, err := c.objService.DeleteFromReferenceList(ctx,
-		&pb.DeleteFromReferenceListRequest{Key: key, ReferenceList: refList})
-	if err != nil {
-		return 0, toErr(err)
-	}
-	return resp.GetCount(), nil
-}
-
-// DeleteReferenceList implements datastor.Client.DeleteReferenceList
-func (c *Client) DeleteReferenceList(key []byte) error {
-	ctx, err := c.contextConstructor(nil)
-	if err != nil {
-		return err
-	}
-	_, err = c.objService.DeleteReferenceList(ctx, &pb.DeleteReferenceListRequest{Key: key})
-	if err != nil {
-		return toErr(err)
-	}
-	return nil
-}
-
 // Close implements datastor.Client.Close
 func (c *Client) Close() error {
 	return c.conn.Close()
@@ -394,10 +307,9 @@ func toErr(err error) error {
 }
 
 var expectedErrorMapping = map[error]error{
-	rpctypes.ErrKeyNotFound:            datastor.ErrKeyNotFound,
-	rpctypes.ErrObjectDataCorrupted:    datastor.ErrObjectDataCorrupted,
-	rpctypes.ErrObjectRefListCorrupted: datastor.ErrObjectRefListCorrupted,
-	rpctypes.ErrPermissionDenied:       datastor.ErrPermissionDenied,
+	rpctypes.ErrKeyNotFound:         datastor.ErrKeyNotFound,
+	rpctypes.ErrObjectDataCorrupted: datastor.ErrObjectCorrupted,
+	rpctypes.ErrPermissionDenied:    datastor.ErrPermissionDenied,
 }
 
 func toContextErr(ctx context.Context, err error) error {

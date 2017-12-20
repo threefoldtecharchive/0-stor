@@ -325,17 +325,14 @@ func requiredShardCount(cfg ObjectDistributionConfig) int {
 
 func testPipelineWriteRead(t *testing.T, pipeline Pipeline) {
 	t.Run("fixed-data", func(t *testing.T) {
-		testCases := []struct {
-			Data    string
-			RefList []string
-		}{
-			{"a", nil},
-			{"Hello, World!", nil},
-			{"大家好", nil},
-			{"This... is my finger :)", nil},
+		testCases := []string{
+			"a",
+			"Hello, World!",
+			"大家好",
+			"This... is my finger :)",
 		}
 		for _, testCase := range testCases {
-			testPipelineWriteReadCycle(t, pipeline, testCase.Data, testCase.RefList)
+			testPipelineWriteReadCycle(t, pipeline, testCase)
 		}
 	})
 
@@ -344,23 +341,22 @@ func testPipelineWriteRead(t *testing.T, pipeline Pipeline) {
 			inputData := make([]byte, mathRand.Int31n(256)+1)
 			rand.Read(inputData)
 
-			testPipelineWriteReadCycle(t, pipeline, string(inputData), nil)
+			testPipelineWriteReadCycle(t, pipeline, string(inputData))
 		}
 	})
 }
 
-func testPipelineWriteReadCycle(t *testing.T, pipeline Pipeline, inputData string, inputRefList []string) {
+func testPipelineWriteReadCycle(t *testing.T, pipeline Pipeline, inputData string) {
 	r := strings.NewReader(inputData)
 
-	chunks, err := pipeline.Write(r, inputRefList)
+	chunks, err := pipeline.Write(r)
 	require.NoError(t, err)
 	require.NotEmpty(t, chunks)
 
 	buf := bytes.NewBuffer(nil)
-	outputRefList, err := pipeline.Read(chunks, buf)
+	err = pipeline.Read(chunks, buf)
 	require.NoError(t, err)
 	outputData := string(buf.Bytes())
 
 	require.Equal(t, inputData, outputData)
-	require.Equal(t, inputRefList, outputRefList)
 }

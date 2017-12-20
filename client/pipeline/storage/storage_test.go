@@ -32,14 +32,12 @@ func testStorageReadCheckWrite(t *testing.T, storage ObjectStorage) {
 				Data: []byte("大家好"),
 			},
 			datastor.Object{
-				Key:           []byte("this-is-my-key"),
-				Data:          []byte("Hello, World!"),
-				ReferenceList: []string{"user1", "user2"},
+				Key:  []byte("this-is-my-key"),
+				Data: []byte("Hello, World!"),
 			},
 			datastor.Object{
-				Key:           []byte("this-is-my-key"),
-				Data:          []byte("Hello, World!"),
-				ReferenceList: []string{"user1", "user2"},
+				Key:  []byte("this-is-my-key"),
+				Data: []byte("Hello, World!"),
 			},
 		}
 		for _, inputObject := range objects {
@@ -69,17 +67,9 @@ func testStorageReadCheckWrite(t *testing.T, storage ObjectStorage) {
 			data := make([]byte, mathRand.Int31n(128)+1)
 			rand.Read(data)
 
-			refList := make([]string, mathRand.Int31n(8)+1)
-			for i := range refList {
-				id := make([]byte, mathRand.Int31n(32)+1)
-				rand.Read(id)
-				refList[i] = string(id)
-			}
-
 			inputObject := datastor.Object{
-				Key:           key,
-				Data:          data,
-				ReferenceList: refList,
+				Key:  key,
+				Data: data,
 			}
 
 			// write object & validate

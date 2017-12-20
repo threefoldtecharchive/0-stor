@@ -65,21 +65,6 @@ func (api *ObjectAPI) SetObject(ctx context.Context, req *pb.SetObjectRequest) (
 		return nil, rpctypes.ErrGRPCDatabase
 	}
 
-	// either delete the reference list, or set it.
-	refList := req.GetReferenceList()
-	if refList != nil {
-		data, err = encoding.EncodeReferenceList(server.ReferenceList(refList))
-		if err != nil {
-			panic(err)
-		}
-
-		refListkey := db.ReferenceListKey([]byte(label), key)
-		err = api.db.Set(refListkey, data)
-		if err != nil {
-			return nil, rpctypes.ErrGRPCDatabase
-		}
-	}
-
 	// return the success reply
 	return &pb.SetObjectResponse{}, nil
 }
@@ -112,30 +97,9 @@ func (api *ObjectAPI) GetObject(ctx context.Context, req *pb.GetObjectRequest) (
 		return nil, rpctypes.ErrGRPCObjectDataCorrupted
 	}
 
-	// get reference list (if it exists)
-	refListKey := db.ReferenceListKey([]byte(label), key)
-	refListData, err := api.db.Get(refListKey)
-	if err != nil {
-		if err == db.ErrNotFound {
-			// return non referenced object
-			return &pb.GetObjectResponse{
-				Data: dataObject.Data,
-			}, nil
-		}
-		log.Errorf("Database error for refList (%v): %v", refListKey, err)
-		return nil, rpctypes.ErrGRPCDatabase
-	}
-
-	// decode existing reference list
-	refList, err := encoding.DecodeReferenceList(refListData)
-	if err != nil {
-		return nil, rpctypes.ErrGRPCObjectRefListCorrupted
-	}
-
 	// return referenced object
 	return &pb.GetObjectResponse{
-		Data:          dataObject.Data,
-		ReferenceList: refList,
+		Data: dataObject.Data,
 	}, nil
 }
 
@@ -157,14 +121,6 @@ func (api *ObjectAPI) DeleteObject(ctx context.Context, req *pb.DeleteObjectRequ
 	err = api.db.Delete(dataKey)
 	if err != nil {
 		log.Errorf("Database error for data (%v): %v", dataKey, err)
-		return nil, rpctypes.ErrGRPCDatabase
-	}
-
-	// delete object's reference list
-	refListKey := db.ReferenceListKey([]byte(label), key)
-	err = api.db.Delete(refListKey)
-	if err != nil {
-		log.Errorf("Database error for refList (%v): %v", refListKey, err)
 		return nil, rpctypes.ErrGRPCDatabase
 	}
 
@@ -293,236 +249,6 @@ func (api *ObjectAPI) ListObjectKeys(req *pb.ListObjectKeysRequest, stream pb.Ob
 
 	// wait until all contexts are finished
 	return group.Wait()
-}
-
-// SetReferenceList implements ObjectManagerServer.SetReferenceList
-func (api *ObjectAPI) SetReferenceList(ctx context.Context, req *pb.SetReferenceListRequest) (*pb.SetReferenceListResponse, error) {
-	label, err := extractStringFromContext(ctx, rpctypes.MetaLabelKey)
-	if err != nil {
-		log.Errorf("error while extracting label from GRPC metadata: %v", err)
-		return nil, rpctypes.ErrGRPCNilLabel
-	}
-
-	// get parameters and ensure they're given
-	key := req.GetKey()
-	if len(key) == 0 {
-		return nil, rpctypes.ErrGRPCNilKey
-	}
-	refList := req.GetReferenceList()
-	if len(refList) == 0 {
-		return nil, rpctypes.ErrGRPCNilRefList
-	}
-
-	// encode reference list
-	data, err := encoding.EncodeReferenceList(refList)
-	if err != nil {
-		panic(err)
-	}
-
-	// store reference list if possible
-	refListKey := db.ReferenceListKey([]byte(label), key)
-	err = api.db.Set(refListKey, data)
-	if err != nil {
-		return nil, rpctypes.ErrGRPCDatabase
-	}
-
-	return &pb.SetReferenceListResponse{}, nil
-}
-
-// GetReferenceList implements ObjectManagerServer.GetReferenceList
-func (api *ObjectAPI) GetReferenceList(ctx context.Context, req *pb.GetReferenceListRequest) (*pb.GetReferenceListResponse, error) {
-	label, err := extractStringFromContext(ctx, rpctypes.MetaLabelKey)
-	if err != nil {
-		log.Errorf("error while extracting label from GRPC metadata: %v", err)
-		return nil, rpctypes.ErrGRPCNilLabel
-	}
-
-	key := req.GetKey()
-	if len(key) == 0 {
-		return nil, rpctypes.ErrGRPCNilKey
-	}
-
-	refListKey := db.ReferenceListKey([]byte(label), key)
-	refListData, err := api.db.Get(refListKey)
-	if err != nil {
-		if err == db.ErrNotFound {
-			return nil, rpctypes.ErrGRPCKeyNotFound
-		}
-
-		log.Errorf("Database error for refList (%v): %v", refListKey, err)
-		return nil, rpctypes.ErrGRPCDatabase
-	}
-
-	refList, err := encoding.DecodeReferenceList(refListData)
-	if err != nil {
-		return nil, rpctypes.ErrGRPCObjectRefListCorrupted
-	}
-
-	return &pb.GetReferenceListResponse{
-		ReferenceList: refList,
-	}, nil
-}
-
-// GetReferenceCount implements ObjectManagerServer.GetReferenceCount
-func (api *ObjectAPI) GetReferenceCount(ctx context.Context, req *pb.GetReferenceCountRequest) (*pb.GetReferenceCountResponse, error) {
-	label, err := extractStringFromContext(ctx, rpctypes.MetaLabelKey)
-	if err != nil {
-		log.Errorf("error while extracting label from GRPC metadata: %v", err)
-		return nil, rpctypes.ErrGRPCNilLabel
-	}
-
-	key := req.GetKey()
-	if len(key) == 0 {
-		return nil, rpctypes.ErrGRPCNilKey
-	}
-
-	refListKey := db.ReferenceListKey([]byte(label), key)
-	refListData, err := api.db.Get(refListKey)
-	if err != nil {
-		if err == db.ErrNotFound {
-			// no reference list == no references
-			return &pb.GetReferenceCountResponse{
-				Count: 0,
-			}, nil
-		}
-
-		log.Errorf("Database error for refList (%v): %v", refListKey, err)
-		return nil, rpctypes.ErrGRPCDatabase
-	}
-
-	refList, err := encoding.DecodeReferenceList(refListData)
-	if err != nil {
-		return nil, rpctypes.ErrGRPCObjectRefListCorrupted
-	}
-
-	return &pb.GetReferenceCountResponse{
-		Count: int64(len(refList)),
-	}, nil
-}
-
-// AppendToReferenceList implements ObjectManagerServer.AppendToReferenceList
-func (api *ObjectAPI) AppendToReferenceList(ctx context.Context, req *pb.AppendToReferenceListRequest) (*pb.AppendToReferenceListResponse, error) {
-	label, err := extractStringFromContext(ctx, rpctypes.MetaLabelKey)
-	if err != nil {
-		log.Errorf("error while extracting label from GRPC metadata: %v", err)
-		return nil, rpctypes.ErrGRPCNilLabel
-	}
-
-	// get parameters and ensure they're given
-	key := req.GetKey()
-	if len(key) == 0 {
-		return nil, rpctypes.ErrGRPCNilKey
-	}
-	refList := req.GetReferenceList()
-	if len(refList) == 0 {
-		return nil, rpctypes.ErrGRPCNilRefList
-	}
-
-	// define update callback
-	cb := func(refListData []byte) ([]byte, error) {
-		if len(refListData) == 0 {
-			// if input of update callback is nil, the data didn't exist yet,
-			// in which case we can simply encode the target ref list as it is
-			return encoding.EncodeReferenceList(refList)
-		}
-		// append new list to current list,
-		// without decoding the current list
-		return encoding.AppendToEncodedReferenceList(refListData, refList)
-	}
-
-	refListKey := db.ReferenceListKey([]byte(label), key)
-	// loop-update until we have no conflict
-	err = api.db.Update(refListKey, cb)
-	for err == db.ErrConflict {
-		err = api.db.Update(refListKey, cb)
-	}
-	if err != nil {
-		if err == encoding.ErrInvalidChecksum || err == encoding.ErrInvalidData {
-			return nil, rpctypes.ErrGRPCObjectRefListCorrupted
-		}
-		log.Errorf("Database error for refList (%v): %v", refListKey, err)
-		return nil, rpctypes.ErrGRPCDatabase
-	}
-
-	return &pb.AppendToReferenceListResponse{}, nil
-}
-
-// DeleteFromReferenceList implements ObjectManagerServer.DeleteFromReferenceList
-func (api *ObjectAPI) DeleteFromReferenceList(ctx context.Context, req *pb.DeleteFromReferenceListRequest) (*pb.DeleteFromReferenceListResponse, error) {
-	label, err := extractStringFromContext(ctx, rpctypes.MetaLabelKey)
-	if err != nil {
-		log.Errorf("error while extracting label from GRPC metadata: %v", err)
-		return nil, rpctypes.ErrGRPCNilLabel
-	}
-
-	// get parameters and ensure they're given
-	key := req.GetKey()
-	if len(key) == 0 {
-		return nil, rpctypes.ErrGRPCNilKey
-	}
-	refList := req.GetReferenceList()
-	if len(refList) == 0 {
-		return nil, rpctypes.ErrGRPCNilRefList
-	}
-
-	var count int
-	// define update callback
-	cb := func(refListData []byte) ([]byte, error) {
-		if len(refListData) == 0 {
-			// if input of update callback is nil, the data didn't exist yet,
-			// in which case we can simply return nil, as we don't need to do anything
-			return nil, nil
-		}
-		var data []byte
-		// remove new list from current list
-		data, count, err = encoding.RemoveFromEncodedReferenceList(refListData, refList)
-		return data, err
-	}
-
-	// get current reference list data if possible
-	refListKey := db.ReferenceListKey([]byte(label), key)
-	// loop-update until we have no conflict
-	err = api.db.Update(refListKey, cb)
-	for err == db.ErrConflict {
-		err = api.db.Update(refListKey, cb)
-	}
-	if err != nil {
-		if err == encoding.ErrInvalidChecksum || err == encoding.ErrInvalidData {
-			return nil, rpctypes.ErrGRPCObjectRefListCorrupted
-		}
-		log.Errorf("Database error for refList (%v): %v", refListKey, err)
-		return nil, rpctypes.ErrGRPCDatabase
-	}
-
-	return &pb.DeleteFromReferenceListResponse{
-		Count: int64(count),
-	}, nil
-}
-
-// DeleteReferenceList implements ObjectManagerServer.DeleteReferenceList
-func (api *ObjectAPI) DeleteReferenceList(ctx context.Context, req *pb.DeleteReferenceListRequest) (*pb.DeleteReferenceListResponse, error) {
-	label, err := extractStringFromContext(ctx, rpctypes.MetaLabelKey)
-	if err != nil {
-		log.Errorf("error while extracting label from GRPC metadata: %v", err)
-		return nil, rpctypes.ErrGRPCNilLabel
-	}
-
-	// get key parameter and ensure it's given
-	key := req.GetKey()
-	if len(key) == 0 {
-		return nil, rpctypes.ErrGRPCNilKey
-	}
-
-	// delete ref list
-	refListKey := db.ReferenceListKey([]byte(label), key)
-	err = api.db.Delete(refListKey)
-	if err != nil {
-		log.Errorf("Database error for refList (%v): %v", refListKey, err)
-		return nil, rpctypes.ErrGRPCDatabase
-	}
-
-	// success, reference list is deleted
-	return &pb.DeleteReferenceListResponse{}, nil
 }
 
 // convertStatus converts server.ObjectStatus to pb.ObjectStatus

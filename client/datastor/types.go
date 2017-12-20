@@ -11,21 +11,18 @@ import (
 // and it should be reported at:
 // http://github.com/zero-os/0-stor/issues
 var (
-	ErrMissingKey     = errors.New("zstor: missing object key (zstordb bug?)")
-	ErrMissingData    = errors.New("zstor: missing object data (zstordb bug?)")
-	ErrMissingRefList = errors.New("zstor: missing object reference list (zstordb bug?)")
-	ErrInvalidStatus  = errors.New("zstor: invalid object status (zstordb bug?)")
-	ErrInvalidLabel   = errors.New("zstor: invalid namespace label (zstordb bug?)")
+	ErrMissingKey    = errors.New("zstor: missing object key (zstordb bug?)")
+	ErrMissingData   = errors.New("zstor: missing object data (zstordb bug?)")
+	ErrInvalidStatus = errors.New("zstor: invalid object status (zstordb bug?)")
+	ErrInvalidLabel  = errors.New("zstor: invalid namespace label (zstordb bug?)")
 )
 
 // Errors that can be expected to be returned by a zstordb server,
 // in "normal" scenarios.
 var (
-	ErrKeyNotFound            = errors.New("zstordb: key is no found")
-	ErrObjectDataCorrupted    = errors.New("zstordb: object data is corrupted")
-	ErrObjectCorrupted        = errors.New("zstordb: object (data and/or refList) is corrupted")
-	ErrObjectRefListCorrupted = errors.New("zstordb: object reflist is corrupted")
-	ErrPermissionDenied       = errors.New("zstordb: JWT token does not permit requested action")
+	ErrKeyNotFound      = errors.New("zstordb: key is no found")
+	ErrObjectCorrupted  = errors.New("zstordb: object is corrupted")
+	ErrPermissionDenied = errors.New("zstordb: JWT token does not permit requested action")
 )
 
 type (
@@ -40,12 +37,9 @@ type (
 	}
 
 	// Object contains the information stored for an object.
-	// The Data and ReferenceList are stored separately,
-	// but are composed together in this data structure upon request.
 	Object struct {
-		Key           []byte
-		Data          []byte
-		ReferenceList []string
+		Key  []byte
+		Data []byte
 	}
 
 	// ObjectKeyResult is the (stream) data type,

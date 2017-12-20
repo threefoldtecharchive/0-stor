@@ -95,20 +95,10 @@ func populateDB(t *testing.T, label string, db dbp.DB) map[string][]byte {
 		_, err := rand.Read(bufList[key])
 		require.NoError(t, err)
 
-		refList := []string{
-			"user1", "user2",
-		}
-
 		data, err := encoding.EncodeObject(server.Object{Data: bufList[key]})
 		require.NoError(t, err)
 		require.NotNil(t, data)
 		err = db.Set(dbp.DataKey([]byte(label), []byte(key)), data)
-		require.NoError(t, err)
-
-		refListData, err := encoding.EncodeReferenceList(refList)
-		require.NoError(t, err)
-		require.NotNil(t, refListData)
-		err = db.Set(dbp.ReferenceListKey([]byte(label), []byte(key)), refListData)
 		require.NoError(t, err)
 	}
 

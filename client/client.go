@@ -82,8 +82,8 @@ func NewClientFromConfig(cfg Config, jobCount int) (*Client, error) {
 
 // NewClient creates a 0-stor client,
 // with the data (zstordb) cluster already created,
-// used to read/write object data and reference lists,
-// as well as the metastor client, which is used to read/write the metadata of the objects.
+// used to read/write object data, as well as the metastor client,
+// which is used to read/write the metadata of the objects.
 //
 // The given data pipeline is optional and a default one will be created should it not be defined.
 func NewClient(dataCluster datastor.Cluster, metaClient metastor.Client, dataPipeline pipeline.Pipeline) (*Client, error) {
@@ -122,12 +122,12 @@ func (c *Client) Close() error {
 }
 
 // Write write the value to the the 0-stors configured by the client config
-func (c *Client) Write(key, value []byte, refList []string) (*metastor.Data, error) {
-	return c.WriteWithMeta(key, value, nil, nil, nil, refList)
+func (c *Client) Write(key, value []byte) (*metastor.Data, error) {
+	return c.WriteWithMeta(key, value, nil, nil, nil)
 }
 
-func (c *Client) WriteF(key []byte, r io.Reader, refList []string) (*metastor.Data, error) {
-	return c.writeFWithMeta(key, r, nil, nil, nil, refList)
+func (c *Client) WriteF(key []byte, r io.Reader) (*metastor.Data, error) {
+	return c.writeFWithMeta(key, r, nil, nil, nil)
 }
 
 // WriteWithMeta writes the key-value to the configured pipes.
@@ -136,17 +136,17 @@ func (c *Client) WriteF(key []byte, r io.Reader, refList []string) (*metastor.Da
 // So the client won't need to fetch it back from the metadata server.
 // prevKey still need to be set it prevMeta is set
 // initialMeta is optional metadata, if user want to set his own initial metadata for example set own epoch
-func (c *Client) WriteWithMeta(key, val []byte, prevKey []byte, prevMeta, md *metastor.Data, refList []string) (*metastor.Data, error) {
+func (c *Client) WriteWithMeta(key, val []byte, prevKey []byte, prevMeta, md *metastor.Data) (*metastor.Data, error) {
 	r := bytes.NewReader(val)
-	return c.writeFWithMeta(key, r, prevKey, prevMeta, md, refList)
+	return c.writeFWithMeta(key, r, prevKey, prevMeta, md)
 }
 
-func (c *Client) WriteFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMeta, md *metastor.Data, refList []string) (*metastor.Data, error) {
-	return c.writeFWithMeta(key, r, prevKey, prevMeta, md, refList)
+func (c *Client) WriteFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMeta, md *metastor.Data) (*metastor.Data, error) {
+	return c.writeFWithMeta(key, r, prevKey, prevMeta, md)
 }
 
-func (c *Client) writeFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMeta, md *metastor.Data, refList []string) (*metastor.Data, error) {
-	chunks, err := c.dataPipeline.Write(r, refList)
+func (c *Client) writeFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMeta, md *metastor.Data) (*metastor.Data, error) {
+	chunks, err := c.dataPipeline.Write(r)
 	if err != nil {
 		return nil, err
 	}
@@ -179,44 +179,42 @@ func (c *Client) writeFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMet
 
 // Read reads value with given key from the 0-stors configured by the client cnfig
 // it will first try to get the metadata associated with key from the Metadata servers.
-// It returns the value and it's reference list
-func (c *Client) Read(key []byte) ([]byte, []string, error) {
-	md, err := c.metastorClient.GetMetadata(key)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	w := &bytes.Buffer{}
-	refList, err := c.readFWithMeta(md, w)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return w.Bytes(), refList, nil
-}
-
-// ReadF similar as Read but write the data to w instead of returning a slice of bytes
-func (c *Client) ReadF(key []byte, w io.Writer) ([]string, error) {
+func (c *Client) Read(key []byte) ([]byte, error) {
 	md, err := c.metastorClient.GetMetadata(key)
 	if err != nil {
 		return nil, err
+	}
+
+	w := &bytes.Buffer{}
+	err = c.readFWithMeta(md, w)
+	if err != nil {
+		return nil, err
+	}
+	return w.Bytes(), nil
+}
+
+// ReadF similar as Read but write the data to w instead of returning a slice of bytes
+func (c *Client) ReadF(key []byte, w io.Writer) error {
+	md, err := c.metastorClient.GetMetadata(key)
+	if err != nil {
+		return err
 	}
 	return c.readFWithMeta(md, w)
 
 }
 
 // ReadWithMeta reads the value described by md
-func (c *Client) ReadWithMeta(md *metastor.Data) ([]byte, []string, error) {
+func (c *Client) ReadWithMeta(md *metastor.Data) ([]byte, error) {
 	w := &bytes.Buffer{}
-	refList, err := c.readFWithMeta(md, w)
+	err := c.readFWithMeta(md, w)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	return w.Bytes(), refList, nil
+	return w.Bytes(), nil
 }
 
-func (c *Client) readFWithMeta(md *metastor.Data, w io.Writer) (refList []string, err error) {
+func (c *Client) readFWithMeta(md *metastor.Data, w io.Writer) error {
 	// get chunks from metadata
 	// TODO: fix this (pointer) difference in API
 	chunks := make([]metastor.Chunk, len(md.Chunks))

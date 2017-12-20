@@ -81,7 +81,6 @@ message GetNamespaceResponse {
 service ObjectManager {
     // Set an object, either overwriting an existing key,
     // or creating a new one.
-    // If no reference list is given, no (stored) reference list is touched.
     rpc SetObject (SetObjectRequest) returns (SetObjectResponse) {}
 
     // Get an existing object, linked to a given key.
@@ -98,40 +97,11 @@ service ObjectManager {
     // ListObjectKeys lists the keys of
     // all stored objects within the namespace (identified by the given label).
     rpc ListObjectKeys (ListObjectKeysRequest) returns (stream ListObjectKeysResponse) {}
-
-    // SetReferenceList allows you to create a new reference list
-    // or overwrite an existing reference list,
-    // for a given object.
-    rpc SetReferenceList(SetReferenceListRequest) returns (SetReferenceListResponse) {}
-
-    // GetReferenceList returns an existing reference list
-    // for a given object.
-    rpc GetReferenceList(GetReferenceListRequest) returns (GetReferenceListResponse) {}
-
-     // GetReferenceCount returns the amount of references stored for the given object.
-    rpc GetReferenceCount(GetReferenceCountRequest) returns (GetReferenceCountResponse) {}
-
-    // AppendReferenceList appends the given references
-    // to the end of the reference list of the given object.
-    // If no reference list existed for this object prior to this call,
-    // this method will behave the same as SetReferenceList.
-    rpc AppendToReferenceList(AppendToReferenceListRequest) returns (AppendToReferenceListResponse) {}
-
-    // DeleteFromReferenceList deletes the references of the given list,
-    // from the references of the existing list.
-    // In case deleted succesfully, it will also return the new count of the list,
-    // as part of the response.
-    rpc DeleteFromReferenceList(DeleteFromReferenceListRequest) returns (DeleteFromReferenceListResponse) {}
-
-    // DeleteReferenceList deletes entirely stored reference list.
-    // If no reference list was stored for the object prior to this call, nothing will happen.
-    rpc DeleteReferenceList(DeleteReferenceListRequest) returns (DeleteReferenceListResponse) {}
 }
 
 message SetObjectRequest {
     bytes key = 1;
     bytes data = 2;
-    repeated string referenceList = 3;
 }
 message SetObjectResponse {}
 
@@ -140,7 +110,6 @@ message GetObjectRequest {
 }
 message GetObjectResponse {
     bytes data = 1;
-    repeated string referenceList = 2;
 }
 
 message DeleteObjectRequest {
@@ -159,45 +128,4 @@ message GetObjectStatusResponse {
 message ListObjectKeysRequest {}
 message ListObjectKeysResponse {
     bytes key = 1;
-}
-
-message SetReferenceListRequest {
-    bytes key = 1;
-    repeated string referenceList = 2;
-}
-message SetReferenceListResponse {}
-
-message GetReferenceListRequest {
-    bytes key = 1;
-}
-message GetReferenceListResponse {
-    repeated string referenceList = 1;
-}
-
-message GetReferenceCountRequest {
-    bytes key = 1;
-}
-message GetReferenceCountResponse {
-    int64 count = 1;
-}
-
-message AppendToReferenceListRequest {
-    bytes key = 1;
-    repeated string referenceList = 2;
-}
-message AppendToReferenceListResponse {
-}
-
-message DeleteFromReferenceListRequest {
-    bytes key = 1;
-    repeated string referenceList = 2;
-}
-message DeleteFromReferenceListResponse {
-    int64 count = 1;
-}
-
-message DeleteReferenceListRequest {
-    bytes key = 1;
-}
-message DeleteReferenceListResponse {
 }
