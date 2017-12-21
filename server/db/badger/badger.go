@@ -247,7 +247,11 @@ func (bdb *DB) ListItems(ctx context.Context, prefix []byte) (<-chan db.Item, er
 					case <-ctx.Done():
 						// ensure we close item, so it becomes unusable
 						err := item.Close()
-						log.Warningf("context closed before item is closed, force-closing item (err: %v)", err)
+						if err != nil && err != db.ErrClosedItem {
+							log.Warningf("context closed before item is closed, force-closing item (err: %v)", err)
+						} else {
+							log.Warning("context closed before item is closed, force-closing item")
+						}
 						return nil // return early
 					}
 				}
@@ -329,7 +333,7 @@ type Item struct {
 
 // Key implements interface Item.Key
 func (item *Item) Key() []byte {
-	if item.item == nil {
+	if item.close == nil {
 		return nil
 	}
 
@@ -338,7 +342,7 @@ func (item *Item) Key() []byte {
 
 // Value implements interface Item.Value
 func (item *Item) Value() ([]byte, error) {
-	if item.item == nil {
+	if item.close == nil {
 		return nil, db.ErrClosedItem
 	}
 	return item.item.Value()
@@ -349,7 +353,7 @@ func (item *Item) Error() error { return nil }
 
 // Close implements interface Item.Close
 func (item *Item) Close() error {
-	if item.item == nil {
+	if item.close == nil {
 		return db.ErrClosedItem
 	}
 
@@ -357,7 +361,7 @@ func (item *Item) Close() error {
 	item.close()
 
 	// make item useless
-	item.item, item.close = nil, nil
+	item.close = nil
 	return nil
 }
 

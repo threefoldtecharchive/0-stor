@@ -68,9 +68,8 @@ func testRepair(t *testing.T, config Config, repairErr error) {
 	require.NoError(t, err, "fail to read random data")
 	_, err = rand.Read(key)
 	require.NoError(t, err, "fail to read random key")
-	refList := []string{"ref-1", "ref-2"}
 
-	meta, err := c.Write(key, data, refList)
+	meta, err := c.Write(key, data)
 	require.NoError(t, err, "fail write data")
 
 	// Check status is ok after a write
@@ -98,10 +97,9 @@ func testRepair(t *testing.T, config Config, repairErr error) {
 	if repairErr == nil {
 		require.NoError(t, err)
 		// make sure we can read the data again
-		readData, readRefList, err := c.Read(meta.Key)
+		readData, err := c.Read(meta.Key)
 		require.NoError(t, err)
 		assert.Equal(t, data, readData, "restored data is not the same as initial data")
-		assert.Equal(t, refList, readRefList, "restored reference list is not the same as initial reference list")
 	}
 
 }

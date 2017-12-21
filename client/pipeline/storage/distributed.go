@@ -161,9 +161,8 @@ func (ds *DistributedObjectStorage) Write(object datastor.Object) (ObjectConfig,
 
 					// do the actual storage
 					err = shard.SetObject(datastor.Object{
-						Key:           object.Key,
-						Data:          part.Data,
-						ReferenceList: object.ReferenceList,
+						Key:  object.Key,
+						Data: part.Data,
 					})
 					if err == nil {
 						select {
@@ -264,9 +263,8 @@ func (ds *DistributedObjectStorage) Read(cfg ObjectConfig) (datastor.Object, err
 	}()
 
 	type readResult struct {
-		Index         int
-		Data          []byte
-		ReferenceList []string
+		Index int
+		Data  []byte
 	}
 
 	// read all the needed parts,
@@ -302,9 +300,8 @@ func (ds *DistributedObjectStorage) Read(cfg ObjectConfig) (datastor.Object, err
 					continue // try another shard
 				}
 				result := readResult{
-					Index:         shard.Index,
-					Data:          object.Data,
-					ReferenceList: object.ReferenceList,
+					Index: shard.Index,
+					Data:  object.Data,
 				}
 				select {
 				case resultCh <- result:
@@ -329,8 +326,7 @@ func (ds *DistributedObjectStorage) Read(cfg ObjectConfig) (datastor.Object, err
 
 	// collect all the different distributed parts
 	var (
-		referenceList []string
-		resultCount   int
+		resultCount int
 
 		parts = make([][]byte, requiredShardCount)
 	)
@@ -339,13 +335,6 @@ func (ds *DistributedObjectStorage) Read(cfg ObjectConfig) (datastor.Object, err
 		// put the part in the correct slot
 		parts[result.Index] = result.Data
 		resultCount++
-
-		// if the referenceList wasn't set yet, do so now
-		if referenceList == nil {
-			referenceList = result.ReferenceList
-			continue
-		}
-		// TODO: Validate ReferenceList somehow?! Store ReferenceList better?!
 
 		if resultCount == minimumShardCount {
 			break
@@ -368,9 +357,8 @@ func (ds *DistributedObjectStorage) Read(cfg ObjectConfig) (datastor.Object, err
 
 	// return decoded object
 	return datastor.Object{
-		Key:           cfg.Key,
-		Data:          data,
-		ReferenceList: referenceList,
+		Key:  cfg.Key,
+		Data: data,
 	}, nil
 }
 

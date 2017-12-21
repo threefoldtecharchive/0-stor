@@ -173,7 +173,11 @@ func (mdb *DB) ListItems(ctx context.Context, prefix []byte) (<-chan db.Item, er
 				case <-ctx.Done():
 					// ensure we close item, so it becomes unusable
 					err := item.Close()
-					log.Warningf("context closed before item is closed, force-closing item (err: %v)", err)
+					if err != nil && err != db.ErrClosedItem {
+						log.Warningf("context closed before item is closed, force-closing item (err: %v)", err)
+					} else {
+						log.Warning("context closed before item is closed, force-closing item")
+					}
 					return // return early
 				}
 			}
@@ -200,15 +204,17 @@ type Item struct {
 
 // Key implements interface Item.Key
 func (item *Item) Key() []byte {
+	if item.done == nil {
+		return nil
+	}
 	return item.key
 }
 
 // Value implements interface Item.Value
 func (item *Item) Value() ([]byte, error) {
-	if item.key == nil {
+	if item.done == nil {
 		return nil, db.ErrClosedItem
 	}
-
 	return item.val, nil
 }
 
@@ -217,12 +223,9 @@ func (item *Item) Error() error { return nil }
 
 // Close implements interface Item.Close
 func (item *Item) Close() error {
-	if item.key == nil {
+	if item.done == nil {
 		return db.ErrClosedItem
 	}
-
-	// make this item unusable
-	item.key, item.val = nil, nil
 
 	// notifies the DB (item owner),
 	// that the item is no longer needed by the user,

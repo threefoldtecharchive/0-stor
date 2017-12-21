@@ -29,7 +29,7 @@ func TestCheck(t *testing.T) {
 	require.NoError(t, err, "fail to read random data")
 	key := []byte("testkey")
 
-	meta, err := c.Write(key, data, []string{})
+	meta, err := c.Write(key, data)
 	require.NoError(t, err, "fail write data")
 
 	// Check status is ok after a write

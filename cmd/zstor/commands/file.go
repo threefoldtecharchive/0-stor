@@ -9,7 +9,6 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/zero-os/0-stor/cmd"
 )
 
 // fileCmd represents the namespace for all file subcommands
@@ -37,7 +36,6 @@ var fileUploadCmd = &cobra.Command{
 
 		// collect option flags
 		key := fileUploadCfg.Key
-		refList := fileUploadCfg.References.Strings()
 
 		// parse optional pos arg and create input reader
 		if len(args) == 1 {
@@ -60,7 +58,7 @@ var fileUploadCmd = &cobra.Command{
 		}
 
 		// upload the content from the input reader as the given/set key
-		_, err = cl.WriteF([]byte(key), input, refList)
+		_, err = cl.WriteF([]byte(key), input)
 		if err != nil {
 			return fmt.Errorf("uploading data from %q as %q failed: %v", inputName, key, err)
 		}
@@ -70,8 +68,7 @@ var fileUploadCmd = &cobra.Command{
 }
 
 var fileUploadCfg struct {
-	Key        string
-	References cmd.Strings
+	Key string
 }
 
 // fileDownloadCmd represents the file-download command
@@ -99,12 +96,12 @@ var fileDownloadCmd = &cobra.Command{
 			output = os.Stdout
 		}
 
-		refList, err := cl.ReadF([]byte(key), output)
+		err = cl.ReadF([]byte(key), output)
 		if err != nil {
 			return fmt.Errorf("downloading file (key: %s) failed: %v", key, err)
 		}
 
-		log.Infof("file (key: %s) downloaded, referenceList=%v\n", key, refList)
+		log.Infof("file (key: %s) downloaded", key)
 		return nil
 	},
 }
@@ -214,9 +211,6 @@ func init() {
 	fileUploadCmd.Flags().StringVarP(
 		&fileUploadCfg.Key, "key", "k", "",
 		"Key to use to store the file, required when uploading from STDIN, if empty use the name of the file as the key")
-	fileUploadCmd.Flags().VarP(
-		&fileUploadCfg.References, "ref", "r",
-		"references for this file, split by comma for multiple values")
 
 	fileDownloadCmd.Flags().StringVarP(
 		&fileDownloadCfg.Output, "output", "o", "",

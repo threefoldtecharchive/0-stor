@@ -20,18 +20,6 @@
 		GetObjectStatusResponse
 		ListObjectKeysRequest
 		ListObjectKeysResponse
-		SetReferenceListRequest
-		SetReferenceListResponse
-		GetReferenceListRequest
-		GetReferenceListResponse
-		GetReferenceCountRequest
-		GetReferenceCountResponse
-		AppendToReferenceListRequest
-		AppendToReferenceListResponse
-		DeleteFromReferenceListRequest
-		DeleteFromReferenceListResponse
-		DeleteReferenceListRequest
-		DeleteReferenceListResponse
 */
 package zstor
 
@@ -131,9 +119,8 @@ func (m *GetNamespaceResponse) GetNrObjects() int64 {
 }
 
 type SetObjectRequest struct {
-	Key           []byte   `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	Data          []byte   `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
-	ReferenceList []string `protobuf:"bytes,3,rep,name=referenceList" json:"referenceList,omitempty"`
+	Key  []byte `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Data []byte `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
 }
 
 func (m *SetObjectRequest) Reset()                    { *m = SetObjectRequest{} }
@@ -150,13 +137,6 @@ func (m *SetObjectRequest) GetKey() []byte {
 func (m *SetObjectRequest) GetData() []byte {
 	if m != nil {
 		return m.Data
-	}
-	return nil
-}
-
-func (m *SetObjectRequest) GetReferenceList() []string {
-	if m != nil {
-		return m.ReferenceList
 	}
 	return nil
 }
@@ -184,8 +164,7 @@ func (m *GetObjectRequest) GetKey() []byte {
 }
 
 type GetObjectResponse struct {
-	Data          []byte   `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
-	ReferenceList []string `protobuf:"bytes,2,rep,name=referenceList" json:"referenceList,omitempty"`
+	Data []byte `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
 }
 
 func (m *GetObjectResponse) Reset()                    { *m = GetObjectResponse{} }
@@ -195,13 +174,6 @@ func (*GetObjectResponse) Descriptor() ([]byte, []int) { return fileDescriptorZs
 func (m *GetObjectResponse) GetData() []byte {
 	if m != nil {
 		return m.Data
-	}
-	return nil
-}
-
-func (m *GetObjectResponse) GetReferenceList() []string {
-	if m != nil {
-		return m.ReferenceList
 	}
 	return nil
 }
@@ -280,196 +252,6 @@ func (m *ListObjectKeysResponse) GetKey() []byte {
 	return nil
 }
 
-type SetReferenceListRequest struct {
-	Key           []byte   `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	ReferenceList []string `protobuf:"bytes,2,rep,name=referenceList" json:"referenceList,omitempty"`
-}
-
-func (m *SetReferenceListRequest) Reset()                    { *m = SetReferenceListRequest{} }
-func (*SetReferenceListRequest) ProtoMessage()               {}
-func (*SetReferenceListRequest) Descriptor() ([]byte, []int) { return fileDescriptorZstor, []int{12} }
-
-func (m *SetReferenceListRequest) GetKey() []byte {
-	if m != nil {
-		return m.Key
-	}
-	return nil
-}
-
-func (m *SetReferenceListRequest) GetReferenceList() []string {
-	if m != nil {
-		return m.ReferenceList
-	}
-	return nil
-}
-
-type SetReferenceListResponse struct {
-}
-
-func (m *SetReferenceListResponse) Reset()                    { *m = SetReferenceListResponse{} }
-func (*SetReferenceListResponse) ProtoMessage()               {}
-func (*SetReferenceListResponse) Descriptor() ([]byte, []int) { return fileDescriptorZstor, []int{13} }
-
-type GetReferenceListRequest struct {
-	Key []byte `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-}
-
-func (m *GetReferenceListRequest) Reset()                    { *m = GetReferenceListRequest{} }
-func (*GetReferenceListRequest) ProtoMessage()               {}
-func (*GetReferenceListRequest) Descriptor() ([]byte, []int) { return fileDescriptorZstor, []int{14} }
-
-func (m *GetReferenceListRequest) GetKey() []byte {
-	if m != nil {
-		return m.Key
-	}
-	return nil
-}
-
-type GetReferenceListResponse struct {
-	ReferenceList []string `protobuf:"bytes,1,rep,name=referenceList" json:"referenceList,omitempty"`
-}
-
-func (m *GetReferenceListResponse) Reset()                    { *m = GetReferenceListResponse{} }
-func (*GetReferenceListResponse) ProtoMessage()               {}
-func (*GetReferenceListResponse) Descriptor() ([]byte, []int) { return fileDescriptorZstor, []int{15} }
-
-func (m *GetReferenceListResponse) GetReferenceList() []string {
-	if m != nil {
-		return m.ReferenceList
-	}
-	return nil
-}
-
-type GetReferenceCountRequest struct {
-	Key []byte `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-}
-
-func (m *GetReferenceCountRequest) Reset()                    { *m = GetReferenceCountRequest{} }
-func (*GetReferenceCountRequest) ProtoMessage()               {}
-func (*GetReferenceCountRequest) Descriptor() ([]byte, []int) { return fileDescriptorZstor, []int{16} }
-
-func (m *GetReferenceCountRequest) GetKey() []byte {
-	if m != nil {
-		return m.Key
-	}
-	return nil
-}
-
-type GetReferenceCountResponse struct {
-	Count int64 `protobuf:"varint,1,opt,name=count,proto3" json:"count,omitempty"`
-}
-
-func (m *GetReferenceCountResponse) Reset()                    { *m = GetReferenceCountResponse{} }
-func (*GetReferenceCountResponse) ProtoMessage()               {}
-func (*GetReferenceCountResponse) Descriptor() ([]byte, []int) { return fileDescriptorZstor, []int{17} }
-
-func (m *GetReferenceCountResponse) GetCount() int64 {
-	if m != nil {
-		return m.Count
-	}
-	return 0
-}
-
-type AppendToReferenceListRequest struct {
-	Key           []byte   `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	ReferenceList []string `protobuf:"bytes,2,rep,name=referenceList" json:"referenceList,omitempty"`
-}
-
-func (m *AppendToReferenceListRequest) Reset()      { *m = AppendToReferenceListRequest{} }
-func (*AppendToReferenceListRequest) ProtoMessage() {}
-func (*AppendToReferenceListRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptorZstor, []int{18}
-}
-
-func (m *AppendToReferenceListRequest) GetKey() []byte {
-	if m != nil {
-		return m.Key
-	}
-	return nil
-}
-
-func (m *AppendToReferenceListRequest) GetReferenceList() []string {
-	if m != nil {
-		return m.ReferenceList
-	}
-	return nil
-}
-
-type AppendToReferenceListResponse struct {
-}
-
-func (m *AppendToReferenceListResponse) Reset()      { *m = AppendToReferenceListResponse{} }
-func (*AppendToReferenceListResponse) ProtoMessage() {}
-func (*AppendToReferenceListResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptorZstor, []int{19}
-}
-
-type DeleteFromReferenceListRequest struct {
-	Key           []byte   `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	ReferenceList []string `protobuf:"bytes,2,rep,name=referenceList" json:"referenceList,omitempty"`
-}
-
-func (m *DeleteFromReferenceListRequest) Reset()      { *m = DeleteFromReferenceListRequest{} }
-func (*DeleteFromReferenceListRequest) ProtoMessage() {}
-func (*DeleteFromReferenceListRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptorZstor, []int{20}
-}
-
-func (m *DeleteFromReferenceListRequest) GetKey() []byte {
-	if m != nil {
-		return m.Key
-	}
-	return nil
-}
-
-func (m *DeleteFromReferenceListRequest) GetReferenceList() []string {
-	if m != nil {
-		return m.ReferenceList
-	}
-	return nil
-}
-
-type DeleteFromReferenceListResponse struct {
-	Count int64 `protobuf:"varint,1,opt,name=count,proto3" json:"count,omitempty"`
-}
-
-func (m *DeleteFromReferenceListResponse) Reset()      { *m = DeleteFromReferenceListResponse{} }
-func (*DeleteFromReferenceListResponse) ProtoMessage() {}
-func (*DeleteFromReferenceListResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptorZstor, []int{21}
-}
-
-func (m *DeleteFromReferenceListResponse) GetCount() int64 {
-	if m != nil {
-		return m.Count
-	}
-	return 0
-}
-
-type DeleteReferenceListRequest struct {
-	Key []byte `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-}
-
-func (m *DeleteReferenceListRequest) Reset()                    { *m = DeleteReferenceListRequest{} }
-func (*DeleteReferenceListRequest) ProtoMessage()               {}
-func (*DeleteReferenceListRequest) Descriptor() ([]byte, []int) { return fileDescriptorZstor, []int{22} }
-
-func (m *DeleteReferenceListRequest) GetKey() []byte {
-	if m != nil {
-		return m.Key
-	}
-	return nil
-}
-
-type DeleteReferenceListResponse struct {
-}
-
-func (m *DeleteReferenceListResponse) Reset()      { *m = DeleteReferenceListResponse{} }
-func (*DeleteReferenceListResponse) ProtoMessage() {}
-func (*DeleteReferenceListResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptorZstor, []int{23}
-}
-
 func init() {
 	proto.RegisterType((*GetNamespaceRequest)(nil), "GetNamespaceRequest")
 	proto.RegisterType((*GetNamespaceResponse)(nil), "GetNamespaceResponse")
@@ -483,18 +265,6 @@ func init() {
 	proto.RegisterType((*GetObjectStatusResponse)(nil), "GetObjectStatusResponse")
 	proto.RegisterType((*ListObjectKeysRequest)(nil), "ListObjectKeysRequest")
 	proto.RegisterType((*ListObjectKeysResponse)(nil), "ListObjectKeysResponse")
-	proto.RegisterType((*SetReferenceListRequest)(nil), "SetReferenceListRequest")
-	proto.RegisterType((*SetReferenceListResponse)(nil), "SetReferenceListResponse")
-	proto.RegisterType((*GetReferenceListRequest)(nil), "GetReferenceListRequest")
-	proto.RegisterType((*GetReferenceListResponse)(nil), "GetReferenceListResponse")
-	proto.RegisterType((*GetReferenceCountRequest)(nil), "GetReferenceCountRequest")
-	proto.RegisterType((*GetReferenceCountResponse)(nil), "GetReferenceCountResponse")
-	proto.RegisterType((*AppendToReferenceListRequest)(nil), "AppendToReferenceListRequest")
-	proto.RegisterType((*AppendToReferenceListResponse)(nil), "AppendToReferenceListResponse")
-	proto.RegisterType((*DeleteFromReferenceListRequest)(nil), "DeleteFromReferenceListRequest")
-	proto.RegisterType((*DeleteFromReferenceListResponse)(nil), "DeleteFromReferenceListResponse")
-	proto.RegisterType((*DeleteReferenceListRequest)(nil), "DeleteReferenceListRequest")
-	proto.RegisterType((*DeleteReferenceListResponse)(nil), "DeleteReferenceListResponse")
 	proto.RegisterEnum("ObjectStatus", ObjectStatus_name, ObjectStatus_value)
 }
 func (this *GetNamespaceRequest) Compare(that interface{}) int {
@@ -606,20 +376,6 @@ func (this *SetObjectRequest) Compare(that interface{}) int {
 	if c := bytes.Compare(this.Data, that1.Data); c != 0 {
 		return c
 	}
-	if len(this.ReferenceList) != len(that1.ReferenceList) {
-		if len(this.ReferenceList) < len(that1.ReferenceList) {
-			return -1
-		}
-		return 1
-	}
-	for i := range this.ReferenceList {
-		if this.ReferenceList[i] != that1.ReferenceList[i] {
-			if this.ReferenceList[i] < that1.ReferenceList[i] {
-				return -1
-			}
-			return 1
-		}
-	}
 	return 0
 }
 func (this *SetObjectResponse) Compare(that interface{}) int {
@@ -706,20 +462,6 @@ func (this *GetObjectResponse) Compare(that interface{}) int {
 	}
 	if c := bytes.Compare(this.Data, that1.Data); c != 0 {
 		return c
-	}
-	if len(this.ReferenceList) != len(that1.ReferenceList) {
-		if len(this.ReferenceList) < len(that1.ReferenceList) {
-			return -1
-		}
-		return 1
-	}
-	for i := range this.ReferenceList {
-		if this.ReferenceList[i] != that1.ReferenceList[i] {
-			if this.ReferenceList[i] < that1.ReferenceList[i] {
-				return -1
-			}
-			return 1
-		}
 	}
 	return 0
 }
@@ -900,416 +642,6 @@ func (this *ListObjectKeysResponse) Compare(that interface{}) int {
 	}
 	return 0
 }
-func (this *SetReferenceListRequest) Compare(that interface{}) int {
-	if that == nil {
-		if this == nil {
-			return 0
-		}
-		return 1
-	}
-
-	that1, ok := that.(*SetReferenceListRequest)
-	if !ok {
-		that2, ok := that.(SetReferenceListRequest)
-		if ok {
-			that1 = &that2
-		} else {
-			return 1
-		}
-	}
-	if that1 == nil {
-		if this == nil {
-			return 0
-		}
-		return 1
-	} else if this == nil {
-		return -1
-	}
-	if c := bytes.Compare(this.Key, that1.Key); c != 0 {
-		return c
-	}
-	if len(this.ReferenceList) != len(that1.ReferenceList) {
-		if len(this.ReferenceList) < len(that1.ReferenceList) {
-			return -1
-		}
-		return 1
-	}
-	for i := range this.ReferenceList {
-		if this.ReferenceList[i] != that1.ReferenceList[i] {
-			if this.ReferenceList[i] < that1.ReferenceList[i] {
-				return -1
-			}
-			return 1
-		}
-	}
-	return 0
-}
-func (this *SetReferenceListResponse) Compare(that interface{}) int {
-	if that == nil {
-		if this == nil {
-			return 0
-		}
-		return 1
-	}
-
-	that1, ok := that.(*SetReferenceListResponse)
-	if !ok {
-		that2, ok := that.(SetReferenceListResponse)
-		if ok {
-			that1 = &that2
-		} else {
-			return 1
-		}
-	}
-	if that1 == nil {
-		if this == nil {
-			return 0
-		}
-		return 1
-	} else if this == nil {
-		return -1
-	}
-	return 0
-}
-func (this *GetReferenceListRequest) Compare(that interface{}) int {
-	if that == nil {
-		if this == nil {
-			return 0
-		}
-		return 1
-	}
-
-	that1, ok := that.(*GetReferenceListRequest)
-	if !ok {
-		that2, ok := that.(GetReferenceListRequest)
-		if ok {
-			that1 = &that2
-		} else {
-			return 1
-		}
-	}
-	if that1 == nil {
-		if this == nil {
-			return 0
-		}
-		return 1
-	} else if this == nil {
-		return -1
-	}
-	if c := bytes.Compare(this.Key, that1.Key); c != 0 {
-		return c
-	}
-	return 0
-}
-func (this *GetReferenceListResponse) Compare(that interface{}) int {
-	if that == nil {
-		if this == nil {
-			return 0
-		}
-		return 1
-	}
-
-	that1, ok := that.(*GetReferenceListResponse)
-	if !ok {
-		that2, ok := that.(GetReferenceListResponse)
-		if ok {
-			that1 = &that2
-		} else {
-			return 1
-		}
-	}
-	if that1 == nil {
-		if this == nil {
-			return 0
-		}
-		return 1
-	} else if this == nil {
-		return -1
-	}
-	if len(this.ReferenceList) != len(that1.ReferenceList) {
-		if len(this.ReferenceList) < len(that1.ReferenceList) {
-			return -1
-		}
-		return 1
-	}
-	for i := range this.ReferenceList {
-		if this.ReferenceList[i] != that1.ReferenceList[i] {
-			if this.ReferenceList[i] < that1.ReferenceList[i] {
-				return -1
-			}
-			return 1
-		}
-	}
-	return 0
-}
-func (this *GetReferenceCountRequest) Compare(that interface{}) int {
-	if that == nil {
-		if this == nil {
-			return 0
-		}
-		return 1
-	}
-
-	that1, ok := that.(*GetReferenceCountRequest)
-	if !ok {
-		that2, ok := that.(GetReferenceCountRequest)
-		if ok {
-			that1 = &that2
-		} else {
-			return 1
-		}
-	}
-	if that1 == nil {
-		if this == nil {
-			return 0
-		}
-		return 1
-	} else if this == nil {
-		return -1
-	}
-	if c := bytes.Compare(this.Key, that1.Key); c != 0 {
-		return c
-	}
-	return 0
-}
-func (this *GetReferenceCountResponse) Compare(that interface{}) int {
-	if that == nil {
-		if this == nil {
-			return 0
-		}
-		return 1
-	}
-
-	that1, ok := that.(*GetReferenceCountResponse)
-	if !ok {
-		that2, ok := that.(GetReferenceCountResponse)
-		if ok {
-			that1 = &that2
-		} else {
-			return 1
-		}
-	}
-	if that1 == nil {
-		if this == nil {
-			return 0
-		}
-		return 1
-	} else if this == nil {
-		return -1
-	}
-	if this.Count != that1.Count {
-		if this.Count < that1.Count {
-			return -1
-		}
-		return 1
-	}
-	return 0
-}
-func (this *AppendToReferenceListRequest) Compare(that interface{}) int {
-	if that == nil {
-		if this == nil {
-			return 0
-		}
-		return 1
-	}
-
-	that1, ok := that.(*AppendToReferenceListRequest)
-	if !ok {
-		that2, ok := that.(AppendToReferenceListRequest)
-		if ok {
-			that1 = &that2
-		} else {
-			return 1
-		}
-	}
-	if that1 == nil {
-		if this == nil {
-			return 0
-		}
-		return 1
-	} else if this == nil {
-		return -1
-	}
-	if c := bytes.Compare(this.Key, that1.Key); c != 0 {
-		return c
-	}
-	if len(this.ReferenceList) != len(that1.ReferenceList) {
-		if len(this.ReferenceList) < len(that1.ReferenceList) {
-			return -1
-		}
-		return 1
-	}
-	for i := range this.ReferenceList {
-		if this.ReferenceList[i] != that1.ReferenceList[i] {
-			if this.ReferenceList[i] < that1.ReferenceList[i] {
-				return -1
-			}
-			return 1
-		}
-	}
-	return 0
-}
-func (this *AppendToReferenceListResponse) Compare(that interface{}) int {
-	if that == nil {
-		if this == nil {
-			return 0
-		}
-		return 1
-	}
-
-	that1, ok := that.(*AppendToReferenceListResponse)
-	if !ok {
-		that2, ok := that.(AppendToReferenceListResponse)
-		if ok {
-			that1 = &that2
-		} else {
-			return 1
-		}
-	}
-	if that1 == nil {
-		if this == nil {
-			return 0
-		}
-		return 1
-	} else if this == nil {
-		return -1
-	}
-	return 0
-}
-func (this *DeleteFromReferenceListRequest) Compare(that interface{}) int {
-	if that == nil {
-		if this == nil {
-			return 0
-		}
-		return 1
-	}
-
-	that1, ok := that.(*DeleteFromReferenceListRequest)
-	if !ok {
-		that2, ok := that.(DeleteFromReferenceListRequest)
-		if ok {
-			that1 = &that2
-		} else {
-			return 1
-		}
-	}
-	if that1 == nil {
-		if this == nil {
-			return 0
-		}
-		return 1
-	} else if this == nil {
-		return -1
-	}
-	if c := bytes.Compare(this.Key, that1.Key); c != 0 {
-		return c
-	}
-	if len(this.ReferenceList) != len(that1.ReferenceList) {
-		if len(this.ReferenceList) < len(that1.ReferenceList) {
-			return -1
-		}
-		return 1
-	}
-	for i := range this.ReferenceList {
-		if this.ReferenceList[i] != that1.ReferenceList[i] {
-			if this.ReferenceList[i] < that1.ReferenceList[i] {
-				return -1
-			}
-			return 1
-		}
-	}
-	return 0
-}
-func (this *DeleteFromReferenceListResponse) Compare(that interface{}) int {
-	if that == nil {
-		if this == nil {
-			return 0
-		}
-		return 1
-	}
-
-	that1, ok := that.(*DeleteFromReferenceListResponse)
-	if !ok {
-		that2, ok := that.(DeleteFromReferenceListResponse)
-		if ok {
-			that1 = &that2
-		} else {
-			return 1
-		}
-	}
-	if that1 == nil {
-		if this == nil {
-			return 0
-		}
-		return 1
-	} else if this == nil {
-		return -1
-	}
-	if this.Count != that1.Count {
-		if this.Count < that1.Count {
-			return -1
-		}
-		return 1
-	}
-	return 0
-}
-func (this *DeleteReferenceListRequest) Compare(that interface{}) int {
-	if that == nil {
-		if this == nil {
-			return 0
-		}
-		return 1
-	}
-
-	that1, ok := that.(*DeleteReferenceListRequest)
-	if !ok {
-		that2, ok := that.(DeleteReferenceListRequest)
-		if ok {
-			that1 = &that2
-		} else {
-			return 1
-		}
-	}
-	if that1 == nil {
-		if this == nil {
-			return 0
-		}
-		return 1
-	} else if this == nil {
-		return -1
-	}
-	if c := bytes.Compare(this.Key, that1.Key); c != 0 {
-		return c
-	}
-	return 0
-}
-func (this *DeleteReferenceListResponse) Compare(that interface{}) int {
-	if that == nil {
-		if this == nil {
-			return 0
-		}
-		return 1
-	}
-
-	that1, ok := that.(*DeleteReferenceListResponse)
-	if !ok {
-		that2, ok := that.(DeleteReferenceListResponse)
-		if ok {
-			that1 = &that2
-		} else {
-			return 1
-		}
-	}
-	if that1 == nil {
-		if this == nil {
-			return 0
-		}
-		return 1
-	} else if this == nil {
-		return -1
-	}
-	return 0
-}
 func (x ObjectStatus) String() string {
 	s, ok := ObjectStatus_name[int32(x)]
 	if ok {
@@ -1396,14 +728,6 @@ func (this *SetObjectRequest) Equal(that interface{}) bool {
 	if !bytes.Equal(this.Data, that1.Data) {
 		return false
 	}
-	if len(this.ReferenceList) != len(that1.ReferenceList) {
-		return false
-	}
-	for i := range this.ReferenceList {
-		if this.ReferenceList[i] != that1.ReferenceList[i] {
-			return false
-		}
-	}
 	return true
 }
 func (this *SetObjectResponse) Equal(that interface{}) bool {
@@ -1472,14 +796,6 @@ func (this *GetObjectResponse) Equal(that interface{}) bool {
 	}
 	if !bytes.Equal(this.Data, that1.Data) {
 		return false
-	}
-	if len(this.ReferenceList) != len(that1.ReferenceList) {
-		return false
-	}
-	for i := range this.ReferenceList {
-		if this.ReferenceList[i] != that1.ReferenceList[i] {
-			return false
-		}
 	}
 	return true
 }
@@ -1621,314 +937,6 @@ func (this *ListObjectKeysResponse) Equal(that interface{}) bool {
 	}
 	return true
 }
-func (this *SetReferenceListRequest) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
-
-	that1, ok := that.(*SetReferenceListRequest)
-	if !ok {
-		that2, ok := that.(SetReferenceListRequest)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
-		return false
-	}
-	if !bytes.Equal(this.Key, that1.Key) {
-		return false
-	}
-	if len(this.ReferenceList) != len(that1.ReferenceList) {
-		return false
-	}
-	for i := range this.ReferenceList {
-		if this.ReferenceList[i] != that1.ReferenceList[i] {
-			return false
-		}
-	}
-	return true
-}
-func (this *SetReferenceListResponse) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
-
-	that1, ok := that.(*SetReferenceListResponse)
-	if !ok {
-		that2, ok := that.(SetReferenceListResponse)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
-		return false
-	}
-	return true
-}
-func (this *GetReferenceListRequest) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
-
-	that1, ok := that.(*GetReferenceListRequest)
-	if !ok {
-		that2, ok := that.(GetReferenceListRequest)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
-		return false
-	}
-	if !bytes.Equal(this.Key, that1.Key) {
-		return false
-	}
-	return true
-}
-func (this *GetReferenceListResponse) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
-
-	that1, ok := that.(*GetReferenceListResponse)
-	if !ok {
-		that2, ok := that.(GetReferenceListResponse)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
-		return false
-	}
-	if len(this.ReferenceList) != len(that1.ReferenceList) {
-		return false
-	}
-	for i := range this.ReferenceList {
-		if this.ReferenceList[i] != that1.ReferenceList[i] {
-			return false
-		}
-	}
-	return true
-}
-func (this *GetReferenceCountRequest) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
-
-	that1, ok := that.(*GetReferenceCountRequest)
-	if !ok {
-		that2, ok := that.(GetReferenceCountRequest)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
-		return false
-	}
-	if !bytes.Equal(this.Key, that1.Key) {
-		return false
-	}
-	return true
-}
-func (this *GetReferenceCountResponse) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
-
-	that1, ok := that.(*GetReferenceCountResponse)
-	if !ok {
-		that2, ok := that.(GetReferenceCountResponse)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
-		return false
-	}
-	if this.Count != that1.Count {
-		return false
-	}
-	return true
-}
-func (this *AppendToReferenceListRequest) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
-
-	that1, ok := that.(*AppendToReferenceListRequest)
-	if !ok {
-		that2, ok := that.(AppendToReferenceListRequest)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
-		return false
-	}
-	if !bytes.Equal(this.Key, that1.Key) {
-		return false
-	}
-	if len(this.ReferenceList) != len(that1.ReferenceList) {
-		return false
-	}
-	for i := range this.ReferenceList {
-		if this.ReferenceList[i] != that1.ReferenceList[i] {
-			return false
-		}
-	}
-	return true
-}
-func (this *AppendToReferenceListResponse) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
-
-	that1, ok := that.(*AppendToReferenceListResponse)
-	if !ok {
-		that2, ok := that.(AppendToReferenceListResponse)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
-		return false
-	}
-	return true
-}
-func (this *DeleteFromReferenceListRequest) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
-
-	that1, ok := that.(*DeleteFromReferenceListRequest)
-	if !ok {
-		that2, ok := that.(DeleteFromReferenceListRequest)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
-		return false
-	}
-	if !bytes.Equal(this.Key, that1.Key) {
-		return false
-	}
-	if len(this.ReferenceList) != len(that1.ReferenceList) {
-		return false
-	}
-	for i := range this.ReferenceList {
-		if this.ReferenceList[i] != that1.ReferenceList[i] {
-			return false
-		}
-	}
-	return true
-}
-func (this *DeleteFromReferenceListResponse) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
-
-	that1, ok := that.(*DeleteFromReferenceListResponse)
-	if !ok {
-		that2, ok := that.(DeleteFromReferenceListResponse)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
-		return false
-	}
-	if this.Count != that1.Count {
-		return false
-	}
-	return true
-}
-func (this *DeleteReferenceListRequest) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
-
-	that1, ok := that.(*DeleteReferenceListRequest)
-	if !ok {
-		that2, ok := that.(DeleteReferenceListRequest)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
-		return false
-	}
-	if !bytes.Equal(this.Key, that1.Key) {
-		return false
-	}
-	return true
-}
-func (this *DeleteReferenceListResponse) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
-
-	that1, ok := that.(*DeleteReferenceListResponse)
-	if !ok {
-		that2, ok := that.(DeleteReferenceListResponse)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
-		return false
-	}
-	return true
-}
 func (this *GetNamespaceRequest) GoString() string {
 	if this == nil {
 		return "nil"
@@ -1955,11 +963,10 @@ func (this *SetObjectRequest) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 7)
+	s := make([]string, 0, 6)
 	s = append(s, "&zstor.SetObjectRequest{")
 	s = append(s, "Key: "+fmt.Sprintf("%#v", this.Key)+",\n")
 	s = append(s, "Data: "+fmt.Sprintf("%#v", this.Data)+",\n")
-	s = append(s, "ReferenceList: "+fmt.Sprintf("%#v", this.ReferenceList)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -1986,10 +993,9 @@ func (this *GetObjectResponse) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 6)
+	s := make([]string, 0, 5)
 	s = append(s, "&zstor.GetObjectResponse{")
 	s = append(s, "Data: "+fmt.Sprintf("%#v", this.Data)+",\n")
-	s = append(s, "ReferenceList: "+fmt.Sprintf("%#v", this.ReferenceList)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -2048,126 +1054,6 @@ func (this *ListObjectKeysResponse) GoString() string {
 	s := make([]string, 0, 5)
 	s = append(s, "&zstor.ListObjectKeysResponse{")
 	s = append(s, "Key: "+fmt.Sprintf("%#v", this.Key)+",\n")
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
-func (this *SetReferenceListRequest) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 6)
-	s = append(s, "&zstor.SetReferenceListRequest{")
-	s = append(s, "Key: "+fmt.Sprintf("%#v", this.Key)+",\n")
-	s = append(s, "ReferenceList: "+fmt.Sprintf("%#v", this.ReferenceList)+",\n")
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
-func (this *SetReferenceListResponse) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 4)
-	s = append(s, "&zstor.SetReferenceListResponse{")
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
-func (this *GetReferenceListRequest) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 5)
-	s = append(s, "&zstor.GetReferenceListRequest{")
-	s = append(s, "Key: "+fmt.Sprintf("%#v", this.Key)+",\n")
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
-func (this *GetReferenceListResponse) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 5)
-	s = append(s, "&zstor.GetReferenceListResponse{")
-	s = append(s, "ReferenceList: "+fmt.Sprintf("%#v", this.ReferenceList)+",\n")
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
-func (this *GetReferenceCountRequest) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 5)
-	s = append(s, "&zstor.GetReferenceCountRequest{")
-	s = append(s, "Key: "+fmt.Sprintf("%#v", this.Key)+",\n")
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
-func (this *GetReferenceCountResponse) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 5)
-	s = append(s, "&zstor.GetReferenceCountResponse{")
-	s = append(s, "Count: "+fmt.Sprintf("%#v", this.Count)+",\n")
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
-func (this *AppendToReferenceListRequest) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 6)
-	s = append(s, "&zstor.AppendToReferenceListRequest{")
-	s = append(s, "Key: "+fmt.Sprintf("%#v", this.Key)+",\n")
-	s = append(s, "ReferenceList: "+fmt.Sprintf("%#v", this.ReferenceList)+",\n")
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
-func (this *AppendToReferenceListResponse) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 4)
-	s = append(s, "&zstor.AppendToReferenceListResponse{")
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
-func (this *DeleteFromReferenceListRequest) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 6)
-	s = append(s, "&zstor.DeleteFromReferenceListRequest{")
-	s = append(s, "Key: "+fmt.Sprintf("%#v", this.Key)+",\n")
-	s = append(s, "ReferenceList: "+fmt.Sprintf("%#v", this.ReferenceList)+",\n")
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
-func (this *DeleteFromReferenceListResponse) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 5)
-	s = append(s, "&zstor.DeleteFromReferenceListResponse{")
-	s = append(s, "Count: "+fmt.Sprintf("%#v", this.Count)+",\n")
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
-func (this *DeleteReferenceListRequest) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 5)
-	s = append(s, "&zstor.DeleteReferenceListRequest{")
-	s = append(s, "Key: "+fmt.Sprintf("%#v", this.Key)+",\n")
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
-func (this *DeleteReferenceListResponse) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 4)
-	s = append(s, "&zstor.DeleteReferenceListResponse{")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -2267,7 +1153,6 @@ var _NamespaceManager_serviceDesc = grpc.ServiceDesc{
 type ObjectManagerClient interface {
 	// Set an object, either overwriting an existing key,
 	// or creating a new one.
-	// If no reference list is given, no (stored) reference list is touched.
 	SetObject(ctx context.Context, in *SetObjectRequest, opts ...grpc.CallOption) (*SetObjectResponse, error)
 	// Get an existing object, linked to a given key.
 	GetObject(ctx context.Context, in *GetObjectRequest, opts ...grpc.CallOption) (*GetObjectResponse, error)
@@ -2280,28 +1165,6 @@ type ObjectManagerClient interface {
 	// ListObjectKeys lists the keys of
 	// all stored objects within the namespace (identified by the given label).
 	ListObjectKeys(ctx context.Context, in *ListObjectKeysRequest, opts ...grpc.CallOption) (ObjectManager_ListObjectKeysClient, error)
-	// SetReferenceList allows you to create a new reference list
-	// or overwrite an existing reference list,
-	// for a given object.
-	SetReferenceList(ctx context.Context, in *SetReferenceListRequest, opts ...grpc.CallOption) (*SetReferenceListResponse, error)
-	// GetReferenceList returns an existing reference list
-	// for a given object.
-	GetReferenceList(ctx context.Context, in *GetReferenceListRequest, opts ...grpc.CallOption) (*GetReferenceListResponse, error)
-	// GetReferenceCount returns the amount of references stored for the given object.
-	GetReferenceCount(ctx context.Context, in *GetReferenceCountRequest, opts ...grpc.CallOption) (*GetReferenceCountResponse, error)
-	// AppendReferenceList appends the given references
-	// to the end of the reference list of the given object.
-	// If no reference list existed for this object prior to this call,
-	// this method will behave the same as SetReferenceList.
-	AppendToReferenceList(ctx context.Context, in *AppendToReferenceListRequest, opts ...grpc.CallOption) (*AppendToReferenceListResponse, error)
-	// DeleteFromReferenceList deletes the references of the given list,
-	// from the references of the existing list.
-	// In case deleted succesfully, it will also return the new count of the list,
-	// as part of the response.
-	DeleteFromReferenceList(ctx context.Context, in *DeleteFromReferenceListRequest, opts ...grpc.CallOption) (*DeleteFromReferenceListResponse, error)
-	// DeleteReferenceList deletes entirely stored reference list.
-	// If no reference list was stored for the object prior to this call, nothing will happen.
-	DeleteReferenceList(ctx context.Context, in *DeleteReferenceListRequest, opts ...grpc.CallOption) (*DeleteReferenceListResponse, error)
 }
 
 type objectManagerClient struct {
@@ -2380,66 +1243,11 @@ func (x *objectManagerListObjectKeysClient) Recv() (*ListObjectKeysResponse, err
 	return m, nil
 }
 
-func (c *objectManagerClient) SetReferenceList(ctx context.Context, in *SetReferenceListRequest, opts ...grpc.CallOption) (*SetReferenceListResponse, error) {
-	out := new(SetReferenceListResponse)
-	err := grpc.Invoke(ctx, "/ObjectManager/SetReferenceList", in, out, c.cc, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *objectManagerClient) GetReferenceList(ctx context.Context, in *GetReferenceListRequest, opts ...grpc.CallOption) (*GetReferenceListResponse, error) {
-	out := new(GetReferenceListResponse)
-	err := grpc.Invoke(ctx, "/ObjectManager/GetReferenceList", in, out, c.cc, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *objectManagerClient) GetReferenceCount(ctx context.Context, in *GetReferenceCountRequest, opts ...grpc.CallOption) (*GetReferenceCountResponse, error) {
-	out := new(GetReferenceCountResponse)
-	err := grpc.Invoke(ctx, "/ObjectManager/GetReferenceCount", in, out, c.cc, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *objectManagerClient) AppendToReferenceList(ctx context.Context, in *AppendToReferenceListRequest, opts ...grpc.CallOption) (*AppendToReferenceListResponse, error) {
-	out := new(AppendToReferenceListResponse)
-	err := grpc.Invoke(ctx, "/ObjectManager/AppendToReferenceList", in, out, c.cc, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *objectManagerClient) DeleteFromReferenceList(ctx context.Context, in *DeleteFromReferenceListRequest, opts ...grpc.CallOption) (*DeleteFromReferenceListResponse, error) {
-	out := new(DeleteFromReferenceListResponse)
-	err := grpc.Invoke(ctx, "/ObjectManager/DeleteFromReferenceList", in, out, c.cc, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *objectManagerClient) DeleteReferenceList(ctx context.Context, in *DeleteReferenceListRequest, opts ...grpc.CallOption) (*DeleteReferenceListResponse, error) {
-	out := new(DeleteReferenceListResponse)
-	err := grpc.Invoke(ctx, "/ObjectManager/DeleteReferenceList", in, out, c.cc, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // Server API for ObjectManager service
 
 type ObjectManagerServer interface {
 	// Set an object, either overwriting an existing key,
 	// or creating a new one.
-	// If no reference list is given, no (stored) reference list is touched.
 	SetObject(context.Context, *SetObjectRequest) (*SetObjectResponse, error)
 	// Get an existing object, linked to a given key.
 	GetObject(context.Context, *GetObjectRequest) (*GetObjectResponse, error)
@@ -2452,28 +1260,6 @@ type ObjectManagerServer interface {
 	// ListObjectKeys lists the keys of
 	// all stored objects within the namespace (identified by the given label).
 	ListObjectKeys(*ListObjectKeysRequest, ObjectManager_ListObjectKeysServer) error
-	// SetReferenceList allows you to create a new reference list
-	// or overwrite an existing reference list,
-	// for a given object.
-	SetReferenceList(context.Context, *SetReferenceListRequest) (*SetReferenceListResponse, error)
-	// GetReferenceList returns an existing reference list
-	// for a given object.
-	GetReferenceList(context.Context, *GetReferenceListRequest) (*GetReferenceListResponse, error)
-	// GetReferenceCount returns the amount of references stored for the given object.
-	GetReferenceCount(context.Context, *GetReferenceCountRequest) (*GetReferenceCountResponse, error)
-	// AppendReferenceList appends the given references
-	// to the end of the reference list of the given object.
-	// If no reference list existed for this object prior to this call,
-	// this method will behave the same as SetReferenceList.
-	AppendToReferenceList(context.Context, *AppendToReferenceListRequest) (*AppendToReferenceListResponse, error)
-	// DeleteFromReferenceList deletes the references of the given list,
-	// from the references of the existing list.
-	// In case deleted succesfully, it will also return the new count of the list,
-	// as part of the response.
-	DeleteFromReferenceList(context.Context, *DeleteFromReferenceListRequest) (*DeleteFromReferenceListResponse, error)
-	// DeleteReferenceList deletes entirely stored reference list.
-	// If no reference list was stored for the object prior to this call, nothing will happen.
-	DeleteReferenceList(context.Context, *DeleteReferenceListRequest) (*DeleteReferenceListResponse, error)
 }
 
 func RegisterObjectManagerServer(s *grpc.Server, srv ObjectManagerServer) {
@@ -2573,114 +1359,6 @@ func (x *objectManagerListObjectKeysServer) Send(m *ListObjectKeysResponse) erro
 	return x.ServerStream.SendMsg(m)
 }
 
-func _ObjectManager_SetReferenceList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SetReferenceListRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ObjectManagerServer).SetReferenceList(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/ObjectManager/SetReferenceList",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ObjectManagerServer).SetReferenceList(ctx, req.(*SetReferenceListRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ObjectManager_GetReferenceList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetReferenceListRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ObjectManagerServer).GetReferenceList(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/ObjectManager/GetReferenceList",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ObjectManagerServer).GetReferenceList(ctx, req.(*GetReferenceListRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ObjectManager_GetReferenceCount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetReferenceCountRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ObjectManagerServer).GetReferenceCount(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/ObjectManager/GetReferenceCount",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ObjectManagerServer).GetReferenceCount(ctx, req.(*GetReferenceCountRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ObjectManager_AppendToReferenceList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AppendToReferenceListRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ObjectManagerServer).AppendToReferenceList(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/ObjectManager/AppendToReferenceList",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ObjectManagerServer).AppendToReferenceList(ctx, req.(*AppendToReferenceListRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ObjectManager_DeleteFromReferenceList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DeleteFromReferenceListRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ObjectManagerServer).DeleteFromReferenceList(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/ObjectManager/DeleteFromReferenceList",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ObjectManagerServer).DeleteFromReferenceList(ctx, req.(*DeleteFromReferenceListRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ObjectManager_DeleteReferenceList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DeleteReferenceListRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ObjectManagerServer).DeleteReferenceList(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/ObjectManager/DeleteReferenceList",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ObjectManagerServer).DeleteReferenceList(ctx, req.(*DeleteReferenceListRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 var _ObjectManager_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "ObjectManager",
 	HandlerType: (*ObjectManagerServer)(nil),
@@ -2700,30 +1378,6 @@ var _ObjectManager_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetObjectStatus",
 			Handler:    _ObjectManager_GetObjectStatus_Handler,
-		},
-		{
-			MethodName: "SetReferenceList",
-			Handler:    _ObjectManager_SetReferenceList_Handler,
-		},
-		{
-			MethodName: "GetReferenceList",
-			Handler:    _ObjectManager_GetReferenceList_Handler,
-		},
-		{
-			MethodName: "GetReferenceCount",
-			Handler:    _ObjectManager_GetReferenceCount_Handler,
-		},
-		{
-			MethodName: "AppendToReferenceList",
-			Handler:    _ObjectManager_AppendToReferenceList_Handler,
-		},
-		{
-			MethodName: "DeleteFromReferenceList",
-			Handler:    _ObjectManager_DeleteFromReferenceList_Handler,
-		},
-		{
-			MethodName: "DeleteReferenceList",
-			Handler:    _ObjectManager_DeleteReferenceList_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
@@ -2820,21 +1474,6 @@ func (m *SetObjectRequest) MarshalTo(dAtA []byte) (int, error) {
 		i = encodeVarintZstor(dAtA, i, uint64(len(m.Data)))
 		i += copy(dAtA[i:], m.Data)
 	}
-	if len(m.ReferenceList) > 0 {
-		for _, s := range m.ReferenceList {
-			dAtA[i] = 0x1a
-			i++
-			l = len(s)
-			for l >= 1<<7 {
-				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
-				l >>= 7
-				i++
-			}
-			dAtA[i] = uint8(l)
-			i++
-			i += copy(dAtA[i:], s)
-		}
-	}
 	return i, nil
 }
 
@@ -2900,21 +1539,6 @@ func (m *GetObjectResponse) MarshalTo(dAtA []byte) (int, error) {
 		i++
 		i = encodeVarintZstor(dAtA, i, uint64(len(m.Data)))
 		i += copy(dAtA[i:], m.Data)
-	}
-	if len(m.ReferenceList) > 0 {
-		for _, s := range m.ReferenceList {
-			dAtA[i] = 0x12
-			i++
-			l = len(s)
-			for l >= 1<<7 {
-				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
-				l >>= 7
-				i++
-			}
-			dAtA[i] = uint8(l)
-			i++
-			i += copy(dAtA[i:], s)
-		}
 	}
 	return i, nil
 }
@@ -3050,328 +1674,6 @@ func (m *ListObjectKeysResponse) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
-func (m *SetReferenceListRequest) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *SetReferenceListRequest) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if len(m.Key) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintZstor(dAtA, i, uint64(len(m.Key)))
-		i += copy(dAtA[i:], m.Key)
-	}
-	if len(m.ReferenceList) > 0 {
-		for _, s := range m.ReferenceList {
-			dAtA[i] = 0x12
-			i++
-			l = len(s)
-			for l >= 1<<7 {
-				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
-				l >>= 7
-				i++
-			}
-			dAtA[i] = uint8(l)
-			i++
-			i += copy(dAtA[i:], s)
-		}
-	}
-	return i, nil
-}
-
-func (m *SetReferenceListResponse) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *SetReferenceListResponse) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	return i, nil
-}
-
-func (m *GetReferenceListRequest) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *GetReferenceListRequest) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if len(m.Key) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintZstor(dAtA, i, uint64(len(m.Key)))
-		i += copy(dAtA[i:], m.Key)
-	}
-	return i, nil
-}
-
-func (m *GetReferenceListResponse) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *GetReferenceListResponse) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if len(m.ReferenceList) > 0 {
-		for _, s := range m.ReferenceList {
-			dAtA[i] = 0xa
-			i++
-			l = len(s)
-			for l >= 1<<7 {
-				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
-				l >>= 7
-				i++
-			}
-			dAtA[i] = uint8(l)
-			i++
-			i += copy(dAtA[i:], s)
-		}
-	}
-	return i, nil
-}
-
-func (m *GetReferenceCountRequest) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *GetReferenceCountRequest) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if len(m.Key) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintZstor(dAtA, i, uint64(len(m.Key)))
-		i += copy(dAtA[i:], m.Key)
-	}
-	return i, nil
-}
-
-func (m *GetReferenceCountResponse) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *GetReferenceCountResponse) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if m.Count != 0 {
-		dAtA[i] = 0x8
-		i++
-		i = encodeVarintZstor(dAtA, i, uint64(m.Count))
-	}
-	return i, nil
-}
-
-func (m *AppendToReferenceListRequest) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *AppendToReferenceListRequest) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if len(m.Key) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintZstor(dAtA, i, uint64(len(m.Key)))
-		i += copy(dAtA[i:], m.Key)
-	}
-	if len(m.ReferenceList) > 0 {
-		for _, s := range m.ReferenceList {
-			dAtA[i] = 0x12
-			i++
-			l = len(s)
-			for l >= 1<<7 {
-				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
-				l >>= 7
-				i++
-			}
-			dAtA[i] = uint8(l)
-			i++
-			i += copy(dAtA[i:], s)
-		}
-	}
-	return i, nil
-}
-
-func (m *AppendToReferenceListResponse) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *AppendToReferenceListResponse) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	return i, nil
-}
-
-func (m *DeleteFromReferenceListRequest) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *DeleteFromReferenceListRequest) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if len(m.Key) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintZstor(dAtA, i, uint64(len(m.Key)))
-		i += copy(dAtA[i:], m.Key)
-	}
-	if len(m.ReferenceList) > 0 {
-		for _, s := range m.ReferenceList {
-			dAtA[i] = 0x12
-			i++
-			l = len(s)
-			for l >= 1<<7 {
-				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
-				l >>= 7
-				i++
-			}
-			dAtA[i] = uint8(l)
-			i++
-			i += copy(dAtA[i:], s)
-		}
-	}
-	return i, nil
-}
-
-func (m *DeleteFromReferenceListResponse) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *DeleteFromReferenceListResponse) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if m.Count != 0 {
-		dAtA[i] = 0x8
-		i++
-		i = encodeVarintZstor(dAtA, i, uint64(m.Count))
-	}
-	return i, nil
-}
-
-func (m *DeleteReferenceListRequest) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *DeleteReferenceListRequest) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if len(m.Key) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintZstor(dAtA, i, uint64(len(m.Key)))
-		i += copy(dAtA[i:], m.Key)
-	}
-	return i, nil
-}
-
-func (m *DeleteReferenceListResponse) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *DeleteReferenceListResponse) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	return i, nil
-}
-
 func encodeVarintZstor(dAtA []byte, offset int, v uint64) int {
 	for v >= 1<<7 {
 		dAtA[offset] = uint8(v&0x7f | 0x80)
@@ -3420,11 +1722,6 @@ func NewPopulatedSetObjectRequest(r randyZstor, easy bool) *SetObjectRequest {
 	for i := 0; i < v2; i++ {
 		this.Data[i] = byte(r.Intn(256))
 	}
-	v3 := r.Intn(10)
-	this.ReferenceList = make([]string, v3)
-	for i := 0; i < v3; i++ {
-		this.ReferenceList[i] = string(randStringZstor(r))
-	}
 	if !easy && r.Intn(10) != 0 {
 	}
 	return this
@@ -3439,9 +1736,9 @@ func NewPopulatedSetObjectResponse(r randyZstor, easy bool) *SetObjectResponse {
 
 func NewPopulatedGetObjectRequest(r randyZstor, easy bool) *GetObjectRequest {
 	this := &GetObjectRequest{}
-	v4 := r.Intn(100)
-	this.Key = make([]byte, v4)
-	for i := 0; i < v4; i++ {
+	v3 := r.Intn(100)
+	this.Key = make([]byte, v3)
+	for i := 0; i < v3; i++ {
 		this.Key[i] = byte(r.Intn(256))
 	}
 	if !easy && r.Intn(10) != 0 {
@@ -3451,15 +1748,10 @@ func NewPopulatedGetObjectRequest(r randyZstor, easy bool) *GetObjectRequest {
 
 func NewPopulatedGetObjectResponse(r randyZstor, easy bool) *GetObjectResponse {
 	this := &GetObjectResponse{}
-	v5 := r.Intn(100)
-	this.Data = make([]byte, v5)
-	for i := 0; i < v5; i++ {
+	v4 := r.Intn(100)
+	this.Data = make([]byte, v4)
+	for i := 0; i < v4; i++ {
 		this.Data[i] = byte(r.Intn(256))
-	}
-	v6 := r.Intn(10)
-	this.ReferenceList = make([]string, v6)
-	for i := 0; i < v6; i++ {
-		this.ReferenceList[i] = string(randStringZstor(r))
 	}
 	if !easy && r.Intn(10) != 0 {
 	}
@@ -3468,9 +1760,9 @@ func NewPopulatedGetObjectResponse(r randyZstor, easy bool) *GetObjectResponse {
 
 func NewPopulatedDeleteObjectRequest(r randyZstor, easy bool) *DeleteObjectRequest {
 	this := &DeleteObjectRequest{}
-	v7 := r.Intn(100)
-	this.Key = make([]byte, v7)
-	for i := 0; i < v7; i++ {
+	v5 := r.Intn(100)
+	this.Key = make([]byte, v5)
+	for i := 0; i < v5; i++ {
 		this.Key[i] = byte(r.Intn(256))
 	}
 	if !easy && r.Intn(10) != 0 {
@@ -3487,9 +1779,9 @@ func NewPopulatedDeleteObjectResponse(r randyZstor, easy bool) *DeleteObjectResp
 
 func NewPopulatedGetObjectStatusRequest(r randyZstor, easy bool) *GetObjectStatusRequest {
 	this := &GetObjectStatusRequest{}
-	v8 := r.Intn(100)
-	this.Key = make([]byte, v8)
-	for i := 0; i < v8; i++ {
+	v6 := r.Intn(100)
+	this.Key = make([]byte, v6)
+	for i := 0; i < v6; i++ {
 		this.Key[i] = byte(r.Intn(256))
 	}
 	if !easy && r.Intn(10) != 0 {
@@ -3514,153 +1806,11 @@ func NewPopulatedListObjectKeysRequest(r randyZstor, easy bool) *ListObjectKeysR
 
 func NewPopulatedListObjectKeysResponse(r randyZstor, easy bool) *ListObjectKeysResponse {
 	this := &ListObjectKeysResponse{}
-	v9 := r.Intn(100)
-	this.Key = make([]byte, v9)
-	for i := 0; i < v9; i++ {
+	v7 := r.Intn(100)
+	this.Key = make([]byte, v7)
+	for i := 0; i < v7; i++ {
 		this.Key[i] = byte(r.Intn(256))
 	}
-	if !easy && r.Intn(10) != 0 {
-	}
-	return this
-}
-
-func NewPopulatedSetReferenceListRequest(r randyZstor, easy bool) *SetReferenceListRequest {
-	this := &SetReferenceListRequest{}
-	v10 := r.Intn(100)
-	this.Key = make([]byte, v10)
-	for i := 0; i < v10; i++ {
-		this.Key[i] = byte(r.Intn(256))
-	}
-	v11 := r.Intn(10)
-	this.ReferenceList = make([]string, v11)
-	for i := 0; i < v11; i++ {
-		this.ReferenceList[i] = string(randStringZstor(r))
-	}
-	if !easy && r.Intn(10) != 0 {
-	}
-	return this
-}
-
-func NewPopulatedSetReferenceListResponse(r randyZstor, easy bool) *SetReferenceListResponse {
-	this := &SetReferenceListResponse{}
-	if !easy && r.Intn(10) != 0 {
-	}
-	return this
-}
-
-func NewPopulatedGetReferenceListRequest(r randyZstor, easy bool) *GetReferenceListRequest {
-	this := &GetReferenceListRequest{}
-	v12 := r.Intn(100)
-	this.Key = make([]byte, v12)
-	for i := 0; i < v12; i++ {
-		this.Key[i] = byte(r.Intn(256))
-	}
-	if !easy && r.Intn(10) != 0 {
-	}
-	return this
-}
-
-func NewPopulatedGetReferenceListResponse(r randyZstor, easy bool) *GetReferenceListResponse {
-	this := &GetReferenceListResponse{}
-	v13 := r.Intn(10)
-	this.ReferenceList = make([]string, v13)
-	for i := 0; i < v13; i++ {
-		this.ReferenceList[i] = string(randStringZstor(r))
-	}
-	if !easy && r.Intn(10) != 0 {
-	}
-	return this
-}
-
-func NewPopulatedGetReferenceCountRequest(r randyZstor, easy bool) *GetReferenceCountRequest {
-	this := &GetReferenceCountRequest{}
-	v14 := r.Intn(100)
-	this.Key = make([]byte, v14)
-	for i := 0; i < v14; i++ {
-		this.Key[i] = byte(r.Intn(256))
-	}
-	if !easy && r.Intn(10) != 0 {
-	}
-	return this
-}
-
-func NewPopulatedGetReferenceCountResponse(r randyZstor, easy bool) *GetReferenceCountResponse {
-	this := &GetReferenceCountResponse{}
-	this.Count = int64(r.Int63())
-	if r.Intn(2) == 0 {
-		this.Count *= -1
-	}
-	if !easy && r.Intn(10) != 0 {
-	}
-	return this
-}
-
-func NewPopulatedAppendToReferenceListRequest(r randyZstor, easy bool) *AppendToReferenceListRequest {
-	this := &AppendToReferenceListRequest{}
-	v15 := r.Intn(100)
-	this.Key = make([]byte, v15)
-	for i := 0; i < v15; i++ {
-		this.Key[i] = byte(r.Intn(256))
-	}
-	v16 := r.Intn(10)
-	this.ReferenceList = make([]string, v16)
-	for i := 0; i < v16; i++ {
-		this.ReferenceList[i] = string(randStringZstor(r))
-	}
-	if !easy && r.Intn(10) != 0 {
-	}
-	return this
-}
-
-func NewPopulatedAppendToReferenceListResponse(r randyZstor, easy bool) *AppendToReferenceListResponse {
-	this := &AppendToReferenceListResponse{}
-	if !easy && r.Intn(10) != 0 {
-	}
-	return this
-}
-
-func NewPopulatedDeleteFromReferenceListRequest(r randyZstor, easy bool) *DeleteFromReferenceListRequest {
-	this := &DeleteFromReferenceListRequest{}
-	v17 := r.Intn(100)
-	this.Key = make([]byte, v17)
-	for i := 0; i < v17; i++ {
-		this.Key[i] = byte(r.Intn(256))
-	}
-	v18 := r.Intn(10)
-	this.ReferenceList = make([]string, v18)
-	for i := 0; i < v18; i++ {
-		this.ReferenceList[i] = string(randStringZstor(r))
-	}
-	if !easy && r.Intn(10) != 0 {
-	}
-	return this
-}
-
-func NewPopulatedDeleteFromReferenceListResponse(r randyZstor, easy bool) *DeleteFromReferenceListResponse {
-	this := &DeleteFromReferenceListResponse{}
-	this.Count = int64(r.Int63())
-	if r.Intn(2) == 0 {
-		this.Count *= -1
-	}
-	if !easy && r.Intn(10) != 0 {
-	}
-	return this
-}
-
-func NewPopulatedDeleteReferenceListRequest(r randyZstor, easy bool) *DeleteReferenceListRequest {
-	this := &DeleteReferenceListRequest{}
-	v19 := r.Intn(100)
-	this.Key = make([]byte, v19)
-	for i := 0; i < v19; i++ {
-		this.Key[i] = byte(r.Intn(256))
-	}
-	if !easy && r.Intn(10) != 0 {
-	}
-	return this
-}
-
-func NewPopulatedDeleteReferenceListResponse(r randyZstor, easy bool) *DeleteReferenceListResponse {
-	this := &DeleteReferenceListResponse{}
 	if !easy && r.Intn(10) != 0 {
 	}
 	return this
@@ -3685,9 +1835,9 @@ func randUTF8RuneZstor(r randyZstor) rune {
 	return rune(ru + 61)
 }
 func randStringZstor(r randyZstor) string {
-	v20 := r.Intn(100)
-	tmps := make([]rune, v20)
-	for i := 0; i < v20; i++ {
+	v8 := r.Intn(100)
+	tmps := make([]rune, v8)
+	for i := 0; i < v8; i++ {
 		tmps[i] = randUTF8RuneZstor(r)
 	}
 	return string(tmps)
@@ -3709,11 +1859,11 @@ func randFieldZstor(dAtA []byte, r randyZstor, fieldNumber int, wire int) []byte
 	switch wire {
 	case 0:
 		dAtA = encodeVarintPopulateZstor(dAtA, uint64(key))
-		v21 := r.Int63()
+		v9 := r.Int63()
 		if r.Intn(2) == 0 {
-			v21 *= -1
+			v9 *= -1
 		}
-		dAtA = encodeVarintPopulateZstor(dAtA, uint64(v21))
+		dAtA = encodeVarintPopulateZstor(dAtA, uint64(v9))
 	case 1:
 		dAtA = encodeVarintPopulateZstor(dAtA, uint64(key))
 		dAtA = append(dAtA, byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)))
@@ -3774,12 +1924,6 @@ func (m *SetObjectRequest) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovZstor(uint64(l))
 	}
-	if len(m.ReferenceList) > 0 {
-		for _, s := range m.ReferenceList {
-			l = len(s)
-			n += 1 + l + sovZstor(uint64(l))
-		}
-	}
 	return n
 }
 
@@ -3805,12 +1949,6 @@ func (m *GetObjectResponse) Size() (n int) {
 	l = len(m.Data)
 	if l > 0 {
 		n += 1 + l + sovZstor(uint64(l))
-	}
-	if len(m.ReferenceList) > 0 {
-		for _, s := range m.ReferenceList {
-			l = len(s)
-			n += 1 + l + sovZstor(uint64(l))
-		}
 	}
 	return n
 }
@@ -3866,132 +2004,6 @@ func (m *ListObjectKeysResponse) Size() (n int) {
 	return n
 }
 
-func (m *SetReferenceListRequest) Size() (n int) {
-	var l int
-	_ = l
-	l = len(m.Key)
-	if l > 0 {
-		n += 1 + l + sovZstor(uint64(l))
-	}
-	if len(m.ReferenceList) > 0 {
-		for _, s := range m.ReferenceList {
-			l = len(s)
-			n += 1 + l + sovZstor(uint64(l))
-		}
-	}
-	return n
-}
-
-func (m *SetReferenceListResponse) Size() (n int) {
-	var l int
-	_ = l
-	return n
-}
-
-func (m *GetReferenceListRequest) Size() (n int) {
-	var l int
-	_ = l
-	l = len(m.Key)
-	if l > 0 {
-		n += 1 + l + sovZstor(uint64(l))
-	}
-	return n
-}
-
-func (m *GetReferenceListResponse) Size() (n int) {
-	var l int
-	_ = l
-	if len(m.ReferenceList) > 0 {
-		for _, s := range m.ReferenceList {
-			l = len(s)
-			n += 1 + l + sovZstor(uint64(l))
-		}
-	}
-	return n
-}
-
-func (m *GetReferenceCountRequest) Size() (n int) {
-	var l int
-	_ = l
-	l = len(m.Key)
-	if l > 0 {
-		n += 1 + l + sovZstor(uint64(l))
-	}
-	return n
-}
-
-func (m *GetReferenceCountResponse) Size() (n int) {
-	var l int
-	_ = l
-	if m.Count != 0 {
-		n += 1 + sovZstor(uint64(m.Count))
-	}
-	return n
-}
-
-func (m *AppendToReferenceListRequest) Size() (n int) {
-	var l int
-	_ = l
-	l = len(m.Key)
-	if l > 0 {
-		n += 1 + l + sovZstor(uint64(l))
-	}
-	if len(m.ReferenceList) > 0 {
-		for _, s := range m.ReferenceList {
-			l = len(s)
-			n += 1 + l + sovZstor(uint64(l))
-		}
-	}
-	return n
-}
-
-func (m *AppendToReferenceListResponse) Size() (n int) {
-	var l int
-	_ = l
-	return n
-}
-
-func (m *DeleteFromReferenceListRequest) Size() (n int) {
-	var l int
-	_ = l
-	l = len(m.Key)
-	if l > 0 {
-		n += 1 + l + sovZstor(uint64(l))
-	}
-	if len(m.ReferenceList) > 0 {
-		for _, s := range m.ReferenceList {
-			l = len(s)
-			n += 1 + l + sovZstor(uint64(l))
-		}
-	}
-	return n
-}
-
-func (m *DeleteFromReferenceListResponse) Size() (n int) {
-	var l int
-	_ = l
-	if m.Count != 0 {
-		n += 1 + sovZstor(uint64(m.Count))
-	}
-	return n
-}
-
-func (m *DeleteReferenceListRequest) Size() (n int) {
-	var l int
-	_ = l
-	l = len(m.Key)
-	if l > 0 {
-		n += 1 + l + sovZstor(uint64(l))
-	}
-	return n
-}
-
-func (m *DeleteReferenceListResponse) Size() (n int) {
-	var l int
-	_ = l
-	return n
-}
-
 func sovZstor(x uint64) (n int) {
 	for {
 		n++
@@ -4034,7 +2046,6 @@ func (this *SetObjectRequest) String() string {
 	s := strings.Join([]string{`&SetObjectRequest{`,
 		`Key:` + fmt.Sprintf("%v", this.Key) + `,`,
 		`Data:` + fmt.Sprintf("%v", this.Data) + `,`,
-		`ReferenceList:` + fmt.Sprintf("%v", this.ReferenceList) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -4064,7 +2075,6 @@ func (this *GetObjectResponse) String() string {
 	}
 	s := strings.Join([]string{`&GetObjectResponse{`,
 		`Data:` + fmt.Sprintf("%v", this.Data) + `,`,
-		`ReferenceList:` + fmt.Sprintf("%v", this.ReferenceList) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -4123,126 +2133,6 @@ func (this *ListObjectKeysResponse) String() string {
 	}
 	s := strings.Join([]string{`&ListObjectKeysResponse{`,
 		`Key:` + fmt.Sprintf("%v", this.Key) + `,`,
-		`}`,
-	}, "")
-	return s
-}
-func (this *SetReferenceListRequest) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&SetReferenceListRequest{`,
-		`Key:` + fmt.Sprintf("%v", this.Key) + `,`,
-		`ReferenceList:` + fmt.Sprintf("%v", this.ReferenceList) + `,`,
-		`}`,
-	}, "")
-	return s
-}
-func (this *SetReferenceListResponse) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&SetReferenceListResponse{`,
-		`}`,
-	}, "")
-	return s
-}
-func (this *GetReferenceListRequest) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&GetReferenceListRequest{`,
-		`Key:` + fmt.Sprintf("%v", this.Key) + `,`,
-		`}`,
-	}, "")
-	return s
-}
-func (this *GetReferenceListResponse) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&GetReferenceListResponse{`,
-		`ReferenceList:` + fmt.Sprintf("%v", this.ReferenceList) + `,`,
-		`}`,
-	}, "")
-	return s
-}
-func (this *GetReferenceCountRequest) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&GetReferenceCountRequest{`,
-		`Key:` + fmt.Sprintf("%v", this.Key) + `,`,
-		`}`,
-	}, "")
-	return s
-}
-func (this *GetReferenceCountResponse) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&GetReferenceCountResponse{`,
-		`Count:` + fmt.Sprintf("%v", this.Count) + `,`,
-		`}`,
-	}, "")
-	return s
-}
-func (this *AppendToReferenceListRequest) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&AppendToReferenceListRequest{`,
-		`Key:` + fmt.Sprintf("%v", this.Key) + `,`,
-		`ReferenceList:` + fmt.Sprintf("%v", this.ReferenceList) + `,`,
-		`}`,
-	}, "")
-	return s
-}
-func (this *AppendToReferenceListResponse) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&AppendToReferenceListResponse{`,
-		`}`,
-	}, "")
-	return s
-}
-func (this *DeleteFromReferenceListRequest) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&DeleteFromReferenceListRequest{`,
-		`Key:` + fmt.Sprintf("%v", this.Key) + `,`,
-		`ReferenceList:` + fmt.Sprintf("%v", this.ReferenceList) + `,`,
-		`}`,
-	}, "")
-	return s
-}
-func (this *DeleteFromReferenceListResponse) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&DeleteFromReferenceListResponse{`,
-		`Count:` + fmt.Sprintf("%v", this.Count) + `,`,
-		`}`,
-	}, "")
-	return s
-}
-func (this *DeleteReferenceListRequest) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&DeleteReferenceListRequest{`,
-		`Key:` + fmt.Sprintf("%v", this.Key) + `,`,
-		`}`,
-	}, "")
-	return s
-}
-func (this *DeleteReferenceListResponse) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&DeleteReferenceListResponse{`,
 		`}`,
 	}, "")
 	return s
@@ -4532,35 +2422,6 @@ func (m *SetObjectRequest) Unmarshal(dAtA []byte) error {
 				m.Data = []byte{}
 			}
 			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ReferenceList", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowZstor
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthZstor
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.ReferenceList = append(m.ReferenceList, string(dAtA[iNdEx:postIndex]))
-			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipZstor(dAtA[iNdEx:])
@@ -4772,35 +2633,6 @@ func (m *GetObjectResponse) Unmarshal(dAtA []byte) error {
 			if m.Data == nil {
 				m.Data = []byte{}
 			}
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ReferenceList", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowZstor
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthZstor
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.ReferenceList = append(m.ReferenceList, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -5235,946 +3067,6 @@ func (m *ListObjectKeysResponse) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *SetReferenceListRequest) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowZstor
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: SetReferenceListRequest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: SetReferenceListRequest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowZstor
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthZstor
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Key = append(m.Key[:0], dAtA[iNdEx:postIndex]...)
-			if m.Key == nil {
-				m.Key = []byte{}
-			}
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ReferenceList", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowZstor
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthZstor
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.ReferenceList = append(m.ReferenceList, string(dAtA[iNdEx:postIndex]))
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipZstor(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthZstor
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *SetReferenceListResponse) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowZstor
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: SetReferenceListResponse: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: SetReferenceListResponse: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		default:
-			iNdEx = preIndex
-			skippy, err := skipZstor(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthZstor
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *GetReferenceListRequest) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowZstor
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: GetReferenceListRequest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: GetReferenceListRequest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowZstor
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthZstor
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Key = append(m.Key[:0], dAtA[iNdEx:postIndex]...)
-			if m.Key == nil {
-				m.Key = []byte{}
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipZstor(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthZstor
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *GetReferenceListResponse) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowZstor
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: GetReferenceListResponse: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: GetReferenceListResponse: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ReferenceList", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowZstor
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthZstor
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.ReferenceList = append(m.ReferenceList, string(dAtA[iNdEx:postIndex]))
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipZstor(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthZstor
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *GetReferenceCountRequest) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowZstor
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: GetReferenceCountRequest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: GetReferenceCountRequest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowZstor
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthZstor
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Key = append(m.Key[:0], dAtA[iNdEx:postIndex]...)
-			if m.Key == nil {
-				m.Key = []byte{}
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipZstor(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthZstor
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *GetReferenceCountResponse) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowZstor
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: GetReferenceCountResponse: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: GetReferenceCountResponse: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Count", wireType)
-			}
-			m.Count = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowZstor
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Count |= (int64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		default:
-			iNdEx = preIndex
-			skippy, err := skipZstor(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthZstor
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *AppendToReferenceListRequest) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowZstor
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: AppendToReferenceListRequest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: AppendToReferenceListRequest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowZstor
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthZstor
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Key = append(m.Key[:0], dAtA[iNdEx:postIndex]...)
-			if m.Key == nil {
-				m.Key = []byte{}
-			}
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ReferenceList", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowZstor
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthZstor
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.ReferenceList = append(m.ReferenceList, string(dAtA[iNdEx:postIndex]))
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipZstor(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthZstor
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *AppendToReferenceListResponse) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowZstor
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: AppendToReferenceListResponse: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: AppendToReferenceListResponse: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		default:
-			iNdEx = preIndex
-			skippy, err := skipZstor(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthZstor
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *DeleteFromReferenceListRequest) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowZstor
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: DeleteFromReferenceListRequest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: DeleteFromReferenceListRequest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowZstor
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthZstor
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Key = append(m.Key[:0], dAtA[iNdEx:postIndex]...)
-			if m.Key == nil {
-				m.Key = []byte{}
-			}
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ReferenceList", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowZstor
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthZstor
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.ReferenceList = append(m.ReferenceList, string(dAtA[iNdEx:postIndex]))
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipZstor(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthZstor
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *DeleteFromReferenceListResponse) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowZstor
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: DeleteFromReferenceListResponse: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: DeleteFromReferenceListResponse: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Count", wireType)
-			}
-			m.Count = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowZstor
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Count |= (int64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		default:
-			iNdEx = preIndex
-			skippy, err := skipZstor(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthZstor
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *DeleteReferenceListRequest) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowZstor
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: DeleteReferenceListRequest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: DeleteReferenceListRequest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowZstor
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthZstor
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Key = append(m.Key[:0], dAtA[iNdEx:postIndex]...)
-			if m.Key == nil {
-				m.Key = []byte{}
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipZstor(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthZstor
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *DeleteReferenceListResponse) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowZstor
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: DeleteReferenceListResponse: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: DeleteReferenceListResponse: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		default:
-			iNdEx = preIndex
-			skippy, err := skipZstor(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthZstor
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
 func skipZstor(dAtA []byte) (n int, err error) {
 	l := len(dAtA)
 	iNdEx := 0
@@ -6283,57 +3175,42 @@ var (
 func init() { proto.RegisterFile("schema/zstor.proto", fileDescriptorZstor) }
 
 var fileDescriptorZstor = []byte{
-	// 820 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x96, 0xbf, 0x4f, 0xdb, 0x4c,
-	0x18, 0xc7, 0x7d, 0x09, 0x2f, 0xaf, 0xf2, 0x28, 0xf0, 0x86, 0x4b, 0x42, 0xcc, 0x01, 0x47, 0x64,
-	0xf1, 0xaa, 0x11, 0x6d, 0x0f, 0x4a, 0x2b, 0x75, 0x29, 0x12, 0x2d, 0x2d, 0x6e, 0x05, 0x94, 0x62,
-	0xaa, 0x8a, 0x09, 0xc9, 0x49, 0x8e, 0x90, 0x42, 0xe2, 0xd4, 0x76, 0x54, 0xc1, 0xd4, 0x99, 0xa9,
-	0xff, 0x00, 0x3b, 0x43, 0xff, 0x80, 0x4a, 0x5d, 0x3a, 0x76, 0x64, 0xec, 0xd8, 0x98, 0xa5, 0x23,
-	0x63, 0xc7, 0x2a, 0x67, 0x27, 0xd8, 0x89, 0x1d, 0x18, 0xd8, 0x7c, 0xcf, 0x8f, 0xef, 0xf3, 0xcd,
-	0x63, 0xfb, 0xe3, 0x00, 0xb6, 0x4a, 0xfb, 0xbc, 0xa6, 0xcf, 0x1f, 0x5b, 0xb6, 0x61, 0xb2, 0x86,
-	0x69, 0xd8, 0x06, 0xb9, 0x5f, 0xa9, 0xda, 0xfb, 0xcd, 0x22, 0x2b, 0x19, 0xb5, 0xf9, 0x8a, 0x51,
-	0x31, 0xe6, 0x45, 0xb8, 0xd8, 0xdc, 0x13, 0x27, 0x71, 0x10, 0x57, 0x6e, 0xb9, 0x92, 0x85, 0xb4,
-	0xca, 0xed, 0xd7, 0x7a, 0x8d, 0x5b, 0x0d, 0xbd, 0xc4, 0x35, 0xfe, 0xa1, 0xc9, 0x2d, 0x5b, 0xf9,
-	0x82, 0x20, 0x13, 0x8c, 0x5b, 0x0d, 0xa3, 0x6e, 0x71, 0x9c, 0x81, 0x7f, 0x0e, 0xf5, 0x22, 0x3f,
-	0x94, 0x51, 0x1e, 0x15, 0x12, 0x9a, 0x7b, 0xc0, 0x0c, 0xb0, 0xc9, 0xf5, 0xb2, 0xd7, 0xfd, 0x86,
-	0x9b, 0x2f, 0x8d, 0xa6, 0x29, 0xc7, 0xf2, 0xa8, 0x10, 0xd7, 0x42, 0x32, 0x78, 0x01, 0xd2, 0x1f,
-	0xcd, 0xaa, 0xcd, 0x7b, 0x1a, 0xe2, 0xa2, 0x21, 0x2c, 0x85, 0xa7, 0x20, 0x51, 0x37, 0x37, 0x8b,
-	0xef, 0x79, 0xc9, 0xb6, 0xe4, 0x21, 0x51, 0x77, 0x15, 0x50, 0x76, 0x21, 0xb5, 0xcd, 0x6d, 0xf7,
-	0xe4, 0x35, 0xe2, 0x14, 0xc4, 0x0f, 0xf8, 0x91, 0xf0, 0x99, 0xd4, 0xda, 0x97, 0x18, 0xc3, 0x50,
-	0x59, 0xb7, 0x75, 0xe1, 0x2b, 0xa9, 0x89, 0x6b, 0x3c, 0x0b, 0x23, 0x26, 0xdf, 0xe3, 0x26, 0xaf,
-	0x97, 0xf8, 0x7a, 0xd5, 0xb2, 0xe5, 0x78, 0x3e, 0x5e, 0x48, 0x68, 0xc1, 0xa0, 0x92, 0x86, 0x31,
-	0x9f, 0xbe, 0xbb, 0x0a, 0x65, 0x16, 0x52, 0xea, 0xb5, 0x43, 0x95, 0x0d, 0x18, 0x53, 0x7b, 0x5b,
-	0xbb, 0x4e, 0xd0, 0x20, 0x27, 0xb1, 0x30, 0x27, 0x77, 0x20, 0xfd, 0x9c, 0x1f, 0x72, 0x9b, 0x5f,
-	0x37, 0x77, 0x1c, 0x32, 0xc1, 0x42, 0xcf, 0xf5, 0x1c, 0x8c, 0x77, 0xfd, 0x6c, 0xdb, 0xba, 0xdd,
-	0xb4, 0xa2, 0x35, 0x96, 0x21, 0xd7, 0x57, 0xeb, 0xfd, 0x82, 0xff, 0x61, 0xd8, 0x12, 0x11, 0x51,
-	0x3f, 0xba, 0x38, 0xc2, 0x02, 0x65, 0x5e, 0x52, 0xc9, 0x41, 0xb6, 0x6d, 0xdb, 0xcd, 0xad, 0xf1,
-	0xa3, 0xce, 0xb0, 0xb6, 0x8d, 0xde, 0x84, 0xa7, 0xdc, 0x6f, 0x63, 0x0b, 0x72, 0xdb, 0xdc, 0xd6,
-	0xfc, 0x7b, 0x88, 0xbe, 0xc9, 0x37, 0x5b, 0x23, 0x01, 0xb9, 0x5f, 0xd2, 0xdb, 0xd0, 0x5d, 0xf1,
-	0xab, 0x6f, 0x36, 0x4e, 0x59, 0x06, 0x59, 0x8d, 0x10, 0xea, 0xb7, 0x82, 0xc2, 0xac, 0xdc, 0x0b,
-	0x2a, 0xac, 0x18, 0xcd, 0xfa, 0x80, 0x79, 0x0f, 0x60, 0x22, 0xa4, 0xfa, 0xea, 0xe5, 0x2c, 0xb5,
-	0x03, 0xa2, 0x21, 0xae, 0xb9, 0x07, 0xe5, 0x1d, 0x4c, 0x3d, 0x6d, 0x34, 0x78, 0xbd, 0xfc, 0xd6,
-	0xb8, 0xd5, 0x1d, 0xce, 0xc0, 0x74, 0x84, 0xae, 0xb7, 0xc8, 0x1d, 0xa0, 0xee, 0x23, 0xb8, 0x6a,
-	0x1a, 0xb5, 0x5b, 0x1d, 0xfd, 0x18, 0x66, 0x22, 0x95, 0x07, 0xee, 0x82, 0x01, 0x71, 0x1b, 0x6f,
-	0x78, 0x7b, 0xa7, 0x61, 0x32, 0xb4, 0xde, 0x1d, 0x32, 0x77, 0x0c, 0x49, 0xff, 0x63, 0x8f, 0x67,
-	0xe1, 0xdf, 0x5a, 0xd5, 0xb2, 0xaa, 0xf5, 0x4a, 0x4a, 0x22, 0xb9, 0x93, 0xd3, 0x7c, 0xda, 0x9f,
-	0xde, 0x70, 0x53, 0x98, 0x40, 0xcc, 0x38, 0x48, 0x21, 0x82, 0x4f, 0x4e, 0xf3, 0xa3, 0xfe, 0x82,
-	0xcd, 0x35, 0x5c, 0x80, 0x44, 0xc9, 0x30, 0xcd, 0x66, 0xc3, 0xe6, 0xe5, 0x54, 0x8c, 0x4c, 0x9c,
-	0x9c, 0xe6, 0xb3, 0xfe, 0x92, 0x95, 0x4e, 0x72, 0x71, 0x0b, 0x52, 0x5d, 0x3c, 0x6f, 0xe8, 0x75,
-	0xbd, 0xc2, 0x4d, 0xbc, 0x04, 0x49, 0x3f, 0xb5, 0x71, 0x86, 0x85, 0xc0, 0x9d, 0x64, 0x59, 0x18,
-	0xda, 0x15, 0x69, 0xf1, 0xdb, 0x30, 0x8c, 0xb8, 0xc3, 0x3a, 0x82, 0x8f, 0x20, 0xd1, 0x05, 0x1f,
-	0x1e, 0x63, 0xbd, 0x90, 0x25, 0x98, 0xf5, 0x73, 0x51, 0x6a, 0x77, 0xa9, 0xbe, 0x2e, 0xb5, 0xbf,
-	0x4b, 0x0d, 0xe9, 0x5a, 0x82, 0xa4, 0x9f, 0x58, 0x38, 0xc3, 0x42, 0x48, 0x47, 0xb2, 0x2c, 0x14,
-	0x6b, 0x12, 0x5e, 0x85, 0xff, 0x7a, 0x60, 0x85, 0x73, 0x2c, 0x1c, 0x75, 0x44, 0x66, 0x11, 0x5c,
-	0x53, 0x24, 0xfc, 0x02, 0x46, 0x83, 0x64, 0xc2, 0xe3, 0x2c, 0x94, 0x61, 0x24, 0xc7, 0xc2, 0x11,
-	0xa6, 0x48, 0x0b, 0x08, 0xbf, 0x12, 0x9f, 0xa4, 0xc0, 0x63, 0x83, 0x65, 0x16, 0xc1, 0x31, 0x32,
-	0xc1, 0x22, 0x71, 0x24, 0xb5, 0xa5, 0xd4, 0x7e, 0x29, 0x35, 0x52, 0x4a, 0x8d, 0x96, 0x5a, 0x17,
-	0x5f, 0xa3, 0x20, 0x3e, 0x70, 0xb0, 0xc3, 0x0f, 0x20, 0x42, 0x58, 0x24, 0x6d, 0x14, 0x09, 0xef,
-	0x40, 0x36, 0x94, 0x00, 0x78, 0x9a, 0x0d, 0x22, 0x0e, 0xa1, 0x6c, 0x30, 0x38, 0x24, 0xbc, 0x0b,
-	0xb9, 0x88, 0x17, 0x1c, 0xcf, 0xb0, 0xc1, 0x50, 0x21, 0x79, 0x76, 0x0d, 0x1b, 0x14, 0x09, 0x6b,
-	0x9d, 0xcf, 0x68, 0x50, 0x7b, 0x92, 0x45, 0xd3, 0x81, 0x4c, 0xb1, 0x01, 0x28, 0x50, 0xa4, 0x67,
-	0x4f, 0xce, 0x5b, 0x54, 0xfa, 0xd9, 0xa2, 0xd2, 0x65, 0x8b, 0xa2, 0x3f, 0x2d, 0x8a, 0x3e, 0x39,
-	0x14, 0x9d, 0x39, 0x14, 0x7d, 0x75, 0x28, 0xfa, 0xee, 0x50, 0xf4, 0xc3, 0xa1, 0xe8, 0xdc, 0xa1,
-	0xe8, 0x97, 0x43, 0xd1, 0x6f, 0x87, 0x4a, 0x97, 0x0e, 0x45, 0x9f, 0x2f, 0xa8, 0x74, 0x76, 0x41,
-	0x51, 0x71, 0x58, 0xfc, 0x1f, 0x7b, 0xf8, 0x37, 0x00, 0x00, 0xff, 0xff, 0xd1, 0x1e, 0x5f, 0x97,
-	0xd4, 0x09, 0x00, 0x00,
+	// 578 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x84, 0x94, 0xcf, 0x6e, 0x12, 0x51,
+	0x14, 0xc6, 0xe7, 0x42, 0xad, 0xe1, 0x84, 0xe2, 0x70, 0xf8, 0xeb, 0xc4, 0xdc, 0x90, 0x49, 0x4d,
+	0x49, 0x13, 0x2f, 0x0d, 0xba, 0x70, 0x61, 0x13, 0xe3, 0xbf, 0x31, 0xa9, 0xb5, 0x4a, 0x9f, 0x60,
+	0x80, 0x2b, 0xc5, 0x02, 0x83, 0x73, 0xef, 0xc4, 0xb4, 0x2b, 0xd7, 0xac, 0x7c, 0x01, 0xf6, 0x5d,
+	0xf8, 0x00, 0x2e, 0x5d, 0xea, 0xae, 0x4b, 0x97, 0x32, 0xdd, 0xb8, 0xec, 0xd2, 0xa5, 0xe1, 0xce,
+	0x40, 0x07, 0x98, 0xa6, 0xbb, 0x7b, 0xce, 0xf9, 0xbe, 0xef, 0x1c, 0xc2, 0x2f, 0x03, 0x28, 0x5a,
+	0x47, 0xbc, 0x6f, 0xd7, 0x4e, 0x85, 0x74, 0x5c, 0x36, 0x74, 0x1d, 0xe9, 0x18, 0x0f, 0x3a, 0x5d,
+	0x79, 0xe4, 0x35, 0x59, 0xcb, 0xe9, 0xd7, 0x3a, 0x4e, 0xc7, 0xa9, 0xa9, 0x76, 0xd3, 0xfb, 0xa0,
+	0x2a, 0x55, 0xa8, 0x57, 0x20, 0x37, 0x0b, 0x90, 0xb3, 0xb8, 0x7c, 0x6b, 0xf7, 0xb9, 0x18, 0xda,
+	0x2d, 0xde, 0xe0, 0x9f, 0x3c, 0x2e, 0xa4, 0xf9, 0x8d, 0x40, 0x7e, 0xb1, 0x2f, 0x86, 0xce, 0x40,
+	0x70, 0xcc, 0xc3, 0xad, 0x9e, 0xdd, 0xe4, 0xbd, 0x32, 0xa9, 0x90, 0x6a, 0xaa, 0x11, 0x14, 0xc8,
+	0x00, 0x5d, 0x6e, 0xb7, 0x43, 0xf7, 0x3b, 0xee, 0xbe, 0x76, 0x3c, 0xb7, 0x9c, 0xa8, 0x90, 0x6a,
+	0xb2, 0x11, 0x33, 0xc1, 0x1d, 0xc8, 0x7d, 0x76, 0xbb, 0x92, 0x2f, 0x19, 0x92, 0xca, 0x10, 0x37,
+	0xc2, 0x7b, 0x90, 0x1a, 0xb8, 0x07, 0xcd, 0x8f, 0xbc, 0x25, 0x45, 0x79, 0x4d, 0xe9, 0xae, 0x1a,
+	0xe6, 0x63, 0xd0, 0x0f, 0xb9, 0x0c, 0xaa, 0xd0, 0x88, 0x3a, 0x24, 0x8f, 0xf9, 0x89, 0xba, 0x33,
+	0xdd, 0x98, 0x3e, 0x11, 0x61, 0xad, 0x6d, 0x4b, 0x5b, 0xdd, 0x95, 0x6e, 0xa8, 0xb7, 0x99, 0x83,
+	0x6c, 0xc4, 0x19, 0xfc, 0x48, 0x73, 0x13, 0x74, 0xeb, 0xc6, 0x38, 0x73, 0x0b, 0xb2, 0xd6, 0xb2,
+	0x75, 0xbe, 0x83, 0x44, 0x76, 0x6c, 0x41, 0xee, 0x05, 0xef, 0x71, 0xc9, 0x6f, 0x4a, 0x2c, 0x42,
+	0x7e, 0x51, 0x18, 0xde, 0xb3, 0x0d, 0xc5, 0xf9, 0xa6, 0x43, 0x69, 0x4b, 0x4f, 0x5c, 0x9f, 0xf1,
+	0x14, 0x4a, 0x2b, 0xda, 0xf0, 0xb6, 0xfb, 0xb0, 0x2e, 0x54, 0x47, 0xe9, 0x33, 0xf5, 0x0d, 0xb6,
+	0x20, 0x0b, 0x87, 0x66, 0x09, 0x0a, 0x6f, 0xba, 0x22, 0x8c, 0xd8, 0xe3, 0x27, 0xb3, 0x65, 0xd3,
+	0x33, 0x96, 0x07, 0x61, 0xf2, 0xca, 0x19, 0xdb, 0xa7, 0x90, 0x8e, 0x86, 0xe3, 0x26, 0xdc, 0xee,
+	0x77, 0x85, 0xe8, 0x0e, 0x3a, 0xba, 0x66, 0x94, 0x46, 0xe3, 0x4a, 0x2e, 0x3a, 0xde, 0x0f, 0x46,
+	0x68, 0x40, 0xc2, 0x39, 0xd6, 0x89, 0x81, 0xa3, 0x71, 0x25, 0x13, 0x15, 0x1c, 0xec, 0x61, 0x15,
+	0x52, 0x2d, 0xc7, 0x75, 0xbd, 0xa1, 0xe4, 0x6d, 0x3d, 0x61, 0xdc, 0x1d, 0x8d, 0x2b, 0x85, 0xa8,
+	0xe4, 0xf9, 0x6c, 0x58, 0x7f, 0x0f, 0xfa, 0x1c, 0xdc, 0x7d, 0x7b, 0x60, 0x77, 0xb8, 0x8b, 0xbb,
+	0x90, 0x8e, 0xf2, 0x8c, 0x79, 0x16, 0x83, 0xbd, 0x51, 0x60, 0x71, 0xd0, 0x9b, 0x5a, 0xfd, 0x57,
+	0x02, 0x36, 0x82, 0x65, 0xb3, 0xc0, 0x47, 0x90, 0x9a, 0x83, 0x83, 0x59, 0xb6, 0x8c, 0x9f, 0x81,
+	0x6c, 0x95, 0x2b, 0x6d, 0xea, 0xb2, 0x22, 0x2e, 0x6b, 0xd5, 0x65, 0xc5, 0xb8, 0x76, 0x21, 0x1d,
+	0xe5, 0x02, 0xf3, 0x2c, 0x86, 0x27, 0xa3, 0xc0, 0x62, 0xe1, 0xd1, 0xf0, 0x15, 0xdc, 0x59, 0x42,
+	0x02, 0x4b, 0x2c, 0x1e, 0x28, 0xa3, 0xcc, 0xae, 0xa1, 0xc7, 0xd4, 0xf0, 0x25, 0x64, 0x16, 0xff,
+	0x7f, 0x2c, 0xb2, 0x58, 0x52, 0x8c, 0x12, 0x8b, 0x07, 0xc5, 0xd4, 0x76, 0xc8, 0xb3, 0x27, 0xe7,
+	0x13, 0xaa, 0xfd, 0x9e, 0x50, 0xed, 0x72, 0x42, 0xc9, 0xbf, 0x09, 0x25, 0x5f, 0x7c, 0x4a, 0xce,
+	0x7c, 0x4a, 0xbe, 0xfb, 0x94, 0xfc, 0xf0, 0x29, 0xf9, 0xe9, 0x53, 0x72, 0xee, 0x53, 0xf2, 0xc7,
+	0xa7, 0xe4, 0xaf, 0x4f, 0xb5, 0x4b, 0x9f, 0x92, 0xaf, 0x17, 0x54, 0x3b, 0xbb, 0xa0, 0xa4, 0xb9,
+	0xae, 0xbe, 0x5b, 0x0f, 0xff, 0x07, 0x00, 0x00, 0xff, 0xff, 0xea, 0x27, 0x90, 0x02, 0xfc, 0x04,
+	0x00, 0x00,
 }

@@ -3,7 +3,6 @@ package grpc
 import (
 	"io"
 
-	"github.com/zero-os/0-stor/server"
 	pb "github.com/zero-os/0-stor/server/api/grpc/schema"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -11,7 +10,6 @@ import (
 
 type stubObjectService struct {
 	key, data []byte
-	refList   []string
 	status    pb.ObjectStatus
 	err       error
 	streamErr error
@@ -31,8 +29,7 @@ func (os *stubObjectService) GetObject(ctx context.Context, in *pb.GetObjectRequ
 		return nil, os.err
 	}
 	return &pb.GetObjectResponse{
-		Data:          os.data,
-		ReferenceList: os.refList,
+		Data: os.data,
 	}, nil
 }
 
@@ -88,63 +85,6 @@ func (stream *stubListObjectKeysClient) Recv() (*pb.ListObjectKeysResponse, erro
 	resp := &pb.ListObjectKeysResponse{Key: stream.key}
 	stream.key = nil
 	return resp, nil
-}
-
-// SetReferenceList implements pb.ObjectService.SetReferenceList
-func (os *stubObjectService) SetReferenceList(ctx context.Context, in *pb.SetReferenceListRequest, opts ...grpc.CallOption) (*pb.SetReferenceListResponse, error) {
-	if os.err != nil {
-		return nil, os.err
-	}
-	return &pb.SetReferenceListResponse{}, nil
-}
-
-// GetReferenceList implements pb.ObjectService.GetReferenceList
-func (os *stubObjectService) GetReferenceList(ctx context.Context, in *pb.GetReferenceListRequest, opts ...grpc.CallOption) (*pb.GetReferenceListResponse, error) {
-	if os.err != nil {
-		return nil, os.err
-	}
-	return &pb.GetReferenceListResponse{
-		ReferenceList: os.refList,
-	}, nil
-}
-
-// GetReferenceCount implements pb.ObjectService.GetReferenceCount
-func (os *stubObjectService) GetReferenceCount(ctx context.Context, in *pb.GetReferenceCountRequest, opts ...grpc.CallOption) (*pb.GetReferenceCountResponse, error) {
-	if os.err != nil {
-		return nil, os.err
-	}
-	return &pb.GetReferenceCountResponse{
-		Count: int64(len(os.refList)),
-	}, nil
-}
-
-// AppendToReferenceList implements pb.ObjectService.AppendToReferenceList
-func (os *stubObjectService) AppendToReferenceList(ctx context.Context, in *pb.AppendToReferenceListRequest, opts ...grpc.CallOption) (*pb.AppendToReferenceListResponse, error) {
-	if os.err != nil {
-		return nil, os.err
-	}
-	return &pb.AppendToReferenceListResponse{}, nil
-}
-
-// DeleteFromReferenceList implements pb.ObjectService.DeleteFromReferenceList
-func (os *stubObjectService) DeleteFromReferenceList(ctx context.Context, in *pb.DeleteFromReferenceListRequest, opts ...grpc.CallOption) (*pb.DeleteFromReferenceListResponse, error) {
-	if os.err != nil {
-		return nil, os.err
-	}
-	refList := server.ReferenceList(os.refList)
-	refList.DeleteReferences(server.ReferenceList(in.ReferenceList))
-	os.refList = []string(refList)
-	return &pb.DeleteFromReferenceListResponse{
-		Count: int64(len(os.refList)),
-	}, nil
-}
-
-// DeleteReferenceList implements pb.ObjectService.DeleteReferenceList
-func (os *stubObjectService) DeleteReferenceList(ctx context.Context, in *pb.DeleteReferenceListRequest, opts ...grpc.CallOption) (*pb.DeleteReferenceListResponse, error) {
-	if os.err != nil {
-		return nil, os.err
-	}
-	return &pb.DeleteReferenceListResponse{}, nil
 }
 
 type stubNamespaceService struct {

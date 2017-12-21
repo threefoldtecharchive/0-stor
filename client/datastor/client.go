@@ -27,8 +27,7 @@ type Client interface {
 	// Get an existing object, linked to a given key.
 	//
 	// ErrKeyNotFound is returned in case the requested key couldn't be found.
-	// ErrObjectDataCorrupted is returned in case the stored data is corrupted.
-	// ErrObjectRefListCorrupted is returned in case the stored refList is corrupted.
+	// ErrObjectCorrupted is returned in case the stored object is corrupted.
 	GetObject(key []byte) (*Object, error)
 
 	// DeleteObject deletes an object, using a given key.
@@ -42,7 +41,7 @@ type Client interface {
 	// ExistObject returns whether or not an object exists.
 	//
 	// ErrObjectCorrupted is returned in case the object key exists,
-	// but the data/refList is corrupted.
+	// but the object is corrupted.
 	ExistObject(key []byte) (bool, error)
 
 	// ListObjectKeyIterator returns an iterator,
@@ -62,46 +61,4 @@ type Client interface {
 	// ErrKeyNotFound is returned in case no
 	// stored namespace exist for the used label.
 	GetNamespace() (*Namespace, error)
-
-	// SetReferenceList allows you to create a new reference list
-	// or overwrite an existing reference list,
-	// for a given object.
-	SetReferenceList(key []byte, refList []string) error
-
-	// GetReferenceList returns an existing reference list
-	// for a given object.
-	//
-	// ErrKeyNotFound is returned in case no reference exists for that object.
-	// ErrObjectRefListCorrupted is returned in case the stored refList is corrupted.
-	GetReferenceList(key []byte) ([]string, error)
-
-	// GetReferenceCount returns the reference count
-	// for a given object. If no reference list is given,
-	// the object is assumed to have 0 references.
-	//
-	// ErrObjectRefListCorrupted is returned in case the stored refList is corrupted.
-	GetReferenceCount(key []byte) (int64, error)
-
-	// AppendToReferenceList appends the given references
-	// to the end of the reference list of the given object.
-	// If no reference list existed for this object prior to this call,
-	// this method will behave the same as SetReferenceList.
-	//
-	// ErrObjectRefListCorrupted is returned in case the stored refList is corrupted.
-	AppendToReferenceList(key []byte, refList []string) error
-
-	// DeleteFromReferenceList removes the references of the given list,
-	// from the references of the existing list.
-	// It also returns all references which couldn't be deleted
-	// from the existing list, because these references did not
-	// exist in the given reference list.
-	// The amount of references left over after this operation,
-	// is returned.
-	//
-	// ErrObjectRefListCorrupted is returned in case the stored refList is corrupted.
-	DeleteFromReferenceList(key []byte, refList []string) (int64, error)
-
-	// DeleteReferenceList deletes the stored reference list for the given (object) key.
-	// Deleting a non-existent reference list not considered an error.
-	DeleteReferenceList(key []byte) error
 }

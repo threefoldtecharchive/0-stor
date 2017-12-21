@@ -70,7 +70,7 @@ type SingleObjectPipeline struct {
 //
 // When an error is returned by a sub-call, at any point,
 // the function will return immediately with that error.
-func (sop *SingleObjectPipeline) Write(r io.Reader, refList []string) ([]metastor.Chunk, error) {
+func (sop *SingleObjectPipeline) Write(r io.Reader) ([]metastor.Chunk, error) {
 	if r == nil {
 		return nil, errors.New("no reader given to read from")
 	}
@@ -97,9 +97,8 @@ func (sop *SingleObjectPipeline) Write(r io.Reader, refList []string) ([]metasto
 	}
 
 	cfg, err := sop.storage.Write(datastor.Object{
-		Key:           key,
-		Data:          data,
-		ReferenceList: refList,
+		Key:  key,
+		Data: data,
 	})
 	if err != nil {
 		return nil, err
@@ -132,22 +131,22 @@ func (sop *SingleObjectPipeline) Write(r io.Reader, refList []string) ([]metasto
 //
 // When an error is returned by a sub-call, at any point,
 // the function will return immediately with that error.
-func (sop *SingleObjectPipeline) Read(chunks []metastor.Chunk, w io.Writer) (refList []string, err error) {
+func (sop *SingleObjectPipeline) Read(chunks []metastor.Chunk, w io.Writer) error {
 	if len(chunks) != 1 {
-		return nil, errors.New("unexpected chunk count, SingleObjectPipeline requires one and only one chunk")
+		return errors.New("unexpected chunk count, SingleObjectPipeline requires one and only one chunk")
 	}
 	if w == nil {
-		return nil, errors.New("nil writer")
+		return errors.New("nil writer")
 	}
 
 	// create the hasher and processor
 	hasher, err := sop.hasher()
 	if err != nil {
-		return nil, err
+		return err
 	}
 	processor, err := sop.processor()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	obj, err := sop.storage.Read(storage.ObjectConfig{
@@ -156,19 +155,19 @@ func (sop *SingleObjectPipeline) Read(chunks []metastor.Chunk, w io.Writer) (ref
 		DataSize: int(chunks[0].Size),
 	})
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	data, err := processor.ReadProcess(obj.Data)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if bytes.Compare(obj.Key, hasher.HashBytes(data)) != 0 {
-		return nil, errors.New("object chunk's data and key do not match")
+		return errors.New("object chunk's data and key do not match")
 	}
 
 	_, err = w.Write(data)
-	return obj.ReferenceList, err
+	return err
 }
 
 // GetObjectStorage implements Pipeline.GetObjectStorage

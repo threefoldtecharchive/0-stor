@@ -152,9 +152,8 @@ func testDistributedStorageCheckRepair(t *testing.T, dataShardCount, parityShard
 
 	key := []byte("myKey")
 	inputObject := datastor.Object{
-		Key:           key,
-		Data:          make([]byte, dataSize),
-		ReferenceList: []string{"uer1", "user2"},
+		Key:  key,
+		Data: make([]byte, dataSize),
 	}
 	_, err = rand.Read(inputObject.Data)
 	require.NoError(err)

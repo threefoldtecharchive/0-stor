@@ -110,7 +110,7 @@ type AsyncSplitterPipeline struct {
 //
 // As soon as an error happens within any stage, at any point,
 // the entire pipeline will be cancelled and that error is returned to the callee of this method.
-func (asp *AsyncSplitterPipeline) Write(r io.Reader, refList []string) ([]metastor.Chunk, error) {
+func (asp *AsyncSplitterPipeline) Write(r io.Reader) ([]metastor.Chunk, error) {
 	if r == nil {
 		return nil, errors.New("no reader given to read from")
 	}
@@ -187,9 +187,8 @@ func (asp *AsyncSplitterPipeline) Write(r io.Reader, refList []string) ([]metast
 		storageGroup.Go(func() error {
 			for object := range objectCh {
 				cfg, err := asp.storage.Write(datastor.Object{
-					Key:           object.Key,
-					Data:          object.Data,
-					ReferenceList: refList,
+					Key:  object.Key,
+					Data: object.Data,
 				})
 				if err != nil {
 					return err
@@ -270,10 +269,10 @@ func (asp *AsyncSplitterPipeline) Write(r io.Reader, refList []string) ([]metast
 // The following graph visualizes the logic of this pipeline's Read method:
 //
 //    +--------------------------------------------------------------------------------+
-//    | +--------------+                                               1st non-nil     |
-//    | |[]*ChunkMeta  +----> Storage.Read +-+          +------------> reflist         |
-//    | |     to       |                     |          |              (output param)  |
-//    | |chan ChunkMeta+----> Storage.Read +-+     +----+-----+                        |
+//    | +--------------+                                                               |
+//    | |[]*ChunkMeta  +----> Storage.Read +-+                                         |
+//    | |     to       |                     |                                         |
+//    | |chan ChunkMeta+----> Storage.Read +-+     +----------+                        |
 //    | +--------------+                     +-----> channels +--------------+         |
 //    |            |   ...                   |     +----------+              |         |
 //    |            |                         |          |         ...        |         |
@@ -304,10 +303,10 @@ func (asp *AsyncSplitterPipeline) Write(r io.Reader, refList []string) ([]metast
 // to read the data using the Read method of that pipeline,
 // as to now spawn an entire async pipeline, when only one chunk is to be read.
 // See (*SingleObjectPipeline).Read for more information about the logic for this scenario.
-func (asp *AsyncSplitterPipeline) Read(chunks []metastor.Chunk, w io.Writer) (refList []string, err error) {
+func (asp *AsyncSplitterPipeline) Read(chunks []metastor.Chunk, w io.Writer) error {
 	chunkLength := len(chunks)
 	if chunkLength == 0 {
-		return nil, errors.New("no chunks given to read")
+		return errors.New("no chunks given to read")
 	}
 	if chunkLength == 1 {
 		// if only one chunk has to be read,
@@ -321,7 +320,7 @@ func (asp *AsyncSplitterPipeline) Read(chunks []metastor.Chunk, w io.Writer) (re
 		return sop.Read(chunks, w)
 	}
 	if w == nil {
-		return nil, errors.New("no writer given to write to")
+		return errors.New("no writer given to write to")
 	}
 
 	// limit our job count in case the chunk size is exceptionally low,
@@ -365,7 +364,6 @@ func (asp *AsyncSplitterPipeline) Read(chunks []metastor.Chunk, w io.Writer) (re
 	}
 	storageGroup, _ := errgroup.WithContext(ctx)
 	inputCh := make(chan indexedObject, processorJobCount)
-	refListCh := make(chan []string, 1)
 	for i := 0; i < storageJobCount; i++ {
 		storageGroup.Go(func() error {
 			for ic := range chunkCh {
@@ -383,12 +381,6 @@ func (asp *AsyncSplitterPipeline) Read(chunks []metastor.Chunk, w io.Writer) (re
 				case <-ctx.Done():
 					return nil
 				}
-				// send the refList, to keep it for later
-				select {
-				case refListCh <- obj.ReferenceList:
-				case <-ctx.Done():
-					return nil
-				}
 			}
 			return nil
 		})
@@ -396,35 +388,7 @@ func (asp *AsyncSplitterPipeline) Read(chunks []metastor.Chunk, w io.Writer) (re
 	group.Go(func() error {
 		err := storageGroup.Wait()
 		close(inputCh)
-		close(refListCh)
 		return err
-	})
-
-	// start one goroutine,
-	// which will simply receive all reference lists,
-	// but only care about the first one read
-	//
-	// it's a bit clunky, but it's the best I could come up with for now
-	var referenceList []string
-	group.Go(func() error {
-		// we're still looking for a referenceList...
-		for list := range refListCh {
-			if len(list) > 0 {
-				referenceList = list
-				break
-			}
-		}
-		if len(referenceList) == 0 {
-			// we never received a non-nil ref list
-			return nil
-		}
-		// from now on simply consume and throw away,
-		// as to prevent the producer from blocking
-		for range refListCh {
-		}
-		// we received a ref-list in the past,
-		// and now the refListCh channel is done for good
-		return nil
 	})
 
 	// start all processors
@@ -442,11 +406,11 @@ func (asp *AsyncSplitterPipeline) Read(chunks []metastor.Chunk, w io.Writer) (re
 	for i := 0; i < processorJobCount; i++ {
 		hasher, err := asp.hasher()
 		if err != nil {
-			return nil, err
+			return err
 		}
 		processor, err := asp.processor()
 		if err != nil {
-			return nil, err
+			return err
 		}
 		processorGroup.Go(func() error {
 			for input := range inputCh {
@@ -525,14 +489,7 @@ func (asp *AsyncSplitterPipeline) Read(chunks []metastor.Chunk, w io.Writer) (re
 	})
 
 	// wait for all goroutines to be finished
-	err = group.Wait()
-	if err != nil {
-		return nil, err
-	}
-
-	// all output has been written successfully,
-	// return the refList (whether it is defined or not)
-	return referenceList, nil
+	return group.Wait()
 }
 
 // GetObjectStorage implements Pipeline.GetObjectStorage

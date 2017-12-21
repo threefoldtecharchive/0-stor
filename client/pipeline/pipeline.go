@@ -25,10 +25,10 @@ import (
 type Pipeline interface {
 	// Write content to a zstordb cluster,
 	// the details depend upon the specific implementation.
-	Write(r io.Reader, refList []string) (chunks []metastor.Chunk, err error)
+	Write(r io.Reader) ([]metastor.Chunk, error)
 	// Read content from a zstordb cluster,
 	// the details depend upon the specific implementation.
-	Read(chunks []metastor.Chunk, w io.Writer) (refList []string, err error)
+	Read(chunks []metastor.Chunk, w io.Writer) error
 
 	// GetObjectStorage returns the underlying and used ObjectStorage
 	GetObjectStorage() storage.ObjectStorage

@@ -84,7 +84,7 @@ func testWalk(t *testing.T, forward bool) {
 	var firstKey []byte
 
 	for i, key := range keys {
-		prevMd, err = cli.WriteWithMeta(key, vals[i], prevKey, prevMd, nil, nil)
+		prevMd, err = cli.WriteWithMeta(key, vals[i], prevKey, prevMd, nil)
 		require.NoError(t, err)
 		prevKey = key
 		if len(firstKey) == 0 {

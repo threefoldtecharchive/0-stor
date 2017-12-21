@@ -30,14 +30,14 @@ func main() {
 	key := []byte("hi guys")
 
 	// store onto 0-stor
-	_, err = c.WriteF(key, bytes.NewReader(data), nil)
+	_, err = c.WriteF(key, bytes.NewReader(data))
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// read the data
 	buf := bytes.NewBuffer(nil)
-	_, err = c.ReadF(key, buf)
+	err = c.ReadF(key, buf)
 	if err != nil {
 		log.Fatal(err)
 	}

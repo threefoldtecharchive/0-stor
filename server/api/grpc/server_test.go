@@ -73,15 +73,12 @@ func TestServerMsgSize(t *testing.T) {
 }
 
 func TestServerListObjectKeys(t *testing.T) {
-	require := require.New(t)
-	assert := assert.New(t)
-
 	server, iyoCl, clean := getTestGRPCServer(t, organization)
 	bufList := populateDB(t, label, server.db)
 
 	// create client connection
 	conn, err := grpc.Dial(server.Address(), grpc.WithInsecure())
-	require.NoError(err, "can't connect to the server")
+	require.NoError(t, err, "can't connect to the server")
 
 	defer func() {
 		conn.Close()
@@ -92,18 +89,18 @@ func TestServerListObjectKeys(t *testing.T) {
 	jwt, err := iyoCl.CreateJWT(namespace, itsyouonline.Permission{
 		Read: true,
 	})
-	require.NoError(err, "fail to generate jwt")
+	require.NoError(t, err, "fail to generate jwt")
 	t.Run("valid object", func(t *testing.T) {
 		ctx := contextWithToken(nil, jwt)
 		stream, err := cl.ListObjectKeys(ctx, &pb.ListObjectKeysRequest{})
-		require.NoError(err)
+		require.NoError(t, err)
 		_, err = stream.Recv()
 		requireGRPCError(t, rpctypes.ErrNilLabel, err)
-		require.NoError(stream.CloseSend())
+		require.NoError(t, stream.CloseSend())
 
 		ctx = contextWithLabelAndToken(nil, jwt, label)
 		stream, err = cl.ListObjectKeys(ctx, &pb.ListObjectKeysRequest{})
-		require.NoError(err, "can't send list request to server")
+		require.NoError(t, err, "can't send list request to server")
 
 		objNr := 0
 		for {
@@ -118,43 +115,43 @@ func TestServerListObjectKeys(t *testing.T) {
 			objNr++
 			key := obj.GetKey()
 			_, ok := bufList[string(key)]
-			require.True(ok, fmt.Sprintf("received key that was not present in db %s", key))
+			require.True(t, ok, fmt.Sprintf("received key that was not present in db %s", key))
 		}
-		assert.Equal(len(bufList), objNr)
+		assert.Equal(t, len(bufList), objNr)
 	})
 
 	t.Run("wrong permission", func(t *testing.T) {
 		jwt, err := iyoCl.CreateJWT(namespace, itsyouonline.Permission{
 			Write: true,
 		})
-		require.NoError(err, "fail to generate jwt")
+		require.NoError(t, err, "fail to generate jwt")
 
 		ctx := contextWithLabelAndToken(nil, jwt, label)
 
 		stream, err := cl.ListObjectKeys(ctx, &pb.ListObjectKeysRequest{})
-		require.NoError(err, "failed to call List")
+		require.NoError(t, err, "failed to call List")
 
 		_, err = stream.Recv()
 		if err == io.EOF {
 		}
 
-		require.Error(err)
+		require.Error(t, err)
 		err = rpctypes.Error(err)
-		assert.Equal(rpctypes.ErrPermissionDenied, err)
+		assert.Equal(t, rpctypes.ErrPermissionDenied, err)
 	})
 
 	t.Run("admin right", func(t *testing.T) {
 		jwt, err := iyoCl.CreateJWT(namespace, itsyouonline.Permission{
 			Admin: true,
 		})
-		require.NoError(err, "fail to generate jwt")
+		require.NoError(t, err, "fail to generate jwt")
 
 		ctx := contextWithLabelAndToken(nil, jwt, label)
 
 		stream, err := cl.ListObjectKeys(ctx, &pb.ListObjectKeysRequest{})
-		require.NoError(err, "failed to call List")
+		require.NoError(t, err, "failed to call List")
 		_, err = stream.Recv()
-		assert.NoError(err)
+		assert.NoError(t, err)
 		stream.CloseSend()
 	})
 }
@@ -208,87 +205,6 @@ func TestServerGetObjectStatus(t *testing.T) {
 			assert.Equal(tc.expectedStatus, resp.GetStatus(), fmt.Sprintf("status should be %v", tc.expectedStatus))
 		}
 	}
-}
-
-func TestServerUpdateReferenceList(t *testing.T) {
-	require := require.New(t)
-
-	server, iyoCl, clean := getTestGRPCServer(t, organization)
-	populateDB(t, label, server.db)
-
-	// create client connection
-	conn, err := grpc.Dial(server.Address(), grpc.WithInsecure())
-	require.NoError(err, "can't connect to the server")
-
-	defer func() {
-		conn.Close()
-		clean()
-	}()
-
-	cl := pb.NewObjectManagerClient(conn)
-	jwt, err := iyoCl.CreateJWT(namespace, itsyouonline.Permission{
-		Admin: true,
-	})
-	require.NoError(err, "fail to generate jwt")
-
-	// set reflist
-	testKey := []byte("testkey1")
-	ctx := contextWithLabelAndToken(nil, jwt, label)
-
-	_, err = cl.SetReferenceList(ctx, &pb.SetReferenceListRequest{
-		Key:           testKey,
-		ReferenceList: []string{"ref1"},
-	})
-	require.NoError(err)
-
-	curReflist := getCurrentReflist(ctx, require, cl, testKey, label)
-	require.Equal([]string{"ref1"}, curReflist)
-
-	// append reflist with "ref2"
-	_, err = cl.AppendToReferenceList(ctx, &pb.AppendToReferenceListRequest{
-		Key:           testKey,
-		ReferenceList: []string{"ref2"},
-	})
-	require.NoError(err)
-
-	curReflist = getCurrentReflist(ctx, require, cl, testKey, label)
-	require.Equal([]string{"ref1", "ref2"}, curReflist)
-
-	// remove "ref2"
-	resp, err := cl.DeleteFromReferenceList(ctx, &pb.DeleteFromReferenceListRequest{
-		Key:           testKey,
-		ReferenceList: []string{"ref2"},
-	})
-	require.NoError(err)
-	require.Equal(int64(1), resp.GetCount())
-
-	curReflist = getCurrentReflist(ctx, require, cl, testKey, label)
-	require.Equal([]string{"ref1"}, curReflist)
-
-	// remove "ref1"
-	resp, err = cl.DeleteFromReferenceList(ctx, &pb.DeleteFromReferenceListRequest{
-		Key:           testKey,
-		ReferenceList: []string{"ref1"},
-	})
-	require.NoError(err)
-	require.Equal(int64(0), resp.GetCount())
-
-	curReflist = getCurrentReflist(ctx, require, cl, testKey, label)
-	require.Empty(curReflist)
-}
-
-func getCurrentReflist(ctx context.Context, require *require.Assertions, cl pb.ObjectManagerClient, key []byte, label string) []string {
-	resp, err := cl.GetReferenceList(ctx, &pb.GetReferenceListRequest{
-		Key: key,
-	})
-	if err != nil {
-		err = rpctypes.Error(err)
-		if err == rpctypes.ErrKeyNotFound {
-			return nil
-		}
-		require.Fail(err.Error())
-	}
-	return resp.GetReferenceList()
 }
 
 func contextWithLabelAndToken(ctx context.Context, token, label string) context.Context {
