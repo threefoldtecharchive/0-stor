@@ -52,9 +52,7 @@ func TestClientWithServer_API(t *testing.T) {
 	// now let's set something, but miss ome required params,
 	// making these calls invalid and have no affect on the database's state
 
-	err = client.SetObject(datastor.Object{})
-	require.Equal(rpctypes.ErrNilKey, err)
-	err = client.SetObject(datastor.Object{Key: key})
+	_, err = client.CreateObject(nil)
 	require.Equal(rpctypes.ErrNilData, err)
 
 	// let's ensure our object is still missing
@@ -70,16 +68,14 @@ func TestClientWithServer_API(t *testing.T) {
 	// now let's set the object for real
 
 	data := []byte("myData")
-	err = client.SetObject(datastor.Object{
-		Key:  key,
-		Data: data,
-	})
+	key, err = client.CreateObject(data)
 	require.NoError(err)
+	require.NotNil(key)
 
 	// our getters from earlier should work now
 
 	obj, err = client.GetObject(key)
-	require.NoError(err)
+	require.NoErrorf(err, "Key: %s", key)
 	require.NotNil(obj)
 	require.Equal(key, obj.Key)
 	require.Equal(data, obj.Data)
@@ -109,24 +105,18 @@ func TestClientWithServer_API(t *testing.T) {
 	case <-time.After(time.Millisecond * 500):
 	}
 
-	otherKey := []byte("myOtherKey")
 	otherData := []byte("some other data")
 	// now let's add one more object
-	err = client.SetObject(datastor.Object{
-		Key:  otherKey,
-		Data: otherData,
-	})
+	otherKey, err := client.CreateObject(otherData)
 	require.NoError(err)
+	require.NotNil(otherKey)
 
 	// let's add another one, it's starting to get fun
-	yetAnotherKey := []byte("myOtherKey")
 	whyNotData := []byte("why not data")
 	// now let's add one more object
-	err = client.SetObject(datastor.Object{
-		Key:  yetAnotherKey,
-		Data: whyNotData,
-	})
+	yetAnotherKey, err := client.CreateObject(whyNotData)
 	require.NoError(err)
+	require.NotNil(otherKey)
 
 	// now let's list them all, they should all appear!
 	objects := map[string]datastor.Object{

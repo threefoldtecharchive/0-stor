@@ -12,6 +12,7 @@ import (
 // DB implements the db.DB interace
 type DB struct {
 	m   map[string][]byte
+	c   map[string]uint64
 	mux sync.RWMutex
 }
 
@@ -20,7 +21,42 @@ type DB struct {
 func New() *DB {
 	return &DB{
 		m: make(map[string][]byte),
+		c: make(map[string]uint64),
 	}
+}
+
+// Set implements DB.Set
+func (mdb *DB) Set(key []byte, data []byte) error {
+	if key == nil {
+		return db.ErrNilKey
+	}
+
+	b := make([]byte, len(data))
+	copy(b, data)
+	mdb.mux.Lock()
+	mdb.m[string(key)] = b
+	mdb.mux.Unlock()
+	return nil
+}
+
+// SetScoped implements DB.SetScoped
+func (mdb *DB) SetScoped(scopeKey, data []byte) ([]byte, error) {
+	if scopeKey == nil {
+		return nil, db.ErrNilKey
+	}
+
+	b := make([]byte, len(data))
+	copy(b, data)
+
+	scopeKeyStr := string(scopeKey)
+
+	mdb.mux.Lock()
+	key := db.ScopedSequenceKey(scopeKey, mdb.c[scopeKeyStr])
+	mdb.c[scopeKeyStr]++
+	mdb.m[string(key)] = b
+	mdb.mux.Unlock()
+
+	return key, nil
 }
 
 // Get implements DB.Get
@@ -53,20 +89,6 @@ func (mdb *DB) Exists(key []byte) (bool, error) {
 	_, exists := mdb.m[string(key)]
 	mdb.mux.RUnlock()
 	return exists, nil
-}
-
-// Set implements DB.Set
-func (mdb *DB) Set(key []byte, value []byte) error {
-	if key == nil {
-		return db.ErrNilKey
-	}
-
-	b := make([]byte, len(value))
-	copy(b, value)
-	mdb.mux.Lock()
-	mdb.m[string(key)] = b
-	mdb.mux.Unlock()
-	return nil
 }
 
 // Delete implements DB.Delete

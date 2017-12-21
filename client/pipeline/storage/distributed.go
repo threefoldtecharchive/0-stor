@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/zero-os/0-stor/client/metastor"
+
 	"golang.org/x/sync/errgroup"
 
 	log "github.com/Sirupsen/logrus"
@@ -12,44 +14,44 @@ import (
 	"github.com/zero-os/0-stor/client/datastor"
 )
 
-// NewDistributedObjectStorage creates a new DistributedObjectStorage,
+// NewDistributedChunkStorage creates a new DistributedChunkStorage,
 // using the given Cluster and default ReedSolomonEncoderDecoder as internal DistributedEncoderDecoder.
-// See `DistributedObjectStorage` `DistributedEncoderDecoder` for more information.
-func NewDistributedObjectStorage(cluster datastor.Cluster, dataShardCount, parityShardCount, jobCount int) (*DistributedObjectStorage, error) {
+// See `DistributedChunkStorage` `DistributedEncoderDecoder` for more information.
+func NewDistributedChunkStorage(cluster datastor.Cluster, dataShardCount, parityShardCount, jobCount int) (*DistributedChunkStorage, error) {
 	if cluster.ListedShardCount() < dataShardCount+parityShardCount {
-		return nil, errors.New("DistributedObjectStorage requires " +
+		return nil, errors.New("DistributedChunkStorage requires " +
 			"at least dataShardCount+parityShardCount amount of listed datastor shards")
 	}
 	dec, err := NewReedSolomonEncoderDecoder(dataShardCount, parityShardCount)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create DistributedObjectStorage: %v", err)
+		return nil, fmt.Errorf("failed to create DistributedChunkStorage: %v", err)
 	}
-	return NewDistributedObjectStorageWithEncoderDecoder(cluster, dec, jobCount), nil
+	return NewDistributedChunkStorageWithEncoderDecoder(cluster, dec, jobCount), nil
 }
 
-// NewDistributedObjectStorageWithEncoderDecoder creates a new DistributedObjectStorage,
+// NewDistributedChunkStorageWithEncoderDecoder creates a new DistributedChunkStorage,
 // using the given Cluster and DistributedEncoderDecoder.
-// See `DistributedObjectStorage` `DistributedEncoderDecoder` for more information.
-func NewDistributedObjectStorageWithEncoderDecoder(cluster datastor.Cluster, dec DistributedEncoderDecoder, jobCount int) *DistributedObjectStorage {
+// See `DistributedChunkStorage` `DistributedEncoderDecoder` for more information.
+func NewDistributedChunkStorageWithEncoderDecoder(cluster datastor.Cluster, dec DistributedEncoderDecoder, jobCount int) *DistributedChunkStorage {
 	if cluster == nil {
-		panic("DistributedObjectStorage: no datastor cluster given")
+		panic("DistributedChunkStorage: no datastor cluster given")
 	}
 	if dec == nil {
-		panic("DistributedObjectStorage: no DistributedEncoderDecoder given")
+		panic("DistributedChunkStorage: no DistributedEncoderDecoder given")
 	}
 
 	if jobCount < 1 {
 		jobCount = DefaultJobCount
 	}
 
-	return &DistributedObjectStorage{
+	return &DistributedChunkStorage{
 		cluster:  cluster,
 		dec:      dec,
 		jobCount: jobCount,
 	}
 }
 
-// DistributedObjectStorage defines a storage implementation,
+// DistributedChunkStorage defines a storage implementation,
 // which splits and distributes data over a secure amount of shards,
 // rather than just writing it to a single shard as it is.
 // This to provide protection against data loss when one of the used shards drops.
@@ -60,19 +62,19 @@ func NewDistributedObjectStorageWithEncoderDecoder(cluster datastor.Cluster, dec
 // When using this default distributed encoder-decoder,
 // you need to provide at least 2 shards (1 data- and 1 parity- shard).
 //
-// When creating a DistributedObjectStorage you can also pass in your
+// When creating a DistributedChunkStorage you can also pass in your
 // own DistributedEncoderDecoder should you not be satisfied with the default implementation.
-type DistributedObjectStorage struct {
+type DistributedChunkStorage struct {
 	cluster  datastor.Cluster
 	dec      DistributedEncoderDecoder
 	jobCount int
 }
 
-// Write implements storage.ObjectStorage.Write
-func (ds *DistributedObjectStorage) Write(object datastor.Object) (ObjectConfig, error) {
-	parts, err := ds.dec.Encode(object.Data)
+// WriteChunk implements storage.ObjectStorage.WriteChunk
+func (ds *DistributedChunkStorage) WriteChunk(data []byte) (*ChunkConfig, error) {
+	parts, err := ds.dec.Encode(data)
 	if err != nil {
-		return ObjectConfig{}, err
+		return nil, err
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -112,17 +114,18 @@ func (ds *DistributedObjectStorage) Write(object datastor.Object) (ObjectConfig,
 		ds.cluster.GetRandomShardIterator(nil), jobCount)
 
 	// write all the different parts to their own separate shard,
-	// and return the identifiers of the used shards over the resultCh,
+	// and return the written object information over the resultCh,
 	// which will be used to collect all the successfull shards' identifiers for the final output
-	type indexedShard struct {
-		Index      int
-		Identifier string
+	type indexedObject struct {
+		Index  int
+		Object metastor.Object
 	}
-	resultCh := make(chan indexedShard, jobCount)
+	resultCh := make(chan indexedObject, jobCount)
 	// create all the actual workers
 	for i := 0; i < jobCount; i++ {
 		group.Go(func() error {
 			var (
+				key   []byte
 				part  indexedPart
 				open  bool
 				err   error
@@ -160,13 +163,11 @@ func (ds *DistributedObjectStorage) Write(object datastor.Object) (ObjectConfig,
 					}
 
 					// do the actual storage
-					err = shard.SetObject(datastor.Object{
-						Key:  object.Key,
-						Data: part.Data,
-					})
+					key, err = shard.CreateObject(part.Data)
 					if err == nil {
+						object := metastor.Object{Key: key, ShardID: shard.Identifier()}
 						select {
-						case resultCh <- indexedShard{part.Index, shard.Identifier()}:
+						case resultCh <- indexedObject{part.Index, object}:
 							break writeLoop
 						case <-ctx.Done():
 							return errors.New("context was unexpectedly cancelled, " +
@@ -176,8 +177,8 @@ func (ds *DistributedObjectStorage) Write(object datastor.Object) (ObjectConfig,
 
 					// casually log the shard-write error,
 					// and continue trying with another shard...
-					log.Errorf("failed to write %q to random shard %q: %v",
-						object.Key, shard.Identifier(), err)
+					log.Errorf("failed to write data to random shard %q: %v",
+						shard.Identifier(), err)
 				}
 			}
 		})
@@ -188,8 +189,7 @@ func (ds *DistributedObjectStorage) Write(object datastor.Object) (ObjectConfig,
 	go func() {
 		err := group.Wait()
 		if err != nil {
-			log.Errorf("duplicate-writing %q has failed due to an error: %v",
-				object.Key, err)
+			log.Errorf("duplicate-writing has failed due to an error: %v", err)
 		}
 		close(resultCh)
 	}()
@@ -198,37 +198,37 @@ func (ds *DistributedObjectStorage) Write(object datastor.Object) (ObjectConfig,
 	// and store+send them in the same order as how we received the parts
 	var (
 		resultCount int
-		shards      = make([]string, partsCount)
+		objects     = make([]metastor.Object, partsCount)
 	)
 	// fetch all results
 	for result := range resultCh {
-		shards[result.Index] = result.Identifier
+		objects[result.Index] = result.Object
 		resultCount++
 	}
 
-	cfg := ObjectConfig{Key: object.Key, Shards: shards, DataSize: len(object.Data)}
+	cfg := ChunkConfig{Size: int64(len(data)), Objects: objects}
 	// check if we have sufficient distributions
 	if resultCount < partsCount {
-		return cfg, ErrShardsUnavailable
+		return &cfg, ErrShardsUnavailable
 	}
-	return cfg, nil
+	return &cfg, nil
 }
 
-// Read implements storage.ObjectStorage.Read
-func (ds *DistributedObjectStorage) Read(cfg ObjectConfig) (datastor.Object, error) {
-	// validate the input shard count
-	shardCount := len(cfg.Shards)
+// ReadChunk implements storage.ObjectStorage.ReadChunk
+func (ds *DistributedChunkStorage) ReadChunk(cfg ChunkConfig) ([]byte, error) {
+	// validate the input object count
+	objectCount := len(cfg.Objects)
 
-	requiredShardCount := ds.dec.RequiredShardCount()
-	if requiredShardCount != shardCount {
-		return datastor.Object{}, ErrUnexpectedShardsCount
+	requiredObjectCount := ds.dec.RequiredShardCount()
+	if requiredObjectCount != objectCount {
+		return nil, ErrUnexpectedObjectCount
 	}
 	minimumShardCount := ds.dec.MinimumValidShardCount()
 
 	// define the jobCount
 	jobCount := ds.jobCount
-	if jobCount > shardCount {
-		jobCount = shardCount
+	if jobCount > objectCount {
+		jobCount = objectCount
 	}
 
 	// create our sync-purpose variables
@@ -236,26 +236,14 @@ func (ds *DistributedObjectStorage) Read(cfg ObjectConfig) (datastor.Object, err
 	defer cancel()
 	group, ctx := errgroup.WithContext(ctx)
 
-	// create a channel-based iterator, to fetch the shards,
-	// in sequence as given, and thread-save,
-	// also attach the index to each shard, such that
-	// we can deliver the parts in the correct order
-	type indexedShard struct {
-		Index int
-		Shard datastor.Shard
-	}
-	shardCh := make(chan indexedShard, jobCount)
+	// create a channel-based iterator, to get the objects,
+	// in sequence as given, and thread-save.
+	objectIndexCh := make(chan int, jobCount)
 	go func() {
-		defer close(shardCh)
-
-		var (
-			index int
-			it    = datastor.NewLazyShardIterator(ds.cluster, cfg.Shards)
-		)
-		for it.Next() {
+		defer close(objectIndexCh)
+		for index := range cfg.Objects {
 			select {
-			case shardCh <- indexedShard{index, it.Shard()}:
-				index++
+			case objectIndexCh <- index:
 			case <-ctx.Done():
 				return
 			}
@@ -274,33 +262,44 @@ func (ds *DistributedObjectStorage) Read(cfg ObjectConfig) (datastor.Object, err
 	for i := 0; i < jobCount; i++ {
 		group.Go(func() error {
 			var (
-				open   bool
-				object *datastor.Object
-				err    error
-				shard  indexedShard
+				open        bool
+				object      *datastor.Object
+				err         error
+				shard       datastor.Shard
+				index       int
+				inputObject metastor.Object
 			)
 			for {
 				// fetch a random shard
 				select {
-				case shard, open = <-shardCh:
+				case index, open = <-objectIndexCh:
 					if !open {
 						return nil
 					}
 				case <-ctx.Done():
 					return nil
 				}
+				inputObject = cfg.Objects[index]
+				shard, err = ds.cluster.GetShard(inputObject.ShardID)
+				if err != nil {
+					// casually log the shard-get error,
+					// and continue trying with another object...
+					log.Errorf("failed to get shard %q for object %q: %v",
+						inputObject.ShardID, inputObject.Key, err)
+					continue
+				}
 
 				// fetch the data part
-				object, err = shard.Shard.GetObject(cfg.Key)
+				object, err = shard.GetObject(inputObject.Key)
 				if err != nil {
 					// casually log the shard-read error,
 					// and continue trying with another shard...
 					log.Errorf("failed to read %q from given shard %q: %v",
-						cfg.Key, shard.Shard.Identifier(), err)
+						inputObject.Key, inputObject.Key, err)
 					continue // try another shard
 				}
 				result := readResult{
-					Index: shard.Index,
+					Index: index,
 					Data:  object.Data,
 				}
 				select {
@@ -318,8 +317,7 @@ func (ds *DistributedObjectStorage) Read(cfg ObjectConfig) (datastor.Object, err
 	go func() {
 		err := group.Wait()
 		if err != nil {
-			log.Errorf("distribute-read %q has failed due to an error: %v",
-				cfg.Key, err)
+			log.Errorf("distribute-read has failed due to an error: %v", err)
 		}
 		close(resultCh)
 	}()
@@ -328,7 +326,7 @@ func (ds *DistributedObjectStorage) Read(cfg ObjectConfig) (datastor.Object, err
 	var (
 		resultCount int
 
-		parts = make([][]byte, requiredShardCount)
+		parts = make([][]byte, requiredObjectCount)
 	)
 
 	for result := range resultCh {
@@ -343,52 +341,63 @@ func (ds *DistributedObjectStorage) Read(cfg ObjectConfig) (datastor.Object, err
 
 	// ensure that we have received all the different parts
 	if resultCount < minimumShardCount {
-		return datastor.Object{}, ErrShardsUnavailable
+		return nil, ErrShardsUnavailable
 	}
 
 	// decode the distributed data
-	data, err := ds.dec.Decode(parts, cfg.DataSize)
+	data, err := ds.dec.Decode(parts, cfg.Size)
 	if err != nil {
-		return datastor.Object{}, err
+		return nil, err
 	}
-	if len(data) != cfg.DataSize {
-		return datastor.Object{}, ErrInvalidDataSize
+	if int64(len(data)) != cfg.Size {
+		return nil, ErrInvalidDataSize
 	}
 
 	// return decoded object
-	return datastor.Object{
-		Key:  cfg.Key,
-		Data: data,
-	}, nil
+	return data, nil
 }
 
-// Check implements storage.ObjectStorage.Check
-func (ds *DistributedObjectStorage) Check(cfg ObjectConfig, fast bool) (ObjectCheckStatus, error) {
+// CheckChunk implements storage.ObjectStorage.CheckChunk
+func (ds *DistributedChunkStorage) CheckChunk(cfg ChunkConfig, fast bool) (CheckStatus, error) {
 	// validate the input shard count
-	shardCount := len(cfg.Shards)
+	objectCount := len(cfg.Objects)
 
-	// validate that we have enough shards specified
-	requiredShardCount := ds.dec.RequiredShardCount()
-	if requiredShardCount != shardCount {
-		return ObjectCheckStatusInvalid, ErrUnexpectedShardsCount
+	// validate that we have enough objects specified
+	requiredObjectCount := ds.dec.RequiredShardCount()
+	if requiredObjectCount != objectCount {
+		return CheckStatusInvalid, ErrUnexpectedObjectCount
 	}
-	minimumValidShardCount := ds.dec.MinimumValidShardCount()
+	minimumValidObjectCount := ds.dec.MinimumValidShardCount()
 
-	// define the target amount of valid shards to be searched for
-	searchShardCount := requiredShardCount
+	// define the target amount of valid objects to be searched for
+	searchObjectCount := requiredObjectCount
 	if fast {
-		searchShardCount = minimumValidShardCount
+		searchObjectCount = minimumValidObjectCount
 	}
 
 	// define the jobCount
 	jobCount := ds.jobCount
-	if jobCount > searchShardCount {
-		jobCount = searchShardCount
+	if jobCount > searchObjectCount {
+		jobCount = searchObjectCount
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	group, ctx := errgroup.WithContext(ctx)
+
+	// create a channel-based iterator, to get the objects,
+	// in sequence as given, and thread-save.
+	objectIndexCh := make(chan int, jobCount)
+	go func() {
+		defer close(objectIndexCh)
+		for index := range cfg.Objects {
+			select {
+			case objectIndexCh <- index:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
 
 	// request the worker goroutines,
 	// to get exactly searchShardCount amount of valid shards to be found,
@@ -396,7 +405,7 @@ func (ds *DistributedObjectStorage) Check(cfg ObjectConfig, fast bool) (ObjectCh
 	requestCh := make(chan struct{}, jobCount)
 	go func() {
 		defer close(requestCh) // closes itself
-		for i := searchShardCount; i > 0; i-- {
+		for i := searchObjectCount; i > 0; i-- {
 			select {
 			case requestCh <- struct{}{}:
 			case <-ctx.Done():
@@ -404,11 +413,6 @@ func (ds *DistributedObjectStorage) Check(cfg ObjectConfig, fast bool) (ObjectCh
 			}
 		}
 	}()
-
-	// create a channel-based iterator, to fetch the shards,
-	// randomly and thread-save
-	shardCh := datastor.ShardIteratorChannel(ctx,
-		datastor.NewLazyShardIterator(ds.cluster, cfg.Shards), jobCount)
 
 	// each worker will help us get through all shards,
 	// until we found the desired amount of valid shards,
@@ -423,6 +427,8 @@ func (ds *DistributedObjectStorage) Check(cfg ObjectConfig, fast bool) (ObjectCh
 				err    error
 				status datastor.ObjectStatus
 				shard  datastor.Shard
+				index  int
+				object metastor.Object
 			)
 			for {
 				// wait for a request
@@ -437,35 +443,42 @@ func (ds *DistributedObjectStorage) Check(cfg ObjectConfig, fast bool) (ObjectCh
 				}
 
 				// loop here, until we either have an error,
-				// or until we have confirmed a valid shard
+				// or until we have confirmed a valid object
 			validateLoop:
 				for {
-					// fetch a random shard,
-					// it's an error if this is not possible,
-					// as a shard is expected to be still available at this stage
+					// fetch a next available object
 					select {
-					case shard, open = <-shardCh:
+					case index, open = <-objectIndexCh:
 						if !open {
 							return nil
 						}
 					case <-ctx.Done():
 						return nil
 					}
+					object = cfg.Objects[index]
+
+					// first get the shard for that object, if possible
+					shard, err = ds.cluster.GetShard(object.ShardID)
+					if err != nil {
+						log.Errorf("error while fetching shard %q for object %q: %v",
+							object.ShardID, object.Key, err)
+						continue validateLoop
+					}
 
 					// validate if the object's status for this shard is OK
-					status, err = shard.GetObjectStatus(cfg.Key)
+					status, err = shard.GetObjectStatus(object.Key)
 					if err != nil {
 						log.Errorf("error while validating %q stored on shard %q: %v",
-							cfg.Key, shard.Identifier(), err)
+							object.Key, object.Key, err)
 						continue validateLoop
 					}
 					if status != datastor.ObjectStatusOK {
 						log.Debugf("object %q stored on shard %q is not valid: %s",
-							cfg.Key, shard.Identifier(), status)
+							object.Key, object.Key, status)
 						continue validateLoop
 					}
 
-					// shard is valid for this object,
+					// shard is reachable and contains a valid object,
 					// notify the result collector about it
 					select {
 					case resultCh <- struct{}{}:
@@ -483,47 +496,46 @@ func (ds *DistributedObjectStorage) Check(cfg ObjectConfig, fast bool) (ObjectCh
 	go func() {
 		err := group.Wait()
 		if err != nil {
-			log.Errorf("distribute-check %q has failed due to an error: %v",
-				cfg.Key, err)
+			log.Errorf("distribute-check has failed due to an error: %v", err)
 		}
 		close(resultCh)
 	}()
 
 	// count how many shards are valid
-	var validShardCount int
+	var validObjectCount int
 	// fetch all results
 	for range resultCh {
-		validShardCount++
+		validObjectCount++
 	}
 
 	// return the result
-	if validShardCount == requiredShardCount {
-		return ObjectCheckStatusOptimal, nil
+	if validObjectCount == requiredObjectCount {
+		return CheckStatusOptimal, nil
 	}
-	if validShardCount >= minimumValidShardCount {
-		return ObjectCheckStatusValid, nil
+	if validObjectCount >= minimumValidObjectCount {
+		return CheckStatusValid, nil
 	}
-	return ObjectCheckStatusInvalid, nil
+	return CheckStatusInvalid, nil
 }
 
-// Repair implements storage.ObjectStorage.Repair
-func (ds *DistributedObjectStorage) Repair(cfg ObjectConfig) (ObjectConfig, error) {
-	obj, err := ds.Read(cfg)
+// RepairChunk implements storage.ObjectStorage.RepairChunk
+func (ds *DistributedChunkStorage) RepairChunk(cfg ChunkConfig) (*ChunkConfig, error) {
+	obj, err := ds.ReadChunk(cfg)
 	if err != nil {
-		return ObjectConfig{}, err
+		return nil, err
 	}
-	return ds.Write(obj)
+	return ds.WriteChunk(obj)
 }
 
 // DistributedEncoderDecoder is the type used internally to
-// read and write the data of objects, read and written using the DistributedObjectStorage.
+// read and write the data of objects, read and written using the DistributedChunkStorage.
 type DistributedEncoderDecoder interface {
 	// Encode object data into multiple (distributed) parts,
 	// such that those parts can be reconstructed when the data has to be read again.
 	Encode(data []byte) (parts [][]byte, err error)
 	// Decode the different parts back into the original data slice,
 	// as it was given in the original Encode call.
-	Decode(parts [][]byte, dataSize int) (data []byte, err error)
+	Decode(parts [][]byte, dataSize int64) (data []byte, err error)
 
 	// MinimumValidShardCount returns the minimum valid shard count required,
 	// in order to decode a distributed object.
@@ -561,7 +573,7 @@ func NewReedSolomonEncoderDecoder(dataShardCount, parityShardCount int) (*ReedSo
 // using the erasure encoding library github.com/templexxx/reedsolomon.
 //
 // This implementation is also used as the default DistributedEncoderDecoder
-// for the DistributedObjectStorage storage type.
+// for the DistributedChunkStorage storage type.
 type ReedSolomonEncoderDecoder struct {
 	dataShardCount, parityShardCount int                         // data and parity count
 	shardCount                       int                         // dataShardCount + parityShardCount
@@ -582,7 +594,7 @@ func (rs *ReedSolomonEncoderDecoder) Encode(data []byte) ([][]byte, error) {
 }
 
 // Decode implements DistributedEncoderDecoder.Decode
-func (rs *ReedSolomonEncoderDecoder) Decode(parts [][]byte, dataSize int) ([]byte, error) {
+func (rs *ReedSolomonEncoderDecoder) Decode(parts [][]byte, dataSize int64) ([]byte, error) {
 	if len(parts) != rs.shardCount {
 		return nil, errors.New("unexpected amount of parts given to decode")
 	}
@@ -593,11 +605,11 @@ func (rs *ReedSolomonEncoderDecoder) Decode(parts [][]byte, dataSize int) ([]byt
 
 	var (
 		data   = make([]byte, dataSize)
-		offset int
+		offset int64
 	)
 	for i := 0; i < rs.dataShardCount; i++ {
 		copy(data[offset:], parts[i])
-		offset += len(parts[i])
+		offset += int64(len(parts[i]))
 		if offset >= dataSize {
 			break
 		}
@@ -647,7 +659,7 @@ func (rs *ReedSolomonEncoderDecoder) getPadLen(dataLen int) int {
 }
 
 var (
-	_ ObjectStorage = (*DistributedObjectStorage)(nil)
+	_ ChunkStorage = (*DistributedChunkStorage)(nil)
 
 	_ DistributedEncoderDecoder = (*ReedSolomonEncoderDecoder)(nil)
 )

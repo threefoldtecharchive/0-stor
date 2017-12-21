@@ -5,6 +5,8 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/zero-os/0-stor/client/metastor"
+
 	"github.com/zero-os/0-stor/client/datastor"
 
 	"github.com/stretchr/testify/assert"
@@ -13,14 +15,14 @@ import (
 
 func TestNewDistributedStoragePanics(t *testing.T) {
 	require.Panics(t, func() {
-		NewDistributedObjectStorage(nil, 1, 1, -1)
+		NewDistributedChunkStorage(nil, 1, 1, -1)
 	}, "no cluster given given")
 }
 
 func TestNewDistributedStorageErrors(t *testing.T) {
-	_, err := NewDistributedObjectStorage(dummyCluster{}, 0, 1, -1)
+	_, err := NewDistributedChunkStorage(dummyCluster{}, 0, 1, -1)
 	require.Error(t, err, "no valid dataShardCount (data shard count) given")
-	_, err = NewDistributedObjectStorage(dummyCluster{}, 1, 0, -1)
+	_, err = NewDistributedChunkStorage(dummyCluster{}, 1, 0, -1)
 	require.Error(t, err, "no valid parityShardCount (parity shard count) given")
 }
 
@@ -30,7 +32,7 @@ func TestDistributedStorageReadCheckWrite(t *testing.T) {
 		require.NoError(t, err)
 		defer cleanup()
 
-		storage, err := NewDistributedObjectStorage(cluster, 1, 1, 0)
+		storage, err := NewDistributedChunkStorage(cluster, 1, 1, 0)
 		require.NoError(t, err)
 
 		testStorageReadCheckWrite(t, storage)
@@ -41,7 +43,7 @@ func TestDistributedStorageReadCheckWrite(t *testing.T) {
 		require.NoError(t, err)
 		defer cleanup()
 
-		storage, err := NewDistributedObjectStorage(cluster, 2, 1, 0)
+		storage, err := NewDistributedChunkStorage(cluster, 2, 1, 0)
 		require.NoError(t, err)
 
 		testStorageReadCheckWrite(t, storage)
@@ -52,7 +54,7 @@ func TestDistributedStorageReadCheckWrite(t *testing.T) {
 		require.NoError(t, err)
 		defer cleanup()
 
-		storage, err := NewDistributedObjectStorage(cluster, 1, 2, 0)
+		storage, err := NewDistributedChunkStorage(cluster, 1, 2, 0)
 		require.NoError(t, err)
 
 		testStorageReadCheckWrite(t, storage)
@@ -63,7 +65,7 @@ func TestDistributedStorageReadCheckWrite(t *testing.T) {
 		require.NoError(t, err)
 		defer cleanup()
 
-		storage, err := NewDistributedObjectStorage(cluster, 2, 2, 1)
+		storage, err := NewDistributedChunkStorage(cluster, 2, 2, 1)
 		require.NoError(t, err)
 
 		testStorageReadCheckWrite(t, storage)
@@ -74,7 +76,7 @@ func TestDistributedStorageReadCheckWrite(t *testing.T) {
 		require.NoError(t, err)
 		defer cleanup()
 
-		storage, err := NewDistributedObjectStorage(cluster, 8, 8, 0)
+		storage, err := NewDistributedChunkStorage(cluster, 8, 8, 0)
 		require.NoError(t, err)
 
 		testStorageReadCheckWrite(t, storage)
@@ -85,7 +87,7 @@ func TestDistributedStorageReadCheckWrite(t *testing.T) {
 		require.NoError(t, err)
 		defer cleanup()
 
-		storage, err := NewDistributedObjectStorage(cluster, 4, 8, 0)
+		storage, err := NewDistributedChunkStorage(cluster, 4, 8, 0)
 		require.NoError(t, err)
 
 		testStorageReadCheckWrite(t, storage)
@@ -96,7 +98,7 @@ func TestDistributedStorageReadCheckWrite(t *testing.T) {
 		require.NoError(t, err)
 		defer cleanup()
 
-		storage, err := NewDistributedObjectStorage(cluster, 8, 4, 0)
+		storage, err := NewDistributedChunkStorage(cluster, 8, 4, 0)
 		require.NoError(t, err)
 
 		testStorageReadCheckWrite(t, storage)
@@ -107,7 +109,7 @@ func TestDistributedStorageReadCheckWrite(t *testing.T) {
 		require.NoError(t, err)
 		defer cleanup()
 
-		storage, err := NewDistributedObjectStorage(cluster, 8, 8, 1)
+		storage, err := NewDistributedChunkStorage(cluster, 8, 8, 1)
 		require.NoError(t, err)
 
 		testStorageReadCheckWrite(t, storage)
@@ -142,7 +144,7 @@ func testDistributedStorageCheckRepair(t *testing.T, dataShardCount, parityShard
 	require.NoError(err)
 	defer cleanup()
 
-	storage, err := NewDistributedObjectStorage(cluster, dataShardCount, parityShardCount, jobCount)
+	storage, err := NewDistributedChunkStorage(cluster, dataShardCount, parityShardCount, jobCount)
 	require.NoError(err)
 	require.NotNil(storage)
 
@@ -150,111 +152,105 @@ func testDistributedStorageCheckRepair(t *testing.T, dataShardCount, parityShard
 		dataSize = 512
 	)
 
-	key := []byte("myKey")
-	inputObject := datastor.Object{
-		Key:  key,
-		Data: make([]byte, dataSize),
-	}
-	_, err = rand.Read(inputObject.Data)
+	input := make([]byte, dataSize)
+	_, err = rand.Read(input)
 	require.NoError(err)
 
-	cfg, err := storage.Write(inputObject)
+	cfg, err := storage.WriteChunk(input)
 	require.NoError(err)
-	require.Equal(inputObject.Key, cfg.Key)
-	require.Equal(dataSize, cfg.DataSize)
+	require.Equal(int64(dataSize), cfg.Size)
 
 	// with all shards intact, we should have an optional result, and reading should be possible
 
-	status, err := storage.Check(cfg, false)
+	status, err := storage.CheckChunk(*cfg, false)
 	require.NoError(err)
-	require.Equal(ObjectCheckStatusOptimal, status)
+	require.Equal(CheckStatusOptimal, status)
 
-	status, err = storage.Check(cfg, true)
+	status, err = storage.CheckChunk(*cfg, true)
 	require.NoError(err)
-	require.Equal(ObjectCheckStatusValid, status)
+	require.Equal(CheckStatusValid, status)
 
-	outputObject, err := storage.Read(cfg)
+	output, err := storage.ReadChunk(*cfg)
 	require.NoError(err)
-	require.Equal(inputObject, outputObject)
+	require.Equal(input, output)
 
 	// now let's drop shards, as long as this still results in a valid, but not optimal result
 
 	for n := 1; n <= parityShardCount; n++ {
-		invalidateShards(t, cfg.Shards, n, key, cluster)
+		invalidateObjects(t, cfg.Objects, n, cluster)
 
 		// now that our shards have been messed with,
 		// we have a valid, but not-optimal result (still usable/readable though)
 
-		status, err := storage.Check(cfg, false)
+		status, err := storage.CheckChunk(*cfg, false)
 		require.NoError(err)
-		require.Equal(ObjectCheckStatusValid, status)
+		require.Equal(CheckStatusValid, status)
 
-		status, err = storage.Check(cfg, true)
+		status, err = storage.CheckChunk(*cfg, true)
 		require.NoError(err)
-		require.Equal(ObjectCheckStatusValid, status)
+		require.Equal(CheckStatusValid, status)
 
-		outputObject, err := storage.Read(cfg)
+		output, err := storage.ReadChunk(*cfg)
 		require.NoError(err)
-		require.Equal(inputObject, outputObject)
+		require.Equal(input, output)
 
 		// let's repair it to make it optimal once again,
 		// this will change our config though
 
-		cfg, err = storage.Repair(cfg)
+		cfg, err = storage.RepairChunk(*cfg)
 		require.NoError(err)
-		require.Equal(inputObject.Key, cfg.Key)
-		require.Len(cfg.Shards, dataShardCount+parityShardCount)
-		require.Equal(dataSize, cfg.DataSize)
+		require.Len(cfg.Objects, dataShardCount+parityShardCount)
+		require.Equal(int64(dataSize), cfg.Size)
 
 		// now we should get an optimal check result again
 
-		status, err = storage.Check(cfg, false)
+		status, err = storage.CheckChunk(*cfg, false)
 		require.NoError(err)
-		require.Equal(ObjectCheckStatusOptimal, status)
+		require.Equal(CheckStatusOptimal, status)
 
-		outputObject, err = storage.Read(cfg)
+		output, err = storage.ReadChunk(*cfg)
 		require.NoError(err)
-		require.Equal(inputObject, outputObject)
+		require.Equal(input, output)
 	}
 
 	// now let's drop more than the allowed shard count,
 	// this should always make our check fail, and repairing/reading should never be possible
 	for n := parityShardCount + 1; n <= dataShardCount+parityShardCount; n++ {
-		invalidateShards(t, cfg.Shards, n, key, cluster)
+		invalidateObjects(t, cfg.Objects, n, cluster)
 
-		status, err := storage.Check(cfg, false)
+		status, err := storage.CheckChunk(*cfg, false)
 		require.NoError(err)
-		require.Equal(ObjectCheckStatusInvalid, status)
+		require.Equal(CheckStatusInvalid, status)
 
-		status, err = storage.Check(cfg, true)
+		status, err = storage.CheckChunk(*cfg, true)
 		require.NoError(err)
-		require.Equal(ObjectCheckStatusInvalid, status)
+		require.Equal(CheckStatusInvalid, status)
 
-		_, err = storage.Read(cfg)
+		_, err = storage.ReadChunk(*cfg)
 		require.Error(err)
 
-		_, err = storage.Repair(cfg)
+		_, err = storage.RepairChunk(*cfg)
 		require.Error(err)
 
-		_, err = storage.Read(cfg)
+		_, err = storage.ReadChunk(*cfg)
 		require.Error(err)
 
 		// restore by writing, so our next iteration works again
 
-		cfg, err = storage.Write(inputObject)
+		cfg, err = storage.WriteChunk(input)
 		require.NoError(err)
-		require.Equal(inputObject.Key, cfg.Key)
-		require.Equal(dataSize, cfg.DataSize)
+		require.Equal(int64(dataSize), cfg.Size)
+		require.Len(cfg.Objects, dataShardCount+parityShardCount)
 	}
 }
 
-func invalidateShards(t *testing.T, shards []string, n int, key []byte, cluster datastor.Cluster) {
+func invalidateObjects(t *testing.T, objects []metastor.Object, n int, cluster datastor.Cluster) {
 	// compute invalid indices
 	var (
 		validIndices []int
-		length       = len(shards)
+		length       = len(objects)
 	)
-	if n != len(shards) {
+	if n != length {
 		for i := 0; i < length; i++ {
 			validIndices = append(validIndices, i)
 		}
@@ -266,18 +262,18 @@ func invalidateShards(t *testing.T, shards []string, n int, key []byte, cluster 
 		}
 	}
 
-	// invalidate the shards, which have non-valid indices
-	for i, shardID := range shards {
+	// invalidate the objects, which have non-valid indices
+	for i, object := range objects {
 		if len(validIndices) > 0 && validIndices[0] == i {
 			validIndices = validIndices[1:]
 			continue
 		}
 
-		shard, err := cluster.GetShard(shardID)
+		shard, err := cluster.GetShard(object.ShardID)
 		require.NoError(t, err)
 		require.NotNil(t, shard)
 
-		err = shard.DeleteObject(key)
+		err = shard.DeleteObject(object.Key)
 		require.NoError(t, err)
 	}
 }
@@ -403,7 +399,7 @@ func testReedSolomonEncoderDecoderAsyncUsage(t *testing.T, dataShardCount, parit
 			assert.NoError(err)
 			assert.NotEmpty(parts)
 
-			output, err := ed.Decode(parts, len(input))
+			output, err := ed.Decode(parts, int64(len(input)))
 			assert.NoError(err)
 			assert.Equal(input, output)
 		}()
@@ -439,7 +435,7 @@ func testReedSolomonEncoderDecoder(t *testing.T, dataShardCount, parityShardCoun
 		require.NoError(err)
 		require.NotEmpty(parts)
 
-		data, err := ed.Decode(parts, len(testCase))
+		data, err := ed.Decode(parts, int64(len(testCase)))
 		require.NoError(err)
 		require.Equal(testCase, string(data))
 	}

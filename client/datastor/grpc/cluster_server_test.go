@@ -141,31 +141,27 @@ func TestGetRandomShardAsync(t *testing.T) {
 	ch := make(chan writeResult, jobs)
 
 	for i := 0; i < jobs; i++ {
-		i := i
 		group.Go(func() error {
-			key := []byte(fmt.Sprintf("key#%d", i+1))
 			data := make([]byte, mathRand.Int31n(4096)+1)
 			rand.Read(data)
 
-			object := datastor.Object{
-				Key:  key,
-				Data: data,
-			}
-
 			shard, err := cluster.GetRandomShard()
 			if err != nil {
-				return fmt.Errorf("get rand shard for key %q: %v", object.Key, err)
+				return fmt.Errorf("get rand shard failed: %v", err)
 			}
 
-			err = shard.SetObject(object)
+			key, err := shard.CreateObject(data)
 			if err != nil {
-				return fmt.Errorf("set error for key %q in shard %q: %v",
-					object.Key, shard.Identifier(), err)
+				return fmt.Errorf("set error for data in shard %q: %v",
+					shard.Identifier(), err)
 			}
 
 			result := writeResult{
 				shardID: shard.Identifier(),
-				object:  object,
+				object: datastor.Object{
+					Key:  key,
+					Data: data,
+				},
 			}
 
 			select {
@@ -234,16 +230,9 @@ func TestGetRandomShardIteratorAsync(t *testing.T) {
 	require.NotNil(shardCh)
 
 	for i := 0; i < jobs; i++ {
-		i := i
 		group.Go(func() error {
-			key := []byte(fmt.Sprintf("key#%d", i+1))
 			data := make([]byte, mathRand.Int31n(4096)+1)
 			rand.Read(data)
-
-			object := datastor.Object{
-				Key:  key,
-				Data: data,
-			}
 
 			var shard datastor.Shard
 			select {
@@ -252,15 +241,18 @@ func TestGetRandomShardIteratorAsync(t *testing.T) {
 				return nil
 			}
 
-			err := shard.SetObject(object)
+			key, err := shard.CreateObject(data)
 			if err != nil {
-				return fmt.Errorf("set error for key %q in shard %q: %v",
-					object.Key, shard.Identifier(), err)
+				return fmt.Errorf("set error for data in shard %q: %v",
+					shard.Identifier(), err)
 			}
 
 			result := writeResult{
 				shardID: shard.Identifier(),
-				object:  object,
+				object: datastor.Object{
+					Key:  key,
+					Data: data,
+				},
 			}
 
 			select {

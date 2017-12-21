@@ -15,12 +15,12 @@ type stubObjectService struct {
 	streamErr error
 }
 
-// SetObject implements pb.ObjectService.SetObject
-func (os *stubObjectService) SetObject(ctx context.Context, in *pb.SetObjectRequest, opts ...grpc.CallOption) (*pb.SetObjectResponse, error) {
+// CreateObject implements pb.ObjectService.CreateObject
+func (os *stubObjectService) CreateObject(ctx context.Context, in *pb.CreateObjectRequest, opts ...grpc.CallOption) (*pb.CreateObjectResponse, error) {
 	if os.err != nil {
 		return nil, os.err
 	}
-	return &pb.SetObjectResponse{}, nil
+	return &pb.CreateObjectResponse{}, nil
 }
 
 // GetObject implements pb.ObjectService.GetObject

@@ -28,11 +28,11 @@ func (c *Client) Repair(key []byte) error {
 		return err
 	}
 
+	chunkStorage := c.dataPipeline.GetChunkStorage()
 	for _, chunk := range meta.Chunks {
-		cfg, err := c.dataPipeline.GetObjectStorage().Repair(storage.ObjectConfig{
-			Key:      chunk.Key,
-			Shards:   chunk.Shards,
-			DataSize: int(chunk.Size),
+		cfg, err := chunkStorage.RepairChunk(storage.ChunkConfig{
+			Size:    chunk.Size,
+			Objects: chunk.Objects,
 		})
 		if err != nil {
 			if err == storage.ErrNotSupported {
@@ -40,9 +40,8 @@ func (c *Client) Repair(key []byte) error {
 			}
 			return err
 		}
-		chunk.Shards = cfg.Shards
-		chunk.Size = int64(cfg.DataSize)
-		chunk.Key = cfg.Key
+		chunk.Size = cfg.Size
+		chunk.Objects = cfg.Objects
 	}
 
 	if err := c.metastorClient.SetMetadata(*meta); err != nil {

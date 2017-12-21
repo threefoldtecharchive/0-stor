@@ -21,7 +21,7 @@ func TestNewAsyncSplitterPipeline(t *testing.T) {
 	cluster, cleanup, err := newGRPCServerCluster(1)
 	require.NoError(t, err)
 	defer cleanup()
-	storage, err := storage.NewRandomObjectStorage(cluster)
+	storage, err := storage.NewRandomChunkStorage(cluster)
 	require.NoError(t, err)
 
 	require.Panics(t, func() {
@@ -89,7 +89,7 @@ func testDefaultAsyncSplitterPipeline(t *testing.T, cfg ObjectDistributionConfig
 	require.NoError(err)
 	defer cleanup()
 
-	os, err := NewObjectStorage(cfg, cluster, -1)
+	os, err := NewChunkStorage(cfg, cluster, -1)
 	require.NoError(err)
 
 	pipeline := NewAsyncSplitterPipeline(os, blockSize, pc, hc, -1)

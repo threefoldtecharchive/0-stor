@@ -23,7 +23,7 @@ func newBlockMap(metaCli metastor.Client) *blockMap {
 	}
 }
 
-func (bs *blockMap) WriteBlock(key, val []byte, md *metastor.Data) (*metastor.Data, error) {
+func (bs *blockMap) WriteBlock(key, val []byte, md *metastor.Metadata) (*metastor.Metadata, error) {
 	bs.data[string(key)] = val
 	return md, bs.metaCli.SetMetadata(*md)
 }
@@ -79,7 +79,7 @@ func testWalk(t *testing.T, forward bool) {
 
 	startEpoch := time.Now().UTC().UnixNano()
 	// do the write
-	var prevMd *metastor.Data
+	var prevMd *metastor.Metadata
 	var prevKey []byte
 	var firstKey []byte
 

@@ -35,15 +35,15 @@ func TestCheck(t *testing.T) {
 	// Check status is ok after a write
 	status, err := c.Check(meta.Key)
 	require.NoError(t, err, "fail to check object")
-	require.True(t, status == storage.ObjectCheckStatusValid || status == storage.ObjectCheckStatusOptimal)
+	require.True(t, status == storage.CheckStatusValid || status == storage.CheckStatusOptimal)
 
 	// corrupt file by removing blocks
-	store, err := c.datastorCluster.GetShard(meta.Chunks[0].Shards[0])
-	require.NoError(t, err)
-
 	for i := 0; i < len(meta.Chunks); i += 4 {
 		if i%4 == 0 {
-			err = store.DeleteObject(meta.Chunks[i].Key)
+			chunk := &meta.Chunks[i]
+			store, err := c.datastorCluster.GetShard(chunk.Objects[0].ShardID)
+			require.NoError(t, err)
+			err = store.DeleteObject(chunk.Objects[0].Key)
 			require.NoError(t, err)
 		}
 	}
@@ -51,5 +51,5 @@ func TestCheck(t *testing.T) {
 	// Check status is corrupted
 	status, err = c.Check(meta.Key)
 	require.NoError(t, err, "fail to check object")
-	require.True(t, status == storage.ObjectCheckStatusValid || status == storage.ObjectCheckStatusInvalid)
+	require.True(t, status == storage.CheckStatusValid || status == storage.CheckStatusInvalid)
 }

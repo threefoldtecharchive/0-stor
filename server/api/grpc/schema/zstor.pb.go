@@ -10,8 +10,8 @@
 	It has these top-level messages:
 		GetNamespaceRequest
 		GetNamespaceResponse
-		SetObjectRequest
-		SetObjectResponse
+		CreateObjectRequest
+		CreateObjectResponse
 		GetObjectRequest
 		GetObjectResponse
 		DeleteObjectRequest
@@ -118,35 +118,35 @@ func (m *GetNamespaceResponse) GetNrObjects() int64 {
 	return 0
 }
 
-type SetObjectRequest struct {
-	Key  []byte `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	Data []byte `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+type CreateObjectRequest struct {
+	Data []byte `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
 }
 
-func (m *SetObjectRequest) Reset()                    { *m = SetObjectRequest{} }
-func (*SetObjectRequest) ProtoMessage()               {}
-func (*SetObjectRequest) Descriptor() ([]byte, []int) { return fileDescriptorZstor, []int{2} }
+func (m *CreateObjectRequest) Reset()                    { *m = CreateObjectRequest{} }
+func (*CreateObjectRequest) ProtoMessage()               {}
+func (*CreateObjectRequest) Descriptor() ([]byte, []int) { return fileDescriptorZstor, []int{2} }
 
-func (m *SetObjectRequest) GetKey() []byte {
-	if m != nil {
-		return m.Key
-	}
-	return nil
-}
-
-func (m *SetObjectRequest) GetData() []byte {
+func (m *CreateObjectRequest) GetData() []byte {
 	if m != nil {
 		return m.Data
 	}
 	return nil
 }
 
-type SetObjectResponse struct {
+type CreateObjectResponse struct {
+	Key []byte `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
 }
 
-func (m *SetObjectResponse) Reset()                    { *m = SetObjectResponse{} }
-func (*SetObjectResponse) ProtoMessage()               {}
-func (*SetObjectResponse) Descriptor() ([]byte, []int) { return fileDescriptorZstor, []int{3} }
+func (m *CreateObjectResponse) Reset()                    { *m = CreateObjectResponse{} }
+func (*CreateObjectResponse) ProtoMessage()               {}
+func (*CreateObjectResponse) Descriptor() ([]byte, []int) { return fileDescriptorZstor, []int{3} }
+
+func (m *CreateObjectResponse) GetKey() []byte {
+	if m != nil {
+		return m.Key
+	}
+	return nil
+}
 
 type GetObjectRequest struct {
 	Key []byte `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
@@ -255,8 +255,8 @@ func (m *ListObjectKeysResponse) GetKey() []byte {
 func init() {
 	proto.RegisterType((*GetNamespaceRequest)(nil), "GetNamespaceRequest")
 	proto.RegisterType((*GetNamespaceResponse)(nil), "GetNamespaceResponse")
-	proto.RegisterType((*SetObjectRequest)(nil), "SetObjectRequest")
-	proto.RegisterType((*SetObjectResponse)(nil), "SetObjectResponse")
+	proto.RegisterType((*CreateObjectRequest)(nil), "CreateObjectRequest")
+	proto.RegisterType((*CreateObjectResponse)(nil), "CreateObjectResponse")
 	proto.RegisterType((*GetObjectRequest)(nil), "GetObjectRequest")
 	proto.RegisterType((*GetObjectResponse)(nil), "GetObjectResponse")
 	proto.RegisterType((*DeleteObjectRequest)(nil), "DeleteObjectRequest")
@@ -345,7 +345,7 @@ func (this *GetNamespaceResponse) Compare(that interface{}) int {
 	}
 	return 0
 }
-func (this *SetObjectRequest) Compare(that interface{}) int {
+func (this *CreateObjectRequest) Compare(that interface{}) int {
 	if that == nil {
 		if this == nil {
 			return 0
@@ -353,9 +353,39 @@ func (this *SetObjectRequest) Compare(that interface{}) int {
 		return 1
 	}
 
-	that1, ok := that.(*SetObjectRequest)
+	that1, ok := that.(*CreateObjectRequest)
 	if !ok {
-		that2, ok := that.(SetObjectRequest)
+		that2, ok := that.(CreateObjectRequest)
+		if ok {
+			that1 = &that2
+		} else {
+			return 1
+		}
+	}
+	if that1 == nil {
+		if this == nil {
+			return 0
+		}
+		return 1
+	} else if this == nil {
+		return -1
+	}
+	if c := bytes.Compare(this.Data, that1.Data); c != 0 {
+		return c
+	}
+	return 0
+}
+func (this *CreateObjectResponse) Compare(that interface{}) int {
+	if that == nil {
+		if this == nil {
+			return 0
+		}
+		return 1
+	}
+
+	that1, ok := that.(*CreateObjectResponse)
+	if !ok {
+		that2, ok := that.(CreateObjectResponse)
 		if ok {
 			that1 = &that2
 		} else {
@@ -372,36 +402,6 @@ func (this *SetObjectRequest) Compare(that interface{}) int {
 	}
 	if c := bytes.Compare(this.Key, that1.Key); c != 0 {
 		return c
-	}
-	if c := bytes.Compare(this.Data, that1.Data); c != 0 {
-		return c
-	}
-	return 0
-}
-func (this *SetObjectResponse) Compare(that interface{}) int {
-	if that == nil {
-		if this == nil {
-			return 0
-		}
-		return 1
-	}
-
-	that1, ok := that.(*SetObjectResponse)
-	if !ok {
-		that2, ok := that.(SetObjectResponse)
-		if ok {
-			that1 = &that2
-		} else {
-			return 1
-		}
-	}
-	if that1 == nil {
-		if this == nil {
-			return 0
-		}
-		return 1
-	} else if this == nil {
-		return -1
 	}
 	return 0
 }
@@ -703,14 +703,38 @@ func (this *GetNamespaceResponse) Equal(that interface{}) bool {
 	}
 	return true
 }
-func (this *SetObjectRequest) Equal(that interface{}) bool {
+func (this *CreateObjectRequest) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*SetObjectRequest)
+	that1, ok := that.(*CreateObjectRequest)
 	if !ok {
-		that2, ok := that.(SetObjectRequest)
+		that2, ok := that.(CreateObjectRequest)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !bytes.Equal(this.Data, that1.Data) {
+		return false
+	}
+	return true
+}
+func (this *CreateObjectResponse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*CreateObjectResponse)
+	if !ok {
+		that2, ok := that.(CreateObjectResponse)
 		if ok {
 			that1 = &that2
 		} else {
@@ -723,30 +747,6 @@ func (this *SetObjectRequest) Equal(that interface{}) bool {
 		return false
 	}
 	if !bytes.Equal(this.Key, that1.Key) {
-		return false
-	}
-	if !bytes.Equal(this.Data, that1.Data) {
-		return false
-	}
-	return true
-}
-func (this *SetObjectResponse) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
-
-	that1, ok := that.(*SetObjectResponse)
-	if !ok {
-		that2, ok := that.(SetObjectResponse)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
 		return false
 	}
 	return true
@@ -959,23 +959,23 @@ func (this *GetNamespaceResponse) GoString() string {
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
-func (this *SetObjectRequest) GoString() string {
+func (this *CreateObjectRequest) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 6)
-	s = append(s, "&zstor.SetObjectRequest{")
-	s = append(s, "Key: "+fmt.Sprintf("%#v", this.Key)+",\n")
+	s := make([]string, 0, 5)
+	s = append(s, "&zstor.CreateObjectRequest{")
 	s = append(s, "Data: "+fmt.Sprintf("%#v", this.Data)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
-func (this *SetObjectResponse) GoString() string {
+func (this *CreateObjectResponse) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 4)
-	s = append(s, "&zstor.SetObjectResponse{")
+	s := make([]string, 0, 5)
+	s = append(s, "&zstor.CreateObjectResponse{")
+	s = append(s, "Key: "+fmt.Sprintf("%#v", this.Key)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -1151,9 +1151,11 @@ var _NamespaceManager_serviceDesc = grpc.ServiceDesc{
 // Client API for ObjectManager service
 
 type ObjectManagerClient interface {
-	// Set an object, either overwriting an existing key,
-	// or creating a new one.
-	SetObject(ctx context.Context, in *SetObjectRequest, opts ...grpc.CallOption) (*SetObjectResponse, error)
+	// Creates an object, using the given data.
+	// The key of the object is generated by the server,
+	// and will be returned as part of a successfull response.
+	// This key can than be used to manage the object from there on.
+	CreateObject(ctx context.Context, in *CreateObjectRequest, opts ...grpc.CallOption) (*CreateObjectResponse, error)
 	// Get an existing object, linked to a given key.
 	GetObject(ctx context.Context, in *GetObjectRequest, opts ...grpc.CallOption) (*GetObjectResponse, error)
 	// DeleteObject deletes an object.
@@ -1175,9 +1177,9 @@ func NewObjectManagerClient(cc *grpc.ClientConn) ObjectManagerClient {
 	return &objectManagerClient{cc}
 }
 
-func (c *objectManagerClient) SetObject(ctx context.Context, in *SetObjectRequest, opts ...grpc.CallOption) (*SetObjectResponse, error) {
-	out := new(SetObjectResponse)
-	err := grpc.Invoke(ctx, "/ObjectManager/SetObject", in, out, c.cc, opts...)
+func (c *objectManagerClient) CreateObject(ctx context.Context, in *CreateObjectRequest, opts ...grpc.CallOption) (*CreateObjectResponse, error) {
+	out := new(CreateObjectResponse)
+	err := grpc.Invoke(ctx, "/ObjectManager/CreateObject", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1246,9 +1248,11 @@ func (x *objectManagerListObjectKeysClient) Recv() (*ListObjectKeysResponse, err
 // Server API for ObjectManager service
 
 type ObjectManagerServer interface {
-	// Set an object, either overwriting an existing key,
-	// or creating a new one.
-	SetObject(context.Context, *SetObjectRequest) (*SetObjectResponse, error)
+	// Creates an object, using the given data.
+	// The key of the object is generated by the server,
+	// and will be returned as part of a successfull response.
+	// This key can than be used to manage the object from there on.
+	CreateObject(context.Context, *CreateObjectRequest) (*CreateObjectResponse, error)
 	// Get an existing object, linked to a given key.
 	GetObject(context.Context, *GetObjectRequest) (*GetObjectResponse, error)
 	// DeleteObject deletes an object.
@@ -1266,20 +1270,20 @@ func RegisterObjectManagerServer(s *grpc.Server, srv ObjectManagerServer) {
 	s.RegisterService(&_ObjectManager_serviceDesc, srv)
 }
 
-func _ObjectManager_SetObject_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SetObjectRequest)
+func _ObjectManager_CreateObject_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateObjectRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ObjectManagerServer).SetObject(ctx, in)
+		return srv.(ObjectManagerServer).CreateObject(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/ObjectManager/SetObject",
+		FullMethod: "/ObjectManager/CreateObject",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ObjectManagerServer).SetObject(ctx, req.(*SetObjectRequest))
+		return srv.(ObjectManagerServer).CreateObject(ctx, req.(*CreateObjectRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1364,8 +1368,8 @@ var _ObjectManager_serviceDesc = grpc.ServiceDesc{
 	HandlerType: (*ObjectManagerServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "SetObject",
-			Handler:    _ObjectManager_SetObject_Handler,
+			MethodName: "CreateObject",
+			Handler:    _ObjectManager_CreateObject_Handler,
 		},
 		{
 			MethodName: "GetObject",
@@ -1447,7 +1451,7 @@ func (m *GetNamespaceResponse) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
-func (m *SetObjectRequest) Marshal() (dAtA []byte, err error) {
+func (m *CreateObjectRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -1457,7 +1461,31 @@ func (m *SetObjectRequest) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *SetObjectRequest) MarshalTo(dAtA []byte) (int, error) {
+func (m *CreateObjectRequest) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.Data) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintZstor(dAtA, i, uint64(len(m.Data)))
+		i += copy(dAtA[i:], m.Data)
+	}
+	return i, nil
+}
+
+func (m *CreateObjectResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CreateObjectResponse) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
@@ -1468,30 +1496,6 @@ func (m *SetObjectRequest) MarshalTo(dAtA []byte) (int, error) {
 		i = encodeVarintZstor(dAtA, i, uint64(len(m.Key)))
 		i += copy(dAtA[i:], m.Key)
 	}
-	if len(m.Data) > 0 {
-		dAtA[i] = 0x12
-		i++
-		i = encodeVarintZstor(dAtA, i, uint64(len(m.Data)))
-		i += copy(dAtA[i:], m.Data)
-	}
-	return i, nil
-}
-
-func (m *SetObjectResponse) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *SetObjectResponse) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
 	return i, nil
 }
 
@@ -1710,16 +1714,11 @@ func NewPopulatedGetNamespaceResponse(r randyZstor, easy bool) *GetNamespaceResp
 	return this
 }
 
-func NewPopulatedSetObjectRequest(r randyZstor, easy bool) *SetObjectRequest {
-	this := &SetObjectRequest{}
+func NewPopulatedCreateObjectRequest(r randyZstor, easy bool) *CreateObjectRequest {
+	this := &CreateObjectRequest{}
 	v1 := r.Intn(100)
-	this.Key = make([]byte, v1)
+	this.Data = make([]byte, v1)
 	for i := 0; i < v1; i++ {
-		this.Key[i] = byte(r.Intn(256))
-	}
-	v2 := r.Intn(100)
-	this.Data = make([]byte, v2)
-	for i := 0; i < v2; i++ {
 		this.Data[i] = byte(r.Intn(256))
 	}
 	if !easy && r.Intn(10) != 0 {
@@ -1727,8 +1726,13 @@ func NewPopulatedSetObjectRequest(r randyZstor, easy bool) *SetObjectRequest {
 	return this
 }
 
-func NewPopulatedSetObjectResponse(r randyZstor, easy bool) *SetObjectResponse {
-	this := &SetObjectResponse{}
+func NewPopulatedCreateObjectResponse(r randyZstor, easy bool) *CreateObjectResponse {
+	this := &CreateObjectResponse{}
+	v2 := r.Intn(100)
+	this.Key = make([]byte, v2)
+	for i := 0; i < v2; i++ {
+		this.Key[i] = byte(r.Intn(256))
+	}
 	if !easy && r.Intn(10) != 0 {
 	}
 	return this
@@ -1913,13 +1917,9 @@ func (m *GetNamespaceResponse) Size() (n int) {
 	return n
 }
 
-func (m *SetObjectRequest) Size() (n int) {
+func (m *CreateObjectRequest) Size() (n int) {
 	var l int
 	_ = l
-	l = len(m.Key)
-	if l > 0 {
-		n += 1 + l + sovZstor(uint64(l))
-	}
 	l = len(m.Data)
 	if l > 0 {
 		n += 1 + l + sovZstor(uint64(l))
@@ -1927,9 +1927,13 @@ func (m *SetObjectRequest) Size() (n int) {
 	return n
 }
 
-func (m *SetObjectResponse) Size() (n int) {
+func (m *CreateObjectResponse) Size() (n int) {
 	var l int
 	_ = l
+	l = len(m.Key)
+	if l > 0 {
+		n += 1 + l + sovZstor(uint64(l))
+	}
 	return n
 }
 
@@ -2039,22 +2043,22 @@ func (this *GetNamespaceResponse) String() string {
 	}, "")
 	return s
 }
-func (this *SetObjectRequest) String() string {
+func (this *CreateObjectRequest) String() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings.Join([]string{`&SetObjectRequest{`,
-		`Key:` + fmt.Sprintf("%v", this.Key) + `,`,
+	s := strings.Join([]string{`&CreateObjectRequest{`,
 		`Data:` + fmt.Sprintf("%v", this.Data) + `,`,
 		`}`,
 	}, "")
 	return s
 }
-func (this *SetObjectResponse) String() string {
+func (this *CreateObjectResponse) String() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings.Join([]string{`&SetObjectResponse{`,
+	s := strings.Join([]string{`&CreateObjectResponse{`,
+		`Key:` + fmt.Sprintf("%v", this.Key) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -2331,7 +2335,7 @@ func (m *GetNamespaceResponse) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *SetObjectRequest) Unmarshal(dAtA []byte) error {
+func (m *CreateObjectRequest) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -2354,44 +2358,13 @@ func (m *SetObjectRequest) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: SetObjectRequest: wiretype end group for non-group")
+			return fmt.Errorf("proto: CreateObjectRequest: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: SetObjectRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: CreateObjectRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowZstor
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthZstor
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Key = append(m.Key[:0], dAtA[iNdEx:postIndex]...)
-			if m.Key == nil {
-				m.Key = []byte{}
-			}
-			iNdEx = postIndex
-		case 2:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Data", wireType)
 			}
@@ -2443,7 +2416,7 @@ func (m *SetObjectRequest) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *SetObjectResponse) Unmarshal(dAtA []byte) error {
+func (m *CreateObjectResponse) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -2466,12 +2439,43 @@ func (m *SetObjectResponse) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: SetObjectResponse: wiretype end group for non-group")
+			return fmt.Errorf("proto: CreateObjectResponse: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: SetObjectResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: CreateObjectResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowZstor
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthZstor
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Key = append(m.Key[:0], dAtA[iNdEx:postIndex]...)
+			if m.Key == nil {
+				m.Key = []byte{}
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipZstor(dAtA[iNdEx:])
@@ -3175,42 +3179,42 @@ var (
 func init() { proto.RegisterFile("schema/zstor.proto", fileDescriptorZstor) }
 
 var fileDescriptorZstor = []byte{
-	// 578 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x84, 0x94, 0xcf, 0x6e, 0x12, 0x51,
-	0x14, 0xc6, 0xe7, 0x42, 0xad, 0xe1, 0x84, 0xe2, 0x70, 0xf8, 0xeb, 0xc4, 0xdc, 0x90, 0x49, 0x4d,
-	0x49, 0x13, 0x2f, 0x0d, 0xba, 0x70, 0x61, 0x13, 0xe3, 0xbf, 0x31, 0xa9, 0xb5, 0x4a, 0x9f, 0x60,
-	0x80, 0x2b, 0xc5, 0x02, 0x83, 0x73, 0xef, 0xc4, 0xb4, 0x2b, 0xd7, 0xac, 0x7c, 0x01, 0xf6, 0x5d,
-	0xf8, 0x00, 0x2e, 0x5d, 0xea, 0xae, 0x4b, 0x97, 0x32, 0xdd, 0xb8, 0xec, 0xd2, 0xa5, 0xe1, 0xce,
-	0x40, 0x07, 0x98, 0xa6, 0xbb, 0x7b, 0xce, 0xf9, 0xbe, 0xef, 0x1c, 0xc2, 0x2f, 0x03, 0x28, 0x5a,
-	0x47, 0xbc, 0x6f, 0xd7, 0x4e, 0x85, 0x74, 0x5c, 0x36, 0x74, 0x1d, 0xe9, 0x18, 0x0f, 0x3a, 0x5d,
-	0x79, 0xe4, 0x35, 0x59, 0xcb, 0xe9, 0xd7, 0x3a, 0x4e, 0xc7, 0xa9, 0xa9, 0x76, 0xd3, 0xfb, 0xa0,
-	0x2a, 0x55, 0xa8, 0x57, 0x20, 0x37, 0x0b, 0x90, 0xb3, 0xb8, 0x7c, 0x6b, 0xf7, 0xb9, 0x18, 0xda,
-	0x2d, 0xde, 0xe0, 0x9f, 0x3c, 0x2e, 0xa4, 0xf9, 0x8d, 0x40, 0x7e, 0xb1, 0x2f, 0x86, 0xce, 0x40,
-	0x70, 0xcc, 0xc3, 0xad, 0x9e, 0xdd, 0xe4, 0xbd, 0x32, 0xa9, 0x90, 0x6a, 0xaa, 0x11, 0x14, 0xc8,
-	0x00, 0x5d, 0x6e, 0xb7, 0x43, 0xf7, 0x3b, 0xee, 0xbe, 0x76, 0x3c, 0xb7, 0x9c, 0xa8, 0x90, 0x6a,
-	0xb2, 0x11, 0x33, 0xc1, 0x1d, 0xc8, 0x7d, 0x76, 0xbb, 0x92, 0x2f, 0x19, 0x92, 0xca, 0x10, 0x37,
-	0xc2, 0x7b, 0x90, 0x1a, 0xb8, 0x07, 0xcd, 0x8f, 0xbc, 0x25, 0x45, 0x79, 0x4d, 0xe9, 0xae, 0x1a,
-	0xe6, 0x63, 0xd0, 0x0f, 0xb9, 0x0c, 0xaa, 0xd0, 0x88, 0x3a, 0x24, 0x8f, 0xf9, 0x89, 0xba, 0x33,
-	0xdd, 0x98, 0x3e, 0x11, 0x61, 0xad, 0x6d, 0x4b, 0x5b, 0xdd, 0x95, 0x6e, 0xa8, 0xb7, 0x99, 0x83,
-	0x6c, 0xc4, 0x19, 0xfc, 0x48, 0x73, 0x13, 0x74, 0xeb, 0xc6, 0x38, 0x73, 0x0b, 0xb2, 0xd6, 0xb2,
-	0x75, 0xbe, 0x83, 0x44, 0x76, 0x6c, 0x41, 0xee, 0x05, 0xef, 0x71, 0xc9, 0x6f, 0x4a, 0x2c, 0x42,
-	0x7e, 0x51, 0x18, 0xde, 0xb3, 0x0d, 0xc5, 0xf9, 0xa6, 0x43, 0x69, 0x4b, 0x4f, 0x5c, 0x9f, 0xf1,
-	0x14, 0x4a, 0x2b, 0xda, 0xf0, 0xb6, 0xfb, 0xb0, 0x2e, 0x54, 0x47, 0xe9, 0x33, 0xf5, 0x0d, 0xb6,
-	0x20, 0x0b, 0x87, 0x66, 0x09, 0x0a, 0x6f, 0xba, 0x22, 0x8c, 0xd8, 0xe3, 0x27, 0xb3, 0x65, 0xd3,
-	0x33, 0x96, 0x07, 0x61, 0xf2, 0xca, 0x19, 0xdb, 0xa7, 0x90, 0x8e, 0x86, 0xe3, 0x26, 0xdc, 0xee,
-	0x77, 0x85, 0xe8, 0x0e, 0x3a, 0xba, 0x66, 0x94, 0x46, 0xe3, 0x4a, 0x2e, 0x3a, 0xde, 0x0f, 0x46,
-	0x68, 0x40, 0xc2, 0x39, 0xd6, 0x89, 0x81, 0xa3, 0x71, 0x25, 0x13, 0x15, 0x1c, 0xec, 0x61, 0x15,
-	0x52, 0x2d, 0xc7, 0x75, 0xbd, 0xa1, 0xe4, 0x6d, 0x3d, 0x61, 0xdc, 0x1d, 0x8d, 0x2b, 0x85, 0xa8,
-	0xe4, 0xf9, 0x6c, 0x58, 0x7f, 0x0f, 0xfa, 0x1c, 0xdc, 0x7d, 0x7b, 0x60, 0x77, 0xb8, 0x8b, 0xbb,
-	0x90, 0x8e, 0xf2, 0x8c, 0x79, 0x16, 0x83, 0xbd, 0x51, 0x60, 0x71, 0xd0, 0x9b, 0x5a, 0xfd, 0x57,
-	0x02, 0x36, 0x82, 0x65, 0xb3, 0xc0, 0x47, 0x90, 0x9a, 0x83, 0x83, 0x59, 0xb6, 0x8c, 0x9f, 0x81,
-	0x6c, 0x95, 0x2b, 0x6d, 0xea, 0xb2, 0x22, 0x2e, 0x6b, 0xd5, 0x65, 0xc5, 0xb8, 0x76, 0x21, 0x1d,
-	0xe5, 0x02, 0xf3, 0x2c, 0x86, 0x27, 0xa3, 0xc0, 0x62, 0xe1, 0xd1, 0xf0, 0x15, 0xdc, 0x59, 0x42,
-	0x02, 0x4b, 0x2c, 0x1e, 0x28, 0xa3, 0xcc, 0xae, 0xa1, 0xc7, 0xd4, 0xf0, 0x25, 0x64, 0x16, 0xff,
-	0x7f, 0x2c, 0xb2, 0x58, 0x52, 0x8c, 0x12, 0x8b, 0x07, 0xc5, 0xd4, 0x76, 0xc8, 0xb3, 0x27, 0xe7,
-	0x13, 0xaa, 0xfd, 0x9e, 0x50, 0xed, 0x72, 0x42, 0xc9, 0xbf, 0x09, 0x25, 0x5f, 0x7c, 0x4a, 0xce,
-	0x7c, 0x4a, 0xbe, 0xfb, 0x94, 0xfc, 0xf0, 0x29, 0xf9, 0xe9, 0x53, 0x72, 0xee, 0x53, 0xf2, 0xc7,
-	0xa7, 0xe4, 0xaf, 0x4f, 0xb5, 0x4b, 0x9f, 0x92, 0xaf, 0x17, 0x54, 0x3b, 0xbb, 0xa0, 0xa4, 0xb9,
-	0xae, 0xbe, 0x5b, 0x0f, 0xff, 0x07, 0x00, 0x00, 0xff, 0xff, 0xea, 0x27, 0x90, 0x02, 0xfc, 0x04,
-	0x00, 0x00,
+	// 579 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x74, 0x94, 0x31, 0x6f, 0xd3, 0x40,
+	0x14, 0xc7, 0x7d, 0x69, 0x29, 0xca, 0x53, 0x5b, 0xdc, 0x17, 0xbb, 0x09, 0x16, 0x3a, 0x45, 0xa7,
+	0xa2, 0x86, 0x4a, 0x5c, 0xaa, 0xc0, 0x08, 0x12, 0xa2, 0x40, 0x91, 0x4a, 0x29, 0x84, 0x4f, 0xe0,
+	0x24, 0x47, 0x1a, 0x9a, 0xc4, 0xc1, 0x77, 0x16, 0x6a, 0x27, 0xe6, 0x4c, 0x7c, 0x81, 0xec, 0x1d,
+	0xf8, 0x00, 0x8c, 0x8c, 0x8c, 0x15, 0x13, 0x23, 0x71, 0x17, 0xc6, 0x8e, 0x8c, 0x28, 0xb6, 0x1b,
+	0xec, 0xe4, 0xb2, 0xdd, 0xbd, 0xff, 0xff, 0xfd, 0xdf, 0xb3, 0xfd, 0x93, 0x01, 0x65, 0xf3, 0x58,
+	0xf4, 0xdc, 0xea, 0x99, 0x54, 0x9e, 0xcf, 0x07, 0xbe, 0xa7, 0x3c, 0xe7, 0x7e, 0xbb, 0xa3, 0x8e,
+	0x83, 0x06, 0x6f, 0x7a, 0xbd, 0x6a, 0xdb, 0x6b, 0x7b, 0xd5, 0xa8, 0xdc, 0x08, 0xde, 0x47, 0xb7,
+	0xe8, 0x12, 0x9d, 0x62, 0x3b, 0xb3, 0xa1, 0xb0, 0x2f, 0xd4, 0x6b, 0xb7, 0x27, 0xe4, 0xc0, 0x6d,
+	0x8a, 0xba, 0xf8, 0x18, 0x08, 0xa9, 0xd8, 0x57, 0x02, 0x56, 0xb6, 0x2e, 0x07, 0x5e, 0x5f, 0x0a,
+	0xb4, 0xe0, 0x46, 0xd7, 0x6d, 0x88, 0x6e, 0x89, 0x94, 0x49, 0x25, 0x5f, 0x8f, 0x2f, 0xc8, 0x01,
+	0x7d, 0xe1, 0xb6, 0x92, 0xee, 0x37, 0xc2, 0x7f, 0xe9, 0x05, 0x7e, 0x29, 0x57, 0x26, 0x95, 0xa5,
+	0xba, 0x46, 0xc1, 0x5d, 0x28, 0x7c, 0xf2, 0x3b, 0x4a, 0xcc, 0x34, 0x2c, 0x45, 0x0d, 0x3a, 0x09,
+	0xef, 0x40, 0xbe, 0xef, 0x1f, 0x35, 0x3e, 0x88, 0xa6, 0x92, 0xa5, 0xe5, 0xc8, 0xf7, 0xbf, 0xc0,
+	0xee, 0x41, 0x61, 0xcf, 0x17, 0xae, 0x12, 0x71, 0x21, 0xe9, 0x45, 0x84, 0xe5, 0x96, 0xab, 0xdc,
+	0x68, 0xd7, 0xd5, 0x7a, 0x74, 0x66, 0x15, 0xb0, 0xb2, 0xd6, 0xe4, 0xc1, 0x4c, 0x58, 0x3a, 0x11,
+	0xa7, 0x89, 0x75, 0x72, 0x64, 0x5b, 0x60, 0xee, 0x0b, 0x95, 0x4d, 0x9c, 0x77, 0x6d, 0xc3, 0x46,
+	0xca, 0x95, 0x84, 0xe9, 0x06, 0x6f, 0x43, 0xe1, 0x99, 0xe8, 0x8a, 0xd9, 0x1d, 0xe7, 0x13, 0x37,
+	0xc1, 0xca, 0x1a, 0xe3, 0x50, 0xb6, 0x03, 0x9b, 0xd3, 0x49, 0xef, 0x94, 0xab, 0x02, 0xb9, 0x38,
+	0xe3, 0x09, 0x14, 0xe7, 0xbc, 0xc9, 0x6e, 0x77, 0x61, 0x45, 0x46, 0x95, 0xc8, 0xbf, 0x5e, 0x5b,
+	0xe3, 0x19, 0x5b, 0x22, 0xb2, 0x22, 0xd8, 0xaf, 0x3a, 0x32, 0x89, 0x38, 0x10, 0xa7, 0xd7, 0xc3,
+	0x26, 0x6b, 0xcc, 0x0a, 0x8b, 0x5e, 0xe1, 0xce, 0x19, 0xac, 0xa6, 0xc3, 0x71, 0x0b, 0x6e, 0xf6,
+	0x3a, 0x52, 0x76, 0xfa, 0x6d, 0xd3, 0x70, 0x8a, 0xc3, 0x51, 0xb9, 0x90, 0x96, 0x0f, 0x63, 0x09,
+	0x1d, 0xc8, 0x79, 0x27, 0x26, 0x71, 0x70, 0x38, 0x2a, 0xaf, 0xa7, 0x0d, 0x47, 0x07, 0x58, 0x81,
+	0x7c, 0xd3, 0xf3, 0xfd, 0x60, 0xa0, 0x44, 0xcb, 0xcc, 0x39, 0xb7, 0x87, 0xa3, 0xb2, 0x9d, 0xb6,
+	0xec, 0x5d, 0x8b, 0xb5, 0xb7, 0x60, 0x4e, 0xf1, 0x3d, 0x74, 0xfb, 0x6e, 0x5b, 0xf8, 0xf8, 0x18,
+	0x56, 0xd3, 0x54, 0xa3, 0xc5, 0x35, 0xf0, 0x3b, 0x36, 0xd7, 0xa1, 0xcf, 0x8c, 0xda, 0xcf, 0x1c,
+	0xac, 0xc5, 0xc3, 0x52, 0x81, 0x69, 0x9a, 0xd0, 0xe2, 0x1a, 0x0e, 0x1d, 0x9b, 0xeb, 0x90, 0x63,
+	0x06, 0x3e, 0x84, 0xfc, 0xf4, 0x33, 0xe1, 0x06, 0x9f, 0xc5, 0xcd, 0x41, 0x3e, 0xc7, 0x16, 0x33,
+	0x26, 0x43, 0xd3, 0x80, 0xa0, 0xc5, 0x35, 0x60, 0x39, 0x36, 0xd7, 0x52, 0x64, 0xe0, 0x0b, 0xb8,
+	0x35, 0xc3, 0x06, 0x16, 0xb9, 0x9e, 0x2c, 0xa7, 0xc4, 0x17, 0x60, 0xc4, 0x0c, 0x7c, 0x0e, 0xeb,
+	0x59, 0x10, 0x70, 0x93, 0x6b, 0x91, 0x71, 0x8a, 0x5c, 0x4f, 0x0c, 0x33, 0x76, 0xc9, 0xd3, 0x47,
+	0x17, 0x63, 0x6a, 0xfc, 0x1a, 0x53, 0xe3, 0x6a, 0x4c, 0xc9, 0xdf, 0x31, 0x25, 0x9f, 0x43, 0x4a,
+	0xce, 0x43, 0x4a, 0xbe, 0x85, 0x94, 0x7c, 0x0f, 0x29, 0xf9, 0x11, 0x52, 0x72, 0x11, 0x52, 0xf2,
+	0x3b, 0xa4, 0xe4, 0x4f, 0x48, 0x8d, 0xab, 0x90, 0x92, 0x2f, 0x97, 0xd4, 0x38, 0xbf, 0xa4, 0xa4,
+	0xb1, 0x12, 0xfd, 0xc6, 0x1e, 0xfc, 0x0b, 0x00, 0x00, 0xff, 0xff, 0x58, 0x19, 0x0c, 0x8c, 0x0b,
+	0x05, 0x00, 0x00,
 }

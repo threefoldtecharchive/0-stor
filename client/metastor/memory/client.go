@@ -13,7 +13,7 @@ import (
 // and shouldn't be used for anything serious,
 // given that it will lose all data as soon as it goes out of scope.
 func NewClient() *Client {
-	return &Client{md: make(map[string]metastor.Data)}
+	return &Client{md: make(map[string]metastor.Metadata)}
 }
 
 // Client defines client to store metadata,
@@ -23,12 +23,12 @@ func NewClient() *Client {
 // and shouldn't be used for anything serious,
 // given that it will lose all data as soon as it goes out of scope.
 type Client struct {
-	md  map[string]metastor.Data
+	md  map[string]metastor.Metadata
 	mux sync.RWMutex
 }
 
 // SetMetadata implements metastor.Client.SetMetadata
-func (c *Client) SetMetadata(data metastor.Data) error {
+func (c *Client) SetMetadata(data metastor.Metadata) error {
 	if data.Key == nil {
 		return metastor.ErrNilKey
 	}
@@ -41,7 +41,7 @@ func (c *Client) SetMetadata(data metastor.Data) error {
 }
 
 // GetMetadata implements metastor.Client.GetMetadata
-func (c *Client) GetMetadata(key []byte) (*metastor.Data, error) {
+func (c *Client) GetMetadata(key []byte) (*metastor.Metadata, error) {
 	if key == nil {
 		return nil, metastor.ErrNilKey
 	}
@@ -72,7 +72,7 @@ func (c *Client) DeleteMetadata(key []byte) error {
 // Close implements metastor.Client.Close
 func (c *Client) Close() error {
 	c.mux.Lock()
-	c.md = make(map[string]metastor.Data)
+	c.md = make(map[string]metastor.Metadata)
 	c.mux.Unlock()
 
 	return nil

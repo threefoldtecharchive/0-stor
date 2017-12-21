@@ -30,28 +30,44 @@ func TestRoundTrip(t *testing.T) {
 	require.Equal([]string{etcd.ListenAddr()}, c.Endpoints())
 
 	// prepare the data
-	md := metastor.Data{
-		Key:   []byte("two"),
-		Epoch: 123456789,
-		Chunks: []*metastor.Chunk{
-			&metastor.Chunk{
-				Size:   math.MaxInt64,
-				Key:    []byte("foo"),
-				Shards: nil,
+	md := metastor.Metadata{
+		Key:            []byte("two"),
+		Size:           42,
+		CreationEpoch:  123456789,
+		LastWriteEpoch: 123456789,
+		Chunks: []metastor.Chunk{
+			metastor.Chunk{
+				Size:    math.MaxInt64,
+				Hash:    []byte("foo"),
+				Objects: nil,
 			},
-			&metastor.Chunk{
-				Size:   1234,
-				Key:    []byte("bar"),
-				Shards: []string{"foo"},
+			metastor.Chunk{
+				Size: 1234,
+				Hash: []byte("bar"),
+				Objects: []metastor.Object{
+					metastor.Object{
+						Key:     []byte("foo"),
+						ShardID: "bar",
+					},
+				},
 			},
-			&metastor.Chunk{
-				Size:   2,
-				Key:    []byte("baz"),
-				Shards: []string{"bar", "foo"},
+			metastor.Chunk{
+				Size: 2,
+				Hash: []byte("baz"),
+				Objects: []metastor.Object{
+					metastor.Object{
+						Key:     []byte("foo"),
+						ShardID: "bar",
+					},
+					metastor.Object{
+						Key:     []byte("bar"),
+						ShardID: "baz",
+					},
+				},
 			},
 		},
-		Next:     []byte("one"),
-		Previous: []byte("three"),
+		NextKey:     []byte("one"),
+		PreviousKey: []byte("three"),
 	}
 
 	// ensure metadata is not there yet
@@ -121,7 +137,7 @@ func TestClientNilKeys(t *testing.T) {
 	_, err = c.GetMetadata(nil)
 	require.Equal(metastor.ErrNilKey, err)
 
-	err = c.SetMetadata(metastor.Data{})
+	err = c.SetMetadata(metastor.Metadata{})
 	require.Equal(metastor.ErrNilKey, err)
 
 	err = c.DeleteMetadata(nil)
@@ -155,13 +171,13 @@ func TestInvalidMetadataObject(t *testing.T) {
 	require.NotEqual(metastor.ErrNotFound, err)
 
 	// also ensure we get an error in case the marshaler returns an error
-	err = c.SetMetadata(metastor.Data{Key: []byte("whatever-forever")})
+	err = c.SetMetadata(metastor.Metadata{Key: []byte("whatever-forever")})
 	require.NoError(err)
 	myEncodingErr := errors.New("encoding error: pwned")
-	c.marshal = func(md metastor.Data) ([]byte, error) {
+	c.marshal = func(md metastor.Metadata) ([]byte, error) {
 		return nil, myEncodingErr
 	}
-	err = c.SetMetadata(metastor.Data{Key: []byte("whatever-forever")})
+	err = c.SetMetadata(metastor.Metadata{Key: []byte("whatever-forever")})
 	require.Equal(myEncodingErr, err)
 }
 
@@ -178,7 +194,7 @@ func TestServerDown(t *testing.T) {
 
 	require.Equal([]string{etcd.ListenAddr()}, c.Endpoints())
 
-	md := metastor.Data{Key: []byte("key")}
+	md := metastor.Metadata{Key: []byte("key")}
 
 	// make sure we can do some operation to server
 	err = c.SetMetadata(md)

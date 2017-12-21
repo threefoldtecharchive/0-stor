@@ -1,9 +1,7 @@
 package commands
 
 import (
-	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 
@@ -12,30 +10,28 @@ import (
 
 // writeMetaInHumanReadableFormat writes a metastor.Meta struct
 // as a human readable format into the writer.
-func writeMetaAsHumanReadableFormat(w io.Writer, m metastor.Data) error {
+func writeMetaAsHumanReadableFormat(w io.Writer, m metastor.Metadata) error {
 	w.Write([]byte(fmt.Sprintf("Key: %s\n", m.Key)))
-	w.Write([]byte(fmt.Sprintf("Epoch: %d\n", m.Epoch)))
+	w.Write([]byte(fmt.Sprintf("CreationEpoch: %d\n", m.CreationEpoch)))
+	w.Write([]byte(fmt.Sprintf("LastWriteEpoch: %d\n", m.LastWriteEpoch)))
 
 	w.Write([]byte("Chunks:\n"))
 	for _, chunk := range m.Chunks {
-		if chunk == nil {
-			return errors.New("nil chunk")
-		}
-
-		w.Write([]byte(fmt.Sprintf("\tKey: %s\n", hex.EncodeToString(chunk.Key))))
 		w.Write([]byte(fmt.Sprintf("\tSize: %d\n", chunk.Size)))
-		w.Write([]byte("Shards:\n"))
-		for _, shard := range chunk.Shards {
-			w.Write([]byte(fmt.Sprintf("\t\t%s\n", shard)))
+		w.Write([]byte("Objects:\n"))
+		for _, object := range chunk.Objects {
+			w.Write([]byte(fmt.Sprintf("\t\tKey: %s\n", object.Key)))
+			w.Write([]byte(fmt.Sprintf("\t\tShardID: %s\n", object.ShardID)))
 		}
+		w.Write([]byte(fmt.Sprintf("\tHash: %s\n", chunk.Hash)))
 		w.Write([]byte{'\n'})
 	}
 
-	if m.Previous != nil {
-		w.Write([]byte(fmt.Sprintf("Previous: %s\n", m.Previous)))
+	if m.PreviousKey != nil {
+		w.Write([]byte(fmt.Sprintf("PreviousKey: %s\n", m.PreviousKey)))
 	}
-	if m.Next != nil {
-		w.Write([]byte(fmt.Sprintf("Next: %s\n", m.Next)))
+	if m.NextKey != nil {
+		w.Write([]byte(fmt.Sprintf("NextKey: %s\n", m.NextKey)))
 	}
 
 	return nil
@@ -43,7 +39,7 @@ func writeMetaAsHumanReadableFormat(w io.Writer, m metastor.Data) error {
 
 // writeMetaAsJSON writes a metastor.Meta struct
 // as a (prettified) JSON.
-func writeMetaAsJSON(w io.Writer, m metastor.Data, pretty bool) error {
+func writeMetaAsJSON(w io.Writer, m metastor.Metadata, pretty bool) error {
 	encoder := json.NewEncoder(w)
 	if pretty {
 		encoder.SetIndent("", "\t")
@@ -51,36 +47,49 @@ func writeMetaAsJSON(w io.Writer, m metastor.Data, pretty bool) error {
 
 	// turn the in-memory metadata structure,
 	// into our custom JSON-friendly metadata structure
-	metadata := _metaDataJSON{
-		Size:     m.Size,
-		Epoch:    m.Epoch,
-		Key:      string(m.Key),
-		Previous: string(m.Previous),
-		Next:     string(m.Next),
+	metadata := _MetaDataJSON{
+		Key:            string(m.Key),
+		Size:           m.Size,
+		CreationEpoch:  m.CreationEpoch,
+		LastWriteEpoch: m.LastWriteEpoch,
+		PreviousKey:    string(m.PreviousKey),
+		NextKey:        string(m.NextKey),
 	}
 	for _, chunk := range m.Chunks {
-		metadata.Chunks = append(metadata.Chunks, _metaDataChunkJSON{
-			Size:   chunk.Size,
-			Key:    string(chunk.Size),
-			Shards: chunk.Shards,
-		})
+		c := _MetaDataChunkJSON{
+			Size: chunk.Size,
+			Hash: string(chunk.Hash),
+		}
+		for _, object := range chunk.Objects {
+			c.Objects = append(c.Objects, _MetaDataObjectJSON{
+				Key:   string(object.Key),
+				Shard: object.ShardID,
+			})
+		}
+		metadata.Chunks = append(metadata.Chunks, c)
 	}
 
 	// encode our JSON-friendly metadata structure
 	return encoder.Encode(metadata)
 }
 
-type _metaDataJSON struct {
-	Size     int64                `json:"size"`
-	Epoch    int64                `json:"epoch"`
-	Key      string               `json:"key"`
-	Chunks   []_metaDataChunkJSON `json:"chunks"`
-	Previous string               `json:"previous,omitempty"`
-	Next     string               `json:"next,omitempty"`
+type _MetaDataJSON struct {
+	Key            string               `json:"key"`
+	Size           int64                `json:"size"`
+	CreationEpoch  int64                `json:"creation_epoch"`
+	LastWriteEpoch int64                `json:"last_write_epoch"`
+	Chunks         []_MetaDataChunkJSON `json:"chunks"`
+	PreviousKey    string               `json:"previous_key,omitempty"`
+	NextKey        string               `json:"next_key,omitempty"`
 }
 
-type _metaDataChunkJSON struct {
-	Size   int64    `json:"size"`
-	Key    string   `json:"string"`
-	Shards []string `json:"shards"`
+type _MetaDataChunkJSON struct {
+	Size    int64                 `json:"size"`
+	Objects []_MetaDataObjectJSON `json:"objects"`
+	Hash    string                `json:"hash"`
+}
+
+type _MetaDataObjectJSON struct {
+	Key   string `json:"key"`
+	Shard string `json:"shard"`
 }

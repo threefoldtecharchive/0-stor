@@ -110,7 +110,7 @@ func TestMyCustomMarshalFuncPair(t *testing.T) {
 	pair, err := NewMarshalFuncPair(myCustomMarshalType)
 	require.NoError(err)
 	require.NotNil(pair.Marshal)
-	_, err = pair.Marshal(metastor.Data{})
+	_, err = pair.Marshal(metastor.Metadata{})
 	require.Equal(errMyMarshal, err)
 	require.NotNil(pair.Unmarshal)
 	err = pair.Unmarshal(nil, nil)
@@ -153,11 +153,11 @@ const (
 
 var errMyMarshal = errors.New("my marshal error")
 
-func myErrorMarsalFunc(metastor.Data) ([]byte, error) {
+func myErrorMarsalFunc(metastor.Metadata) ([]byte, error) {
 	return nil, errMyMarshal
 }
 
-func myErrorUnmarshalFunc([]byte, *metastor.Data) error {
+func myErrorUnmarshalFunc([]byte, *metastor.Metadata) error {
 	return errMyMarshal
 }
 

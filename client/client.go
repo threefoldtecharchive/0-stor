@@ -122,11 +122,11 @@ func (c *Client) Close() error {
 }
 
 // Write write the value to the the 0-stors configured by the client config
-func (c *Client) Write(key, value []byte) (*metastor.Data, error) {
+func (c *Client) Write(key, value []byte) (*metastor.Metadata, error) {
 	return c.WriteWithMeta(key, value, nil, nil, nil)
 }
 
-func (c *Client) WriteF(key []byte, r io.Reader) (*metastor.Data, error) {
+func (c *Client) WriteF(key []byte, r io.Reader) (*metastor.Metadata, error) {
 	return c.writeFWithMeta(key, r, nil, nil, nil)
 }
 
@@ -136,16 +136,16 @@ func (c *Client) WriteF(key []byte, r io.Reader) (*metastor.Data, error) {
 // So the client won't need to fetch it back from the metadata server.
 // prevKey still need to be set it prevMeta is set
 // initialMeta is optional metadata, if user want to set his own initial metadata for example set own epoch
-func (c *Client) WriteWithMeta(key, val []byte, prevKey []byte, prevMeta, md *metastor.Data) (*metastor.Data, error) {
+func (c *Client) WriteWithMeta(key, val []byte, prevKey []byte, prevMeta, md *metastor.Metadata) (*metastor.Metadata, error) {
 	r := bytes.NewReader(val)
 	return c.writeFWithMeta(key, r, prevKey, prevMeta, md)
 }
 
-func (c *Client) WriteFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMeta, md *metastor.Data) (*metastor.Data, error) {
+func (c *Client) WriteFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMeta, md *metastor.Metadata) (*metastor.Metadata, error) {
 	return c.writeFWithMeta(key, r, prevKey, prevMeta, md)
 }
 
-func (c *Client) writeFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMeta, md *metastor.Data) (*metastor.Data, error) {
+func (c *Client) writeFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMeta, md *metastor.Metadata) (*metastor.Metadata, error) {
 	chunks, err := c.dataPipeline.Write(r)
 	if err != nil {
 		return nil, err
@@ -153,18 +153,19 @@ func (c *Client) writeFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMet
 
 	// create new metadata if not given
 	if md == nil {
-		md = &metastor.Data{
-			Key:   key,
-			Epoch: time.Now().UnixNano(),
+		now := time.Now().UnixNano()
+		md = &metastor.Metadata{
+			Key:            key,
+			CreationEpoch:  now,
+			LastWriteEpoch: now,
 		}
 	}
 
 	// update chunks in metadata
-	// TODO: fix this (pointer) difference in API
-	md.Chunks = make([]*metastor.Chunk, len(chunks))
+	md.Chunks = make([]metastor.Chunk, len(chunks))
 	md.Size = 0
 	for index := range chunks {
-		chunk := &chunks[index]
+		chunk := chunks[index]
 		md.Chunks[index] = chunk
 		md.Size += chunk.Size
 	}
@@ -204,7 +205,7 @@ func (c *Client) ReadF(key []byte, w io.Writer) error {
 }
 
 // ReadWithMeta reads the value described by md
-func (c *Client) ReadWithMeta(md *metastor.Data) ([]byte, error) {
+func (c *Client) ReadWithMeta(md *metastor.Metadata) ([]byte, error) {
 	w := &bytes.Buffer{}
 	err := c.readFWithMeta(md, w)
 	if err != nil {
@@ -214,12 +215,11 @@ func (c *Client) ReadWithMeta(md *metastor.Data) ([]byte, error) {
 	return w.Bytes(), nil
 }
 
-func (c *Client) readFWithMeta(md *metastor.Data, w io.Writer) error {
+func (c *Client) readFWithMeta(md *metastor.Metadata, w io.Writer) error {
 	// get chunks from metadata
-	// TODO: fix this (pointer) difference in API
 	chunks := make([]metastor.Chunk, len(md.Chunks))
 	for index := range md.Chunks {
-		chunks[index] = *md.Chunks[index]
+		chunks[index] = md.Chunks[index]
 	}
 	return c.dataPipeline.Read(chunks, w)
 }
@@ -238,47 +238,38 @@ func (c *Client) Delete(key []byte) error {
 // DeleteWithMeta deletes object from the 0-stor server pointed by the
 // given metadata
 // It also deletes the metadatastor.
-func (c *Client) DeleteWithMeta(meta *metastor.Data) error {
-	type job struct {
-		key   []byte
-		shard string
-	}
-
+func (c *Client) DeleteWithMeta(meta *metastor.Metadata) error {
 	var (
 		wg   = sync.WaitGroup{}
-		cJob = make(chan job, runtime.NumCPU())
+		cJob = make(chan metastor.Object, runtime.NumCPU())
 	)
 
 	// create some worker that will delete all shards
 	wg.Add(runtime.NumCPU())
 	for i := 0; i < runtime.NumCPU(); i++ {
-		go func(cJob chan job) {
+		go func() {
 			defer wg.Done()
 
-			for job := range cJob {
-				shard, err := c.datastorCluster.GetShard(job.shard)
+			for object := range cJob {
+				shard, err := c.datastorCluster.GetShard(object.ShardID)
 				if err != nil {
 					// FIXME: probably want to handle this
 					log.Errorf("error deleting object:%v", err)
 					continue
 				}
-				if err := shard.DeleteObject(job.key); err != nil {
+				if err := shard.DeleteObject(object.Key); err != nil {
 					// FIXME: probably want to handle this
 					log.Errorf("error deleting object:%v", err)
 					continue
 				}
 			}
-
-		}(cJob)
+		}()
 	}
 
 	// send job to the workers
 	for _, chunk := range meta.Chunks {
-		for _, shard := range chunk.Shards {
-			cJob <- job{
-				key:   chunk.Key,
-				shard: shard,
-			}
+		for _, object := range chunk.Objects {
+			cJob <- object
 		}
 	}
 	close(cJob)
@@ -295,36 +286,36 @@ func (c *Client) DeleteWithMeta(meta *metastor.Data) error {
 	return nil
 }
 
-func (c *Client) Check(key []byte) (storage.ObjectCheckStatus, error) {
+func (c *Client) Check(key []byte) (storage.CheckStatus, error) {
 	meta, err := c.metastorClient.GetMetadata(key)
 	if err != nil {
 		log.Errorf("fail to get metadata for check: %v", err)
-		return storage.ObjectCheckStatus(0), err
+		return storage.CheckStatus(0), err
 	}
 
+	chunkStorage := c.dataPipeline.GetChunkStorage()
 	for _, chunk := range meta.Chunks {
-		status, err := c.dataPipeline.GetObjectStorage().Check(storage.ObjectConfig{
-			Key:      chunk.Key,
-			Shards:   chunk.Shards,
-			DataSize: int(chunk.Size),
+		status, err := chunkStorage.CheckChunk(storage.ChunkConfig{
+			Size:    chunk.Size,
+			Objects: chunk.Objects,
 		}, false)
-		if err != nil || status == storage.ObjectCheckStatusInvalid {
+		if err != nil || status == storage.CheckStatusInvalid {
 			return status, err
 		}
 	}
-	return storage.ObjectCheckStatusValid, nil
+	return storage.CheckStatusValid, nil
 }
 
-func (c *Client) linkMeta(curMd, prevMd *metastor.Data, curKey, prevKey []byte) error {
+func (c *Client) linkMeta(curMd, prevMd *metastor.Metadata, curKey, prevKey []byte) error {
 	if len(prevKey) == 0 {
 		return c.metastorClient.SetMetadata(*curMd)
 	}
 
 	// point next key of previous meta to new meta
-	prevMd.Next = curKey
+	prevMd.NextKey = curKey
 
 	// point prev key of new meta to previous one
-	curMd.Previous = prevKey
+	curMd.PreviousKey = prevKey
 
 	// update prev meta
 	if err := c.metastorClient.SetMetadata(*prevMd); err != nil {

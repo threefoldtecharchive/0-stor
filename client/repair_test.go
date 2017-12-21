@@ -75,18 +75,18 @@ func testRepair(t *testing.T, config Config, repairErr error) {
 	// Check status is ok after a write
 	status, err := c.Check(meta.Key)
 	require.NoError(t, err, "fail to check object")
-	require.True(t, status == storage.ObjectCheckStatusValid || status == storage.ObjectCheckStatusOptimal)
+	require.True(t, status == storage.CheckStatusValid || status == storage.CheckStatusOptimal)
 
 	// corrupt file by removing a block
-	store, err := c.datastorCluster.GetShard(meta.Chunks[0].Shards[0])
+	store, err := c.datastorCluster.GetShard(meta.Chunks[0].Objects[0].ShardID)
 	require.NoError(t, err)
-	err = store.DeleteObject(meta.Chunks[0].Key)
+	err = store.DeleteObject(meta.Chunks[0].Objects[0].Key)
 	require.NoError(t, err)
 
 	// Check status is corrupted
 	status, err = c.Check(meta.Key)
 	require.NoError(t, err, "fail to check object")
-	require.True(t, status == storage.ObjectCheckStatusValid || status == storage.ObjectCheckStatusInvalid)
+	require.True(t, status == storage.CheckStatusValid || status == storage.CheckStatusInvalid)
 
 	// try to repair
 	err = c.Repair(meta.Key)

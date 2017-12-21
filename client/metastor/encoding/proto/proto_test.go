@@ -13,51 +13,72 @@ import (
 func TestMarshalUnmarshal(t *testing.T) {
 	require := require.New(t)
 
-	dataSlice := []metastor.Data{
-		metastor.Data{
+	metadataSlice := []metastor.Metadata{
+		metastor.Metadata{
 			Key: []byte("foo"),
 		},
-		metastor.Data{
-			Key:   []byte("bar"),
-			Epoch: 42,
+		metastor.Metadata{
+			Key:           []byte("bar"),
+			CreationEpoch: 42,
 		},
-		metastor.Data{
-			Key:      []byte("baz"),
-			Epoch:    math.MaxInt64,
-			Next:     []byte("foo"),
-			Previous: []byte("baz"),
+		metastor.Metadata{
+			Key:            []byte("42"),
+			CreationEpoch:  42,
+			LastWriteEpoch: 42,
 		},
-		metastor.Data{
-			Key:   []byte("two"),
-			Epoch: 123456789,
-			Chunks: []*metastor.Chunk{
-				&metastor.Chunk{
-					Size:   math.MaxInt64,
-					Key:    []byte("foo"),
-					Shards: nil,
+		metastor.Metadata{
+			Key:            []byte("baz"),
+			CreationEpoch:  math.MaxInt64,
+			LastWriteEpoch: math.MinInt64,
+			NextKey:        []byte("foo"),
+			PreviousKey:    []byte("baz"),
+		},
+		metastor.Metadata{
+			Key:            []byte("two"),
+			CreationEpoch:  123456789,
+			LastWriteEpoch: 123456789,
+			Chunks: []metastor.Chunk{
+				metastor.Chunk{
+					Size:    math.MaxInt64,
+					Objects: nil,
+					Hash:    []byte("foo"),
 				},
-				&metastor.Chunk{
-					Size:   1234,
-					Key:    []byte("bar"),
-					Shards: []string{"foo"},
+				metastor.Chunk{
+					Size: 1234,
+					Objects: []metastor.Object{
+						metastor.Object{
+							Key:     []byte("foo"),
+							ShardID: "bar",
+						},
+					},
+					Hash: []byte("bar"),
 				},
-				&metastor.Chunk{
-					Size:   2,
-					Key:    []byte("baz"),
-					Shards: []string{"bar", "foo"},
+				metastor.Chunk{
+					Size: 2,
+					Objects: []metastor.Object{
+						metastor.Object{
+							Key:     []byte("bar"),
+							ShardID: "foo",
+						},
+						metastor.Object{
+							Key:     []byte("foo"),
+							ShardID: "bar",
+						},
+					},
+					Hash: []byte("baz"),
 				},
 			},
-			Next:     []byte("one"),
-			Previous: []byte("three"),
+			NextKey:     []byte("one"),
+			PreviousKey: []byte("three"),
 		},
 	}
 
-	for _, input := range dataSlice {
+	for _, input := range metadataSlice {
 		bytes, err := MarshalMetadata(input)
 		require.NoError(err)
 		require.NotNil(bytes)
 
-		var output metastor.Data
+		var output metastor.Metadata
 		err = UnmarshalMetadata(bytes, &output)
 		require.NoError(err)
 		require.Equal(input, output)
@@ -68,15 +89,15 @@ func TestUnmarshalExplicitPanics(t *testing.T) {
 	require := require.New(t)
 
 	require.Panics(func() {
-		UnmarshalMetadata(nil, &metastor.Data{})
+		UnmarshalMetadata(nil, &metastor.Metadata{})
 	}, "no data given to unmarshal")
 	require.Panics(func() {
 		UnmarshalMetadata([]byte("foo"), nil)
-	}, "no metastor.Data pointer given to unmarshal to")
+	}, "no metastor.Metadata pointer given to unmarshal to")
 }
 
 func TestUnmarshalExplicitErrors(t *testing.T) {
-	var data metastor.Data
+	var data metastor.Metadata
 	require.Error(t, UnmarshalMetadata([]byte("foo"), &data))
 }
 
@@ -91,7 +112,7 @@ func TestMetaSize(t *testing.T) {
 
 	t.Logf("size proto: %d\n", len(bytes))
 
-	var output metastor.Data
+	var output metastor.Metadata
 	err = UnmarshalMetadata(bytes, &output)
 	require.NoError(err)
 	require.Equal(input, output)
@@ -109,23 +130,26 @@ func BenchmarkMarshalMetadata(b *testing.B) {
 	}
 }
 
-func createMeta(t testing.TB) metastor.Data {
-	chunks := make([]*metastor.Chunk, 256)
+func createMeta(t testing.TB) metastor.Metadata {
+	chunks := make([]metastor.Chunk, 256)
 	for i := range chunks {
-		chunks[i] = &metastor.Chunk{
-			Key:  []byte(fmt.Sprintf("chunk%d", i)),
+		chunks[i] = metastor.Chunk{
+			Hash: []byte(fmt.Sprintf("chunk%d", i)),
 			Size: 1024,
 		}
-		chunks[i].Shards = make([]string, 5)
-		for y := range chunks[i].Shards {
-			chunks[i].Shards[y] = fmt.Sprintf("http://127.0.0.1:12345/stor-%d", i)
+		chunks[i].Objects = make([]metastor.Object, 5)
+		for y := range chunks[i].Objects {
+			chunks[i].Objects[y] = metastor.Object{
+				Key:     []byte(fmt.Sprintf("chunk%d", i)),
+				ShardID: fmt.Sprintf("http://127.0.0.1:12345/stor-%d", i),
+			}
 		}
 	}
 
-	return metastor.Data{
-		Key:      []byte("testkey"),
-		Previous: []byte("previous"),
-		Next:     []byte("next"),
-		Chunks:   chunks,
+	return metastor.Metadata{
+		Key:         []byte("testkey"),
+		PreviousKey: []byte("previous"),
+		NextKey:     []byte("next"),
+		Chunks:      chunks,
 	}
 }

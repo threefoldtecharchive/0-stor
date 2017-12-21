@@ -9,10 +9,9 @@ import (
 // ObjectStatusForObject allows you to check the status
 // for a given object in a given database.
 // This function ensures that the object's data exist and is not corrupt.
-func ObjectStatusForObject(namespace, key []byte, db dbp.DB) (server.ObjectStatus, error) {
-	dataKey := dbp.DataKey(namespace, key)
+func ObjectStatusForObject(key []byte, db dbp.DB) (server.ObjectStatus, error) {
 	// see if we can fetch the object's data package
-	data, err := db.Get(dataKey)
+	data, err := db.Get(key)
 	if err != nil {
 		if err == dbp.ErrNotFound {
 			return server.ObjectStatusMissing, nil

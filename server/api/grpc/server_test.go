@@ -39,8 +39,6 @@ func TestServerMsgSize(t *testing.T) {
 			cl, err := storgrpc.NewClient(srv.Address(), "testnamespace", nil)
 			require.NoError(err, "client should have been created")
 
-			key := []byte("foo")
-
 			bigData := make([]byte, (maxSize*mib)+10)
 			_, err = rand.Read(bigData)
 			require.NoError(err, "should have read random data")
@@ -49,16 +47,10 @@ func TestServerMsgSize(t *testing.T) {
 			_, err = rand.Read(smallData)
 			require.NoError(err, "should have read random data")
 
-			err = cl.SetObject(datastor.Object{
-				Key:  key,
-				Data: bigData,
-			})
+			_, err = cl.CreateObject(bigData)
 			require.Error(err, "should have exceeded message max size")
 
-			err = cl.SetObject(datastor.Object{
-				Key:  key,
-				Data: smallData,
-			})
+			key, err := cl.CreateObject(smallData)
 			require.NoError(err, "should not have exceeded message max size")
 
 			status, err := cl.GetObjectStatus(key)

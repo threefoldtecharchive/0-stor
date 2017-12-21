@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/zero-os/0-stor/client/datastor"
-
 	"golang.org/x/sync/errgroup"
 
 	"github.com/zero-os/0-stor/client/metastor"
@@ -21,7 +19,7 @@ import (
 // that is written using this pipeline, can be read back
 // in the same order as it is written.
 //
-// NewAsyncSplitterPipeline requires a non-nil ObjectStorage and will panic if it is missing.
+// NewAsyncSplitterPipeline requires a non-nil ChunkStorage and will panic if it is missing.
 // It also requires chunkSize to be positive, if not, it will panic as well.
 //
 // If no ProcessorConstructor is given, a default constructor will be created for you,
@@ -37,9 +35,9 @@ import (
 // produces signatures as keys, rather than checksums.
 //
 // If no jobCount is given, meaning it is 0 or less, DefaultJobCount will be used.
-func NewAsyncSplitterPipeline(os storage.ObjectStorage, chunkSize int, pc ProcessorConstructor, hc HasherConstructor, jobCount int) *AsyncSplitterPipeline {
-	if os == nil {
-		panic("no ObjectStorage given")
+func NewAsyncSplitterPipeline(cs storage.ChunkStorage, chunkSize int, pc ProcessorConstructor, hc HasherConstructor, jobCount int) *AsyncSplitterPipeline {
+	if cs == nil {
+		panic("no ChunkStorage given")
 	}
 	if chunkSize <= 0 {
 		panic("chunk size has to be positive")
@@ -60,7 +58,7 @@ func NewAsyncSplitterPipeline(os storage.ObjectStorage, chunkSize int, pc Proces
 	return &AsyncSplitterPipeline{
 		hasher:            hc,
 		processor:         pc,
-		storage:           os,
+		storage:           cs,
 		storageJobCount:   storageJobCount,
 		processorJobCount: jobCount,
 		chunkSize:         chunkSize,
@@ -75,7 +73,7 @@ func NewAsyncSplitterPipeline(os storage.ObjectStorage, chunkSize int, pc Proces
 type AsyncSplitterPipeline struct {
 	hasher                             HasherConstructor
 	processor                          ProcessorConstructor
-	storage                            storage.ObjectStorage
+	storage                            storage.ChunkStorage
 	storageJobCount, processorJobCount int
 	chunkSize                          int
 }
@@ -124,12 +122,12 @@ func (asp *AsyncSplitterPipeline) Write(r io.Reader) ([]metastor.Chunk, error) {
 
 	// start all the processors,
 	// which will also create key, using the hasher
-	type indexedObject struct {
+	type indexedData struct {
 		Index int
-		Key   []byte
+		Hash  []byte
 		Data  []byte
 	}
-	objectCh := make(chan indexedObject, asp.storageJobCount)
+	dataCh := make(chan indexedData, asp.storageJobCount)
 	processorGroup, _ := errgroup.WithContext(ctx)
 	for i := 0; i < asp.processorJobCount; i++ {
 		hasher, err := asp.hasher()
@@ -142,8 +140,8 @@ func (asp *AsyncSplitterPipeline) Write(r io.Reader) ([]metastor.Chunk, error) {
 		}
 		processorGroup.Go(func() error {
 			for input := range inputCh {
-				// generate the data's key
-				key := hasher.HashBytes(input.Data)
+				// generate the data's hash
+				hash := hasher.HashBytes(input.Data)
 
 				// process the data
 				data, err := processor.WriteProcess(input.Data)
@@ -161,7 +159,7 @@ func (asp *AsyncSplitterPipeline) Write(r io.Reader) ([]metastor.Chunk, error) {
 				}
 
 				select {
-				case objectCh <- indexedObject{input.Index, key, data}:
+				case dataCh <- indexedData{input.Index, hash, data}:
 				case <-ctx.Done():
 					return nil
 				}
@@ -171,7 +169,7 @@ func (asp *AsyncSplitterPipeline) Write(r io.Reader) ([]metastor.Chunk, error) {
 	}
 	group.Go(func() error {
 		err := processorGroup.Wait()
-		close(objectCh)
+		close(dataCh)
 		return err
 	})
 
@@ -185,21 +183,18 @@ func (asp *AsyncSplitterPipeline) Write(r io.Reader) ([]metastor.Chunk, error) {
 	storageGroup, _ := errgroup.WithContext(ctx)
 	for i := 0; i < asp.storageJobCount; i++ {
 		storageGroup.Go(func() error {
-			for object := range objectCh {
-				cfg, err := asp.storage.Write(datastor.Object{
-					Key:  object.Key,
-					Data: object.Data,
-				})
+			for data := range dataCh {
+				cfg, err := asp.storage.WriteChunk(data.Data)
 				if err != nil {
 					return err
 				}
 				chunk := metastor.Chunk{
-					Key:    cfg.Key,
-					Shards: cfg.Shards,
-					Size:   int64(cfg.DataSize),
+					Size:    cfg.Size,
+					Objects: cfg.Objects,
+					Hash:    data.Hash,
 				}
 				select {
-				case chunkCh <- indexedChunk{object.Index, chunk}:
+				case chunkCh <- indexedChunk{data.Index, chunk}:
 				case <-ctx.Done():
 					return nil
 				}
@@ -357,27 +352,26 @@ func (asp *AsyncSplitterPipeline) Read(chunks []metastor.Chunk, w io.Writer) err
 	// start all storage readers
 	// which will read all data until all data has been read,
 	// or until the context is cancelled
-	type indexedObject struct {
+	type indexedInput struct {
 		Index int
-		Key   []byte
 		Data  []byte
+		Hash  []byte
 	}
 	storageGroup, _ := errgroup.WithContext(ctx)
-	inputCh := make(chan indexedObject, processorJobCount)
+	inputCh := make(chan indexedInput, processorJobCount)
 	for i := 0; i < storageJobCount; i++ {
 		storageGroup.Go(func() error {
 			for ic := range chunkCh {
-				obj, err := asp.storage.Read(storage.ObjectConfig{
-					Key:      ic.Chunk.Key,
-					Shards:   ic.Chunk.Shards,
-					DataSize: int(ic.Chunk.Size),
+				data, err := asp.storage.ReadChunk(storage.ChunkConfig{
+					Size:    ic.Chunk.Size,
+					Objects: ic.Chunk.Objects,
 				})
 				if err != nil {
 					return err
 				}
 				// send the object data and key, for further processing and validation
 				select {
-				case inputCh <- indexedObject{ic.Index, obj.Key, obj.Data}:
+				case inputCh <- indexedInput{ic.Index, data, ic.Chunk.Hash}:
 				case <-ctx.Done():
 					return nil
 				}
@@ -418,8 +412,8 @@ func (asp *AsyncSplitterPipeline) Read(chunks []metastor.Chunk, w io.Writer) err
 				if err != nil {
 					return err
 				}
-				if bytes.Compare(input.Key, hasher.HashBytes(data)) != 0 {
-					return fmt.Errorf("object chunk #%d's data and key do not match", input.Index)
+				if bytes.Compare(input.Hash, hasher.HashBytes(data)) != 0 {
+					return fmt.Errorf("object chunk #%d's data and hash do not match", input.Index)
 				}
 
 				// ensure to copy the data,
@@ -492,8 +486,8 @@ func (asp *AsyncSplitterPipeline) Read(chunks []metastor.Chunk, w io.Writer) err
 	return group.Wait()
 }
 
-// GetObjectStorage implements Pipeline.GetObjectStorage
-func (asp *AsyncSplitterPipeline) GetObjectStorage() storage.ObjectStorage {
+// GetChunkStorage implements Pipeline.GetChunkStorage
+func (asp *AsyncSplitterPipeline) GetChunkStorage() storage.ChunkStorage {
 	return asp.storage
 }
 

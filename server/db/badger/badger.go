@@ -24,6 +24,7 @@ type DB struct {
 	db         *badgerdb.DB
 	ctx        context.Context
 	cancelFunc context.CancelFunc
+	seqCache   *sequenceCache
 }
 
 // New creates new badger DB with default options
@@ -49,6 +50,10 @@ func NewWithOpts(data, meta string, opts badgerdb.Options) (*DB, error) {
 	opts.ValueDir = data
 
 	db, err := badgerdb.Open(opts)
+	if err != nil {
+		return nil, err
+	}
+	seqCache := newSequenceCache(db)
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -56,11 +61,46 @@ func NewWithOpts(data, meta string, opts badgerdb.Options) (*DB, error) {
 		db:         db,
 		ctx:        ctx,
 		cancelFunc: cancel,
+		seqCache:   seqCache,
 	}
 
 	go badger.runGC()
 
 	return badger, err
+}
+
+// Set implements DB.Set
+func (bdb *DB) Set(key []byte, data []byte) error {
+	if key == nil {
+		return db.ErrNilKey
+	}
+
+	err := bdb.db.Update(func(tx *badgerdb.Txn) error {
+		return tx.Set(key, data)
+	})
+	if err != nil {
+		return mapBadgerError(err)
+	}
+	return nil
+}
+
+// SetScoped implements DB.SetScoped
+func (bdb *DB) SetScoped(scopeKey, data []byte) ([]byte, error) {
+	if scopeKey == nil {
+		return nil, db.ErrNilKey
+	}
+
+	key, err := bdb.seqCache.IncrementKey(scopeKey)
+	if err != nil {
+		return nil, err
+	}
+	err = bdb.db.Update(func(tx *badgerdb.Txn) error {
+		return tx.Set(key, data)
+	})
+	if err != nil {
+		return nil, mapBadgerError(err)
+	}
+	return key, nil
 }
 
 // Get implements DB.Get
@@ -113,25 +153,6 @@ func (bdb *DB) Exists(key []byte) (bool, error) {
 		return false, mapBadgerError(err)
 	}
 	return exists, nil
-}
-
-// Set implements DB.Set
-func (bdb *DB) Set(key []byte, val []byte) error {
-	if key == nil {
-		return db.ErrNilKey
-	}
-
-	err := bdb.db.Update(func(tx *badgerdb.Txn) error {
-		err := tx.Set(key, val)
-		if err != nil {
-			return err
-		}
-		return nil
-	})
-	if err != nil {
-		return mapBadgerError(err)
-	}
-	return nil
 }
 
 // Delete implements DB.Delete
@@ -224,8 +245,13 @@ func (bdb *DB) ListItems(ctx context.Context, prefix []byte) (<-chan db.Item, er
 
 // Close implements DB.Close
 func (bdb *DB) Close() error {
+	// purge all cached sequences
+	bdb.seqCache.Purge()
+
+	// cancel (db) context
 	bdb.cancelFunc()
 
+	// close db
 	err := bdb.db.Close()
 	if err != nil {
 		return mapBadgerError(err)
