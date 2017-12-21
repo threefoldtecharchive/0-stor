@@ -200,18 +200,18 @@ func (api *ObjectAPI) ListObjectKeys(req *pb.ListObjectKeysRequest, stream pb.Ob
 			resp.Key = make([]byte, len(key))
 			copy(resp.Key, key)
 
-			// send object over the channel, if possible
-			select {
-			case outputCh <- resp:
-			case <-ctx.Done():
-				return nil
-			}
-
 			// close current item
 			err = item.Close()
 			if err != nil {
 				log.Errorf("Database error for data (%v): %v", label, err)
 				return rpctypes.ErrGRPCDatabase
+			}
+
+			// send object over the channel, if possible
+			select {
+			case outputCh <- resp:
+			case <-ctx.Done():
+				return nil
 			}
 		}
 

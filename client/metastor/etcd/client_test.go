@@ -211,7 +211,7 @@ func TestServerDown(t *testing.T) {
 		require.True(ok)
 		require.True(netErr.Timeout())
 		t.Logf("operation exited successfully")
-	case <-time.After(metaOpTimeout * 2):
+	case <-time.After(metaOpTimeout + time.Second*30):
 		// the put operation should be exited before the timeout
 		t.Error("the operation should already returns with error")
 	}
@@ -233,7 +233,7 @@ func TestServerDown(t *testing.T) {
 		require.True(ok)
 		require.True(netErr.Timeout())
 		t.Logf("operation exited successfully")
-	case <-time.After(metaOpTimeout * 2):
+	case <-time.After(metaOpTimeout + time.Second*30):
 		// the Get operation should be exited before the timeout
 		t.Error("the operation should already returns with error")
 	}

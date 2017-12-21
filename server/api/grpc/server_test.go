@@ -73,15 +73,12 @@ func TestServerMsgSize(t *testing.T) {
 }
 
 func TestServerListObjectKeys(t *testing.T) {
-	require := require.New(t)
-	assert := assert.New(t)
-
 	server, iyoCl, clean := getTestGRPCServer(t, organization)
 	bufList := populateDB(t, label, server.db)
 
 	// create client connection
 	conn, err := grpc.Dial(server.Address(), grpc.WithInsecure())
-	require.NoError(err, "can't connect to the server")
+	require.NoError(t, err, "can't connect to the server")
 
 	defer func() {
 		conn.Close()
@@ -92,18 +89,18 @@ func TestServerListObjectKeys(t *testing.T) {
 	jwt, err := iyoCl.CreateJWT(namespace, itsyouonline.Permission{
 		Read: true,
 	})
-	require.NoError(err, "fail to generate jwt")
+	require.NoError(t, err, "fail to generate jwt")
 	t.Run("valid object", func(t *testing.T) {
 		ctx := contextWithToken(nil, jwt)
 		stream, err := cl.ListObjectKeys(ctx, &pb.ListObjectKeysRequest{})
-		require.NoError(err)
+		require.NoError(t, err)
 		_, err = stream.Recv()
 		requireGRPCError(t, rpctypes.ErrNilLabel, err)
-		require.NoError(stream.CloseSend())
+		require.NoError(t, stream.CloseSend())
 
 		ctx = contextWithLabelAndToken(nil, jwt, label)
 		stream, err = cl.ListObjectKeys(ctx, &pb.ListObjectKeysRequest{})
-		require.NoError(err, "can't send list request to server")
+		require.NoError(t, err, "can't send list request to server")
 
 		objNr := 0
 		for {
@@ -118,43 +115,43 @@ func TestServerListObjectKeys(t *testing.T) {
 			objNr++
 			key := obj.GetKey()
 			_, ok := bufList[string(key)]
-			require.True(ok, fmt.Sprintf("received key that was not present in db %s", key))
+			require.True(t, ok, fmt.Sprintf("received key that was not present in db %s", key))
 		}
-		assert.Equal(len(bufList), objNr)
+		assert.Equal(t, len(bufList), objNr)
 	})
 
 	t.Run("wrong permission", func(t *testing.T) {
 		jwt, err := iyoCl.CreateJWT(namespace, itsyouonline.Permission{
 			Write: true,
 		})
-		require.NoError(err, "fail to generate jwt")
+		require.NoError(t, err, "fail to generate jwt")
 
 		ctx := contextWithLabelAndToken(nil, jwt, label)
 
 		stream, err := cl.ListObjectKeys(ctx, &pb.ListObjectKeysRequest{})
-		require.NoError(err, "failed to call List")
+		require.NoError(t, err, "failed to call List")
 
 		_, err = stream.Recv()
 		if err == io.EOF {
 		}
 
-		require.Error(err)
+		require.Error(t, err)
 		err = rpctypes.Error(err)
-		assert.Equal(rpctypes.ErrPermissionDenied, err)
+		assert.Equal(t, rpctypes.ErrPermissionDenied, err)
 	})
 
 	t.Run("admin right", func(t *testing.T) {
 		jwt, err := iyoCl.CreateJWT(namespace, itsyouonline.Permission{
 			Admin: true,
 		})
-		require.NoError(err, "fail to generate jwt")
+		require.NoError(t, err, "fail to generate jwt")
 
 		ctx := contextWithLabelAndToken(nil, jwt, label)
 
 		stream, err := cl.ListObjectKeys(ctx, &pb.ListObjectKeysRequest{})
-		require.NoError(err, "failed to call List")
+		require.NoError(t, err, "failed to call List")
 		_, err = stream.Recv()
-		assert.NoError(err)
+		assert.NoError(t, err)
 		stream.CloseSend()
 	})
 }
