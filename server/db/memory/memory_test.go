@@ -23,16 +23,11 @@ func TestConstantErrors(t *testing.T) {
 	require.Equal(db.ErrNilKey, err)
 	_, err = mdb.Get(nil)
 	require.Equal(db.ErrNilKey, err)
-	require.Equal(db.ErrNilKey, mdb.Update(nil,
-		func([]byte) ([]byte, error) { return nil, nil }))
 
 	// explicit panics
 	require.Panics(func() {
 		mdb.ListItems(nil, nil)
 	}, "panics because context is required")
-	require.Panics(func() {
-		mdb.Update(nil, nil)
-	}, "panics because callback is required")
 }
 
 func TestSetGet(t *testing.T) {
@@ -413,51 +408,7 @@ func TestListItemsAbruptEnding(t *testing.T) {
 	wg.Wait()
 }
 
-// test to ensure that updating a (non-)existing key is possible
-func TestUpdate(t *testing.T) {
-	mdb := New()
-	defer mdb.Close()
-
-	require := require.New(t)
-
-	var (
-		key   = []byte("key")
-		value = []byte("value")
-	)
-
-	require.NoError(mdb.Update(key, func(data []byte) ([]byte, error) {
-		return value, nil
-	}), "updating an item should always be possible for memory DB (even if the key doesn't exist)")
-
-	v, err := mdb.Get(key)
-	require.NoError(err)
-	require.Equal(value, v)
-
-	value = []byte("new value")
-	require.NoError(mdb.Update(key, func(data []byte) ([]byte, error) {
-		return value, nil
-	}), "updating an item should always be possible for memory DB")
-
-	v, err = mdb.Get(key)
-	require.NoError(err)
-	require.Equal(value, v)
-
-	// we can also return nil in our callback in order to delete the value
-	require.NoError(mdb.Update(key, func(data []byte) ([]byte, error) {
-		return nil, nil
-	}), "updating an item should always be possible for memory DB")
-	_, err = mdb.Get(key)
-	require.Equal(db.ErrNotFound, err)
-
-	// setting it to nil agian, will do nothing, as it is already deleted
-	require.NoError(mdb.Update(key, func(data []byte) ([]byte, error) {
-		return nil, nil
-	}), "updating an item should always be possible for memory DB")
-	_, err = mdb.Get(key)
-	require.Equal(db.ErrNotFound, err)
-}
-
-func TestUpdateExistsDelete(t *testing.T) {
+func TestSetExistsDelete(t *testing.T) {
 	mdb := New()
 	defer mdb.Close()
 
@@ -467,16 +418,6 @@ func TestUpdateExistsDelete(t *testing.T) {
 	value := []byte("old value")
 
 	require.NoError(mdb.Set(key, value), "Setting a value should be always possible for memory DB")
-
-	// test Update interface
-	require.NoError(mdb.Update(key, func(data []byte) ([]byte, error) {
-		return []byte("new value"), nil
-	}), "updating an item should always be possible for memory DB")
-
-	newValue, err := mdb.Get(key)
-
-	require.NoError(err, "getting interface shouldn't fail here")
-	require.NotEqual(value, newValue)
 
 	// test Exists interface
 	exists, err := mdb.Exists(key)
@@ -489,38 +430,4 @@ func TestUpdateExistsDelete(t *testing.T) {
 
 	// test Delete interface
 	require.NoError(mdb.Delete(key), "Deleting a non-existing key shouldn't fail")
-}
-
-func TestRaceCondition(t *testing.T) {
-	mdb := New()
-	defer mdb.Close()
-
-	require := require.New(t)
-
-	key := []byte("key")
-	value := []byte("A")
-
-	require.NoError(mdb.Set(key, value), "setting the item should be OK here")
-
-	nThreads := 25
-	var wg sync.WaitGroup
-
-	// updating a value with multiple threads
-	wg.Add(nThreads)
-	for i := 0; i < nThreads; i++ {
-		go func() {
-			defer wg.Done()
-			require.NoError(mdb.Update(key, func(data []byte) ([]byte, error) {
-				data[0]++
-				return data, nil
-			}), "update shouldn't fail here")
-		}()
-	}
-	wg.Wait()
-
-	// check the last updated value
-	value, err := mdb.Get(key)
-
-	require.NoError(err, "Getting the item shouldn't fail here")
-	require.Equal(string(value), "Z", "unexpected result, race condition possible")
 }

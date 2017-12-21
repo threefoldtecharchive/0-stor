@@ -134,52 +134,6 @@ func (bdb *DB) Set(key []byte, val []byte) error {
 	return nil
 }
 
-// Update implements interface DB.Update
-func (bdb *DB) Update(key []byte, cb db.UpdateCallback) error {
-	if cb == nil {
-		panic("(*DB).Update expects a non-nil UpdateCallback")
-	}
-	if key == nil {
-		return db.ErrNilKey
-	}
-
-	err := bdb.db.Update(
-		func(tx *badgerdb.Txn) error {
-			var val []byte
-			if item, err := tx.Get(key); err == nil {
-				v, err := item.Value()
-				if err != nil {
-					return err
-				}
-				val = make([]byte, len(v))
-				copy(val, v)
-			} else if err != badgerdb.ErrKeyNotFound {
-				return err
-			}
-
-			output, err := cb(val)
-			if err != nil {
-				return err
-			}
-			if output == nil {
-				if val == nil {
-					return nil // nothing to do
-				}
-
-				// delete val
-				return tx.Delete(key)
-			}
-
-			// set value
-			return tx.Set(key, output)
-		},
-	)
-	if err != nil {
-		return mapBadgerError(err)
-	}
-	return nil
-}
-
 // Delete implements DB.Delete
 func (bdb *DB) Delete(key []byte) error {
 	if key == nil {

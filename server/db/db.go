@@ -32,17 +32,6 @@ type DB interface {
 	// Set stores data in a database mapped to the given key.
 	Set(key, data []byte) error
 
-	// Update allows you to overwrite data, mapped to the given key,
-	// by loading it in-memory and allowing for manipulation using a callback.
-	// The callback receives the original data and is expected to return the modified data,
-	// which will be stored in the database using the same key.
-	// If the given callback returns an error it is returned from this function as well.
-	// The returned data in the callback is only valid within the scope of that callback,
-	// and should be copied if you want to retain the data beyond the scope of the callback.
-	// When the requested key couldn't be found, the callback will receive a nil slice.
-	// If the callback returns nil as data, it will be deleted in case it existed before.
-	Update(key []byte, cb UpdateCallback) error
-
 	// Delete deletes data from a database mapped to the given key.
 	Delete(key []byte) error
 

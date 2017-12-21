@@ -81,44 +81,6 @@ func (mdb *DB) Delete(key []byte) error {
 	return nil
 }
 
-// Update implements interface DB.Update
-func (mdb *DB) Update(key []byte, cb db.UpdateCallback) error {
-	if cb == nil {
-		panic("(*DB).Update expects a non-nil UpdateCallback")
-	}
-	if key == nil {
-		return db.ErrNilKey
-	}
-
-	mdb.mux.Lock()
-	defer mdb.mux.Unlock()
-
-	v := mdb.m[string(key)]
-	input := make([]byte, len(v))
-	copy(input, v)
-
-	output, err := cb(input)
-	if err != nil {
-		log.Errorf("(*DB).Update callback returned an error: %v\n", err)
-		return err
-	}
-
-	if output == nil {
-		if input == nil {
-			return nil // nothing to do
-		}
-		// delete value
-		delete(mdb.m, string(key))
-		return nil
-	}
-
-	// store the new value
-	v = make([]byte, len(output))
-	copy(v, output)
-	mdb.m[string(key)] = v
-	return nil
-}
-
 // ListItems implements interface DB.ListItems
 func (mdb *DB) ListItems(ctx context.Context, prefix []byte) (<-chan db.Item, error) {
 	if ctx == nil {
