@@ -77,7 +77,7 @@ var (
 		"GetObject":       stats.IncrRead,
 		"GetObjectStatus": stats.IncrRead,
 		"ListObjectKeys":  stats.IncrRead,
-		"SetObject":       stats.IncrWrite,
+		"CreateObject":    stats.IncrWrite,
 		"DeleteObject":    stats.IncrWrite,
 	}
 	_StatsNamespaceMethodsMap = map[string]labelStatsFunc{

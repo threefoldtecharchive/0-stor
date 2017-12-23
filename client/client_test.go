@@ -236,8 +236,9 @@ func TestRoundTripGRPC(t *testing.T) {
 			assert.Equal(t, key, meta.Key, "Key in metadata is not the same")
 			// assert.EqualValues(t, len(data), meta.Size(), "size in the metadat doesn't correspond with the size of the data")
 			for _, chunk := range meta.Chunks {
-				for _, shard := range chunk.Shards {
-					assert.Contains(t, shards, shard, "shards in metadata is not one of the shards configured in the client")
+				for _, object := range chunk.Objects {
+					assert.Contains(t, shards, object.ShardID,
+						"shards in metadata is not one of the shards configured in the client")
 				}
 			}
 
@@ -302,8 +303,9 @@ func TestBlocksizes(t *testing.T) {
 			// validate metadata
 			assert.Equal(t, key, meta.Key, "Key in metadata is not the same")
 			for _, chunk := range meta.Chunks {
-				for _, shard := range chunk.Shards {
-					assert.Contains(t, shards, shard, "shards in metadata is not one of the shards configured in the client")
+				for _, object := range chunk.Objects {
+					assert.Contains(t, shards, object.ShardID,
+						"shards in metadata is not one of the shards configured in the client")
 				}
 			}
 

@@ -10,6 +10,7 @@
 	It has these top-level messages:
 		Metadata
 		Chunk
+		Object
 */
 package proto
 
@@ -37,18 +38,30 @@ var _ = math.Inf
 const _ = proto1.GoGoProtoPackageIsVersion2 // please upgrade the proto package
 
 type Metadata struct {
-	// creation epoch
-	Epoch int64 `protobuf:"varint,1,opt,name=epoch,proto3" json:"epoch,omitempty"`
-	// key used in 0-stor
-	Key []byte `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
-	// list of chunks, containing all the data
-	Chunks []Chunk `protobuf:"bytes,3,rep,name=chunks" json:"chunks"`
-	// optional key to the previous
-	// linked metadata entry
-	Previous []byte `protobuf:"bytes,4,opt,name=previous,proto3" json:"previous,omitempty"`
-	// optional key to the next
-	// linked metadata entry
-	Next []byte `protobuf:"bytes,5,opt,name=next,proto3" json:"next,omitempty"`
+	// key defines the key of the data,
+	// and is chosen by the owner of this data.
+	Key []byte `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	// size in bytes represents the total size of all chunks,
+	// that make up the stored data, combined.
+	SizeInBytes int64 `protobuf:"varint,2,opt,name=size,proto3" json:"size,omitempty"`
+	// creationEpoch defines the time this data was initially created,
+	// in the Unix epoch format, in nano seconds.
+	CreationEpoch int64 `protobuf:"varint,3,opt,name=creationEpoch,proto3" json:"creationEpoch,omitempty"`
+	// lastWriteEpoch defines the time this data
+	// was last modified (e.g. repaired),
+	// in the Unix epoch format, in nano seconds.
+	LastWriteEpoch int64 `protobuf:"varint,4,opt,name=lastWriteEpoch,proto3" json:"lastWriteEpoch,omitempty"`
+	// chunks is the metadata list of all chunks
+	// that make up the data, when combined.
+	Chunks []Chunk `protobuf:"bytes,5,rep,name=chunks" json:"chunks"`
+	// previousKey is an optional key to the previous Metadata (node),
+	// in case this Metadata (node) is used as part
+	// of a reversed/double linked list.
+	PreviousKey []byte `protobuf:"bytes,6,opt,name=previousKey,proto3" json:"previousKey,omitempty"`
+	// nextKey is an optional key to the next Metadata (node),
+	// in case this Metadata (node) is used as part
+	// of a (double) linked list.
+	NextKey []byte `protobuf:"bytes,7,opt,name=nextKey,proto3" json:"nextKey,omitempty"`
 }
 
 func (m *Metadata) Reset()                    { *m = Metadata{} }
@@ -58,21 +71,33 @@ func (*Metadata) Descriptor() ([]byte, []int) { return fileDescriptorMetadata, [
 type Chunk struct {
 	// size of the chunk in bytes
 	SizeInBytes int64 `protobuf:"varint,1,opt,name=size,proto3" json:"size,omitempty"`
-	// key used in 0-stor
-	Key []byte `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
-	// list of shards of the chunk,
-	// where each shard is the address
-	// of a zstordb server
-	Shards []string `protobuf:"bytes,3,rep,name=shards" json:"shards,omitempty"`
+	// objects defines the metadata of the objects
+	// that make up this chunk.
+	Objects []Object `protobuf:"bytes,2,rep,name=objects" json:"objects"`
+	// hash contains the checksum/signature of the chunk (data),
+	// meaning the data of all objects (of this chunk) combined.
+	Hash []byte `protobuf:"bytes,3,opt,name=hash,proto3" json:"hash,omitempty"`
 }
 
 func (m *Chunk) Reset()                    { *m = Chunk{} }
 func (*Chunk) ProtoMessage()               {}
 func (*Chunk) Descriptor() ([]byte, []int) { return fileDescriptorMetadata, []int{1} }
 
+type Object struct {
+	// key of the Object
+	Key []byte `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	// shardID defines the ID of the shard the object is stored on
+	ShardID string `protobuf:"bytes,2,opt,name=shardID,proto3" json:"shardID,omitempty"`
+}
+
+func (m *Object) Reset()                    { *m = Object{} }
+func (*Object) ProtoMessage()               {}
+func (*Object) Descriptor() ([]byte, []int) { return fileDescriptorMetadata, []int{2} }
+
 func init() {
 	proto1.RegisterType((*Metadata)(nil), "proto.Metadata")
 	proto1.RegisterType((*Chunk)(nil), "proto.Chunk")
+	proto1.RegisterType((*Object)(nil), "proto.Object")
 }
 func (this *Metadata) Compare(that interface{}) int {
 	if that == nil {
@@ -99,14 +124,26 @@ func (this *Metadata) Compare(that interface{}) int {
 	} else if this == nil {
 		return -1
 	}
-	if this.Epoch != that1.Epoch {
-		if this.Epoch < that1.Epoch {
+	if c := bytes.Compare(this.Key, that1.Key); c != 0 {
+		return c
+	}
+	if this.SizeInBytes != that1.SizeInBytes {
+		if this.SizeInBytes < that1.SizeInBytes {
 			return -1
 		}
 		return 1
 	}
-	if c := bytes.Compare(this.Key, that1.Key); c != 0 {
-		return c
+	if this.CreationEpoch != that1.CreationEpoch {
+		if this.CreationEpoch < that1.CreationEpoch {
+			return -1
+		}
+		return 1
+	}
+	if this.LastWriteEpoch != that1.LastWriteEpoch {
+		if this.LastWriteEpoch < that1.LastWriteEpoch {
+			return -1
+		}
+		return 1
 	}
 	if len(this.Chunks) != len(that1.Chunks) {
 		if len(this.Chunks) < len(that1.Chunks) {
@@ -119,10 +156,10 @@ func (this *Metadata) Compare(that interface{}) int {
 			return c
 		}
 	}
-	if c := bytes.Compare(this.Previous, that1.Previous); c != 0 {
+	if c := bytes.Compare(this.PreviousKey, that1.PreviousKey); c != 0 {
 		return c
 	}
-	if c := bytes.Compare(this.Next, that1.Next); c != 0 {
+	if c := bytes.Compare(this.NextKey, that1.NextKey); c != 0 {
 		return c
 	}
 	return 0
@@ -158,22 +195,55 @@ func (this *Chunk) Compare(that interface{}) int {
 		}
 		return 1
 	}
-	if c := bytes.Compare(this.Key, that1.Key); c != 0 {
-		return c
-	}
-	if len(this.Shards) != len(that1.Shards) {
-		if len(this.Shards) < len(that1.Shards) {
+	if len(this.Objects) != len(that1.Objects) {
+		if len(this.Objects) < len(that1.Objects) {
 			return -1
 		}
 		return 1
 	}
-	for i := range this.Shards {
-		if this.Shards[i] != that1.Shards[i] {
-			if this.Shards[i] < that1.Shards[i] {
-				return -1
-			}
+	for i := range this.Objects {
+		if c := this.Objects[i].Compare(&that1.Objects[i]); c != 0 {
+			return c
+		}
+	}
+	if c := bytes.Compare(this.Hash, that1.Hash); c != 0 {
+		return c
+	}
+	return 0
+}
+func (this *Object) Compare(that interface{}) int {
+	if that == nil {
+		if this == nil {
+			return 0
+		}
+		return 1
+	}
+
+	that1, ok := that.(*Object)
+	if !ok {
+		that2, ok := that.(Object)
+		if ok {
+			that1 = &that2
+		} else {
 			return 1
 		}
+	}
+	if that1 == nil {
+		if this == nil {
+			return 0
+		}
+		return 1
+	} else if this == nil {
+		return -1
+	}
+	if c := bytes.Compare(this.Key, that1.Key); c != 0 {
+		return c
+	}
+	if this.ShardID != that1.ShardID {
+		if this.ShardID < that1.ShardID {
+			return -1
+		}
+		return 1
 	}
 	return 0
 }
@@ -196,10 +266,16 @@ func (this *Metadata) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
-	if this.Epoch != that1.Epoch {
+	if !bytes.Equal(this.Key, that1.Key) {
 		return false
 	}
-	if !bytes.Equal(this.Key, that1.Key) {
+	if this.SizeInBytes != that1.SizeInBytes {
+		return false
+	}
+	if this.CreationEpoch != that1.CreationEpoch {
+		return false
+	}
+	if this.LastWriteEpoch != that1.LastWriteEpoch {
 		return false
 	}
 	if len(this.Chunks) != len(that1.Chunks) {
@@ -210,10 +286,10 @@ func (this *Metadata) Equal(that interface{}) bool {
 			return false
 		}
 	}
-	if !bytes.Equal(this.Previous, that1.Previous) {
+	if !bytes.Equal(this.PreviousKey, that1.PreviousKey) {
 		return false
 	}
-	if !bytes.Equal(this.Next, that1.Next) {
+	if !bytes.Equal(this.NextKey, that1.NextKey) {
 		return false
 	}
 	return true
@@ -240,16 +316,43 @@ func (this *Chunk) Equal(that interface{}) bool {
 	if this.SizeInBytes != that1.SizeInBytes {
 		return false
 	}
+	if len(this.Objects) != len(that1.Objects) {
+		return false
+	}
+	for i := range this.Objects {
+		if !this.Objects[i].Equal(&that1.Objects[i]) {
+			return false
+		}
+	}
+	if !bytes.Equal(this.Hash, that1.Hash) {
+		return false
+	}
+	return true
+}
+func (this *Object) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*Object)
+	if !ok {
+		that2, ok := that.(Object)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
 	if !bytes.Equal(this.Key, that1.Key) {
 		return false
 	}
-	if len(this.Shards) != len(that1.Shards) {
+	if this.ShardID != that1.ShardID {
 		return false
-	}
-	for i := range this.Shards {
-		if this.Shards[i] != that1.Shards[i] {
-			return false
-		}
 	}
 	return true
 }
@@ -257,10 +360,12 @@ func (this *Metadata) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 9)
+	s := make([]string, 0, 11)
 	s = append(s, "&proto.Metadata{")
-	s = append(s, "Epoch: "+fmt.Sprintf("%#v", this.Epoch)+",\n")
 	s = append(s, "Key: "+fmt.Sprintf("%#v", this.Key)+",\n")
+	s = append(s, "SizeInBytes: "+fmt.Sprintf("%#v", this.SizeInBytes)+",\n")
+	s = append(s, "CreationEpoch: "+fmt.Sprintf("%#v", this.CreationEpoch)+",\n")
+	s = append(s, "LastWriteEpoch: "+fmt.Sprintf("%#v", this.LastWriteEpoch)+",\n")
 	if this.Chunks != nil {
 		vs := make([]*Chunk, len(this.Chunks))
 		for i := range vs {
@@ -268,8 +373,8 @@ func (this *Metadata) GoString() string {
 		}
 		s = append(s, "Chunks: "+fmt.Sprintf("%#v", vs)+",\n")
 	}
-	s = append(s, "Previous: "+fmt.Sprintf("%#v", this.Previous)+",\n")
-	s = append(s, "Next: "+fmt.Sprintf("%#v", this.Next)+",\n")
+	s = append(s, "PreviousKey: "+fmt.Sprintf("%#v", this.PreviousKey)+",\n")
+	s = append(s, "NextKey: "+fmt.Sprintf("%#v", this.NextKey)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -280,8 +385,25 @@ func (this *Chunk) GoString() string {
 	s := make([]string, 0, 7)
 	s = append(s, "&proto.Chunk{")
 	s = append(s, "SizeInBytes: "+fmt.Sprintf("%#v", this.SizeInBytes)+",\n")
+	if this.Objects != nil {
+		vs := make([]*Object, len(this.Objects))
+		for i := range vs {
+			vs[i] = &this.Objects[i]
+		}
+		s = append(s, "Objects: "+fmt.Sprintf("%#v", vs)+",\n")
+	}
+	s = append(s, "Hash: "+fmt.Sprintf("%#v", this.Hash)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *Object) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 6)
+	s = append(s, "&proto.Object{")
 	s = append(s, "Key: "+fmt.Sprintf("%#v", this.Key)+",\n")
-	s = append(s, "Shards: "+fmt.Sprintf("%#v", this.Shards)+",\n")
+	s = append(s, "ShardID: "+fmt.Sprintf("%#v", this.ShardID)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -308,20 +430,30 @@ func (m *Metadata) MarshalTo(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if m.Epoch != 0 {
-		dAtA[i] = 0x8
-		i++
-		i = encodeVarintMetadata(dAtA, i, uint64(m.Epoch))
-	}
 	if len(m.Key) > 0 {
-		dAtA[i] = 0x12
+		dAtA[i] = 0xa
 		i++
 		i = encodeVarintMetadata(dAtA, i, uint64(len(m.Key)))
 		i += copy(dAtA[i:], m.Key)
 	}
+	if m.SizeInBytes != 0 {
+		dAtA[i] = 0x10
+		i++
+		i = encodeVarintMetadata(dAtA, i, uint64(m.SizeInBytes))
+	}
+	if m.CreationEpoch != 0 {
+		dAtA[i] = 0x18
+		i++
+		i = encodeVarintMetadata(dAtA, i, uint64(m.CreationEpoch))
+	}
+	if m.LastWriteEpoch != 0 {
+		dAtA[i] = 0x20
+		i++
+		i = encodeVarintMetadata(dAtA, i, uint64(m.LastWriteEpoch))
+	}
 	if len(m.Chunks) > 0 {
 		for _, msg := range m.Chunks {
-			dAtA[i] = 0x1a
+			dAtA[i] = 0x2a
 			i++
 			i = encodeVarintMetadata(dAtA, i, uint64(msg.Size()))
 			n, err := msg.MarshalTo(dAtA[i:])
@@ -331,17 +463,17 @@ func (m *Metadata) MarshalTo(dAtA []byte) (int, error) {
 			i += n
 		}
 	}
-	if len(m.Previous) > 0 {
-		dAtA[i] = 0x22
+	if len(m.PreviousKey) > 0 {
+		dAtA[i] = 0x32
 		i++
-		i = encodeVarintMetadata(dAtA, i, uint64(len(m.Previous)))
-		i += copy(dAtA[i:], m.Previous)
+		i = encodeVarintMetadata(dAtA, i, uint64(len(m.PreviousKey)))
+		i += copy(dAtA[i:], m.PreviousKey)
 	}
-	if len(m.Next) > 0 {
-		dAtA[i] = 0x2a
+	if len(m.NextKey) > 0 {
+		dAtA[i] = 0x3a
 		i++
-		i = encodeVarintMetadata(dAtA, i, uint64(len(m.Next)))
-		i += copy(dAtA[i:], m.Next)
+		i = encodeVarintMetadata(dAtA, i, uint64(len(m.NextKey)))
+		i += copy(dAtA[i:], m.NextKey)
 	}
 	return i, nil
 }
@@ -366,26 +498,53 @@ func (m *Chunk) MarshalTo(dAtA []byte) (int, error) {
 		i++
 		i = encodeVarintMetadata(dAtA, i, uint64(m.SizeInBytes))
 	}
+	if len(m.Objects) > 0 {
+		for _, msg := range m.Objects {
+			dAtA[i] = 0x12
+			i++
+			i = encodeVarintMetadata(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
+	}
+	if len(m.Hash) > 0 {
+		dAtA[i] = 0x1a
+		i++
+		i = encodeVarintMetadata(dAtA, i, uint64(len(m.Hash)))
+		i += copy(dAtA[i:], m.Hash)
+	}
+	return i, nil
+}
+
+func (m *Object) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *Object) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
 	if len(m.Key) > 0 {
-		dAtA[i] = 0x12
+		dAtA[i] = 0xa
 		i++
 		i = encodeVarintMetadata(dAtA, i, uint64(len(m.Key)))
 		i += copy(dAtA[i:], m.Key)
 	}
-	if len(m.Shards) > 0 {
-		for _, s := range m.Shards {
-			dAtA[i] = 0x1a
-			i++
-			l = len(s)
-			for l >= 1<<7 {
-				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
-				l >>= 7
-				i++
-			}
-			dAtA[i] = uint8(l)
-			i++
-			i += copy(dAtA[i:], s)
-		}
+	if len(m.ShardID) > 0 {
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintMetadata(dAtA, i, uint64(len(m.ShardID)))
+		i += copy(dAtA[i:], m.ShardID)
 	}
 	return i, nil
 }
@@ -401,14 +560,22 @@ func encodeVarintMetadata(dAtA []byte, offset int, v uint64) int {
 }
 func NewPopulatedMetadata(r randyMetadata, easy bool) *Metadata {
 	this := &Metadata{}
-	this.Epoch = int64(r.Int63())
-	if r.Intn(2) == 0 {
-		this.Epoch *= -1
-	}
 	v1 := r.Intn(100)
 	this.Key = make([]byte, v1)
 	for i := 0; i < v1; i++ {
 		this.Key[i] = byte(r.Intn(256))
+	}
+	this.SizeInBytes = int64(r.Int63())
+	if r.Intn(2) == 0 {
+		this.SizeInBytes *= -1
+	}
+	this.CreationEpoch = int64(r.Int63())
+	if r.Intn(2) == 0 {
+		this.CreationEpoch *= -1
+	}
+	this.LastWriteEpoch = int64(r.Int63())
+	if r.Intn(2) == 0 {
+		this.LastWriteEpoch *= -1
 	}
 	if r.Intn(10) != 0 {
 		v2 := r.Intn(5)
@@ -419,14 +586,14 @@ func NewPopulatedMetadata(r randyMetadata, easy bool) *Metadata {
 		}
 	}
 	v4 := r.Intn(100)
-	this.Previous = make([]byte, v4)
+	this.PreviousKey = make([]byte, v4)
 	for i := 0; i < v4; i++ {
-		this.Previous[i] = byte(r.Intn(256))
+		this.PreviousKey[i] = byte(r.Intn(256))
 	}
 	v5 := r.Intn(100)
-	this.Next = make([]byte, v5)
+	this.NextKey = make([]byte, v5)
 	for i := 0; i < v5; i++ {
-		this.Next[i] = byte(r.Intn(256))
+		this.NextKey[i] = byte(r.Intn(256))
 	}
 	if !easy && r.Intn(10) != 0 {
 	}
@@ -439,16 +606,32 @@ func NewPopulatedChunk(r randyMetadata, easy bool) *Chunk {
 	if r.Intn(2) == 0 {
 		this.SizeInBytes *= -1
 	}
-	v6 := r.Intn(100)
-	this.Key = make([]byte, v6)
-	for i := 0; i < v6; i++ {
+	if r.Intn(10) != 0 {
+		v6 := r.Intn(5)
+		this.Objects = make([]Object, v6)
+		for i := 0; i < v6; i++ {
+			v7 := NewPopulatedObject(r, easy)
+			this.Objects[i] = *v7
+		}
+	}
+	v8 := r.Intn(100)
+	this.Hash = make([]byte, v8)
+	for i := 0; i < v8; i++ {
+		this.Hash[i] = byte(r.Intn(256))
+	}
+	if !easy && r.Intn(10) != 0 {
+	}
+	return this
+}
+
+func NewPopulatedObject(r randyMetadata, easy bool) *Object {
+	this := &Object{}
+	v9 := r.Intn(100)
+	this.Key = make([]byte, v9)
+	for i := 0; i < v9; i++ {
 		this.Key[i] = byte(r.Intn(256))
 	}
-	v7 := r.Intn(10)
-	this.Shards = make([]string, v7)
-	for i := 0; i < v7; i++ {
-		this.Shards[i] = string(randStringMetadata(r))
-	}
+	this.ShardID = string(randStringMetadata(r))
 	if !easy && r.Intn(10) != 0 {
 	}
 	return this
@@ -473,9 +656,9 @@ func randUTF8RuneMetadata(r randyMetadata) rune {
 	return rune(ru + 61)
 }
 func randStringMetadata(r randyMetadata) string {
-	v8 := r.Intn(100)
-	tmps := make([]rune, v8)
-	for i := 0; i < v8; i++ {
+	v10 := r.Intn(100)
+	tmps := make([]rune, v10)
+	for i := 0; i < v10; i++ {
 		tmps[i] = randUTF8RuneMetadata(r)
 	}
 	return string(tmps)
@@ -497,11 +680,11 @@ func randFieldMetadata(dAtA []byte, r randyMetadata, fieldNumber int, wire int) 
 	switch wire {
 	case 0:
 		dAtA = encodeVarintPopulateMetadata(dAtA, uint64(key))
-		v9 := r.Int63()
+		v11 := r.Int63()
 		if r.Intn(2) == 0 {
-			v9 *= -1
+			v11 *= -1
 		}
-		dAtA = encodeVarintPopulateMetadata(dAtA, uint64(v9))
+		dAtA = encodeVarintPopulateMetadata(dAtA, uint64(v11))
 	case 1:
 		dAtA = encodeVarintPopulateMetadata(dAtA, uint64(key))
 		dAtA = append(dAtA, byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)))
@@ -529,12 +712,18 @@ func encodeVarintPopulateMetadata(dAtA []byte, v uint64) []byte {
 func (m *Metadata) Size() (n int) {
 	var l int
 	_ = l
-	if m.Epoch != 0 {
-		n += 1 + sovMetadata(uint64(m.Epoch))
-	}
 	l = len(m.Key)
 	if l > 0 {
 		n += 1 + l + sovMetadata(uint64(l))
+	}
+	if m.SizeInBytes != 0 {
+		n += 1 + sovMetadata(uint64(m.SizeInBytes))
+	}
+	if m.CreationEpoch != 0 {
+		n += 1 + sovMetadata(uint64(m.CreationEpoch))
+	}
+	if m.LastWriteEpoch != 0 {
+		n += 1 + sovMetadata(uint64(m.LastWriteEpoch))
 	}
 	if len(m.Chunks) > 0 {
 		for _, e := range m.Chunks {
@@ -542,11 +731,11 @@ func (m *Metadata) Size() (n int) {
 			n += 1 + l + sovMetadata(uint64(l))
 		}
 	}
-	l = len(m.Previous)
+	l = len(m.PreviousKey)
 	if l > 0 {
 		n += 1 + l + sovMetadata(uint64(l))
 	}
-	l = len(m.Next)
+	l = len(m.NextKey)
 	if l > 0 {
 		n += 1 + l + sovMetadata(uint64(l))
 	}
@@ -559,15 +748,29 @@ func (m *Chunk) Size() (n int) {
 	if m.SizeInBytes != 0 {
 		n += 1 + sovMetadata(uint64(m.SizeInBytes))
 	}
+	if len(m.Objects) > 0 {
+		for _, e := range m.Objects {
+			l = e.Size()
+			n += 1 + l + sovMetadata(uint64(l))
+		}
+	}
+	l = len(m.Hash)
+	if l > 0 {
+		n += 1 + l + sovMetadata(uint64(l))
+	}
+	return n
+}
+
+func (m *Object) Size() (n int) {
+	var l int
+	_ = l
 	l = len(m.Key)
 	if l > 0 {
 		n += 1 + l + sovMetadata(uint64(l))
 	}
-	if len(m.Shards) > 0 {
-		for _, s := range m.Shards {
-			l = len(s)
-			n += 1 + l + sovMetadata(uint64(l))
-		}
+	l = len(m.ShardID)
+	if l > 0 {
+		n += 1 + l + sovMetadata(uint64(l))
 	}
 	return n
 }
@@ -590,11 +793,13 @@ func (this *Metadata) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&Metadata{`,
-		`Epoch:` + fmt.Sprintf("%v", this.Epoch) + `,`,
 		`Key:` + fmt.Sprintf("%v", this.Key) + `,`,
+		`SizeInBytes:` + fmt.Sprintf("%v", this.SizeInBytes) + `,`,
+		`CreationEpoch:` + fmt.Sprintf("%v", this.CreationEpoch) + `,`,
+		`LastWriteEpoch:` + fmt.Sprintf("%v", this.LastWriteEpoch) + `,`,
 		`Chunks:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Chunks), "Chunk", "Chunk", 1), `&`, ``, 1) + `,`,
-		`Previous:` + fmt.Sprintf("%v", this.Previous) + `,`,
-		`Next:` + fmt.Sprintf("%v", this.Next) + `,`,
+		`PreviousKey:` + fmt.Sprintf("%v", this.PreviousKey) + `,`,
+		`NextKey:` + fmt.Sprintf("%v", this.NextKey) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -605,8 +810,19 @@ func (this *Chunk) String() string {
 	}
 	s := strings.Join([]string{`&Chunk{`,
 		`SizeInBytes:` + fmt.Sprintf("%v", this.SizeInBytes) + `,`,
+		`Objects:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Objects), "Object", "Object", 1), `&`, ``, 1) + `,`,
+		`Hash:` + fmt.Sprintf("%v", this.Hash) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *Object) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&Object{`,
 		`Key:` + fmt.Sprintf("%v", this.Key) + `,`,
-		`Shards:` + fmt.Sprintf("%v", this.Shards) + `,`,
+		`ShardID:` + fmt.Sprintf("%v", this.ShardID) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -649,25 +865,6 @@ func (m *Metadata) Unmarshal(dAtA []byte) error {
 		}
 		switch fieldNum {
 		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Epoch", wireType)
-			}
-			m.Epoch = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowMetadata
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Epoch |= (int64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 2:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
 			}
@@ -698,7 +895,64 @@ func (m *Metadata) Unmarshal(dAtA []byte) error {
 				m.Key = []byte{}
 			}
 			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SizeInBytes", wireType)
+			}
+			m.SizeInBytes = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMetadata
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.SizeInBytes |= (int64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CreationEpoch", wireType)
+			}
+			m.CreationEpoch = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMetadata
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.CreationEpoch |= (int64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LastWriteEpoch", wireType)
+			}
+			m.LastWriteEpoch = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMetadata
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.LastWriteEpoch |= (int64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 5:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Chunks", wireType)
 			}
@@ -729,9 +983,9 @@ func (m *Metadata) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 4:
+		case 6:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Previous", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field PreviousKey", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {
@@ -755,14 +1009,14 @@ func (m *Metadata) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Previous = append(m.Previous[:0], dAtA[iNdEx:postIndex]...)
-			if m.Previous == nil {
-				m.Previous = []byte{}
+			m.PreviousKey = append(m.PreviousKey[:0], dAtA[iNdEx:postIndex]...)
+			if m.PreviousKey == nil {
+				m.PreviousKey = []byte{}
 			}
 			iNdEx = postIndex
-		case 5:
+		case 7:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Next", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field NextKey", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {
@@ -786,9 +1040,9 @@ func (m *Metadata) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Next = append(m.Next[:0], dAtA[iNdEx:postIndex]...)
-			if m.Next == nil {
-				m.Next = []byte{}
+			m.NextKey = append(m.NextKey[:0], dAtA[iNdEx:postIndex]...)
+			if m.NextKey == nil {
+				m.NextKey = []byte{}
 			}
 			iNdEx = postIndex
 		default:
@@ -862,6 +1116,118 @@ func (m *Chunk) Unmarshal(dAtA []byte) error {
 			}
 		case 2:
 			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Objects", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMetadata
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthMetadata
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Objects = append(m.Objects, Object{})
+			if err := m.Objects[len(m.Objects)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Hash", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMetadata
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthMetadata
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Hash = append(m.Hash[:0], dAtA[iNdEx:postIndex]...)
+			if m.Hash == nil {
+				m.Hash = []byte{}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipMetadata(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthMetadata
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *Object) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowMetadata
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Object: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Object: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
 			}
 			var byteLen int
@@ -891,9 +1257,9 @@ func (m *Chunk) Unmarshal(dAtA []byte) error {
 				m.Key = []byte{}
 			}
 			iNdEx = postIndex
-		case 3:
+		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Shards", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field ShardID", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -918,7 +1284,7 @@ func (m *Chunk) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Shards = append(m.Shards, string(dAtA[iNdEx:postIndex]))
+			m.ShardID = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -1049,24 +1415,29 @@ var (
 func init() { proto1.RegisterFile("metadata.proto", fileDescriptorMetadata) }
 
 var fileDescriptorMetadata = []byte{
-	// 303 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x6c, 0x8f, 0x31, 0x4b, 0xc3, 0x40,
-	0x14, 0xc7, 0xef, 0x99, 0xa4, 0xd4, 0x6b, 0x51, 0x39, 0x44, 0x42, 0x87, 0xd7, 0x52, 0x97, 0x22,
-	0xd8, 0x82, 0xae, 0x4e, 0x71, 0x72, 0x70, 0x89, 0xe0, 0x9e, 0xa4, 0x67, 0x12, 0x4a, 0x73, 0x21,
-	0xb9, 0x88, 0xed, 0xe4, 0x27, 0x10, 0x3f, 0x46, 0x3f, 0x82, 0x1f, 0x21, 0x63, 0x47, 0xa7, 0x62,
-	0xae, 0x8b, 0x63, 0x47, 0x47, 0xe9, 0x25, 0x38, 0x39, 0xdd, 0xff, 0xf7, 0xbf, 0xf7, 0xfe, 0xfc,
-	0x1f, 0x3d, 0x9a, 0x73, 0xe9, 0x4d, 0x3d, 0xe9, 0x8d, 0xd3, 0x4c, 0x48, 0xc1, 0x2c, 0xfd, 0xf4,
-	0x2e, 0xc3, 0x58, 0x46, 0x85, 0x3f, 0x0e, 0xc4, 0x7c, 0x12, 0x8a, 0x50, 0x4c, 0xb4, 0xed, 0x17,
-	0x4f, 0x9a, 0x34, 0x68, 0x55, 0x6f, 0x0d, 0xdf, 0x80, 0xb6, 0xef, 0x9b, 0x20, 0x76, 0x4a, 0x2d,
-	0x9e, 0x8a, 0x20, 0xb2, 0x61, 0x00, 0x23, 0xc3, 0xad, 0x81, 0x9d, 0x50, 0x63, 0xc6, 0x17, 0xf6,
-	0xc1, 0x00, 0x46, 0x5d, 0x77, 0x2f, 0xd9, 0x05, 0x6d, 0x05, 0x51, 0x91, 0xcc, 0x72, 0xdb, 0x18,
-	0x18, 0xa3, 0xce, 0x55, 0xb7, 0x0e, 0x1b, 0xdf, 0xee, 0x4d, 0xc7, 0x2c, 0x37, 0x7d, 0xe2, 0x36,
-	0x13, 0xac, 0x47, 0xdb, 0x69, 0xc6, 0x9f, 0x63, 0x51, 0xe4, 0xb6, 0xa9, 0x23, 0xfe, 0x98, 0x31,
-	0x6a, 0x26, 0xfc, 0x45, 0xda, 0x96, 0xf6, 0xb5, 0x1e, 0x3e, 0x52, 0x4b, 0xc7, 0xb0, 0x73, 0x6a,
-	0xe6, 0xf1, 0x92, 0xd7, 0x5d, 0x9c, 0x63, 0xb5, 0xe9, 0x77, 0x1e, 0xe2, 0x25, 0xbf, 0x4b, 0x9c,
-	0x85, 0xe4, 0xb9, 0xab, 0x3f, 0xff, 0xe9, 0x76, 0x46, 0x5b, 0x79, 0xe4, 0x65, 0xd3, 0xba, 0xdb,
-	0xa1, 0xdb, 0x90, 0x73, 0x53, 0x56, 0x48, 0xd6, 0x15, 0x92, 0xcf, 0x0a, 0xc9, 0xae, 0x42, 0xf8,
-	0xa9, 0x10, 0x5e, 0x15, 0xc2, 0x4a, 0x21, 0x7c, 0x28, 0x84, 0x52, 0x21, 0xac, 0x15, 0xc2, 0x97,
-	0x42, 0xf8, 0x56, 0x48, 0x76, 0x0a, 0xe1, 0x7d, 0x8b, 0x64, 0xb5, 0x45, 0xf0, 0x5b, 0xfa, 0xc0,
-	0xeb, 0xdf, 0x00, 0x00, 0x00, 0xff, 0xff, 0x06, 0xa0, 0x36, 0x7b, 0x75, 0x01, 0x00, 0x00,
+	// 384 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x7c, 0x90, 0x3f, 0x4f, 0xdb, 0x40,
+	0x18, 0xc6, 0x7d, 0xb1, 0x63, 0xb7, 0x97, 0x3f, 0xad, 0x6e, 0x3a, 0x75, 0xb8, 0x58, 0x69, 0x55,
+	0x45, 0x95, 0x92, 0x48, 0x6d, 0xc7, 0x4e, 0x2e, 0x0c, 0x11, 0x42, 0x48, 0x66, 0x60, 0xb6, 0x9d,
+	0x23, 0x36, 0x21, 0xbe, 0xc8, 0x77, 0x46, 0x24, 0x13, 0x1f, 0x81, 0x8f, 0x91, 0x8f, 0xc0, 0x47,
+	0xc8, 0x98, 0x91, 0x29, 0xc2, 0x97, 0x85, 0x31, 0x1b, 0x8c, 0xc8, 0x67, 0x07, 0x01, 0x42, 0x4c,
+	0xf7, 0x3e, 0xcf, 0xfb, 0xdc, 0xab, 0xdf, 0xfb, 0xc2, 0xe6, 0x84, 0x0a, 0x6f, 0xe8, 0x09, 0xaf,
+	0x37, 0x4d, 0x98, 0x60, 0xa8, 0xaa, 0x9e, 0x6f, 0xdd, 0x51, 0x24, 0xc2, 0xd4, 0xef, 0x05, 0x6c,
+	0xd2, 0x1f, 0xb1, 0x11, 0xeb, 0x2b, 0xdb, 0x4f, 0x4f, 0x95, 0x52, 0x42, 0x55, 0xc5, 0xaf, 0xf6,
+	0x03, 0x80, 0x9f, 0x0e, 0xcb, 0x41, 0xe8, 0x2b, 0xd4, 0xc7, 0x74, 0x86, 0x81, 0x0d, 0x3a, 0x75,
+	0x37, 0x2f, 0xd1, 0x77, 0x68, 0xf0, 0x68, 0x4e, 0x71, 0xc5, 0x06, 0x1d, 0xdd, 0xf9, 0x22, 0xd7,
+	0xad, 0xda, 0x71, 0x34, 0xa7, 0x83, 0xd8, 0x99, 0x09, 0xca, 0x5d, 0xd5, 0x44, 0x3f, 0x60, 0x23,
+	0x48, 0xa8, 0x27, 0x22, 0x16, 0xef, 0x4f, 0x59, 0x10, 0x62, 0x3d, 0x4f, 0xbb, 0xaf, 0x4d, 0xf4,
+	0x13, 0x36, 0xcf, 0x3d, 0x2e, 0x4e, 0x92, 0x48, 0xd0, 0x22, 0x66, 0xa8, 0xd8, 0x1b, 0x17, 0xfd,
+	0x82, 0x66, 0x10, 0xa6, 0xf1, 0x98, 0xe3, 0xaa, 0xad, 0x77, 0x6a, 0xbf, 0xeb, 0x05, 0x69, 0xef,
+	0x7f, 0x6e, 0x3a, 0xc6, 0x72, 0xdd, 0xd2, 0xdc, 0x32, 0x81, 0x6c, 0x58, 0x9b, 0x26, 0xf4, 0x22,
+	0x62, 0x29, 0x3f, 0xa0, 0x33, 0x6c, 0x2a, 0xf0, 0x97, 0x16, 0xc2, 0xd0, 0x8a, 0xe9, 0xa5, 0xc8,
+	0xbb, 0x96, 0xea, 0xee, 0x64, 0x9b, 0xc1, 0xaa, 0x1a, 0xf9, 0xbc, 0x23, 0xf8, 0x68, 0xc7, 0x2e,
+	0xb4, 0x98, 0x7f, 0x46, 0x03, 0xc1, 0x71, 0x45, 0x61, 0x35, 0x4a, 0xac, 0x23, 0xe5, 0x96, 0x5c,
+	0xbb, 0x0c, 0x42, 0xd0, 0x08, 0x3d, 0x5e, 0x5c, 0xa2, 0xee, 0xaa, 0xba, 0xfd, 0x17, 0x9a, 0x45,
+	0xf8, 0x9d, 0x3b, 0x63, 0x68, 0xf1, 0xd0, 0x4b, 0x86, 0x83, 0x3d, 0x75, 0xea, 0xcf, 0xee, 0x4e,
+	0x3a, 0xff, 0x96, 0x19, 0xd1, 0x56, 0x19, 0xd1, 0x6e, 0x33, 0xa2, 0x6d, 0x33, 0x02, 0x1e, 0x33,
+	0x02, 0xae, 0x24, 0x01, 0x0b, 0x49, 0xc0, 0x8d, 0x24, 0x60, 0x29, 0x09, 0x58, 0x49, 0x02, 0xee,
+	0x24, 0x01, 0xf7, 0x92, 0x68, 0x5b, 0x49, 0xc0, 0xf5, 0x86, 0x68, 0x8b, 0x0d, 0x01, 0xbe, 0xa9,
+	0x20, 0xff, 0x3c, 0x05, 0x00, 0x00, 0xff, 0xff, 0x52, 0x1c, 0x5f, 0x15, 0x2d, 0x02, 0x00, 0x00,
 }

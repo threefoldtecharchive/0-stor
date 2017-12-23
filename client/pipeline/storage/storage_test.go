@@ -2,60 +2,42 @@ package storage
 
 import (
 	"crypto/rand"
-	"fmt"
 	"math"
 	mathRand "math/rand"
 	"testing"
 
-	"github.com/zero-os/0-stor/client/datastor"
-
 	"github.com/stretchr/testify/require"
 )
 
-func testStorageReadCheckWrite(t *testing.T, storage ObjectStorage) {
+func testStorageReadCheckWrite(t *testing.T, storage ChunkStorage) {
 	require.NotNil(t, storage)
 
 	t.Run("fixed test cases", func(t *testing.T) {
 		require := require.New(t)
 
-		objects := []datastor.Object{
-			datastor.Object{
-				Key:  []byte("a"),
-				Data: []byte("b"),
-			},
-			datastor.Object{
-				Key:  []byte("foo"),
-				Data: []byte("bar"),
-			},
-			datastor.Object{
-				Key:  []byte("大家好"),
-				Data: []byte("大家好"),
-			},
-			datastor.Object{
-				Key:  []byte("this-is-my-key"),
-				Data: []byte("Hello, World!"),
-			},
-			datastor.Object{
-				Key:  []byte("this-is-my-key"),
-				Data: []byte("Hello, World!"),
-			},
+		dataCases := [][]byte{
+			[]byte("b"),
+			[]byte("bar"),
+			[]byte("大家好"),
+			[]byte("Hello, World!"),
+			[]byte("Hello, World!"),
 		}
-		for _, inputObject := range objects {
+		for _, data := range dataCases {
 			// write object & validate
-			cfg, err := storage.Write(inputObject)
+			cfg, err := storage.WriteChunk(data)
 			require.NoError(err)
-			require.Equal(inputObject.Key, cfg.Key)
-			require.Equal(len(inputObject.Data), cfg.DataSize)
+			require.NotNil(cfg)
+			require.Equal(int64(len(data)), cfg.Size)
 
 			// validate that all shards contain valid data
-			status, err := storage.Check(cfg, false)
+			status, err := storage.CheckChunk(*cfg, false)
 			require.NoError(err)
-			require.Equal(ObjectCheckStatusOptimal, status)
+			require.Equal(CheckStatusOptimal, status)
 
 			// read object & validate
-			outputObject, err := storage.Read(cfg)
+			output, err := storage.ReadChunk(*cfg)
 			require.NoError(err)
-			require.Equal(inputObject, outputObject)
+			require.Equal(data, output)
 		}
 	})
 
@@ -63,42 +45,36 @@ func testStorageReadCheckWrite(t *testing.T, storage ObjectStorage) {
 		require := require.New(t)
 
 		for i := 0; i < 256; i++ {
-			key := []byte(fmt.Sprintf("key#%d", i+1))
 			data := make([]byte, mathRand.Int31n(128)+1)
 			rand.Read(data)
 
-			inputObject := datastor.Object{
-				Key:  key,
-				Data: data,
-			}
-
 			// write object & validate
-			cfg, err := storage.Write(inputObject)
+			cfg, err := storage.WriteChunk(data)
 			require.NoError(err)
-			require.Equal(inputObject.Key, cfg.Key)
-			require.Equal(len(data), cfg.DataSize)
+			require.NotNil(cfg)
+			require.Equal(int64(len(data)), cfg.Size)
 
 			// validate that all shards contain valid data
-			status, err := storage.Check(cfg, false)
+			status, err := storage.CheckChunk(*cfg, false)
 			require.NoError(err)
-			require.Equal(ObjectCheckStatusOptimal, status)
+			require.Equal(CheckStatusOptimal, status)
 
 			// read object & validate
-			outputObject, err := storage.Read(cfg)
+			output, err := storage.ReadChunk(*cfg)
 			require.NoError(err)
-			require.Equal(inputObject, outputObject)
+			require.Equal(data, output)
 		}
 	})
 }
 
-func TestObjectCheckStatusString(t *testing.T) {
+func TestCheckStatusString(t *testing.T) {
 	require := require.New(t)
 
 	// valid enum values
-	require.Equal("invalid", ObjectCheckStatusInvalid.String())
-	require.Equal("valid", ObjectCheckStatusValid.String())
-	require.Equal("optimal", ObjectCheckStatusOptimal.String())
+	require.Equal("invalid", CheckStatusInvalid.String())
+	require.Equal("valid", CheckStatusValid.String())
+	require.Equal("optimal", CheckStatusOptimal.String())
 
 	// invalid enum value
-	require.Empty(ObjectCheckStatus(math.MaxUint8).String())
+	require.Empty(CheckStatus(math.MaxUint8).String())
 }

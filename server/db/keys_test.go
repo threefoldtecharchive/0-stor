@@ -6,15 +6,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestDataPrefix(t *testing.T) {
+func TestScopedSequenceKey(t *testing.T) {
 	require := require.New(t)
 
 	require.Panics(func() {
-		DataPrefix(nil)
+		ScopedSequenceKey(nil, 0)
 	}, "should panic when no label is given")
 
-	require.Equal("foo:d", s(DataPrefix(bs("foo"))))
-	require.Equal("大家好:d", s(DataPrefix(bs("大家好"))))
+	require.Equal("foo"+string([]byte{1, 0, 0, 0}),
+		s(ScopedSequenceKey(bs("foo"), 1)))
+	require.Equal("大家好"+string([]byte{0, 0, 0, 0}),
+		s(ScopedSequenceKey(bs("大家好"), 0)))
 }
 
 func TestDataKey(t *testing.T) {
@@ -28,21 +30,21 @@ func TestDataKey(t *testing.T) {
 	}, "should panic when no key is given")
 	require.Panics(func() {
 		DataKey(nil, nil)
-	}, "should panic when no label and key is given")
+	}, "should panic when nothing is given")
 
-	require.Equal("foo:d:bar", s(DataKey(bs("foo"), bs("bar"))))
-	require.Equal("42:d:大家好", s(DataKey(bs("42"), bs("大家好"))))
+	require.Equal("d:foo:bar", s(DataKey(bs("foo"), bs("bar"))))
+	require.Equal("d:42:大家好", s(DataKey(bs("42"), bs("大家好"))))
 }
 
-func TestDataKeyPrefixLength(t *testing.T) {
+func TestDataScopeKey(t *testing.T) {
 	require := require.New(t)
 
 	require.Panics(func() {
-		DataKeyPrefixLength(nil)
+		DataScopeKey(nil)
 	}, "should panic when no label is given")
 
-	require.Equal(6, DataKeyPrefixLength(bs("foo")))
-	require.Equal(12, DataKeyPrefixLength(bs("大家好")))
+	require.Equal("d:foo:", s(DataScopeKey(bs("foo"))))
+	require.Equal("d:大家好:", s(DataScopeKey(bs("大家好"))))
 }
 
 func TestNamespaceKey(t *testing.T) {
@@ -54,6 +56,17 @@ func TestNamespaceKey(t *testing.T) {
 
 	require.Equal("@:foo", s(NamespaceKey(bs("foo"))))
 	require.Equal("@:大家好", s(NamespaceKey(bs("大家好"))))
+}
+
+func TestUnlistedKey(t *testing.T) {
+	require := require.New(t)
+
+	require.Panics(func() {
+		UnlistedKey(nil)
+	}, "should panic when no key is given")
+
+	require.Equal("__foo", s(UnlistedKey(bs("foo"))))
+	require.Equal("__大家好", s(UnlistedKey(bs("大家好"))))
 }
 
 func s(bs []byte) string { return string(bs) }

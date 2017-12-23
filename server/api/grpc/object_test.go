@@ -38,30 +38,26 @@ func requireGRPCError(t *testing.T, expectedErr, receivedErr error) {
 	require.Equal(expectedErr, receivedErr)
 }
 
-func TestSetObjectErrors(t *testing.T) {
+func TestCreateObjectErrors(t *testing.T) {
 	api, clean := getTestObjectAPI(require.New(t))
 	defer clean()
 
-	req := &pb.SetObjectRequest{}
+	req := &pb.CreateObjectRequest{}
 
 	ctx := context.Background()
-	_, err := api.SetObject(ctx, req)
+	_, err := api.CreateObject(ctx, req)
 	requireGRPCError(t, rpctypes.ErrNilLabel, err)
 
 	ctx = contextWithLabel(ctx, label)
-	_, err = api.SetObject(ctx, req)
-	requireGRPCError(t, rpctypes.ErrNilKey, err)
-
-	req.Key = []byte("myKey")
-	_, err = api.SetObject(ctx, req)
+	_, err = api.CreateObject(ctx, req)
 	requireGRPCError(t, rpctypes.ErrNilData, err)
 
 	req.Data = []byte("someData")
-	_, err = api.SetObject(ctx, req)
+	_, err = api.CreateObject(ctx, req)
 	require.NoError(t, err)
 }
 
-func TestSetObject(t *testing.T) {
+func TestCreateObject(t *testing.T) {
 	require := require.New(t)
 
 	api, clean := getTestObjectAPI(require)
@@ -76,17 +72,18 @@ func TestSetObject(t *testing.T) {
 	_, err = rand.Read(buf)
 	require.NoError(err)
 
-	req := &pb.SetObjectRequest{
-		Key:  []byte("testkey"),
+	req := &pb.CreateObjectRequest{
 		Data: buf,
 	}
 
-	_, err = api.SetObject(contextWithLabel(nil, label), req)
+	resp, err := api.CreateObject(contextWithLabel(nil, label), req)
 	require.NoError(err)
+	require.NotNil(resp)
 
 	// get data and validate it's correct
-	objRawData, err := api.db.Get(db.DataKey([]byte(label), []byte("testkey")))
-	require.NoError(err)
+	key := db.DataKey([]byte(label), resp.Key)
+	objRawData, err := api.db.Get(key)
+	require.NoErrorf(err, "key: %s", key)
 	require.NotNil(objRawData)
 	obj, err := encoding.DecodeObject(objRawData)
 	require.NoError(err)
@@ -246,25 +243,24 @@ func TestDeleteObject(t *testing.T) {
 	defer clean()
 
 	ctx := contextWithLabel(nil, label)
-	key := []byte("testkey1")
 
 	// create a key
-	_, err := api.SetObject(ctx, &pb.SetObjectRequest{
-		Key:  key,
+	resp, err := api.CreateObject(ctx, &pb.CreateObjectRequest{
 		Data: []byte{1, 2, 3, 4},
 	})
 	require.NoError(err)
+	require.NotNil(resp)
 
 	t.Run("valid", func(t *testing.T) {
 		req := &pb.DeleteObjectRequest{
-			Key: key,
+			Key: resp.Key,
 		}
 
 		_, err := api.DeleteObject(ctx, req)
 		require.NoError(err)
 
 		reply, err := api.GetObjectStatus(ctx, &pb.GetObjectStatusRequest{
-			Key: key,
+			Key: resp.Key,
 		})
 		require.NoError(err)
 		assert.Equal(pb.ObjectStatusMissing, reply.GetStatus())
@@ -280,7 +276,7 @@ func TestDeleteObject(t *testing.T) {
 		require.NoError(err)
 
 		reply, err := api.GetObjectStatus(ctx, &pb.GetObjectStatusRequest{
-			Key: key,
+			Key: []byte("nonexists"),
 		})
 		require.NoError(err)
 		assert.Equal(pb.ObjectStatusMissing, reply.GetStatus())

@@ -24,14 +24,14 @@ type Client interface {
 	// using the key defined as part of the given metadata.
 	//
 	// An error is returned in case the metadata couldn't be set.
-	SetMetadata(meta Data) error
+	SetMetadata(md Metadata) error
 
 	// GetMetadata returns the metadata linked to the given key.
 	//
 	// An error is returned in case the linked data couldn't be found.
 	// ErrNotFound is returned in case the key couldn't be found.
 	// The returned data will always be non-nil in case no error was returned.
-	GetMetadata(key []byte) (*Data, error)
+	GetMetadata(key []byte) (*Metadata, error)
 
 	// DeleteMetadata deletes the metadata linked to the given key.
 	// It is not considered an error if the metadata was already deleted.

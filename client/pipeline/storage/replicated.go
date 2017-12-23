@@ -5,26 +5,28 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/zero-os/0-stor/client/metastor"
+
 	"golang.org/x/sync/errgroup"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/zero-os/0-stor/client/datastor"
 )
 
-// NewReplicatedObjectStorage creates a new ReplicatedObjectStorage.
-// See `ReplicatedObjectStorage` for more information.
+// NewReplicatedChunkStorage creates a new ReplicatedChunkStorage.
+// See `ReplicatedChunkStorage` for more information.
 //
 // jobCount is optional and can be `<= 0` in order to use DefaultJobCount.
-func NewReplicatedObjectStorage(cluster datastor.Cluster, dataShardCount, jobCount int) (*ReplicatedObjectStorage, error) {
+func NewReplicatedChunkStorage(cluster datastor.Cluster, dataShardCount, jobCount int) (*ReplicatedChunkStorage, error) {
 	if cluster == nil {
-		panic("ReplicatedObjectStorage: no datastor cluster given")
+		panic("ReplicatedChunkStorage: no datastor cluster given")
 	}
 	if dataShardCount < 1 {
-		panic("ReplicatedObjectStorage: dataShardCount has to be at least 1")
+		panic("ReplicatedChunkStorage: dataShardCount has to be at least 1")
 	}
 
 	if cluster.ListedShardCount() < dataShardCount {
-		return nil, errors.New("ReplicatedObjectStorage requires " +
+		return nil, errors.New("ReplicatedChunkStorage requires " +
 			"at least dataShardCount amount of listed datastor shards")
 	}
 
@@ -36,7 +38,7 @@ func NewReplicatedObjectStorage(cluster datastor.Cluster, dataShardCount, jobCou
 		writeJobCount = dataShardCount
 	}
 
-	return &ReplicatedObjectStorage{
+	return &ReplicatedChunkStorage{
 		cluster:        cluster,
 		dataShardCount: dataShardCount,
 		jobCount:       jobCount,
@@ -44,7 +46,7 @@ func NewReplicatedObjectStorage(cluster datastor.Cluster, dataShardCount, jobCou
 	}, nil
 }
 
-// ReplicatedObjectStorage defines a storage implementation,
+// ReplicatedChunkStorage defines a storage implementation,
 // which writes an object to multiple shards at once,
 // the amount of shards which is defined by the used dataShardCount.
 //
@@ -56,82 +58,87 @@ func NewReplicatedObjectStorage(cluster datastor.Cluster, dataShardCount, jobCou
 // Repairing is done by first assembling a list of corrupt, OK and dead shards.
 // Once that's done, the corrupt shards will be simply tried to be written to again,
 // while the dead shards will be attempted to be replaced, if possible.
-type ReplicatedObjectStorage struct {
+type ReplicatedChunkStorage struct {
 	cluster                 datastor.Cluster
 	dataShardCount          int
 	jobCount, writeJobCount int
 }
 
-// Write implements storage.ObjectStorage.Write
-func (rs *ReplicatedObjectStorage) Write(object datastor.Object) (ObjectConfig, error) {
-	shards, err := rs.write(nil, rs.dataShardCount, object)
-	if err != nil {
-		return ObjectConfig{}, err
-	}
-	return ObjectConfig{
-		Key:      object.Key,
-		Shards:   shards,
-		DataSize: len(object.Data),
-	}, nil
+// WriteChunk implements storage.ChunkStorage.WriteChunk
+func (rs *ReplicatedChunkStorage) WriteChunk(data []byte) (*ChunkConfig, error) {
+	return rs.write(nil, rs.dataShardCount, data)
 }
 
-// Read implements storage.ObjectStorage.Read
-func (rs *ReplicatedObjectStorage) Read(cfg ObjectConfig) (datastor.Object, error) {
+// ReadChunk implements storage.ChunkStorage.ReadChunk
+func (rs *ReplicatedChunkStorage) ReadChunk(cfg ChunkConfig) ([]byte, error) {
 	// ensure that at least 1 shard is given
-	if len(cfg.Shards) == 0 {
-		return datastor.Object{}, nil
+	if len(cfg.Objects) == 0 {
+		return nil, ErrUnexpectedObjectCount
 	}
 
 	var (
 		err    error
 		object *datastor.Object
 		shard  datastor.Shard
-
-		it = datastor.NewLazyShardIterator(rs.cluster, cfg.Shards)
 	)
 	// simply try to read sequentially until one could be read,
 	// as we should in most scenarios only ever have to read from 1 (and 2 or 3 in bad situations),
 	// it would be bad for performance to try to read from multiple goroutines and shards for all calls.
-	for it.Next() {
-		shard = it.Shard()
-		object, err = shard.GetObject(cfg.Key)
-		if err == nil {
-			if len(object.Data) == cfg.DataSize {
-				return *object, nil
-			}
-			log.Errorf("failed to read %q from replicated shard %q: invalid data size",
-				cfg.Key, shard.Identifier())
-		} else {
-			log.Errorf("failed to read %q from replicated shard %q: %v",
-				cfg.Key, shard.Identifier(), err)
+	for _, obj := range cfg.Objects {
+		shard, err = rs.cluster.GetShard(obj.ShardID)
+		if err != nil {
+			log.Errorf("failed to get shard %q for object %q: %v",
+				obj.Key, obj.ShardID, err)
+			continue
 		}
+
+		object, err = shard.GetObject(obj.Key)
+		if err != nil {
+			log.Errorf("failed to read %q from replicated shard %q: %v",
+				obj.Key, obj.ShardID, err)
+			continue
+		}
+
+		if int64(len(object.Data)) == cfg.Size {
+			return object.Data, nil
+		}
+		log.Errorf("failed to read %q from replicated shard %q: invalid data size",
+			obj.Key, obj.ShardID)
 	}
 
 	// sadly, no shard was available
-	log.Errorf("%q couldn't be replicate-read from any of the configured shards", cfg.Key)
-	return datastor.Object{}, ErrShardsUnavailable
+	log.Error("failed replicate-read chunk from any of the configured shards")
+	return nil, ErrShardsUnavailable
 }
 
-// Check implements storage.ObjectStorage.Check
-func (rs *ReplicatedObjectStorage) Check(cfg ObjectConfig, fast bool) (ObjectCheckStatus, error) {
-	shardCount := len(cfg.Shards)
-	if shardCount == 0 {
-		return ObjectCheckStatusInvalid, ErrUnexpectedShardsCount
+// CheckChunk implements storage.ChunkStorage.CheckChunk
+func (rs *ReplicatedChunkStorage) CheckChunk(cfg ChunkConfig, fast bool) (CheckStatus, error) {
+	objectCount := len(cfg.Objects)
+	if objectCount == 0 {
+		return CheckStatusInvalid, ErrUnexpectedObjectCount
 	}
 
 	// define the jobCount
 	jobCount := rs.jobCount
-	if jobCount > shardCount {
-		jobCount = shardCount
+	if jobCount > objectCount {
+		jobCount = objectCount
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// create a channel-based iterator, to fetch the shards,
-	// in sequence and thread-save
-	shardCh := datastor.ShardIteratorChannel(ctx,
-		datastor.NewLazyShardIterator(rs.cluster, cfg.Shards), jobCount)
+	// create a channel-based fetcher to get all the objects
+	objectIndexCh := make(chan int, jobCount)
+	go func() {
+		defer close(objectIndexCh)
+		for i := range cfg.Objects {
+			select {
+			case objectIndexCh <- i:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
 
 	// each worker will help us get through all shards,
 	// until we found the desired amount of valid shards,
@@ -157,32 +164,41 @@ func (rs *ReplicatedObjectStorage) Check(cfg ObjectConfig, fast bool) (ObjectChe
 				open   bool
 				err    error
 				status datastor.ObjectStatus
+				index  int
+				object metastor.Object
 				shard  datastor.Shard
 			)
 
 			for {
-				// fetch a random shard,
-				// it's an error if this is not possible,
-				// as a shard is expected to be still available at this stage
+				// fetch a next available object
 				select {
-				case shard, open = <-shardCh:
+				case index, open = <-objectIndexCh:
 					if !open {
 						return
 					}
 				case <-ctx.Done():
 					return
 				}
+				object = cfg.Objects[index]
+
+				// first get the shard for that object, if possible
+				shard, err = rs.cluster.GetShard(object.ShardID)
+				if err != nil {
+					log.Errorf("error while fetching shard %q for object %q: %v",
+						object.ShardID, object.Key, err)
+					continue
+				}
 
 				// validate if the object's status for this shard is OK
-				status, err = shard.GetObjectStatus(cfg.Key)
+				status, err = shard.GetObjectStatus(object.Key)
 				if err != nil {
 					log.Errorf("error while validating %q stored on shard %q: %v",
-						cfg.Key, shard.Identifier(), err)
+						object.Key, object.ShardID, err)
 					continue
 				}
 				if status != datastor.ObjectStatusOK {
 					log.Debugf("object %q stored on shard %q is not valid: %s",
-						cfg.Key, shard.Identifier(), status)
+						object.Key, object.ShardID, status)
 					continue
 				}
 
@@ -203,70 +219,69 @@ func (rs *ReplicatedObjectStorage) Check(cfg ObjectConfig, fast bool) (ObjectChe
 		select {
 		case _, open := <-resultCh:
 			if !open {
-				return ObjectCheckStatusInvalid, nil
+				return CheckStatusInvalid, nil
 			}
 			if rs.dataShardCount == 1 {
-				return ObjectCheckStatusOptimal, nil
+				return CheckStatusOptimal, nil
 			}
-			return ObjectCheckStatusValid, nil
+			return CheckStatusValid, nil
 		case <-ctx.Done():
-			return ObjectCheckStatusInvalid, nil
+			return CheckStatusInvalid, nil
 		}
 	}
 
 	// otherwise we'll go through all of them,
 	// until we have a max of nrReplication results
-	var validShardCount int
+	var validObjectCount int
 	for range resultCh {
-		validShardCount++
-		if validShardCount == rs.dataShardCount {
-			return ObjectCheckStatusOptimal, nil
+		validObjectCount++
+		if validObjectCount == rs.dataShardCount {
+			return CheckStatusOptimal, nil
 		}
 	}
 
-	if validShardCount > 0 {
-		return ObjectCheckStatusValid, nil
+	if validObjectCount > 0 {
+		return CheckStatusValid, nil
 	}
-	return ObjectCheckStatusInvalid, nil
+	return CheckStatusInvalid, nil
 }
 
-// Repair implements storage.ObjectStorage.Repair
-func (rs *ReplicatedObjectStorage) Repair(cfg ObjectConfig) (ObjectConfig, error) {
-	shardCount := len(cfg.Shards)
-	if shardCount == 0 {
+// RepairChunk implements storage.ChunkStorage.RepairChunk
+func (rs *ReplicatedChunkStorage) RepairChunk(cfg ChunkConfig) (*ChunkConfig, error) {
+	objectCount := len(cfg.Objects)
+	if objectCount == 0 {
 		// we can't do anything if no shards are given
-		return ObjectConfig{}, ErrUnexpectedShardsCount
+		return nil, ErrUnexpectedObjectCount
 	}
-	if shardCount == 1 {
+	if objectCount == 1 {
 		// we can't repair, but if that only shard is valid,
 		// we can at least return the same config
-		shard, err := rs.cluster.GetShard(cfg.Shards[0])
+		shard, err := rs.cluster.GetShard(cfg.Objects[0].ShardID)
 		if err != nil {
-			return ObjectConfig{}, ErrShardsUnavailable
+			return nil, ErrShardsUnavailable
 		}
-		status, err := shard.GetObjectStatus(cfg.Key)
+		status, err := shard.GetObjectStatus(cfg.Objects[0].Key)
 		if err != nil || status != datastor.ObjectStatusOK {
-			return ObjectConfig{}, ErrShardsUnavailable
+			return nil, ErrShardsUnavailable
 		}
 		// simply return the same config
-		return cfg, nil
+		return &cfg, nil
 	}
 
 	// first, let's collect all valid and invalid shards in 2 separate slices
-	validShards, invalidShards := rs.splitShards(cfg.Key, cfg.Shards)
-	// NOTE: len(validShards)+len(invalidShards) < len(cfg.Shards)
+	validObjects, invalidObjects := rs.splitObjects(cfg.Objects)
+	// NOTE: len(validObjects)+len(invalidObjects) < len(cfg.Objects)
 	//       is valid, and is the scenario possible when some shards
 	//       returned an error and thus indicated they were actually non functional
-	shardCount = len(validShards)
-	if shardCount == 0 {
-		return ObjectConfig{}, ErrShardsUnavailable
+	objectCount = len(validObjects)
+	if objectCount == 0 {
+		return nil, ErrShardsUnavailable
 	}
-	if shardCount >= rs.dataShardCount {
+	if objectCount >= rs.dataShardCount {
 		// if our validShard count is already good enough, we can quit
-		return ObjectConfig{
-			Key:      cfg.Key,
-			Shards:   validShards,
-			DataSize: cfg.DataSize,
+		return &ChunkConfig{
+			Size:    cfg.Size,
+			Objects: validObjects,
 		}, nil
 	}
 
@@ -275,62 +290,90 @@ func (rs *ReplicatedObjectStorage) Repair(cfg ObjectConfig) (ObjectConfig, error
 		err    error
 		object *datastor.Object
 		shard  datastor.Shard
-
-		it = datastor.NewLazyShardIterator(rs.cluster, validShards)
 	)
 	// simply try to read sequentially until one could be read,
 	// as we should in most scenarios only ever have to read from 1 (and 2 or 3 in bad situations),
 	// it would be bad for performance to try to read from multiple goroutines and shards for all calls.
-	for it.Next() {
-		shard = it.Shard()
-		object, err = shard.GetObject(cfg.Key)
+	for _, obj := range validObjects {
+		shard, err = rs.cluster.GetShard(obj.ShardID)
 		if err != nil {
-			log.Errorf("failed to read %q from replicated shard %q: %v",
-				cfg.Key, shard.Identifier(), err)
-			validShards = validShards[1:]
+			log.Errorf("failed to get shard %q for object %q: %v",
+				obj.Key, obj.ShardID, err)
+			validObjects = validObjects[1:]
 			continue
 		}
-		if len(object.Data) != cfg.DataSize {
+
+		object, err = shard.GetObject(obj.Key)
+		if err != nil {
+			log.Errorf("failed to read %q from replicated shard %q: %v",
+				obj.Key, obj.ShardID, err)
+			validObjects = validObjects[1:]
+			continue
+		}
+		if int64(len(object.Data)) != cfg.Size {
 			log.Errorf("failed to read %q from replicated shard %q: invalid data size",
-				cfg.Key, shard.Identifier())
-			validShards = validShards[1:]
+				obj.Key, obj.ShardID)
+			validObjects = validObjects[1:]
 			continue
 		}
 
 		// object is considered valid
 		break
 	}
+	if object == nil {
+		log.Error("no valid object could be found to replicate-repair from")
+		return nil, ErrShardsUnavailable
+	}
+	objectCount = len(validObjects)
 
 	// write to our non-used shards
-	shards, err := rs.write(append(invalidShards, validShards...), rs.dataShardCount-shardCount, *object)
+	exceptShards := make([]string, 0, len(invalidObjects)+objectCount)
+	for _, obj := range invalidObjects {
+		exceptShards = append(exceptShards, obj.ShardID)
+	}
+	for _, obj := range validObjects {
+		exceptShards = append(exceptShards, obj.ShardID)
+	}
+	outputCfg, err := rs.write(exceptShards, rs.dataShardCount-objectCount, object.Data)
 	if err != nil {
-		return ObjectConfig{}, err
+		return outputCfg, err
 	}
 
 	// add our shards to our output cfg
 	// and return it if we have at least dataShardCount amount of shards
-	cfg.Shards = append(validShards, shards...)
-	if len(cfg.Shards) < rs.dataShardCount {
-		return cfg, ErrShardsUnavailable
+	outputCfg.Objects = append(validObjects, outputCfg.Objects...)
+	if len(cfg.Objects) < rs.dataShardCount {
+		return outputCfg, ErrShardsUnavailable
 	}
-	return cfg, nil
+	return outputCfg, nil
 }
 
-// splitShards is a private utility method,
-// to help us split the given shards into valid and invalid shards.
-func (rs *ReplicatedObjectStorage) splitShards(key []byte, allShards []string) (validShards []string, invalidShards []string) {
-	// create a channel-based iterator, to fetch the shards,
-	// in sequence and thread-save
-	shardCh := datastor.ShardIteratorChannel(context.Background(),
-		datastor.NewLazyShardIterator(rs.cluster, allShards), rs.jobCount)
+// splitObjects is a private utility method,
+// to help us split the given objects into valid and invalid ones.
+func (rs *ReplicatedChunkStorage) splitObjects(allObjects []metastor.Object) (validObjects []metastor.Object, invalidObjects []metastor.Object) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	// each worker will continue to fetch shards, while there are shards left to be checked,
-	// and for each fetched shard it will check and indicate whether or not
-	// the shard is valid for the desired object
+	// create a channel-based fetcher to get all the objects
+	objectIndexCh := make(chan int, rs.jobCount)
+	go func() {
+		defer close(objectIndexCh)
+		for i := range allObjects {
+			select {
+			case objectIndexCh <- i:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	// each worker will continue to fetch objects from shards, while there are objects left to be checked,
+	// and for each fetched object it will check and indicate whether or not
+	// the object is valid
 	type checkResult struct {
-		Identifier string // identifier empty means the shard is invalid
-		Valid      bool   // valid true means the shard is valid
-		// !Valid && len(Identifier) > 0
+		Index int
+		Valid bool // valid true means the shard is valid
+		// !Valid && Index >= 0
 		// means neither invalid nor valid,
 		// we simply should give it another try
 	}
@@ -354,28 +397,40 @@ func (rs *ReplicatedObjectStorage) splitShards(key []byte, allShards []string) (
 				open   bool
 				err    error
 				status datastor.ObjectStatus
+				index  int
+				object metastor.Object
 				shard  datastor.Shard
 			)
 
 			for {
-				// fetch a random shard,
-				// it's an error if this is not possible,
-				// as a shard is expected to be still available at this stage
-				select {
-				case shard, open = <-shardCh:
-					if !open {
-						return
-					}
+				index, open = <-objectIndexCh
+				if !open {
+					return
+				}
+				object = allObjects[index]
+
+				// first get the shard for that object, if possible
+				shard, err = rs.cluster.GetShard(object.ShardID)
+				if err != nil {
+					log.Errorf("error while fetching shard %q for object %q: %v",
+						object.ShardID, object.Key, err)
+					continue
 				}
 
 				var result checkResult
-				status, err = shard.GetObjectStatus(key)
+
+				status, err = shard.GetObjectStatus(object.Key)
 				if err == nil {
-					result.Identifier = shard.Identifier()
-					result.Valid = (status == datastor.ObjectStatusOK)
+					if status == datastor.ObjectStatusOK {
+						result.Valid = true
+						result.Index = index
+					} else {
+						result.Index = -1
+					}
 				} else {
 					log.Errorf("error while validating %q stored on shard %q: %v",
-						key, shard.Identifier(), err)
+						object.Key, object.ShardID, err)
+					result.Index = index
 				}
 
 				// shard is valid for this object,
@@ -388,15 +443,15 @@ func (rs *ReplicatedObjectStorage) splitShards(key []byte, allShards []string) (
 	// collect all results
 	for result := range resultCh {
 		if result.Valid {
-			validShards = append(validShards, result.Identifier)
-		} else if len(result.Identifier) == 0 {
-			invalidShards = append(invalidShards, result.Identifier)
+			validObjects = append(validObjects, allObjects[result.Index])
+		} else if result.Index >= 0 {
+			invalidObjects = append(invalidObjects, allObjects[result.Index])
 		}
 	}
 	return
 }
 
-func (rs *ReplicatedObjectStorage) write(exceptShards []string, dataShardCount int, object datastor.Object) ([]string, error) {
+func (rs *ReplicatedChunkStorage) write(exceptShards []string, dataShardCount int, data []byte) (*ChunkConfig, error) {
 	group, ctx := errgroup.WithContext(context.Background())
 
 	jobCount := rs.jobCount
@@ -426,14 +481,15 @@ func (rs *ReplicatedObjectStorage) write(exceptShards []string, dataShardCount i
 	// write to dataShardCount amount of shards,
 	// and return their identifiers over the resultCh,
 	// collection all the successfull shards' identifiers for the final output
-	resultCh := make(chan string, jobCount)
+	resultCh := make(chan metastor.Object, jobCount)
 	// create all the actual workers
 	for i := 0; i < jobCount; i++ {
 		group.Go(func() error {
 			var (
-				open  bool
-				err   error
-				shard datastor.Shard
+				open   bool
+				err    error
+				shard  datastor.Shard
+				object metastor.Object
 			)
 			for {
 				// wait for a request
@@ -467,10 +523,11 @@ func (rs *ReplicatedObjectStorage) write(exceptShards []string, dataShardCount i
 					}
 
 					// do the actual storage
-					err = shard.SetObject(object)
+					object.Key, err = shard.CreateObject(data)
 					if err == nil {
+						object.ShardID = shard.Identifier()
 						select {
-						case resultCh <- shard.Identifier():
+						case resultCh <- object:
 							break writeLoop
 						case <-ctx.Done():
 							return errors.New("context was unexpectedly cancelled, " +
@@ -492,26 +549,26 @@ func (rs *ReplicatedObjectStorage) write(exceptShards []string, dataShardCount i
 	go func() {
 		err := group.Wait()
 		if err != nil {
-			log.Errorf("replicate-writing %q has failed due to an error: %v",
-				object.Key, err)
+			log.Errorf("replicate-writinghas failed due to an error: %v", err)
 		}
 		close(resultCh)
 	}()
 
+	cfg := &ChunkConfig{Size: int64(len(data))}
 	// collect the identifiers of all shards, we could write our object to
-	shards := make([]string, 0, rs.dataShardCount)
+	cfg.Objects = make([]metastor.Object, 0, rs.dataShardCount)
 	// fetch all results
-	for id := range resultCh {
-		shards = append(shards, id)
+	for object := range resultCh {
+		cfg.Objects = append(cfg.Objects, object)
 	}
 
 	// check if we have sufficient replications
-	if len(shards) < dataShardCount {
-		return shards, ErrShardsUnavailable
+	if len(cfg.Objects) < dataShardCount {
+		return cfg, ErrShardsUnavailable
 	}
-	return shards, nil
+	return cfg, nil
 }
 
 var (
-	_ ObjectStorage = (*ReplicatedObjectStorage)(nil)
+	_ ChunkStorage = (*ReplicatedChunkStorage)(nil)
 )

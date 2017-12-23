@@ -26,23 +26,23 @@ func TestNewClientPanics(t *testing.T) {
 	require.Nil(client)
 }
 
-func TestClientSetObject(t *testing.T) {
+func TestClientCreateObject(t *testing.T) {
 	require := require.New(t)
 
 	var os stubObjectService
 	client := Client{objService: &os}
 	client.contextConstructor = defaultContextConstructor("foo")
 
-	err := client.SetObject(datastor.Object{})
+	_, err := client.CreateObject(nil)
 	require.NoError(err, "server returns no error -> no error")
 
 	os.err = rpctypes.ErrGRPCNilLabel
-	err = client.SetObject(datastor.Object{})
+	_, err = client.CreateObject(nil)
 	require.Equal(rpctypes.ErrNilLabel, err, "server returns GRPC error -> client error")
 
 	errFoo := errors.New("fooErr")
 	os.err = errFoo
-	err = client.SetObject(datastor.Object{})
+	_, err = client.CreateObject(nil)
 	require.Equal(errFoo, err, "any other error -> client error")
 }
 

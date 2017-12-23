@@ -10,6 +10,7 @@ It is generated from these files:
 It has these top-level messages:
 	Metadata
 	Chunk
+	Object
 */
 package proto
 
@@ -140,6 +141,62 @@ func TestChunkMarshalTo(t *testing.T) {
 	}
 }
 
+func TestObjectProto(t *testing.T) {
+	seed := time.Now().UnixNano()
+	popr := rand.New(rand.NewSource(seed))
+	p := NewPopulatedObject(popr, false)
+	dAtA, err := proto1.Marshal(p)
+	if err != nil {
+		t.Fatalf("seed = %d, err = %v", seed, err)
+	}
+	msg := &Object{}
+	if err := proto1.Unmarshal(dAtA, msg); err != nil {
+		t.Fatalf("seed = %d, err = %v", seed, err)
+	}
+	littlefuzz := make([]byte, len(dAtA))
+	copy(littlefuzz, dAtA)
+	for i := range dAtA {
+		dAtA[i] = byte(popr.Intn(256))
+	}
+	if !p.Equal(msg) {
+		t.Fatalf("seed = %d, %#v !Proto %#v", seed, msg, p)
+	}
+	if len(littlefuzz) > 0 {
+		fuzzamount := 100
+		for i := 0; i < fuzzamount; i++ {
+			littlefuzz[popr.Intn(len(littlefuzz))] = byte(popr.Intn(256))
+			littlefuzz = append(littlefuzz, byte(popr.Intn(256)))
+		}
+		// shouldn't panic
+		_ = proto1.Unmarshal(littlefuzz, msg)
+	}
+}
+
+func TestObjectMarshalTo(t *testing.T) {
+	seed := time.Now().UnixNano()
+	popr := rand.New(rand.NewSource(seed))
+	p := NewPopulatedObject(popr, false)
+	size := p.Size()
+	dAtA := make([]byte, size)
+	for i := range dAtA {
+		dAtA[i] = byte(popr.Intn(256))
+	}
+	_, err := p.MarshalTo(dAtA)
+	if err != nil {
+		t.Fatalf("seed = %d, err = %v", seed, err)
+	}
+	msg := &Object{}
+	if err := proto1.Unmarshal(dAtA, msg); err != nil {
+		t.Fatalf("seed = %d, err = %v", seed, err)
+	}
+	for i := range dAtA {
+		dAtA[i] = byte(popr.Intn(256))
+	}
+	if !p.Equal(msg) {
+		t.Fatalf("seed = %d, %#v !Proto %#v", seed, msg, p)
+	}
+}
+
 func TestMetadataJSON(t *testing.T) {
 	seed := time.Now().UnixNano()
 	popr := rand.New(rand.NewSource(seed))
@@ -168,6 +225,24 @@ func TestChunkJSON(t *testing.T) {
 		t.Fatalf("seed = %d, err = %v", seed, err)
 	}
 	msg := &Chunk{}
+	err = jsonpb.UnmarshalString(jsondata, msg)
+	if err != nil {
+		t.Fatalf("seed = %d, err = %v", seed, err)
+	}
+	if !p.Equal(msg) {
+		t.Fatalf("seed = %d, %#v !Json Equal %#v", seed, msg, p)
+	}
+}
+func TestObjectJSON(t *testing.T) {
+	seed := time.Now().UnixNano()
+	popr := rand.New(rand.NewSource(seed))
+	p := NewPopulatedObject(popr, true)
+	marshaler := jsonpb.Marshaler{}
+	jsondata, err := marshaler.MarshalToString(p)
+	if err != nil {
+		t.Fatalf("seed = %d, err = %v", seed, err)
+	}
+	msg := &Object{}
 	err = jsonpb.UnmarshalString(jsondata, msg)
 	if err != nil {
 		t.Fatalf("seed = %d, err = %v", seed, err)
@@ -232,6 +307,34 @@ func TestChunkProtoCompactText(t *testing.T) {
 	}
 }
 
+func TestObjectProtoText(t *testing.T) {
+	seed := time.Now().UnixNano()
+	popr := rand.New(rand.NewSource(seed))
+	p := NewPopulatedObject(popr, true)
+	dAtA := proto1.MarshalTextString(p)
+	msg := &Object{}
+	if err := proto1.UnmarshalText(dAtA, msg); err != nil {
+		t.Fatalf("seed = %d, err = %v", seed, err)
+	}
+	if !p.Equal(msg) {
+		t.Fatalf("seed = %d, %#v !Proto %#v", seed, msg, p)
+	}
+}
+
+func TestObjectProtoCompactText(t *testing.T) {
+	seed := time.Now().UnixNano()
+	popr := rand.New(rand.NewSource(seed))
+	p := NewPopulatedObject(popr, true)
+	dAtA := proto1.CompactTextString(p)
+	msg := &Object{}
+	if err := proto1.UnmarshalText(dAtA, msg); err != nil {
+		t.Fatalf("seed = %d, err = %v", seed, err)
+	}
+	if !p.Equal(msg) {
+		t.Fatalf("seed = %d, %#v !Proto %#v", seed, msg, p)
+	}
+}
+
 func TestMetadataCompare(t *testing.T) {
 	popr := rand.New(rand.NewSource(time.Now().UnixNano()))
 	p := NewPopulatedMetadata(popr, false)
@@ -280,6 +383,30 @@ func TestChunkCompare(t *testing.T) {
 		t.Errorf("p2 = %#v", p2)
 	}
 }
+func TestObjectCompare(t *testing.T) {
+	popr := rand.New(rand.NewSource(time.Now().UnixNano()))
+	p := NewPopulatedObject(popr, false)
+	dAtA, err := proto1.Marshal(p)
+	if err != nil {
+		panic(err)
+	}
+	msg := &Object{}
+	if err := proto1.Unmarshal(dAtA, msg); err != nil {
+		panic(err)
+	}
+	if c := p.Compare(msg); c != 0 {
+		t.Fatalf("%#v !Compare %#v, since %d", msg, p, c)
+	}
+	p2 := NewPopulatedObject(popr, false)
+	c := p.Compare(p2)
+	c2 := p2.Compare(p)
+	if c != (-1 * c2) {
+		t.Errorf("p.Compare(p2) = %d", c)
+		t.Errorf("p2.Compare(p) = %d", c2)
+		t.Errorf("p = %#v", p)
+		t.Errorf("p2 = %#v", p2)
+	}
+}
 func TestMetadataGoString(t *testing.T) {
 	popr := rand.New(rand.NewSource(time.Now().UnixNano()))
 	p := NewPopulatedMetadata(popr, false)
@@ -296,6 +423,19 @@ func TestMetadataGoString(t *testing.T) {
 func TestChunkGoString(t *testing.T) {
 	popr := rand.New(rand.NewSource(time.Now().UnixNano()))
 	p := NewPopulatedChunk(popr, false)
+	s1 := p.GoString()
+	s2 := fmt.Sprintf("%#v", p)
+	if s1 != s2 {
+		t.Fatalf("GoString want %v got %v", s1, s2)
+	}
+	_, err := parser.ParseExpr(s1)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+func TestObjectGoString(t *testing.T) {
+	popr := rand.New(rand.NewSource(time.Now().UnixNano()))
+	p := NewPopulatedObject(popr, false)
 	s1 := p.GoString()
 	s2 := fmt.Sprintf("%#v", p)
 	if s1 != s2 {
@@ -350,6 +490,28 @@ func TestChunkSize(t *testing.T) {
 	}
 }
 
+func TestObjectSize(t *testing.T) {
+	seed := time.Now().UnixNano()
+	popr := rand.New(rand.NewSource(seed))
+	p := NewPopulatedObject(popr, true)
+	size2 := proto1.Size(p)
+	dAtA, err := proto1.Marshal(p)
+	if err != nil {
+		t.Fatalf("seed = %d, err = %v", seed, err)
+	}
+	size := p.Size()
+	if len(dAtA) != size {
+		t.Errorf("seed = %d, size %v != marshalled size %v", seed, size, len(dAtA))
+	}
+	if size2 != size {
+		t.Errorf("seed = %d, size %v != before marshal proto.Size %v", seed, size, size2)
+	}
+	size3 := proto1.Size(p)
+	if size3 != size {
+		t.Errorf("seed = %d, size %v != after marshal proto.Size %v", seed, size, size3)
+	}
+}
+
 func TestMetadataStringer(t *testing.T) {
 	popr := rand.New(rand.NewSource(time.Now().UnixNano()))
 	p := NewPopulatedMetadata(popr, false)
@@ -362,6 +524,15 @@ func TestMetadataStringer(t *testing.T) {
 func TestChunkStringer(t *testing.T) {
 	popr := rand.New(rand.NewSource(time.Now().UnixNano()))
 	p := NewPopulatedChunk(popr, false)
+	s1 := p.String()
+	s2 := fmt.Sprintf("%v", p)
+	if s1 != s2 {
+		t.Fatalf("String want %v got %v", s1, s2)
+	}
+}
+func TestObjectStringer(t *testing.T) {
+	popr := rand.New(rand.NewSource(time.Now().UnixNano()))
+	p := NewPopulatedObject(popr, false)
 	s1 := p.String()
 	s2 := fmt.Sprintf("%v", p)
 	if s1 != s2 {

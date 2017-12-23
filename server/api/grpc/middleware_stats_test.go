@@ -17,7 +17,7 @@ func TestGetStatsfunc(t *testing.T) {
 		{"/ObjectManager/GetObject", stats.IncrRead, false},
 		{"/ObjectManager/GetObjectStatus", stats.IncrRead, false},
 		{"/ObjectManager/ListObjectKeys", stats.IncrRead, false},
-		{"/ObjectManager/SetObject", stats.IncrWrite, false},
+		{"/ObjectManager/CreateObject", stats.IncrWrite, false},
 		{"/ObjectManager/DeleteObject", stats.IncrWrite, false},
 		{"/NamespaceManager/GetNamespace", stats.IncrRead, false},
 		{"", nil, true},

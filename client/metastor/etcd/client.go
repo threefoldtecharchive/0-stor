@@ -53,7 +53,7 @@ type Client struct {
 }
 
 // SetMetadata implements metastor.Client.SetMetadata
-func (c *Client) SetMetadata(data metastor.Data) error {
+func (c *Client) SetMetadata(data metastor.Metadata) error {
 	if data.Key == nil {
 		return metastor.ErrNilKey
 	}
@@ -71,7 +71,7 @@ func (c *Client) SetMetadata(data metastor.Data) error {
 }
 
 // GetMetadata implements metastor.Client.GetMetadata
-func (c *Client) GetMetadata(key []byte) (*metastor.Data, error) {
+func (c *Client) GetMetadata(key []byte) (*metastor.Metadata, error) {
 	if key == nil {
 		return nil, metastor.ErrNilKey
 	}
@@ -87,7 +87,7 @@ func (c *Client) GetMetadata(key []byte) (*metastor.Data, error) {
 		return nil, metastor.ErrNotFound
 	}
 
-	var data metastor.Data
+	var data metastor.Metadata
 	err = c.unmarshal(resp.Kvs[0].Value, &data)
 	if err != nil {
 		return nil, err

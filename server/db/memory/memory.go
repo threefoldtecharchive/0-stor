@@ -12,6 +12,7 @@ import (
 // DB implements the db.DB interace
 type DB struct {
 	m   map[string][]byte
+	c   map[string]uint64
 	mux sync.RWMutex
 }
 
@@ -20,7 +21,42 @@ type DB struct {
 func New() *DB {
 	return &DB{
 		m: make(map[string][]byte),
+		c: make(map[string]uint64),
 	}
+}
+
+// Set implements DB.Set
+func (mdb *DB) Set(key []byte, data []byte) error {
+	if key == nil {
+		return db.ErrNilKey
+	}
+
+	b := make([]byte, len(data))
+	copy(b, data)
+	mdb.mux.Lock()
+	mdb.m[string(key)] = b
+	mdb.mux.Unlock()
+	return nil
+}
+
+// SetScoped implements DB.SetScoped
+func (mdb *DB) SetScoped(scopeKey, data []byte) ([]byte, error) {
+	if scopeKey == nil {
+		return nil, db.ErrNilKey
+	}
+
+	b := make([]byte, len(data))
+	copy(b, data)
+
+	scopeKeyStr := string(scopeKey)
+
+	mdb.mux.Lock()
+	key := db.ScopedSequenceKey(scopeKey, mdb.c[scopeKeyStr])
+	mdb.c[scopeKeyStr]++
+	mdb.m[string(key)] = b
+	mdb.mux.Unlock()
+
+	return key, nil
 }
 
 // Get implements DB.Get
@@ -55,20 +91,6 @@ func (mdb *DB) Exists(key []byte) (bool, error) {
 	return exists, nil
 }
 
-// Set implements DB.Set
-func (mdb *DB) Set(key []byte, value []byte) error {
-	if key == nil {
-		return db.ErrNilKey
-	}
-
-	b := make([]byte, len(value))
-	copy(b, value)
-	mdb.mux.Lock()
-	mdb.m[string(key)] = b
-	mdb.mux.Unlock()
-	return nil
-}
-
 // Delete implements DB.Delete
 func (mdb *DB) Delete(key []byte) error {
 	if key == nil {
@@ -78,44 +100,6 @@ func (mdb *DB) Delete(key []byte) error {
 	mdb.mux.Lock()
 	delete(mdb.m, string(key))
 	mdb.mux.Unlock()
-	return nil
-}
-
-// Update implements interface DB.Update
-func (mdb *DB) Update(key []byte, cb db.UpdateCallback) error {
-	if cb == nil {
-		panic("(*DB).Update expects a non-nil UpdateCallback")
-	}
-	if key == nil {
-		return db.ErrNilKey
-	}
-
-	mdb.mux.Lock()
-	defer mdb.mux.Unlock()
-
-	v := mdb.m[string(key)]
-	input := make([]byte, len(v))
-	copy(input, v)
-
-	output, err := cb(input)
-	if err != nil {
-		log.Errorf("(*DB).Update callback returned an error: %v\n", err)
-		return err
-	}
-
-	if output == nil {
-		if input == nil {
-			return nil // nothing to do
-		}
-		// delete value
-		delete(mdb.m, string(key))
-		return nil
-	}
-
-	// store the new value
-	v = make([]byte, len(output))
-	copy(v, output)
-	mdb.m[string(key)] = v
 	return nil
 }
 

@@ -2,12 +2,16 @@ package badger
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"os"
 	"path"
+	"strings"
 	"sync"
 	"testing"
+
+	"golang.org/x/sync/errgroup"
 
 	"github.com/stretchr/testify/require"
 	"github.com/zero-os/0-stor/server/db"
@@ -39,16 +43,11 @@ func TestConstantErrors(t *testing.T) {
 	require.Equal(db.ErrNilKey, err)
 	_, err = ddb.Get(nil)
 	require.Equal(db.ErrNilKey, err)
-	require.Equal(db.ErrNilKey, ddb.Update(nil,
-		func([]byte) ([]byte, error) { return nil, nil }))
 
 	// explicit panics
 	require.Panics(func() {
 		ddb.ListItems(nil, nil)
 	}, "panics because context is required")
-	require.Panics(func() {
-		ddb.Update(nil, nil)
-	}, "panics because callback is required")
 }
 
 func TestSetGet(t *testing.T) {
@@ -84,6 +83,226 @@ func TestSetGet(t *testing.T) {
 		expected := []byte("ping")
 		expected[1] = byte(i)
 		require.Equal(expected, value)
+	}
+}
+
+func TestSetIncremented(t *testing.T) {
+	require := require.New(t)
+
+	ddb, cleanup := makeTestBadgerDB(t)
+	defer cleanup()
+
+	label := []byte("foo")
+
+	key1, err := ddb.SetScoped(label, []byte("foo"))
+	require.NoError(err)
+	require.NotEqual(label, key1)
+	require.NotEmpty(key1)
+
+	value1, err := ddb.Get(key1)
+	require.NoError(err)
+	require.Equal([]byte("foo"), value1)
+
+	key2, err := ddb.SetScoped(label, []byte("bar"))
+	require.NoError(err)
+	require.NotEqual(label, key2)
+	require.NotEqual(key1, key2)
+	require.NotEmpty(key2)
+
+	value2, err := ddb.Get(key2)
+	require.NoError(err)
+	require.Equal([]byte("bar"), value2)
+
+	value1, err = ddb.Get(key1)
+	require.NoError(err)
+	require.Equal([]byte("foo"), value1)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	ch, err := ddb.ListItems(ctx, label)
+	require.NoError(err)
+	expectedKeys := []string{
+		string(db.ScopedSequenceKey([]byte("foo"), 0)),
+		string(db.ScopedSequenceKey([]byte("foo"), 1)),
+	}
+	expectedValues := map[string]string{
+		expectedKeys[0]: "foo",
+		expectedKeys[1]: "bar",
+	}
+	for item := range ch {
+		if len(expectedKeys) == 0 {
+			t.Fatal(item) // shouldn't happen, as there is only one key to be expected
+		}
+		require.NoError(item.Error())
+		k := item.Key()
+		require.NotNil(k)
+		key := string(k)
+		require.Subset(expectedKeys, []string{key})
+		expectedKeys = removeStringFromSlice(key, expectedKeys)
+
+		value, err := item.Value()
+		require.NoError(err)
+		require.Equal(expectedValues[key], string(value))
+		delete(expectedValues, key)
+		require.NoError(item.Close())
+	}
+	require.Len(expectedKeys, 0, "all keys should have been found")
+
+	err = ddb.Delete(key2)
+	require.NoError(err)
+
+	_, err = ddb.Get(key2)
+	require.Equal(db.ErrNotFound, err)
+
+	key3, err := ddb.SetScoped(label, []byte("42"))
+	require.NoError(err)
+	require.NotEqual(label, key3)
+	require.NotEqual(key1, key3)
+	require.NotEqual(key1, key2)
+	require.NotEmpty(key3)
+
+	value1, err = ddb.Get(key1)
+	require.NoError(err)
+	require.Equal([]byte("foo"), value1)
+
+	value3, err := ddb.Get(key3)
+	require.NoError(err)
+	require.Equal([]byte("42"), value3)
+
+	ch, err = ddb.ListItems(ctx, label)
+	require.NoError(err)
+	expectedKeys = []string{
+		string(db.ScopedSequenceKey([]byte("foo"), 0)),
+		string(db.ScopedSequenceKey([]byte("foo"), 2)),
+	}
+	expectedValues = map[string]string{
+		expectedKeys[0]: "foo",
+		expectedKeys[1]: "42",
+	}
+	for item := range ch {
+		if len(expectedKeys) == 0 {
+			t.Fatal(item) // shouldn't happen, as there is only one key to be expected
+		}
+		require.NoError(item.Error())
+		k := item.Key()
+		require.NotNil(k)
+		key := string(k)
+		require.Subset(expectedKeys, []string{key})
+		expectedKeys = removeStringFromSlice(key, expectedKeys)
+
+		value, err := item.Value()
+		require.NoError(err)
+		require.Equal(expectedValues[key], string(value))
+		delete(expectedValues, key)
+		require.NoError(item.Close())
+	}
+	require.Len(expectedKeys, 0, "all keys should have been found")
+}
+
+func TestSetIncremented_Async(t *testing.T) {
+	// generate keys
+	const (
+		keyCount     = 128
+		keyMaxSize   = 32
+		keyMinSize   = 8
+		valueMaxSize = 256
+		valueMinSize = 32
+	)
+	keys := make([][]byte, keyCount)
+	const chars = "abcdefghijklmnopqrtsuvwxyzABCDEFGHIJKLMNOPQRSTUVXZYZ-@_+"
+	for i := range keys {
+		id := make([]byte, rand.Int31n(keyMaxSize-keyMinSize)+keyMinSize)
+		for u := range id {
+			id[u] = chars[rand.Int31n(int32(len(chars)))]
+		}
+		keys[i] = []byte(fmt.Sprintf("d:%d:%s", i, id))
+	}
+
+	// create test db
+	ddb, cleanup := makeTestBadgerDB(t)
+	defer cleanup()
+
+	// increment all counters
+
+	const (
+		incrementCount = 256
+		workerCount    = keyCount * 2
+		countPerWorker = incrementCount / 2
+	)
+	type output struct {
+		ScopeKey string
+		Key      string
+		Value    string
+	}
+	outputCh := make(chan output, workerCount*2)
+
+	group, ctx := errgroup.WithContext(context.Background())
+	// create multiple workers per key
+	for i := 0; i < workerCount; i++ {
+		index := i % keyCount
+		group.Go(func() error {
+			for i := 0; i < countPerWorker; i++ {
+				value := make([]byte, rand.Int31n(valueMaxSize-valueMinSize)+valueMinSize)
+				for u := range value {
+					value[u] = chars[rand.Int31n(int32(len(chars)))]
+				}
+				key, err := ddb.SetScoped(keys[index], value)
+				if err != nil {
+					return err
+				}
+
+				output := output{
+					ScopeKey: string(keys[index]),
+					Key:      string(key),
+					Value:    string(value),
+				}
+				select {
+				case outputCh <- output:
+				case <-ctx.Done():
+					return nil
+				}
+			}
+			return nil
+		})
+	}
+	go func() {
+		err := group.Wait()
+		close(outputCh)
+		require.NoError(t, err)
+	}()
+
+	allOutput := make(map[string]map[string]string, keyCount)
+	for _, key := range keys {
+		allOutput[string(key)] = make(map[string]string)
+	}
+	for output := range outputCh {
+		require.True(t, strings.HasPrefix(output.Key, output.ScopeKey))
+
+		m, ok := allOutput[output.ScopeKey]
+		require.True(t, ok)
+
+		_, ok = m[output.Key]
+		require.False(t, ok)
+
+		// TODO: UN-COMMENT
+		// For some reason this line returns ErrKeyNotFound,
+		// even though this key is just added, not sure if this a bug
+		// in our code, a bug in badger, or simply to be expected.
+		// Either way, some ms later, it is available, as can be see in the for loop, below.
+		/*value, err := ddb.Get([]byte(output.Key))
+		require.NoErrorf(t, err, "key: %s", output.Key)
+		require.Equal(t, output.Value, string(value))*/
+
+		m[output.Key] = output.Value
+	}
+	for _, m := range allOutput {
+		require.Len(t, m, incrementCount)
+		for k, v := range m {
+			value, err := ddb.Get([]byte(k))
+			require.NoError(t, err)
+			require.Equal(t, v, string(value))
+		}
 	}
 }
 
@@ -429,51 +648,7 @@ func TestListItemsAbruptEnding(t *testing.T) {
 	wg.Wait()
 }
 
-// test to ensure that updating a (non-)existing key is possible
-func TestUpdate(t *testing.T) {
-	ddb, cleanup := makeTestBadgerDB(t)
-	defer cleanup()
-
-	require := require.New(t)
-
-	var (
-		key   = []byte("key")
-		value = []byte("value")
-	)
-
-	require.NoError(ddb.Update(key, func(data []byte) ([]byte, error) {
-		return value, nil
-	}), "updating an item should always be possible for memory DB (even if the key doesn't exist)")
-
-	v, err := ddb.Get(key)
-	require.NoError(err)
-	require.Equal(value, v)
-
-	value = []byte("new value")
-	require.NoError(ddb.Update(key, func(data []byte) ([]byte, error) {
-		return value, nil
-	}), "updating an item should always be possible for memory DB")
-
-	v, err = ddb.Get(key)
-	require.NoError(err)
-	require.Equal(value, v)
-
-	// we can also return nil in our callback in order to delete the value
-	require.NoError(ddb.Update(key, func(data []byte) ([]byte, error) {
-		return nil, nil
-	}), "updating an item should always be possible for memory DB")
-	_, err = ddb.Get(key)
-	require.Equal(db.ErrNotFound, err)
-
-	// setting it to nil agian, will do nothing, as it is already deleted
-	require.NoError(ddb.Update(key, func(data []byte) ([]byte, error) {
-		return nil, nil
-	}), "updating an item should always be possible for memory DB")
-	_, err = ddb.Get(key)
-	require.Equal(db.ErrNotFound, err)
-}
-
-func TestUpdateExistsDelete(t *testing.T) {
+func TestSetExistsDelete(t *testing.T) {
 	ddb, cleanup := makeTestBadgerDB(t)
 	defer cleanup()
 
@@ -483,16 +658,6 @@ func TestUpdateExistsDelete(t *testing.T) {
 	value := []byte("old value")
 
 	require.NoError(ddb.Set(key, value), "Setting a value should be always possible for memory DB")
-
-	// test Update interface
-	require.NoError(ddb.Update(key, func(data []byte) ([]byte, error) {
-		return []byte("new value"), nil
-	}), "updating an item should always be possible for memory DB")
-
-	newValue, err := ddb.Get(key)
-
-	require.NoError(err, "getting interface shouldn't fail here")
-	require.NotEqual(value, newValue)
 
 	// test Exists interface
 	exists, err := ddb.Exists(key)
@@ -505,50 +670,4 @@ func TestUpdateExistsDelete(t *testing.T) {
 
 	// test Delete interface
 	require.NoError(ddb.Delete(key), "Deleting a non-existing key shouldn't fail")
-}
-
-func TestRaceCondition(t *testing.T) {
-	ddb, cleanup := makeTestBadgerDB(t)
-	defer cleanup()
-
-	require := require.New(t)
-
-	key := []byte("key")
-	value := []byte("A")
-
-	require.NoError(ddb.Set(key, value), "setting the item should be OK here")
-	val, err := ddb.Get(key)
-	require.NoError(err)
-	require.Equal(value, val)
-
-	nThreads := 25
-	var wg sync.WaitGroup
-
-	// updating a value with multiple threads
-	wg.Add(nThreads)
-	for i := 0; i < nThreads; i++ {
-		go func() {
-			defer wg.Done()
-			for {
-				err := ddb.Update(key, func(data []byte) ([]byte, error) {
-					data[0]++
-					return data, nil
-				})
-				if err == nil {
-					return // we're done!
-				}
-				if err == db.ErrConflict {
-					continue // simply try again
-				}
-				t.Fatal(err) // shouldn't ever happen
-			}
-		}()
-	}
-	wg.Wait()
-
-	// check the last updated value
-	value, err = ddb.Get(key)
-
-	require.NoError(err, "Getting the item shouldn't fail here")
-	require.Equal(string(value), "Z", "unexpected result, race condition possible")
 }

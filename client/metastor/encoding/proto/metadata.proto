@@ -11,33 +11,55 @@ option (gogoproto.populate_all) = true;
 option (gogoproto.testgen_all) = true;
 
 message Metadata {
-    // creation epoch
-    int64 epoch = 1;
+    // key defines the key of the data,
+    // and is chosen by the owner of this data.
+    bytes key = 1;
 
-    // key used in 0-stor
-    bytes key = 2;
+    // size in bytes represents the total size of all chunks,
+    // that make up the stored data, combined.
+    int64 size = 2 [(gogoproto.customname) = "SizeInBytes"];
 
-    // list of chunks, containing all the data
-    repeated Chunk chunks = 3 [(gogoproto.nullable) = false];
+    // creationEpoch defines the time this data was initially created,
+    // in the Unix epoch format, in nano seconds.
+    int64 creationEpoch = 3;
+    // lastWriteEpoch defines the time this data
+    // was last modified (e.g. repaired),
+    // in the Unix epoch format, in nano seconds.
+    int64 lastWriteEpoch = 4;
 
-    // optional key to the previous
-    // linked metadata entry
-    bytes previous = 4;
+    // chunks is the metadata list of all chunks
+    // that make up the data, when combined.
+    repeated Chunk chunks = 5 [(gogoproto.nullable) = false];
 
-    // optional key to the next
-    // linked metadata entry
-    bytes next = 5;
+    // previousKey is an optional key to the previous Metadata (node),
+    // in case this Metadata (node) is used as part
+    // of a reversed/double linked list.
+    bytes previousKey = 6;
+
+    // nextKey is an optional key to the next Metadata (node),
+    // in case this Metadata (node) is used as part
+    // of a (double) linked list.
+    bytes nextKey = 7;
 }
 
 message Chunk {
     // size of the chunk in bytes
     int64 size = 1 [(gogoproto.customname) = "SizeInBytes"];
 
-    // key used in 0-stor
-    bytes key = 2;
+    // objects defines the metadata of the objects
+    // that make up this chunk.
+    repeated Object objects = 2 [(gogoproto.nullable) = false];
 
-    // list of shards of the chunk,
-    // where each shard is the address
-    // of a zstordb server
-    repeated string shards = 3;
+    // hash contains the checksum/signature of the chunk (data),
+    // meaning the data of all objects (of this chunk) combined.
+    bytes hash = 3;
+}
+
+message Object {
+    // key of the Object
+    bytes key = 1;
+
+    // shardID defines the ID of the shard the object is stored on
+    string shardID = 2;
+
 }

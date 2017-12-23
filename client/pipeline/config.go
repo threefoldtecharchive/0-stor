@@ -36,7 +36,7 @@ func NewPipeline(cfg Config, cluster datastor.Cluster, jobCount int) (Pipeline, 
 	}
 
 	// create object storage
-	os, err := NewObjectStorage(cfg.Distribution, cluster, jobCount)
+	os, err := NewChunkStorage(cfg.Distribution, cluster, jobCount)
 	if err != nil {
 		return nil, err
 	}
@@ -116,10 +116,10 @@ func NewHasherConstructor(cfg HashingConfig) HasherConstructor {
 	}
 }
 
-// NewObjectStorage creates an object storage, using an easy-to-use distribution configuration.
-// The datastor cluster has to be created upfront, and NewObjectStorage will panic if cluster is nil.
+// NewChunkStorage creates an object storage, using an easy-to-use distribution configuration.
+// The datastor cluster has to be created upfront, and NewChunkStorage will panic if cluster is nil.
 // The jobCount is optional and the DefaultJobCount will be used if the given count is 0 or less.
-func NewObjectStorage(cfg ObjectDistributionConfig, cluster datastor.Cluster, jobCount int) (storage.ObjectStorage, error) {
+func NewChunkStorage(cfg ObjectDistributionConfig, cluster datastor.Cluster, jobCount int) (storage.ChunkStorage, error) {
 	if cluster == nil {
 		panic("no datastor cluster given")
 	}
@@ -135,19 +135,19 @@ func NewObjectStorage(cfg ObjectDistributionConfig, cluster datastor.Cluster, jo
 				cfg.DataShardCount, cfg.ParityShardCount)
 		}
 
-		return storage.NewRandomObjectStorage(cluster)
+		return storage.NewRandomChunkStorage(cluster)
 	}
 
 	if cfg.ParityShardCount <= 0 {
 		if cfg.DataShardCount == 1 {
-			return storage.NewRandomObjectStorage(cluster)
+			return storage.NewRandomChunkStorage(cluster)
 		}
 
-		return storage.NewReplicatedObjectStorage(
+		return storage.NewReplicatedChunkStorage(
 			cluster, cfg.DataShardCount, jobCount)
 	}
 
-	return storage.NewDistributedObjectStorage(
+	return storage.NewDistributedChunkStorage(
 		cluster, cfg.DataShardCount, cfg.ParityShardCount, jobCount)
 }
 
@@ -328,7 +328,7 @@ type EncryptionConfig struct {
 }
 
 // ObjectDistributionConfig defines the configuration used to create
-// an ObjectStorage, which on its turn defines the logic
+// an ChunkStorage, which on its turn defines the logic
 // on how to store/load the individual objects that make up the (to be) stored data.
 type ObjectDistributionConfig struct {
 	// Number of data shards to use for each stored block.

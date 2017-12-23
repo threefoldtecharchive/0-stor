@@ -3,102 +3,111 @@ package storage
 import (
 	"errors"
 
+	"github.com/zero-os/0-stor/client/metastor"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/zero-os/0-stor/client/datastor"
 )
 
-// NewRandomObjectStorage creates a new RandomObjectStorage.
-// See `RandomObjectStorage` for more information.
-func NewRandomObjectStorage(cluster datastor.Cluster) (*RandomObjectStorage, error) {
+// NewRandomChunkStorage creates a new RandomChunkStorage.
+// See `RandomChunkStorage` for more information.
+func NewRandomChunkStorage(cluster datastor.Cluster) (*RandomChunkStorage, error) {
 	if cluster == nil {
 		panic("no cluster given")
 	}
 	if cluster.ListedShardCount() < 1 {
-		return nil, errors.New("RandomObjectStorage: at least one listed shard is required")
+		return nil, errors.New("RandomChunkStorage: at least one listed shard is required")
 	}
-	return &RandomObjectStorage{cluster: cluster}, nil
+	return &RandomChunkStorage{cluster: cluster}, nil
 }
 
-// RandomObjectStorage is the most simplest Storage implementation.
+// RandomChunkStorage is the most simplest Storage implementation.
 // For writing it only writes to one shard, randomly chosen.
 // For reading it expects just, and only, one shard, to read from.
 // Repairing is not supported for this storage for obvious reasons.
-type RandomObjectStorage struct {
+type RandomChunkStorage struct {
 	cluster datastor.Cluster
 }
 
-// Write implements storage.ObjectStorage.Write
-func (rs *RandomObjectStorage) Write(object datastor.Object) (ObjectConfig, error) {
+// WriteChunk implements storage.ChunkStorage.WriteChunk
+func (rs *RandomChunkStorage) WriteChunk(data []byte) (*ChunkConfig, error) {
 	var (
+		key   []byte
 		err   error
 		shard datastor.Shard
 	)
 
 	// go through all shards, in pseudo-random fashion,
-	// until the object could be written to one of them.
+	// until the data could be written to one of them.
 	it := rs.cluster.GetRandomShardIterator(nil)
 	for it.Next() {
 		shard = it.Shard()
-		err = shard.SetObject(object)
+		key, err = shard.CreateObject(data)
 		if err == nil {
-			return ObjectConfig{
-				Key:      object.Key,
-				Shards:   []string{shard.Identifier()},
-				DataSize: len(object.Data),
+			return &ChunkConfig{
+				Size: int64(len(data)),
+				Objects: []metastor.Object{
+					metastor.Object{
+						Key:     key,
+						ShardID: shard.Identifier(),
+					},
+				},
 			}, nil
 		}
-		log.Errorf("failed to write %q to random shard %q: %v",
-			object.Key, shard.Identifier(), err)
+		log.Errorf("failed to write data to random shard %q: %v",
+			shard.Identifier(), err)
 	}
-	return ObjectConfig{}, ErrShardsUnavailable
+	return nil, ErrShardsUnavailable
 }
 
-// Read implements storage.ObjectStorage.Read
-func (rs *RandomObjectStorage) Read(cfg ObjectConfig) (datastor.Object, error) {
-	if len(cfg.Shards) != 1 {
-		return datastor.Object{}, ErrUnexpectedShardsCount
+// ReadChunk implements storage.ChunkStorage.ReadChunk
+func (rs *RandomChunkStorage) ReadChunk(cfg ChunkConfig) ([]byte, error) {
+	if len(cfg.Objects) != 1 {
+		return nil, ErrUnexpectedObjectCount
 	}
+	obj := &cfg.Objects[0]
 
-	shard, err := rs.cluster.GetShard(cfg.Shards[0])
+	shard, err := rs.cluster.GetShard(obj.ShardID)
 	if err != nil {
-		return datastor.Object{}, err
+		return nil, err
 	}
 
-	object, err := shard.GetObject(cfg.Key)
+	object, err := shard.GetObject(obj.Key)
 	if err != nil {
-		return datastor.Object{}, err
+		return nil, err
 	}
 
-	if len(object.Data) != cfg.DataSize {
-		return *object, ErrInvalidDataSize
+	if int64(len(object.Data)) != cfg.Size {
+		return object.Data, ErrInvalidDataSize
 	}
-	return *object, nil
+	return object.Data, nil
 }
 
-// Check implements storage.ObjectStorage.Check
-func (rs *RandomObjectStorage) Check(cfg ObjectConfig, fast bool) (ObjectCheckStatus, error) {
-	if len(cfg.Shards) != 1 {
-		return ObjectCheckStatusInvalid, ErrUnexpectedShardsCount
+// CheckChunk implements storage.ChunkStorage.CheckChunk
+func (rs *RandomChunkStorage) CheckChunk(cfg ChunkConfig, fast bool) (CheckStatus, error) {
+	if len(cfg.Objects) != 1 {
+		return CheckStatusInvalid, ErrUnexpectedObjectCount
 	}
+	obj := &cfg.Objects[0]
 
-	shard, err := rs.cluster.GetShard(cfg.Shards[0])
+	shard, err := rs.cluster.GetShard(obj.ShardID)
 	if err != nil {
-		return ObjectCheckStatusInvalid, nil
+		return CheckStatusInvalid, nil
 	}
 
-	status, err := shard.GetObjectStatus(cfg.Key)
+	status, err := shard.GetObjectStatus(obj.Key)
 	if err != nil || status != datastor.ObjectStatusOK {
-		return ObjectCheckStatusInvalid, nil
+		return CheckStatusInvalid, nil
 	}
 
-	return ObjectCheckStatusOptimal, nil
+	return CheckStatusOptimal, nil
 }
 
-// Repair implements storage.ObjectStorage.Repair
-func (rs *RandomObjectStorage) Repair(cfg ObjectConfig) (ObjectConfig, error) {
-	return ObjectConfig{}, ErrNotSupported
+// RepairChunk implements storage.ChunkStorage.RepairChunk
+func (rs *RandomChunkStorage) RepairChunk(cfg ChunkConfig) (*ChunkConfig, error) {
+	return nil, ErrNotSupported
 }
 
 var (
-	_ ObjectStorage = (*RandomObjectStorage)(nil)
+	_ ChunkStorage = (*RandomChunkStorage)(nil)
 )

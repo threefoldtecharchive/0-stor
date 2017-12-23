@@ -3,7 +3,10 @@ package pipeline
 import (
 	"bytes"
 	"crypto/rand"
+	"errors"
+	"io"
 	mathRand "math/rand"
+	"os"
 	"strings"
 	"testing"
 
@@ -359,4 +362,189 @@ func testPipelineWriteReadCycle(t *testing.T, pipeline Pipeline, inputData strin
 	outputData := string(buf.Bytes())
 
 	require.Equal(t, inputData, outputData)
+}
+
+func TestPipelineReadWrite_Readme(t *testing.T) {
+	testPipelineReadWriteFile(t, "../../README.md")
+}
+
+func TestPipelineReadWrite_Changelog(t *testing.T) {
+	testPipelineReadWriteFile(t, "../../CHANGELOG.md")
+}
+
+func TestPipelineReadWrite_Issue225(t *testing.T) {
+	testPipelineReadWriteFile(t, "../../fixtures/client/issue_225.txt")
+}
+
+func testPipelineReadWriteFile(t *testing.T, path string) {
+	testCases := []struct {
+		Name   string
+		Config Config
+	}{
+		{"default", Config{}},
+		{"compression(snappy)", Config{
+			Compression: CompressionConfig{
+				Mode: processing.CompressionModeDefault,
+				Type: processing.CompressionTypeSnappy,
+			},
+		}},
+		{"chunk(4096)", Config{
+			BlockSize: 4096,
+		}},
+		{"chunk(4096)+compression(snappy)", Config{
+			BlockSize: 4096,
+			Compression: CompressionConfig{
+				Mode: processing.CompressionModeDefault,
+				Type: processing.CompressionTypeSnappy,
+			},
+		}},
+		{"encryption(aes_256)", Config{
+			Encryption: EncryptionConfig{
+				PrivateKey: randomString(32),
+				Type:       processing.EncryptionTypeAES,
+			},
+		}},
+		{"chunk(4096)+encryption(aes_256)", Config{
+			BlockSize: 4096,
+			Encryption: EncryptionConfig{
+				PrivateKey: randomString(32),
+				Type:       processing.EncryptionTypeAES,
+			},
+		}},
+		{"chunk(4096)+compression(snappy)+encryption(aes_256)", Config{
+			BlockSize: 4096,
+			Compression: CompressionConfig{
+				Mode: processing.CompressionModeDefault,
+				Type: processing.CompressionTypeSnappy,
+			},
+			Encryption: EncryptionConfig{
+				PrivateKey: randomString(32),
+				Type:       processing.EncryptionTypeAES,
+			},
+		}},
+		{"distribution(k=4+m=2)", Config{
+			Distribution: ObjectDistributionConfig{
+				DataShardCount:   4,
+				ParityShardCount: 2,
+			},
+		}},
+		{"compression(snappy)+encryption(aes_256)+distribution(k=4+m=2)", Config{
+			Compression: CompressionConfig{
+				Mode: processing.CompressionModeDefault,
+				Type: processing.CompressionTypeSnappy,
+			},
+			Encryption: EncryptionConfig{
+				PrivateKey: randomString(32),
+				Type:       processing.EncryptionTypeAES,
+			},
+			Distribution: ObjectDistributionConfig{
+				DataShardCount:   4,
+				ParityShardCount: 2,
+			},
+		}},
+		{"hash(blake2b_256)+compression(snappy)+encryption(aes_256)+distribution(k=4+m=2)", Config{
+			Hashing: HashingConfig{
+				Type: crypto.HashTypeBlake2b256,
+			},
+			Compression: CompressionConfig{
+				Mode: processing.CompressionModeDefault,
+				Type: processing.CompressionTypeSnappy,
+			},
+			Encryption: EncryptionConfig{
+				PrivateKey: randomString(32),
+				Type:       processing.EncryptionTypeAES,
+			},
+			Distribution: ObjectDistributionConfig{
+				DataShardCount:   4,
+				ParityShardCount: 2,
+			},
+		}},
+		{"chunk(4096)+replication(k=4)", Config{
+			BlockSize: 4096,
+			Distribution: ObjectDistributionConfig{
+				DataShardCount: 4,
+			},
+		}},
+		{"chunk(512)+replication(k=2+m=1)", Config{
+			BlockSize: 512,
+			Distribution: ObjectDistributionConfig{
+				DataShardCount:   2,
+				ParityShardCount: 1,
+			},
+		}},
+		{"hashing(blake2b_256)+chunk(4096)+compression(snappy)+encryption(aes_256)+distribution(k=4+m=2", Config{
+			BlockSize: 4096,
+			Hashing:   HashingConfig{Type: crypto.HashTypeBlake2b256},
+			Compression: CompressionConfig{
+				Type: processing.CompressionTypeSnappy,
+				Mode: processing.CompressionModeDefault,
+			},
+			Encryption: EncryptionConfig{PrivateKey: randomString(32)},
+			Distribution: ObjectDistributionConfig{
+				DataShardCount:   4,
+				ParityShardCount: 2,
+			},
+		}},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.Name, func(t *testing.T) {
+			shardCount := requiredShardCount(testCase.Config.Distribution)
+			cluster, cleanup, err := newGRPCServerCluster(shardCount)
+			require.NoError(t, err)
+			defer cleanup()
+
+			pipeline, err := NewPipeline(testCase.Config, cluster, -1)
+			require.NoError(t, err)
+
+			testPipelineFileCycle(t, pipeline, path)
+		})
+	}
+}
+
+func testPipelineFileCycle(t *testing.T, pipeline Pipeline, path string) {
+	file, err := os.Open(path)
+	require.NoError(t, err)
+	defer file.Close()
+	r := &readerWithBlockCollector{Reader: file}
+
+	chunks, err := pipeline.Write(r)
+	require.NoError(t, err)
+
+	w := &blockValidator{ExpectedContent: r.Buffer.Bytes()}
+	err = pipeline.Read(chunks, w)
+	require.NoError(t, err)
+}
+
+type readerWithBlockCollector struct {
+	io.Reader
+	Buffer bytes.Buffer
+}
+
+func (r *readerWithBlockCollector) Read(p []byte) (n int, err error) {
+	n, err = r.Reader.Read(p)
+	if err != nil {
+		return n, err
+	}
+
+	return r.Buffer.Write(p)
+}
+
+type blockValidator struct {
+	ExpectedContent []byte
+	Offset          int
+}
+
+func (w *blockValidator) Write(p []byte) (n int, err error) {
+	if w.Offset >= len(w.ExpectedContent) {
+		return 0, errors.New("received block, while expecting EOF")
+	}
+	max := w.Offset + len(p)
+	if max > len(w.ExpectedContent) {
+		return 0, errors.New("received unexpected block (OOB)")
+	}
+	if bytes.Compare(w.ExpectedContent[w.Offset:max], p) != 0 {
+		return 0, errors.New("received unexpected block (not equal)")
+	}
+	w.Offset = max
+	return len(p), nil
 }

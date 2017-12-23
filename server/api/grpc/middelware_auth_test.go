@@ -14,7 +14,7 @@ func TestGetJWTMethod(t *testing.T) {
 		method     jwt.Method
 		err        bool
 	}{
-		{"/ObjectManager/SetObject", jwt.MethodWrite, false},
+		{"/ObjectManager/CreateObject", jwt.MethodWrite, false},
 		{"/ObjectManager/GetObject", jwt.MethodRead, false},
 		{"/ObjectManager/DeleteObject", jwt.MethodDelete, false},
 		{"/ObjectManager/GetObjectStatus", jwt.MethodRead, false},

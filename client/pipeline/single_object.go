@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/ioutil"
 
-	"github.com/zero-os/0-stor/client/datastor"
 	"github.com/zero-os/0-stor/client/metastor"
 	"github.com/zero-os/0-stor/client/pipeline/storage"
 )
@@ -15,7 +14,7 @@ import (
 // which writes all the content it can read, as a single object (no chunking),
 // and processes and stores it all in sequence.
 //
-// NewSingleObjectPipeline requires a non-nil ObjectStorage and will panic if it is missing.
+// NewSingleObjectPipeline requires a non-nil ChunkStorage and will panic if it is missing.
 //
 // If no ProcessorConstructor is given, a default constructor will be created for you,
 // which will construct a processing.NopProcessor, effectively keeping the data unprocessed at all times.
@@ -28,9 +27,9 @@ import (
 // it is still recommended to define a valid constructor, as it will allow you
 // to give a HasherConstructor which creates a crypto Hasher that
 // produces signatures as keys, rather than checksums.
-func NewSingleObjectPipeline(os storage.ObjectStorage, pc ProcessorConstructor, hc HasherConstructor) *SingleObjectPipeline {
-	if os == nil {
-		panic("no ObjectStorage given")
+func NewSingleObjectPipeline(cs storage.ChunkStorage, pc ProcessorConstructor, hc HasherConstructor) *SingleObjectPipeline {
+	if cs == nil {
+		panic("no ChunkStorage given")
 	}
 
 	if pc == nil {
@@ -43,7 +42,7 @@ func NewSingleObjectPipeline(os storage.ObjectStorage, pc ProcessorConstructor, 
 	return &SingleObjectPipeline{
 		hasher:    hc,
 		processor: pc,
-		storage:   os,
+		storage:   cs,
 	}
 }
 
@@ -54,7 +53,7 @@ func NewSingleObjectPipeline(os storage.ObjectStorage, pc ProcessorConstructor, 
 type SingleObjectPipeline struct {
 	hasher    HasherConstructor
 	processor ProcessorConstructor
-	storage   storage.ObjectStorage
+	storage   storage.ChunkStorage
 }
 
 // Write implements Pipeline.Write
@@ -89,26 +88,23 @@ func (sop *SingleObjectPipeline) Write(r io.Reader) ([]metastor.Chunk, error) {
 	if err != nil {
 		return nil, err
 	}
-	key := hasher.HashBytes(input)
+	hash := hasher.HashBytes(input)
 
 	data, err := processor.WriteProcess(input)
 	if err != nil {
 		return nil, err
 	}
 
-	cfg, err := sop.storage.Write(datastor.Object{
-		Key:  key,
-		Data: data,
-	})
+	cfg, err := sop.storage.WriteChunk(data)
 	if err != nil {
 		return nil, err
 	}
 
 	return []metastor.Chunk{
 		metastor.Chunk{
-			Key:    cfg.Key,
-			Shards: cfg.Shards,
-			Size:   int64(cfg.DataSize),
+			Size:    cfg.Size,
+			Objects: cfg.Objects,
+			Hash:    hash,
 		},
 	}, nil
 }
@@ -149,29 +145,28 @@ func (sop *SingleObjectPipeline) Read(chunks []metastor.Chunk, w io.Writer) erro
 		return err
 	}
 
-	obj, err := sop.storage.Read(storage.ObjectConfig{
-		Key:      chunks[0].Key,
-		Shards:   chunks[0].Shards,
-		DataSize: int(chunks[0].Size),
+	data, err := sop.storage.ReadChunk(storage.ChunkConfig{
+		Size:    chunks[0].Size,
+		Objects: chunks[0].Objects,
 	})
 	if err != nil {
 		return err
 	}
 
-	data, err := processor.ReadProcess(obj.Data)
+	data, err = processor.ReadProcess(data)
 	if err != nil {
 		return err
 	}
-	if bytes.Compare(obj.Key, hasher.HashBytes(data)) != 0 {
-		return errors.New("object chunk's data and key do not match")
+	if bytes.Compare(chunks[0].Hash, hasher.HashBytes(data)) != 0 {
+		return errors.New("object chunk's data and hash do not match")
 	}
 
 	_, err = w.Write(data)
 	return err
 }
 
-// GetObjectStorage implements Pipeline.GetObjectStorage
-func (sop *SingleObjectPipeline) GetObjectStorage() storage.ObjectStorage {
+// GetChunkStorage implements Pipeline.GetChunkStorage
+func (sop *SingleObjectPipeline) GetChunkStorage() storage.ChunkStorage {
 	return sop.storage
 }
 

@@ -75,7 +75,7 @@ func testDefaultSingleObjectPipeline(t *testing.T, cfg ObjectDistributionConfig,
 	require.NoError(err)
 	defer cleanup()
 
-	os, err := NewObjectStorage(cfg, cluster, -1)
+	os, err := NewChunkStorage(cfg, cluster, -1)
 	require.NoError(err)
 
 	pipeline := NewSingleObjectPipeline(os, pc, hc)

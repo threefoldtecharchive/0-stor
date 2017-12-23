@@ -10,8 +10,8 @@ It is generated from these files:
 It has these top-level messages:
 	GetNamespaceRequest
 	GetNamespaceResponse
-	SetObjectRequest
-	SetObjectResponse
+	CreateObjectRequest
+	CreateObjectResponse
 	GetObjectRequest
 	GetObjectResponse
 	DeleteObjectRequest
@@ -230,15 +230,15 @@ func BenchmarkGetNamespaceResponseProtoUnmarshal(b *testing.B) {
 	b.SetBytes(int64(total / b.N))
 }
 
-func TestSetObjectRequestProto(t *testing.T) {
+func TestCreateObjectRequestProto(t *testing.T) {
 	seed := time.Now().UnixNano()
 	popr := rand.New(rand.NewSource(seed))
-	p := NewPopulatedSetObjectRequest(popr, false)
+	p := NewPopulatedCreateObjectRequest(popr, false)
 	dAtA, err := proto.Marshal(p)
 	if err != nil {
 		t.Fatalf("seed = %d, err = %v", seed, err)
 	}
-	msg := &SetObjectRequest{}
+	msg := &CreateObjectRequest{}
 	if err := proto.Unmarshal(dAtA, msg); err != nil {
 		t.Fatalf("seed = %d, err = %v", seed, err)
 	}
@@ -261,10 +261,10 @@ func TestSetObjectRequestProto(t *testing.T) {
 	}
 }
 
-func TestSetObjectRequestMarshalTo(t *testing.T) {
+func TestCreateObjectRequestMarshalTo(t *testing.T) {
 	seed := time.Now().UnixNano()
 	popr := rand.New(rand.NewSource(seed))
-	p := NewPopulatedSetObjectRequest(popr, false)
+	p := NewPopulatedCreateObjectRequest(popr, false)
 	size := p.Size()
 	dAtA := make([]byte, size)
 	for i := range dAtA {
@@ -274,7 +274,7 @@ func TestSetObjectRequestMarshalTo(t *testing.T) {
 	if err != nil {
 		t.Fatalf("seed = %d, err = %v", seed, err)
 	}
-	msg := &SetObjectRequest{}
+	msg := &CreateObjectRequest{}
 	if err := proto.Unmarshal(dAtA, msg); err != nil {
 		t.Fatalf("seed = %d, err = %v", seed, err)
 	}
@@ -286,12 +286,12 @@ func TestSetObjectRequestMarshalTo(t *testing.T) {
 	}
 }
 
-func BenchmarkSetObjectRequestProtoMarshal(b *testing.B) {
+func BenchmarkCreateObjectRequestProtoMarshal(b *testing.B) {
 	popr := rand.New(rand.NewSource(616))
 	total := 0
-	pops := make([]*SetObjectRequest, 10000)
+	pops := make([]*CreateObjectRequest, 10000)
 	for i := 0; i < 10000; i++ {
-		pops[i] = NewPopulatedSetObjectRequest(popr, false)
+		pops[i] = NewPopulatedCreateObjectRequest(popr, false)
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -304,18 +304,18 @@ func BenchmarkSetObjectRequestProtoMarshal(b *testing.B) {
 	b.SetBytes(int64(total / b.N))
 }
 
-func BenchmarkSetObjectRequestProtoUnmarshal(b *testing.B) {
+func BenchmarkCreateObjectRequestProtoUnmarshal(b *testing.B) {
 	popr := rand.New(rand.NewSource(616))
 	total := 0
 	datas := make([][]byte, 10000)
 	for i := 0; i < 10000; i++ {
-		dAtA, err := proto.Marshal(NewPopulatedSetObjectRequest(popr, false))
+		dAtA, err := proto.Marshal(NewPopulatedCreateObjectRequest(popr, false))
 		if err != nil {
 			panic(err)
 		}
 		datas[i] = dAtA
 	}
-	msg := &SetObjectRequest{}
+	msg := &CreateObjectRequest{}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		total += len(datas[i%10000])
@@ -326,15 +326,15 @@ func BenchmarkSetObjectRequestProtoUnmarshal(b *testing.B) {
 	b.SetBytes(int64(total / b.N))
 }
 
-func TestSetObjectResponseProto(t *testing.T) {
+func TestCreateObjectResponseProto(t *testing.T) {
 	seed := time.Now().UnixNano()
 	popr := rand.New(rand.NewSource(seed))
-	p := NewPopulatedSetObjectResponse(popr, false)
+	p := NewPopulatedCreateObjectResponse(popr, false)
 	dAtA, err := proto.Marshal(p)
 	if err != nil {
 		t.Fatalf("seed = %d, err = %v", seed, err)
 	}
-	msg := &SetObjectResponse{}
+	msg := &CreateObjectResponse{}
 	if err := proto.Unmarshal(dAtA, msg); err != nil {
 		t.Fatalf("seed = %d, err = %v", seed, err)
 	}
@@ -357,10 +357,10 @@ func TestSetObjectResponseProto(t *testing.T) {
 	}
 }
 
-func TestSetObjectResponseMarshalTo(t *testing.T) {
+func TestCreateObjectResponseMarshalTo(t *testing.T) {
 	seed := time.Now().UnixNano()
 	popr := rand.New(rand.NewSource(seed))
-	p := NewPopulatedSetObjectResponse(popr, false)
+	p := NewPopulatedCreateObjectResponse(popr, false)
 	size := p.Size()
 	dAtA := make([]byte, size)
 	for i := range dAtA {
@@ -370,7 +370,7 @@ func TestSetObjectResponseMarshalTo(t *testing.T) {
 	if err != nil {
 		t.Fatalf("seed = %d, err = %v", seed, err)
 	}
-	msg := &SetObjectResponse{}
+	msg := &CreateObjectResponse{}
 	if err := proto.Unmarshal(dAtA, msg); err != nil {
 		t.Fatalf("seed = %d, err = %v", seed, err)
 	}
@@ -382,12 +382,12 @@ func TestSetObjectResponseMarshalTo(t *testing.T) {
 	}
 }
 
-func BenchmarkSetObjectResponseProtoMarshal(b *testing.B) {
+func BenchmarkCreateObjectResponseProtoMarshal(b *testing.B) {
 	popr := rand.New(rand.NewSource(616))
 	total := 0
-	pops := make([]*SetObjectResponse, 10000)
+	pops := make([]*CreateObjectResponse, 10000)
 	for i := 0; i < 10000; i++ {
-		pops[i] = NewPopulatedSetObjectResponse(popr, false)
+		pops[i] = NewPopulatedCreateObjectResponse(popr, false)
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -400,18 +400,18 @@ func BenchmarkSetObjectResponseProtoMarshal(b *testing.B) {
 	b.SetBytes(int64(total / b.N))
 }
 
-func BenchmarkSetObjectResponseProtoUnmarshal(b *testing.B) {
+func BenchmarkCreateObjectResponseProtoUnmarshal(b *testing.B) {
 	popr := rand.New(rand.NewSource(616))
 	total := 0
 	datas := make([][]byte, 10000)
 	for i := 0; i < 10000; i++ {
-		dAtA, err := proto.Marshal(NewPopulatedSetObjectResponse(popr, false))
+		dAtA, err := proto.Marshal(NewPopulatedCreateObjectResponse(popr, false))
 		if err != nil {
 			panic(err)
 		}
 		datas[i] = dAtA
 	}
-	msg := &SetObjectResponse{}
+	msg := &CreateObjectResponse{}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		total += len(datas[i%10000])
@@ -1226,16 +1226,16 @@ func TestGetNamespaceResponseJSON(t *testing.T) {
 		t.Fatalf("seed = %d, %#v !Json Equal %#v", seed, msg, p)
 	}
 }
-func TestSetObjectRequestJSON(t *testing.T) {
+func TestCreateObjectRequestJSON(t *testing.T) {
 	seed := time.Now().UnixNano()
 	popr := rand.New(rand.NewSource(seed))
-	p := NewPopulatedSetObjectRequest(popr, true)
+	p := NewPopulatedCreateObjectRequest(popr, true)
 	marshaler := jsonpb.Marshaler{}
 	jsondata, err := marshaler.MarshalToString(p)
 	if err != nil {
 		t.Fatalf("seed = %d, err = %v", seed, err)
 	}
-	msg := &SetObjectRequest{}
+	msg := &CreateObjectRequest{}
 	err = jsonpb.UnmarshalString(jsondata, msg)
 	if err != nil {
 		t.Fatalf("seed = %d, err = %v", seed, err)
@@ -1244,16 +1244,16 @@ func TestSetObjectRequestJSON(t *testing.T) {
 		t.Fatalf("seed = %d, %#v !Json Equal %#v", seed, msg, p)
 	}
 }
-func TestSetObjectResponseJSON(t *testing.T) {
+func TestCreateObjectResponseJSON(t *testing.T) {
 	seed := time.Now().UnixNano()
 	popr := rand.New(rand.NewSource(seed))
-	p := NewPopulatedSetObjectResponse(popr, true)
+	p := NewPopulatedCreateObjectResponse(popr, true)
 	marshaler := jsonpb.Marshaler{}
 	jsondata, err := marshaler.MarshalToString(p)
 	if err != nil {
 		t.Fatalf("seed = %d, err = %v", seed, err)
 	}
-	msg := &SetObjectResponse{}
+	msg := &CreateObjectResponse{}
 	err = jsonpb.UnmarshalString(jsondata, msg)
 	if err != nil {
 		t.Fatalf("seed = %d, err = %v", seed, err)
@@ -1462,12 +1462,12 @@ func TestGetNamespaceResponseProtoCompactText(t *testing.T) {
 	}
 }
 
-func TestSetObjectRequestProtoText(t *testing.T) {
+func TestCreateObjectRequestProtoText(t *testing.T) {
 	seed := time.Now().UnixNano()
 	popr := rand.New(rand.NewSource(seed))
-	p := NewPopulatedSetObjectRequest(popr, true)
+	p := NewPopulatedCreateObjectRequest(popr, true)
 	dAtA := proto.MarshalTextString(p)
-	msg := &SetObjectRequest{}
+	msg := &CreateObjectRequest{}
 	if err := proto.UnmarshalText(dAtA, msg); err != nil {
 		t.Fatalf("seed = %d, err = %v", seed, err)
 	}
@@ -1476,12 +1476,12 @@ func TestSetObjectRequestProtoText(t *testing.T) {
 	}
 }
 
-func TestSetObjectRequestProtoCompactText(t *testing.T) {
+func TestCreateObjectRequestProtoCompactText(t *testing.T) {
 	seed := time.Now().UnixNano()
 	popr := rand.New(rand.NewSource(seed))
-	p := NewPopulatedSetObjectRequest(popr, true)
+	p := NewPopulatedCreateObjectRequest(popr, true)
 	dAtA := proto.CompactTextString(p)
-	msg := &SetObjectRequest{}
+	msg := &CreateObjectRequest{}
 	if err := proto.UnmarshalText(dAtA, msg); err != nil {
 		t.Fatalf("seed = %d, err = %v", seed, err)
 	}
@@ -1490,12 +1490,12 @@ func TestSetObjectRequestProtoCompactText(t *testing.T) {
 	}
 }
 
-func TestSetObjectResponseProtoText(t *testing.T) {
+func TestCreateObjectResponseProtoText(t *testing.T) {
 	seed := time.Now().UnixNano()
 	popr := rand.New(rand.NewSource(seed))
-	p := NewPopulatedSetObjectResponse(popr, true)
+	p := NewPopulatedCreateObjectResponse(popr, true)
 	dAtA := proto.MarshalTextString(p)
-	msg := &SetObjectResponse{}
+	msg := &CreateObjectResponse{}
 	if err := proto.UnmarshalText(dAtA, msg); err != nil {
 		t.Fatalf("seed = %d, err = %v", seed, err)
 	}
@@ -1504,12 +1504,12 @@ func TestSetObjectResponseProtoText(t *testing.T) {
 	}
 }
 
-func TestSetObjectResponseProtoCompactText(t *testing.T) {
+func TestCreateObjectResponseProtoCompactText(t *testing.T) {
 	seed := time.Now().UnixNano()
 	popr := rand.New(rand.NewSource(seed))
-	p := NewPopulatedSetObjectResponse(popr, true)
+	p := NewPopulatedCreateObjectResponse(popr, true)
 	dAtA := proto.CompactTextString(p)
-	msg := &SetObjectResponse{}
+	msg := &CreateObjectResponse{}
 	if err := proto.UnmarshalText(dAtA, msg); err != nil {
 		t.Fatalf("seed = %d, err = %v", seed, err)
 	}
@@ -1790,21 +1790,21 @@ func TestGetNamespaceResponseCompare(t *testing.T) {
 		t.Errorf("p2 = %#v", p2)
 	}
 }
-func TestSetObjectRequestCompare(t *testing.T) {
+func TestCreateObjectRequestCompare(t *testing.T) {
 	popr := rand.New(rand.NewSource(time.Now().UnixNano()))
-	p := NewPopulatedSetObjectRequest(popr, false)
+	p := NewPopulatedCreateObjectRequest(popr, false)
 	dAtA, err := proto.Marshal(p)
 	if err != nil {
 		panic(err)
 	}
-	msg := &SetObjectRequest{}
+	msg := &CreateObjectRequest{}
 	if err := proto.Unmarshal(dAtA, msg); err != nil {
 		panic(err)
 	}
 	if c := p.Compare(msg); c != 0 {
 		t.Fatalf("%#v !Compare %#v, since %d", msg, p, c)
 	}
-	p2 := NewPopulatedSetObjectRequest(popr, false)
+	p2 := NewPopulatedCreateObjectRequest(popr, false)
 	c := p.Compare(p2)
 	c2 := p2.Compare(p)
 	if c != (-1 * c2) {
@@ -1814,21 +1814,21 @@ func TestSetObjectRequestCompare(t *testing.T) {
 		t.Errorf("p2 = %#v", p2)
 	}
 }
-func TestSetObjectResponseCompare(t *testing.T) {
+func TestCreateObjectResponseCompare(t *testing.T) {
 	popr := rand.New(rand.NewSource(time.Now().UnixNano()))
-	p := NewPopulatedSetObjectResponse(popr, false)
+	p := NewPopulatedCreateObjectResponse(popr, false)
 	dAtA, err := proto.Marshal(p)
 	if err != nil {
 		panic(err)
 	}
-	msg := &SetObjectResponse{}
+	msg := &CreateObjectResponse{}
 	if err := proto.Unmarshal(dAtA, msg); err != nil {
 		panic(err)
 	}
 	if c := p.Compare(msg); c != 0 {
 		t.Fatalf("%#v !Compare %#v, since %d", msg, p, c)
 	}
-	p2 := NewPopulatedSetObjectResponse(popr, false)
+	p2 := NewPopulatedCreateObjectResponse(popr, false)
 	c := p.Compare(p2)
 	c2 := p2.Compare(p)
 	if c != (-1 * c2) {
@@ -2056,9 +2056,9 @@ func TestGetNamespaceResponseGoString(t *testing.T) {
 		t.Fatal(err)
 	}
 }
-func TestSetObjectRequestGoString(t *testing.T) {
+func TestCreateObjectRequestGoString(t *testing.T) {
 	popr := rand.New(rand.NewSource(time.Now().UnixNano()))
-	p := NewPopulatedSetObjectRequest(popr, false)
+	p := NewPopulatedCreateObjectRequest(popr, false)
 	s1 := p.GoString()
 	s2 := fmt.Sprintf("%#v", p)
 	if s1 != s2 {
@@ -2069,9 +2069,9 @@ func TestSetObjectRequestGoString(t *testing.T) {
 		t.Fatal(err)
 	}
 }
-func TestSetObjectResponseGoString(t *testing.T) {
+func TestCreateObjectResponseGoString(t *testing.T) {
 	popr := rand.New(rand.NewSource(time.Now().UnixNano()))
-	p := NewPopulatedSetObjectResponse(popr, false)
+	p := NewPopulatedCreateObjectResponse(popr, false)
 	s1 := p.GoString()
 	s2 := fmt.Sprintf("%#v", p)
 	if s1 != s2 {
@@ -2258,10 +2258,10 @@ func BenchmarkGetNamespaceResponseSize(b *testing.B) {
 	b.SetBytes(int64(total / b.N))
 }
 
-func TestSetObjectRequestSize(t *testing.T) {
+func TestCreateObjectRequestSize(t *testing.T) {
 	seed := time.Now().UnixNano()
 	popr := rand.New(rand.NewSource(seed))
-	p := NewPopulatedSetObjectRequest(popr, true)
+	p := NewPopulatedCreateObjectRequest(popr, true)
 	size2 := proto.Size(p)
 	dAtA, err := proto.Marshal(p)
 	if err != nil {
@@ -2280,12 +2280,12 @@ func TestSetObjectRequestSize(t *testing.T) {
 	}
 }
 
-func BenchmarkSetObjectRequestSize(b *testing.B) {
+func BenchmarkCreateObjectRequestSize(b *testing.B) {
 	popr := rand.New(rand.NewSource(616))
 	total := 0
-	pops := make([]*SetObjectRequest, 1000)
+	pops := make([]*CreateObjectRequest, 1000)
 	for i := 0; i < 1000; i++ {
-		pops[i] = NewPopulatedSetObjectRequest(popr, false)
+		pops[i] = NewPopulatedCreateObjectRequest(popr, false)
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -2294,10 +2294,10 @@ func BenchmarkSetObjectRequestSize(b *testing.B) {
 	b.SetBytes(int64(total / b.N))
 }
 
-func TestSetObjectResponseSize(t *testing.T) {
+func TestCreateObjectResponseSize(t *testing.T) {
 	seed := time.Now().UnixNano()
 	popr := rand.New(rand.NewSource(seed))
-	p := NewPopulatedSetObjectResponse(popr, true)
+	p := NewPopulatedCreateObjectResponse(popr, true)
 	size2 := proto.Size(p)
 	dAtA, err := proto.Marshal(p)
 	if err != nil {
@@ -2316,12 +2316,12 @@ func TestSetObjectResponseSize(t *testing.T) {
 	}
 }
 
-func BenchmarkSetObjectResponseSize(b *testing.B) {
+func BenchmarkCreateObjectResponseSize(b *testing.B) {
 	popr := rand.New(rand.NewSource(616))
 	total := 0
-	pops := make([]*SetObjectResponse, 1000)
+	pops := make([]*CreateObjectResponse, 1000)
 	for i := 0; i < 1000; i++ {
-		pops[i] = NewPopulatedSetObjectResponse(popr, false)
+		pops[i] = NewPopulatedCreateObjectResponse(popr, false)
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -2636,18 +2636,18 @@ func TestGetNamespaceResponseStringer(t *testing.T) {
 		t.Fatalf("String want %v got %v", s1, s2)
 	}
 }
-func TestSetObjectRequestStringer(t *testing.T) {
+func TestCreateObjectRequestStringer(t *testing.T) {
 	popr := rand.New(rand.NewSource(time.Now().UnixNano()))
-	p := NewPopulatedSetObjectRequest(popr, false)
+	p := NewPopulatedCreateObjectRequest(popr, false)
 	s1 := p.String()
 	s2 := fmt.Sprintf("%v", p)
 	if s1 != s2 {
 		t.Fatalf("String want %v got %v", s1, s2)
 	}
 }
-func TestSetObjectResponseStringer(t *testing.T) {
+func TestCreateObjectResponseStringer(t *testing.T) {
 	popr := rand.New(rand.NewSource(time.Now().UnixNano()))
-	p := NewPopulatedSetObjectResponse(popr, false)
+	p := NewPopulatedCreateObjectResponse(popr, false)
 	s1 := p.String()
 	s2 := fmt.Sprintf("%v", p)
 	if s1 != s2 {

@@ -18,28 +18,44 @@ func TestRoundTrip(t *testing.T) {
 	defer c.Close()
 
 	// prepare the data
-	md := metastor.Data{
-		Key:   []byte("two"),
-		Epoch: 123456789,
-		Chunks: []*metastor.Chunk{
-			&metastor.Chunk{
-				Size:   math.MaxInt64,
-				Key:    []byte("foo"),
-				Shards: nil,
+	md := metastor.Metadata{
+		Key:            []byte("two"),
+		Size:           42,
+		CreationEpoch:  123456789,
+		LastWriteEpoch: 123456789,
+		Chunks: []metastor.Chunk{
+			metastor.Chunk{
+				Size:    math.MaxInt64,
+				Hash:    []byte("foo"),
+				Objects: nil,
 			},
-			&metastor.Chunk{
-				Size:   1234,
-				Key:    []byte("bar"),
-				Shards: []string{"foo"},
+			metastor.Chunk{
+				Size: 1234,
+				Hash: []byte("bar"),
+				Objects: []metastor.Object{
+					metastor.Object{
+						Key:     []byte("foo"),
+						ShardID: "bar",
+					},
+				},
 			},
-			&metastor.Chunk{
-				Size:   2,
-				Key:    []byte("baz"),
-				Shards: []string{"bar", "foo"},
+			metastor.Chunk{
+				Size: 2,
+				Hash: []byte("baz"),
+				Objects: []metastor.Object{
+					metastor.Object{
+						Key:     []byte("foo"),
+						ShardID: "bar",
+					},
+					metastor.Object{
+						Key:     []byte("bar"),
+						ShardID: "baz",
+					},
+				},
 			},
 		},
-		Next:     []byte("one"),
-		Previous: []byte("three"),
+		NextKey:     []byte("one"),
+		PreviousKey: []byte("three"),
 	}
 
 	// ensure metadata is not there yet
@@ -75,7 +91,7 @@ func TestClientNilKeys(t *testing.T) {
 	_, err := c.GetMetadata(nil)
 	require.Equal(metastor.ErrNilKey, err)
 
-	err = c.SetMetadata(metastor.Data{})
+	err = c.SetMetadata(metastor.Metadata{})
 	require.Equal(metastor.ErrNilKey, err)
 
 	err = c.DeleteMetadata(nil)

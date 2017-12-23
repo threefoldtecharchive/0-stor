@@ -30,8 +30,8 @@ type Pipeline interface {
 	// the details depend upon the specific implementation.
 	Read(chunks []metastor.Chunk, w io.Writer) error
 
-	// GetObjectStorage returns the underlying and used ObjectStorage
-	GetObjectStorage() storage.ObjectStorage
+	// GetChunkStorage returns the underlying and used ChunkStorage
+	GetChunkStorage() storage.ChunkStorage
 }
 
 // Constructor types which are used to create unique instances of the types involved,

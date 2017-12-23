@@ -93,7 +93,7 @@ var (
 		"GetObject":       jwt.MethodRead,
 		"GetObjectStatus": jwt.MethodRead,
 		"ListObjectKeys":  jwt.MethodRead,
-		"SetObject":       jwt.MethodWrite,
+		"CreateObject":    jwt.MethodWrite,
 		"DeleteObject":    jwt.MethodDelete,
 	}
 	_JWTNamespaceMethodsMap = map[string]jwt.Method{

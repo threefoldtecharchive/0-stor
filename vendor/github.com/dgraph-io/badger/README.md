@@ -29,12 +29,15 @@ version.
       - [Read-write transactions](#read-write-transactions)
       - [Managing transactions manually](#managing-transactions-manually)
     + [Using key/value pairs](#using-keyvalue-pairs)
+    + [Monotonically increasing integers](#monotonically-increasing-integers)
+    * [Merge Operations](#merge-operations)
     + [Setting Time To Live(TTL) and User Metadata on Keys](#setting-time-to-livettl-and-user-metadata-on-keys)
     + [Iterating over keys](#iterating-over-keys)
       - [Prefix scans](#prefix-scans)
       - [Key-only iteration](#key-only-iteration)
     + [Garbage Collection](#garbage-collection)
     + [Database backup](#database-backup)
+    + [Memory usage](#memory-usage)
     + [Statistics](#statistics)
   * [Resources](#resources)
     + [Blog Posts](#blog-posts)
@@ -122,9 +125,30 @@ err := db.Update(func(tx *badger.Txn) error {
 
 All database operations are allowed inside a read-write transaction.
 
-Always check the return error as it will report an `ErrConflict` in case of
-conflict or other errors, for e.g. due to disk failures. If you return an error
+Always check the returned error value. If you return an error
 within your closure it will be passed through.
+
+An `ErrConflict` error will be reported in case of a conflict. Depending on the state 
+of your application, you have the option to retry the operation if you receive 
+this error.
+
+An `ErrTxnTooBig` will be reported in case the number of pending writes/deletes in
+the transaction exceed a certain limit. In that case, it is best to commit the
+transaction and start a new transaction immediately. Here is an example (we are
+not checking for errors in some places for simplicity):
+
+```go
+updates := make(map[string]string)
+txn := db.NewTransaction(true)
+for k,v := range updates {
+  if err := txn.Set(byte[](k),byte[](v)); err == ErrTxnTooBig {
+    _ = txn.Commit()
+    txn = db.NewTransaction(..)
+    _ = txn.Set(k,v) 
+  }
+}
+_ = txn.Commit()
+```
 
 #### Managing transactions manually
 The `DB.View()` and `DB.Update()` methods are wrappers around the
@@ -213,6 +237,72 @@ then you must use `copy()` to copy it to another byte slice.
 
 Use the `Txn.Delete()` method to delete a key.
 
+### Monotonically increasing integers
+
+To get unique monotonically increasing integers with strong durability, you can
+use the `DB.GetSequence` method. This method returns a `Sequence` object, which
+is thread-safe and can be used concurrently via various goroutines.
+
+Badger would lease a range of integers to hand out from memory, with the
+bandwidth provided to `DB.GetSequence`. The frequency at which disk writes are
+done is determined by this lease bandwidth and the frequency of `Next`
+invocations. Setting a bandwith too low would do more disk writes, setting it
+too high would result in wasted integers if Badger is closed or crashes.
+To avoid wasted integers, call `Release` before closing Badger.
+
+```go
+seq, err := db.GetSequence(key, 1000)
+defer seq.Release()
+for {
+  num, err := seq.Next()
+}
+```
+
+### Merge Operations
+Badger provides support for unordered merge operations. You can define a func
+of type `MergeFunc` which takes in an existing value, and a value to be
+_merged_ with it. It returns a new value which is the result of the _merge_
+operation. All values are specified in byte arrays. For e.g., here is a merge
+function (`add`) which adds a `uint64` value to an existing `uint64` value.
+
+```Go
+uint64ToBytes(i uint64) []byte {
+  var buf [8]byte
+  binary.BigEndian.PutUint64(buf[:], i)
+  return buf[:]
+}
+
+func bytesToUint64(b []byte) uint64 {
+  return binary.BigEndian.Uint64(b)
+}
+
+// Merge function to add two uint64 numbers
+func add(existing, new []byte) []byte {
+  return uint64ToBytes(bytesToUint64(existing) + bytesToUint64(new))
+}
+```
+
+This function can then be passed to the `DB.GetMergeOperator()` method, along
+with a key, and a duration value. The duration specifies how often the merge
+function is run on values that have been added using the `MergeOperator.Add()`
+method.
+
+`MergeOperator.Get()` method can be used to retrieve the cumulative value of the key
+associated with the merge operation.
+
+```Go
+key := []byte("merge")
+m := db.GetMergeOperator(key, add, 200*time.Millisecond)
+defer m.Stop()
+
+m.Add(uint64ToBytes(1))
+m.Add(uint64ToBytes(2))
+m.Add(uint64ToBytes(3))
+
+res, err := m.Get() // res should have value 6 encoded
+fmt.Println(bytesToUint64(res))
+```
+
 ### Setting Time To Live(TTL) and User Metadata on Keys
 Badger allows setting an optional Time to Live (TTL) value on keys. Once the TTL has
 elapsed, the key will no longer be retrievable and will be eligible for garbage
@@ -223,6 +313,9 @@ An optional user metadata value can be set on each key. A user metadata value
 is represented by a single byte. It can be used to set certain bits along
 with the key to aid in interpreting or decoding the key-value pair. User
 metadata can be set using the `Txn.SetWithMeta()` API method.
+
+`Txn.SetEntry()` can be used to set the key, value, user metatadata and TTL,
+all at once.
 
 ### Iterating over keys
 To iterate over keys, we can use an `Iterator`, which can be obtained using the
@@ -319,11 +412,16 @@ garbage collection.
 * `DB.PurgeVersionsBelow(key, ts)`: This method is useful to do a more targeted clean up of older versions
 of key-value pairs. You can specify a key, and a timestamp. All versions of the key older than the timestamp
 are marked as deleted, making them eligible for garbage collection.
-* `DB.RunValueLogGC()`: This method triggers a value log garbage collection for a single log file. There
-are no guarantees that a call would result in space reclamation. Every run would rewrite at most one log
-file. So, repeated calls may be necessary. Please ensure that you call the `DB.Purge…()` methods first
-before invoking this method.
+* `DB.RunValueLogGC()`: This method is designed to do garbage collection while
+  Badger is online. Please ensure that you call the `DB.Purge…()` methods first
+  before invoking this method. It uses any statistics generated by the
+  `DB.Purge(…)` methods to pick files that are likely to lead to maximum space
+  reclamation. It loops until it encounters a file which does not lead to any
+  garbage collection.
 
+  It could lead to increased I/O if `DB.RunValueLogGC()` hasn’t been called for
+  a long time, and many deletes have happened in the meanwhile. So it is recommended
+  that this method be called regularly.
 
 ### Database backup
 There are two public API methods `DB.Backup()` and `DB.Load()` which can be
@@ -354,6 +452,25 @@ command above to upgrade your database to work with the latest version.
 badger_backup --dir <path/to/badgerdb> --backup-file badger.bak
 ```
 
+### Memory usage
+Badger's memory usage can be managed by tweaking several options available in
+the `Options` struct that is passed in when opening the database using
+`DB.Open`.
+
+- `Options.ValueLogLoadingMode` can be set to `options.FileIO` (instead of the
+  default `options.MemoryMap`) to avoid memory-mapping log files. This can be
+  useful in environments with low RAM.
+- Number of memtables (`Options.NumMemtables`)
+  - If you modify `Options.NumMemtables`, also adjust `Options.NumLevelZeroTables` and
+   `Options.NumLevelZeroTablesStall` accordingly.
+- Number of concurrent compactions (`Options.NumCompactors`)
+- Mode in which LSM tree is loaded (`Options.TableLoadingMode`)
+- Size of table (`Options.MaxTableSize`)
+- Size of value log file (`Options.ValueLogFileSize`)
+
+If you want to decrease the memory usage of Badger instance, tweak these
+options (ideally one at a time) until you achieve the desired
+memory usage.
 
 ### Statistics
 Badger records metrics using the [expvar] package, which is included in the Go
@@ -427,6 +544,7 @@ Below is a list of public, open source projects that use Badger:
 * [Dgraph](https://github.com/dgraph-io/dgraph) - Distributed graph database.
 * [go-ipfs](https://github.com/ipfs/go-ipfs) - Go client for the InterPlanetary File System (IPFS), a new hypermedia distribution protocol.
 * [0-stor](https://github.com/zero-os/0-stor) - Single device object store.
+* [Sandglass](https://github.com/celrenheit/sandglass) - distributed, horizontally scalable, persistent, time sorted message queue.
 
 If you are using Badger in a project please send a pull request to add it to the list.
 

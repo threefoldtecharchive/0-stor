@@ -91,20 +91,17 @@ func NewClient(addr, namespace string, jwtTokenGetter datastor.JWTTokenGetter) (
 	return client, nil
 }
 
-// SetObject implements datastor.Client.SetObject
-func (c *Client) SetObject(object datastor.Object) error {
+// CreateObject implements datastor.Client.CreateObject
+func (c *Client) CreateObject(data []byte) (key []byte, err error) {
 	ctx, err := c.contextConstructor(nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	_, err = c.objService.SetObject(ctx, &pb.SetObjectRequest{
-		Key:  object.Key,
-		Data: object.Data,
-	})
+	resp, err := c.objService.CreateObject(ctx, &pb.CreateObjectRequest{Data: data})
 	if err != nil {
-		return toErr(err)
+		return nil, toErr(err)
 	}
-	return nil
+	return resp.Key, nil
 }
 
 // GetObject implements datastor.Client.GetObject

@@ -37,17 +37,12 @@ func NewObjectAPI(db db.DB, jobs int) *ObjectAPI {
 	}
 }
 
-// SetObject implements ObjectManagerServer.SetObject
-func (api *ObjectAPI) SetObject(ctx context.Context, req *pb.SetObjectRequest) (*pb.SetObjectResponse, error) {
+// CreateObject implements ObjectManagerServer.CreateObject
+func (api *ObjectAPI) CreateObject(ctx context.Context, req *pb.CreateObjectRequest) (*pb.CreateObjectResponse, error) {
 	label, err := extractStringFromContext(ctx, rpctypes.MetaLabelKey)
 	if err != nil {
 		log.Errorf("error while extracting label from GRPC metadata: %v", err)
 		return nil, rpctypes.ErrGRPCNilLabel
-	}
-
-	key := req.GetKey()
-	if len(key) == 0 {
-		return nil, rpctypes.ErrGRPCNilKey
 	}
 
 	// encode the data and store it
@@ -59,14 +54,16 @@ func (api *ObjectAPI) SetObject(ctx context.Context, req *pb.SetObjectRequest) (
 	if err != nil {
 		panic(err)
 	}
-	valueKey := db.DataKey([]byte(label), key)
-	err = api.db.Set(valueKey, encodedData)
+	scopeKey := db.DataScopeKey([]byte(label))
+	key, err := api.db.SetScoped(scopeKey, encodedData)
 	if err != nil {
 		return nil, rpctypes.ErrGRPCDatabase
 	}
 
 	// return the success reply
-	return &pb.SetObjectResponse{}, nil
+	return &pb.CreateObjectResponse{
+		Key: key[len(scopeKey):],
+	}, nil
 }
 
 // GetObject implements ObjectManagerServer.GetObject
@@ -77,19 +74,20 @@ func (api *ObjectAPI) GetObject(ctx context.Context, req *pb.GetObjectRequest) (
 		return nil, rpctypes.ErrGRPCNilLabel
 	}
 
+	// get key and ensure it's given
 	key := req.GetKey()
 	if len(key) == 0 {
 		return nil, rpctypes.ErrGRPCNilKey
 	}
+	key = db.DataKey([]byte(label), key)
 
 	// get data
-	dataKey := db.DataKey([]byte(label), key)
-	rawData, err := api.db.Get(dataKey)
+	rawData, err := api.db.Get(key)
 	if err != nil {
 		if err == db.ErrNotFound {
 			return nil, rpctypes.ErrGRPCKeyNotFound
 		}
-		log.Errorf("Database error for data (%v): %v", dataKey, err)
+		log.Errorf("Database error for data (%v): %v", key, err)
 		return nil, rpctypes.ErrGRPCDatabase
 	}
 	dataObject, err := encoding.DecodeObject(rawData)
@@ -111,16 +109,17 @@ func (api *ObjectAPI) DeleteObject(ctx context.Context, req *pb.DeleteObjectRequ
 		return nil, rpctypes.ErrGRPCNilLabel
 	}
 
+	// get key and ensure it's given
 	key := req.GetKey()
 	if len(key) == 0 {
 		return nil, rpctypes.ErrGRPCNilKey
 	}
+	key = db.DataKey([]byte(label), key)
 
 	// delete object's data
-	dataKey := db.DataKey([]byte(label), key)
-	err = api.db.Delete(dataKey)
+	err = api.db.Delete(key)
 	if err != nil {
-		log.Errorf("Database error for data (%v): %v", dataKey, err)
+		log.Errorf("Database error for data (%v): %v", key, err)
 		return nil, rpctypes.ErrGRPCDatabase
 	}
 
@@ -136,12 +135,14 @@ func (api *ObjectAPI) GetObjectStatus(ctx context.Context, req *pb.GetObjectStat
 		return nil, rpctypes.ErrGRPCNilLabel
 	}
 
+	// get key and ensure it's given
 	key := req.GetKey()
 	if len(key) == 0 {
 		return nil, rpctypes.ErrGRPCNilKey
 	}
+	key = db.DataKey([]byte(label), key)
 
-	status, err := serverAPI.ObjectStatusForObject([]byte(label), key, api.db)
+	status, err := serverAPI.ObjectStatusForObject(key, api.db)
 	if err != nil {
 		log.Errorf("Database error for data (%v): %v", key, err)
 		return nil, rpctypes.ErrGRPCDatabase
@@ -164,13 +165,13 @@ func (api *ObjectAPI) ListObjectKeys(req *pb.ListObjectKeysRequest, stream pb.Ob
 	ctx, cancel := context.WithCancel(stream.Context())
 	defer cancel()
 
-	ch, err := api.db.ListItems(ctx, db.DataPrefix([]byte(label)))
+	scopeKey := db.DataScopeKey([]byte(label))
+	ch, err := api.db.ListItems(ctx, scopeKey)
 	if err != nil {
 		log.Errorf("Database error for data (%v): %v", label, err)
 		return rpctypes.ErrGRPCDatabase
 	}
 
-	prefixLength := db.DataKeyPrefixLength([]byte(label))
 	outputCh := make(chan pb.ListObjectKeysResponse, api.jobCount)
 
 	// create an errgroup for all the worker routines,
@@ -189,14 +190,16 @@ func (api *ObjectAPI) ListObjectKeys(req *pb.ListObjectKeysRequest, stream pb.Ob
 			err  error
 			key  []byte
 			resp pb.ListObjectKeysResponse
+
+			scopeKeyLength = len(scopeKey)
 		)
 		for item := range ch {
 			// copy key to take ownership over it
 			key = item.Key()
-			if len(key) <= prefixLength {
+			if len(key) <= scopeKeyLength {
 				panic("invalid item key (filtered key is too short)")
 			}
-			key = key[prefixLength:]
+			key = key[scopeKeyLength:]
 			resp.Key = make([]byte, len(key))
 			copy(resp.Key, key)
 
