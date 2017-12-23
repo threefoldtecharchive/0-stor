@@ -21,10 +21,10 @@ type (
 		Size int64
 
 		// CreationEpoch defines the time this data was initially created,
-		// in the Unix epoch format, in seconds.
+		// in the Unix epoch format, in nano seconds.
 		CreationEpoch int64
 		// LastWriteEpoch defines the time this data was last modified (e.g. repaired),
-		// in the Unix epoch format, in seconds.
+		// in the Unix epoch format, in nano seconds.
 		LastWriteEpoch int64
 
 		// Chunks is the metadata list of all chunks that make up the data, when combined.

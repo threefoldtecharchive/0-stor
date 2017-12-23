@@ -20,11 +20,11 @@ message Metadata {
     int64 size = 2 [(gogoproto.customname) = "SizeInBytes"];
 
     // creationEpoch defines the time this data was initially created,
-    // in the Unix epoch format, in seconds.
+    // in the Unix epoch format, in nano seconds.
     int64 creationEpoch = 3;
     // lastWriteEpoch defines the time this data
     // was last modified (e.g. repaired),
-    // in the Unix epoch format, in seconds.
+    // in the Unix epoch format, in nano seconds.
     int64 lastWriteEpoch = 4;
 
     // chunks is the metadata list of all chunks

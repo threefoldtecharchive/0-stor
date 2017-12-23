@@ -45,11 +45,11 @@ type Metadata struct {
 	// that make up the stored data, combined.
 	SizeInBytes int64 `protobuf:"varint,2,opt,name=size,proto3" json:"size,omitempty"`
 	// creationEpoch defines the time this data was initially created,
-	// in the Unix epoch format, in seconds.
+	// in the Unix epoch format, in nano seconds.
 	CreationEpoch int64 `protobuf:"varint,3,opt,name=creationEpoch,proto3" json:"creationEpoch,omitempty"`
 	// lastWriteEpoch defines the time this data
 	// was last modified (e.g. repaired),
-	// in the Unix epoch format, in seconds.
+	// in the Unix epoch format, in nano seconds.
 	LastWriteEpoch int64 `protobuf:"varint,4,opt,name=lastWriteEpoch,proto3" json:"lastWriteEpoch,omitempty"`
 	// chunks is the metadata list of all chunks
 	// that make up the data, when combined.

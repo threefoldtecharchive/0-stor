@@ -72,6 +72,9 @@ func testRepair(t *testing.T, config Config, repairErr error) {
 	meta, err := c.Write(key, data)
 	require.NoError(t, err, "fail write data")
 
+	// store last-write epoch, so we can compare it later after repair
+	lastWriteEpoch := meta.LastWriteEpoch
+
 	// Check status is ok after a write
 	status, err := c.Check(meta.Key)
 	require.NoError(t, err, "fail to check object")
@@ -92,14 +95,21 @@ func testRepair(t *testing.T, config Config, repairErr error) {
 	err = c.Repair(meta.Key)
 	if repairErr != nil {
 		assert.Error(t, repairErr, err)
+		return
 	}
+	require.NoError(t, err)
 
-	if repairErr == nil {
-		require.NoError(t, err)
-		// make sure we can read the data again
-		readData, err := c.Read(meta.Key)
-		require.NoError(t, err)
-		assert.Equal(t, data, readData, "restored data is not the same as initial data")
-	}
+	// ensure the last-write epoch is updated
+	fetchedMeta, err := c.metastorClient.GetMetadata(meta.Key)
+	require.NoError(t, err)
+	require.NotNil(t, fetchedMeta)
+	require.True(t, fetchedMeta.LastWriteEpoch != 0 && fetchedMeta.LastWriteEpoch != lastWriteEpoch)
+
+	require.Equal(t, meta.Key, fetchedMeta.Key)
+
+	// make sure we can read the data again
+	readData, err := c.Read(fetchedMeta.Key)
+	require.NoError(t, err)
+	assert.Equal(t, data, readData, "restored data is not the same as initial data")
 
 }
