@@ -29,7 +29,7 @@ type RandomChunkStorage struct {
 	cluster datastor.Cluster
 }
 
-// WriteChunk implements storage.ObjectStorage.WriteChunk
+// WriteChunk implements storage.ChunkStorage.WriteChunk
 func (rs *RandomChunkStorage) WriteChunk(data []byte) (*ChunkConfig, error) {
 	var (
 		key   []byte
@@ -60,7 +60,7 @@ func (rs *RandomChunkStorage) WriteChunk(data []byte) (*ChunkConfig, error) {
 	return nil, ErrShardsUnavailable
 }
 
-// ReadChunk implements storage.ObjectStorage.ReadChunk
+// ReadChunk implements storage.ChunkStorage.ReadChunk
 func (rs *RandomChunkStorage) ReadChunk(cfg ChunkConfig) ([]byte, error) {
 	if len(cfg.Objects) != 1 {
 		return nil, ErrUnexpectedObjectCount
@@ -83,7 +83,7 @@ func (rs *RandomChunkStorage) ReadChunk(cfg ChunkConfig) ([]byte, error) {
 	return object.Data, nil
 }
 
-// CheckChunk implements storage.ObjectStorage.CheckChunk
+// CheckChunk implements storage.ChunkStorage.CheckChunk
 func (rs *RandomChunkStorage) CheckChunk(cfg ChunkConfig, fast bool) (CheckStatus, error) {
 	if len(cfg.Objects) != 1 {
 		return CheckStatusInvalid, ErrUnexpectedObjectCount
@@ -103,7 +103,7 @@ func (rs *RandomChunkStorage) CheckChunk(cfg ChunkConfig, fast bool) (CheckStatu
 	return CheckStatusOptimal, nil
 }
 
-// RepairChunk implements storage.ObjectStorage.RepairChunk
+// RepairChunk implements storage.ChunkStorage.RepairChunk
 func (rs *RandomChunkStorage) RepairChunk(cfg ChunkConfig) (*ChunkConfig, error) {
 	return nil, ErrNotSupported
 }

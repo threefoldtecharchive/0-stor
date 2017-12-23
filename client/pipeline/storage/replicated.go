@@ -64,12 +64,12 @@ type ReplicatedChunkStorage struct {
 	jobCount, writeJobCount int
 }
 
-// WriteChunk implements storage.ObjectStorage.WriteChunk
+// WriteChunk implements storage.ChunkStorage.WriteChunk
 func (rs *ReplicatedChunkStorage) WriteChunk(data []byte) (*ChunkConfig, error) {
 	return rs.write(nil, rs.dataShardCount, data)
 }
 
-// ReadChunk implements storage.ObjectStorage.ReadChunk
+// ReadChunk implements storage.ChunkStorage.ReadChunk
 func (rs *ReplicatedChunkStorage) ReadChunk(cfg ChunkConfig) ([]byte, error) {
 	// ensure that at least 1 shard is given
 	if len(cfg.Objects) == 0 {
@@ -111,7 +111,7 @@ func (rs *ReplicatedChunkStorage) ReadChunk(cfg ChunkConfig) ([]byte, error) {
 	return nil, ErrShardsUnavailable
 }
 
-// CheckChunk implements storage.ObjectStorage.CheckChunk
+// CheckChunk implements storage.ChunkStorage.CheckChunk
 func (rs *ReplicatedChunkStorage) CheckChunk(cfg ChunkConfig, fast bool) (CheckStatus, error) {
 	objectCount := len(cfg.Objects)
 	if objectCount == 0 {
@@ -246,7 +246,7 @@ func (rs *ReplicatedChunkStorage) CheckChunk(cfg ChunkConfig, fast bool) (CheckS
 	return CheckStatusInvalid, nil
 }
 
-// RepairChunk implements storage.ObjectStorage.RepairChunk
+// RepairChunk implements storage.ChunkStorage.RepairChunk
 func (rs *ReplicatedChunkStorage) RepairChunk(cfg ChunkConfig) (*ChunkConfig, error) {
 	objectCount := len(cfg.Objects)
 	if objectCount == 0 {

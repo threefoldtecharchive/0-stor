@@ -70,7 +70,7 @@ type DistributedChunkStorage struct {
 	jobCount int
 }
 
-// WriteChunk implements storage.ObjectStorage.WriteChunk
+// WriteChunk implements storage.ChunkStorage.WriteChunk
 func (ds *DistributedChunkStorage) WriteChunk(data []byte) (*ChunkConfig, error) {
 	parts, err := ds.dec.Encode(data)
 	if err != nil {
@@ -214,7 +214,7 @@ func (ds *DistributedChunkStorage) WriteChunk(data []byte) (*ChunkConfig, error)
 	return &cfg, nil
 }
 
-// ReadChunk implements storage.ObjectStorage.ReadChunk
+// ReadChunk implements storage.ChunkStorage.ReadChunk
 func (ds *DistributedChunkStorage) ReadChunk(cfg ChunkConfig) ([]byte, error) {
 	// validate the input object count
 	objectCount := len(cfg.Objects)
@@ -357,7 +357,7 @@ func (ds *DistributedChunkStorage) ReadChunk(cfg ChunkConfig) ([]byte, error) {
 	return data, nil
 }
 
-// CheckChunk implements storage.ObjectStorage.CheckChunk
+// CheckChunk implements storage.ChunkStorage.CheckChunk
 func (ds *DistributedChunkStorage) CheckChunk(cfg ChunkConfig, fast bool) (CheckStatus, error) {
 	// validate the input shard count
 	objectCount := len(cfg.Objects)
@@ -518,7 +518,7 @@ func (ds *DistributedChunkStorage) CheckChunk(cfg ChunkConfig, fast bool) (Check
 	return CheckStatusInvalid, nil
 }
 
-// RepairChunk implements storage.ObjectStorage.RepairChunk
+// RepairChunk implements storage.ChunkStorage.RepairChunk
 func (ds *DistributedChunkStorage) RepairChunk(cfg ChunkConfig) (*ChunkConfig, error) {
 	obj, err := ds.ReadChunk(cfg)
 	if err != nil {
