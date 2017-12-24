@@ -25,6 +25,8 @@ func (p Permission) perms() []string {
 	return perms
 }
 
+// Scopes returns the scopes this permission structure should grant you,
+// within the context of the given organization and namespace.
 func (p Permission) Scopes(org, namespace string) []string {
 	var scopes []string
 	scopePrefix := "user:memberof:" + org + "." + namespace + "."

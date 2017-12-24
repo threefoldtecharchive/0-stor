@@ -115,7 +115,7 @@ func (ds *DistributedChunkStorage) WriteChunk(data []byte) (*ChunkConfig, error)
 
 	// write all the different parts to their own separate shard,
 	// and return the written object information over the resultCh,
-	// which will be used to collect all the successfull shards' identifiers for the final output
+	// which will be used to collect all the successful shards' identifiers for the final output
 	type indexedObject struct {
 		Index  int
 		Object metastor.Object

@@ -509,7 +509,7 @@ func newAsyncDataSplitter(ctx context.Context, r io.Reader, chunkSize, bufferSiz
 			n, err := r.Read(buf)
 			if err != nil {
 				if err == io.EOF {
-					// we'll concider an EOF
+					// we'll consider an EOF
 					// as a signal to let us know the reader is exhausted
 					return nil
 				}

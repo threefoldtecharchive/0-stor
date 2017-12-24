@@ -19,7 +19,7 @@ const (
 	cgInterval = 10 * time.Minute
 )
 
-// DB implements the db.DB interace
+// DB implements the db.DB interface
 type DB struct {
 	db         *badgerdb.DB
 	ctx        context.Context

@@ -33,7 +33,7 @@ func TestCreateJWT(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, tokenString)
 
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+	token, _ := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		return pubKey, nil
 	})
 

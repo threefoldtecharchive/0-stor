@@ -34,7 +34,7 @@ type Client struct {
 
 // NewClient create a new data client,
 // which allows you to connect to a zstordb using a GRPC interface.
-// The addres to the zstordb server is required,
+// The address to the zstordb server is required,
 // and so is the label, as the latter serves as the identifier of the to be used namespace.
 // The jwtToken is required, only if the connected zstordb server requires this.
 func NewClient(addr, namespace string, jwtTokenGetter datastor.JWTTokenGetter) (*Client, error) {

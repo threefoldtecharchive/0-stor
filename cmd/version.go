@@ -145,7 +145,7 @@ func (v Version) Compare(other Version) int {
 		return 1
 	}
 
-	// concidered to be equal versions
+	// considered to be equal versions
 	return 0
 }
 

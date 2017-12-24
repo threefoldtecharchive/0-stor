@@ -39,7 +39,7 @@ func getTestGRPCServer(t *testing.T, organization string) (*Server, stubs.IYOCli
 	var client stubs.IYOClient
 	var verifier jwt.TokenVerifier
 	if organization != "" {
-		client, organization = getIYOClient(t, organization)
+		client = getIYOClient(t, organization)
 		var err error
 		verifier, err = getTestVerifier(testPubKeyPath)
 		require.NoError(t, err)
@@ -71,7 +71,7 @@ func getTestVerifier(pubKeyPath string) (*jwt.Verifier, error) {
 	return jwt.NewVerifier(string(pubKey))
 }
 
-func getIYOClient(t testing.TB, organization string) (stubs.IYOClient, string) {
+func getIYOClient(t testing.TB, organization string) stubs.IYOClient {
 	b, err := ioutil.ReadFile(testPrivKeyPath)
 	require.NoError(t, err)
 
@@ -81,7 +81,7 @@ func getIYOClient(t testing.TB, organization string) (stubs.IYOClient, string) {
 	jwtCreator, err := stubs.NewStubIYOClient(organization, key)
 	require.NoError(t, err, "failed to create the stub IYO client")
 
-	return jwtCreator, organization
+	return jwtCreator
 }
 
 // populateDB populates a db with 10 entries that have keys `testkey0` - `testkey9`

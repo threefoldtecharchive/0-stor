@@ -76,7 +76,8 @@ func getTestClient(cfg Config) (*Client, error) {
 	)
 	// create datastor cluster
 	if cfg.IYO != (itsyouonline.Config{}) {
-		client, err := itsyouonline.NewClient(cfg.IYO)
+		var client *itsyouonline.Client
+		client, err = itsyouonline.NewClient(cfg.IYO)
 		if err == nil {
 			tokenGetter := jwtTokenGetterFromIYOClient(
 				cfg.IYO.Organization, client)

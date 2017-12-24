@@ -9,7 +9,7 @@ import (
 	"github.com/zero-os/0-stor/server/db"
 )
 
-// DB implements the db.DB interace
+// DB implements the db.DB interface
 type DB struct {
 	m   map[string][]byte
 	c   map[string]uint64

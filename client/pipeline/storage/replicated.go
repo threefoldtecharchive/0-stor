@@ -480,7 +480,7 @@ func (rs *ReplicatedChunkStorage) write(exceptShards []string, dataShardCount in
 
 	// write to dataShardCount amount of shards,
 	// and return their identifiers over the resultCh,
-	// collection all the successfull shards' identifiers for the final output
+	// collection all the successful shards' identifiers for the final output
 	resultCh := make(chan metastor.Object, jobCount)
 	// create all the actual workers
 	for i := 0; i < jobCount; i++ {

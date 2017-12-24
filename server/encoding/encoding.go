@@ -16,7 +16,7 @@
 // The checksum is validated at decoding time only,
 // and is not returned ever to the user of this package.
 //
-// Please consultate the documentation of the individual Encoding methods,
+// Please read the documentation of the individual Encoding methods,
 // in order to learn more about the specific (binary) Encoding format,
 // of each type supported by this package.
 package encoding
@@ -77,7 +77,7 @@ func EncodeObject(obj server.Object) ([]byte, error) {
 //
 // `ErrInvalidData` is returned in case the given data slice,
 // is not big enough to hold a valid encoded Object,
-// and thus we can concider it invalid before we put any extra work in.
+// and thus we can consider it invalid before we put any extra work in.
 //
 // `ErrInvalidChecksum` is returned in case the given data package,
 // contained a checksum which could not be matched with
@@ -153,7 +153,7 @@ func EncodeNamespace(ns server.Namespace) ([]byte, error) {
 //
 // `ErrInvalidData` is returned in case the given data slice,
 // is not big enough to hold a valid encoded Namespace,
-// and thus we can concider it invalid before we put any extra work in.
+// and thus we can consider it invalid before we put any extra work in.
 //
 // `ErrInvalidChecksum` is returned in case the given data package,
 // contained a checksum which could not be matched with
@@ -229,7 +229,7 @@ func EncodeStoreStat(stats server.StoreStat) []byte {
 //
 // `ErrInvalidData` is returned in case the given data slice,
 // is not big enough to hold a valid encoded StoreStat,
-// and thus we can concider it invalid before we put any extra work in.
+// and thus we can consider it invalid before we put any extra work in.
 //
 // `ErrInvalidChecksum` is returned in case the given data package,
 // contained a checksum which could not be matched with
@@ -264,7 +264,7 @@ func DecodeStoreStat(data []byte) (server.StoreStat, error) {
 //
 // `ErrInvalidData` is returned in case the given data slice,
 // is not big enough to hold any valid encoded value,
-// and thus we can concider it invalid before we put any extra work in.
+// and thus we can consider it invalid before we put any extra work in.
 // That same error is also returned in case the data was invalid for any other reason.
 //
 // `ErrInvalidChecksum` is returned in case the given data package,

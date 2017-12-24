@@ -97,7 +97,7 @@ const (
 	//ProfileModeTrace enables trace profiling
 	ProfileModeTrace
 
-	// constants just for our convertion functions that might need to know about this
+	// constants just for our conversion functions that might need to know about this
 	_MinProfileMode = ProfileModeCPU
 	_MaxProfileMode = ProfileModeTrace
 )
