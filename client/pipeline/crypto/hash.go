@@ -9,16 +9,16 @@ import (
 
 // Sum256 create and returns a hash,
 // for and given some binary input data,
-// using the default hashing algorithm, SHA256.
+// using the default hashing algorithm, Blake2b_256.
 func Sum256(data []byte) (hash []byte) {
-	return SumSHA256(data)
+	return SumBlake2b256(data)
 }
 
 // Sum512 create and returns a hash,
 // for and given some binary input data,
-// using the default hashing algorithm, SHA512.
+// using the default hashing algorithm, Blake2b_512.
 func Sum512(data []byte) (hash []byte) {
-	return SumSHA512(data)
+	return SumBlake2b512(data)
 }
 
 // NewDefaultHasher256 returns a new instance of the default hasher type.
@@ -27,13 +27,14 @@ func Sum512(data []byte) (hash []byte) {
 // when the key is not given the hasher will produce
 // cryptographically secure checksums, without any proof of ownership.
 //
-// The default hasher is currently SHA256, which produces checksums of 32 bytes.
+// The default hasher is currently Blake2b_256, which produces checksums,
+// or signatures if a key is given, of 32 bytes.
 //
 // This package reserves the right to change the
 // default 256 bit hashing algorithm at any time,
 // but this constructor will always be available and up to date.
 func NewDefaultHasher256(key []byte) (Hasher, error) {
-	return NewSHA256Hasher(key)
+	return NewBlake2b256Hasher(key)
 }
 
 // NewDefaultHasher512 returns a new instance of the default hasher type.
@@ -42,13 +43,14 @@ func NewDefaultHasher256(key []byte) (Hasher, error) {
 // when the key is not given the hasher will produce
 // cryptographically secure checksums, without any proof of ownership.
 //
-// The default hasher is currently SHA512, which produces checksums of 64 bytes.
+// The default hasher is currently Blake2b_512, which produces checksums,
+// or signatures if a key is given, of 64 bytes.
 //
 // This package reserves the right to change the
 // default 512 bit hashing algorithm at any time,
 // but this constructor will always be available and up to date.
 func NewDefaultHasher512(key []byte) (Hasher, error) {
-	return NewSHA512Hasher(key)
+	return NewBlake2b512Hasher(key)
 }
 
 // NewHasher returns a new instance for the given hasher type.
@@ -86,19 +88,19 @@ type Hasher interface {
 type HashType uint8
 
 const (
-	// HashTypeSHA256 is the enum constant which identifies SHA256,
-	// a cryptographic hashing algorithm which produces a secure hash of 32 bytes.
-	// This type is also the default HashType.
-	HashTypeSHA256 HashType = iota
-	// HashTypeSHA512 is the enum constant which identifies SHA512,
-	// a cryptographic hashing algorithm which produces a secure hash of 64 bytes.
-	HashTypeSHA512
 	// HashTypeBlake2b256 is the enum constant which identifies Blake2b-256,
 	// a cryptographic hashing algorithm which produces a secure hash of 32 bytes.
-	HashTypeBlake2b256
+	// This type is also the default HashType.
+	HashTypeBlake2b256 HashType = iota
 	// HashTypeBlake2b512 is the enum constant which identifies Blake2b-512,
 	// a cryptographic hashing algorithm which produces a secure hash of 64 bytes.
 	HashTypeBlake2b512
+	// HashTypeSHA256 is the enum constant which identifies SHA256,
+	// a cryptographic hashing algorithm which produces a secure hash of 32 bytes.
+	HashTypeSHA256
+	// HashTypeSHA512 is the enum constant which identifies SHA512,
+	// a cryptographic hashing algorithm which produces a secure hash of 64 bytes.
+	HashTypeSHA512
 
 	// DefaultHash256Type represents the default 256 bit
 	// Hashing algorithm as promoted by this package.
@@ -106,7 +108,7 @@ const (
 	// This package reserves the right to change the
 	// default 256 bit hashing algorithm at any time,
 	// but this constant will always be available and up to date.
-	DefaultHash256Type = HashTypeSHA256
+	DefaultHash256Type = HashTypeBlake2b256
 
 	// DefaultHash512Type represents the default 512 bit
 	// hashing algorithm as promoted by this package.
@@ -114,7 +116,7 @@ const (
 	// This package reserves the right to change the
 	// default 512 bit hashing algorithm at any time,
 	// but this constant will always be available and up to date.
-	DefaultHash512Type = HashTypeSHA512
+	DefaultHash512Type = HashTypeBlake2b512
 
 	// DefaultHashType represents the default
 	// hashing algorithm as promoted by this package.
@@ -136,7 +138,7 @@ const (
 	//
 	// The maximum allowed value of a custom hash type is 255,
 	// due to the underlying uint8 type.
-	MaxStandardHashType = HashTypeBlake2b512
+	MaxStandardHashType = HashTypeSHA512
 )
 
 // String implements Stringer.String

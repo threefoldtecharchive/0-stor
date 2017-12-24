@@ -158,7 +158,7 @@ func TestHashTypeUnmarshal(t *testing.T) {
 		err := o.UnmarshalText([]byte(tc.String))
 		if tc.Err {
 			require.Error(err)
-			require.Equal(HashTypeSHA256, o)
+			require.Equal(DefaultHash256Type, o)
 		} else {
 			require.NoError(err)
 			require.Equal(tc.Expected, o)
