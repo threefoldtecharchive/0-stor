@@ -24,30 +24,30 @@ func TestRoundTrip(t *testing.T) {
 		CreationEpoch:  123456789,
 		LastWriteEpoch: 123456789,
 		Chunks: []metastor.Chunk{
-			metastor.Chunk{
+			{
 				Size:    math.MaxInt64,
 				Hash:    []byte("foo"),
 				Objects: nil,
 			},
-			metastor.Chunk{
+			{
 				Size: 1234,
 				Hash: []byte("bar"),
 				Objects: []metastor.Object{
-					metastor.Object{
+					{
 						Key:     []byte("foo"),
 						ShardID: "bar",
 					},
 				},
 			},
-			metastor.Chunk{
+			{
 				Size: 2,
 				Hash: []byte("baz"),
 				Objects: []metastor.Object{
-					metastor.Object{
+					{
 						Key:     []byte("foo"),
 						ShardID: "bar",
 					},
-					metastor.Object{
+					{
 						Key:     []byte("bar"),
 						ShardID: "baz",
 					},

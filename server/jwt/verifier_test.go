@@ -67,25 +67,25 @@ func TestValidateJWT(t *testing.T) {
 
 	validCases := []validateJWTCase{
 		// check if admin token has rights on every method
-		validateJWTCase{
+		{
 			tokenStr:   adminToken,
 			permission: adminPerm,
 			method:     MethodAdmin,
 			label:      label,
 		},
-		validateJWTCase{
+		{
 			tokenStr:   adminToken,
 			permission: adminPerm,
 			method:     MethodRead,
 			label:      label,
 		},
-		validateJWTCase{
+		{
 			tokenStr:   adminToken,
 			permission: adminPerm,
 			method:     MethodWrite,
 			label:      label,
 		},
-		validateJWTCase{
+		{
 			tokenStr:   adminToken,
 			permission: adminPerm,
 			method:     MethodDelete,
@@ -93,7 +93,7 @@ func TestValidateJWT(t *testing.T) {
 		},
 
 		// read
-		validateJWTCase{
+		{
 			tokenStr:   readToken,
 			permission: readPerm,
 			method:     MethodRead,
@@ -101,7 +101,7 @@ func TestValidateJWT(t *testing.T) {
 		},
 
 		// write
-		validateJWTCase{
+		{
 			tokenStr:   writeToken,
 			permission: writePerm,
 			method:     MethodWrite,
@@ -109,7 +109,7 @@ func TestValidateJWT(t *testing.T) {
 		},
 
 		// delete
-		validateJWTCase{
+		{
 			tokenStr:   delToken,
 			permission: delPerm,
 			method:     MethodDelete,
@@ -117,19 +117,19 @@ func TestValidateJWT(t *testing.T) {
 		},
 
 		// all but admin token
-		validateJWTCase{
+		{
 			tokenStr:   allButAdminToken,
 			permission: allButAdminPerm,
 			method:     MethodRead,
 			label:      label,
 		},
-		validateJWTCase{
+		{
 			tokenStr:   allButAdminToken,
 			permission: allButAdminPerm,
 			method:     MethodWrite,
 			label:      label,
 		},
-		validateJWTCase{
+		{
 			tokenStr:   allButAdminToken,
 			permission: allButAdminPerm,
 			method:     MethodDelete,
@@ -146,19 +146,19 @@ func TestValidateJWT(t *testing.T) {
 
 	invalidCases := []validateJWTCase{
 		// read token shouldn't have permission on other methods
-		validateJWTCase{
+		{
 			tokenStr:   readToken,
 			permission: readPerm,
 			method:     MethodWrite,
 			label:      label,
 		},
-		validateJWTCase{
+		{
 			tokenStr:   readToken,
 			permission: readPerm,
 			method:     MethodDelete,
 			label:      label,
 		},
-		validateJWTCase{
+		{
 			tokenStr:   readToken,
 			permission: readPerm,
 			method:     MethodAdmin,
@@ -166,19 +166,19 @@ func TestValidateJWT(t *testing.T) {
 		},
 
 		// write
-		validateJWTCase{
+		{
 			tokenStr:   writeToken,
 			permission: writePerm,
 			method:     MethodRead,
 			label:      label,
 		},
-		validateJWTCase{
+		{
 			tokenStr:   writeToken,
 			permission: writePerm,
 			method:     MethodDelete,
 			label:      label,
 		},
-		validateJWTCase{
+		{
 			tokenStr:   writeToken,
 			permission: writePerm,
 			method:     MethodAdmin,
@@ -186,19 +186,19 @@ func TestValidateJWT(t *testing.T) {
 		},
 
 		// delete
-		validateJWTCase{
+		{
 			tokenStr:   delToken,
 			permission: delPerm,
 			method:     MethodRead,
 			label:      label,
 		},
-		validateJWTCase{
+		{
 			tokenStr:   delToken,
 			permission: delPerm,
 			method:     MethodWrite,
 			label:      label,
 		},
-		validateJWTCase{
+		{
 			tokenStr:   delToken,
 			permission: delPerm,
 			method:     MethodAdmin,
@@ -206,7 +206,7 @@ func TestValidateJWT(t *testing.T) {
 		},
 
 		// all but admin
-		validateJWTCase{
+		{
 			tokenStr:   allButAdminToken,
 			permission: allButAdminPerm,
 			method:     MethodAdmin,
@@ -214,14 +214,14 @@ func TestValidateJWT(t *testing.T) {
 		},
 
 		// empty token
-		validateJWTCase{
+		{
 			tokenStr: "",
 			method:   MethodAdmin,
 			label:    label,
 		},
 
 		// empty context
-		validateJWTCase{
+		{
 			emptyCtx: true,
 			method:   MethodAdmin,
 			label:    label,
@@ -312,15 +312,15 @@ func TestCheckPermissions(t *testing.T) {
 	require.NoError(err, "failed to create test verifier")
 
 	validCases := []permCase{
-		permCase{
+		{
 			expectedScopes: []string{"org.0stor.ns"},
 			userScopes:     []string{"user:memberof:org.0stor.ns"},
 		},
-		permCase{
+		{
 			expectedScopes: []string{"org.0stor.ns"},
 			userScopes:     []string{"org.0stor.ns"},
 		},
-		permCase{
+		{
 			expectedScopes: []string{"org.0stor.ns", "org.0stor.ns.read"},
 			userScopes:     []string{"org.0stor.ns"},
 		},
@@ -332,11 +332,11 @@ func TestCheckPermissions(t *testing.T) {
 	})
 
 	invalidCases := []permCase{
-		permCase{
+		{
 			expectedScopes: []string{"org.0stor.ns"},
 			userScopes:     []string{"user:org.0stor.ns"},
 		},
-		permCase{
+		{
 			expectedScopes: []string{"org.0stor.ns"},
 			userScopes:     []string{"org.0stor.ns.read", "org.0stor.ns.write", "org.0stor.ns.delete"},
 		},
@@ -375,14 +375,14 @@ func TestExpectedScopes(t *testing.T) {
 	require.NoError(err, "failed to create test verifier")
 
 	validCases := []expScopeCase{
-		expScopeCase{
+		{
 			method: MethodAdmin,
 			label:  label,
 			expectedScopes: []string{
 				"org.0stor.ns",
 			},
 		},
-		expScopeCase{
+		{
 			method: MethodRead,
 			label:  label,
 			expectedScopes: []string{
@@ -390,7 +390,7 @@ func TestExpectedScopes(t *testing.T) {
 				"org.0stor.ns",
 			},
 		},
-		expScopeCase{
+		{
 			method: MethodWrite,
 			label:  label,
 			expectedScopes: []string{
@@ -398,7 +398,7 @@ func TestExpectedScopes(t *testing.T) {
 				"org.0stor.ns",
 			},
 		},
-		expScopeCase{
+		{
 			method: MethodDelete,
 			label:  label,
 			expectedScopes: []string{
@@ -417,22 +417,22 @@ func TestExpectedScopes(t *testing.T) {
 	})
 
 	invalidCases := []expScopeCase{
-		expScopeCase{
+		{
 			method: MethodAdmin,
 			label:  "0stor",
 			msg:    "label `0stor` should be invalid",
 		},
-		expScopeCase{
+		{
 			method: MethodAdmin,
 			label:  "_0stor_",
 			msg:    "label `_0stor_` should be invalid",
 		},
-		expScopeCase{
+		{
 			method: MethodAdmin,
 			label:  "org_0stor",
 			msg:    "label `org_0stor` should be invalid",
 		},
-		expScopeCase{
+		{
 			method: MethodAdmin,
 			label:  "org_0stor_",
 			msg:    "label `org_0stor_` should be invalid",
@@ -479,22 +479,22 @@ func TestGetScopes(t *testing.T) {
 		org, namespace)
 
 	validCases := []getScopesCase{
-		getScopesCase{
+		{
 			tokenStr:       adminToken,
 			expectedScopes: []string{"user:memberof:org.0stor.ns"},
 		},
 		// again to test caching
-		getScopesCase{
+		{
 			tokenStr:       adminToken,
 			expectedScopes: []string{"user:memberof:org.0stor.ns"},
 		},
-		getScopesCase{
+		{
 			tokenStr: getToken(require, iyo.Permission{
 				Delete: true,
 			}, org, namespace),
 			expectedScopes: []string{"user:memberof:org.0stor.ns.delete"},
 		},
-		getScopesCase{
+		{
 			tokenStr: getToken(require, iyo.Permission{
 				Read:  true,
 				Write: true,
@@ -504,7 +504,7 @@ func TestGetScopes(t *testing.T) {
 				"user:memberof:org.0stor.ns.write",
 			},
 		},
-		getScopesCase{
+		{
 			tokenStr: getToken(require, iyo.Permission{
 				Read:   true,
 				Write:  true,
@@ -532,12 +532,12 @@ func TestGetScopes(t *testing.T) {
 	expiredAdminToken := getTokenWithExpiration(require, iyo.Permission{Admin: true},
 		-1, org, namespace)
 	invalidCases := []getScopesCase{
-		getScopesCase{
+		{
 			tokenStr: expiredAdminToken,
 			msg:      "token should be invalid due to expiration",
 		},
 		// again to test cashing
-		getScopesCase{
+		{
 			tokenStr: expiredAdminToken,
 			msg:      "token should be invalid due to expiration (cached)",
 		},

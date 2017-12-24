@@ -47,7 +47,7 @@ func (rs *RandomChunkStorage) WriteChunk(data []byte) (*ChunkConfig, error) {
 			return &ChunkConfig{
 				Size: int64(len(data)),
 				Objects: []metastor.Object{
-					metastor.Object{
+					{
 						Key:     key,
 						ShardID: shard.Identifier(),
 					},

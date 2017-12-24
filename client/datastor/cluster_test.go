@@ -45,8 +45,8 @@ func TestShardIteratorChannel(t *testing.T) {
 	require.NotNil(ch)
 
 	ids := map[string]struct{}{
-		"a": struct{}{},
-		"b": struct{}{},
+		"a": {},
+		"b": {},
 	}
 	for shard := range ch {
 		require.NotNil(shard)
@@ -91,9 +91,9 @@ func TestRandomShardIterator(t *testing.T) {
 
 	var (
 		ids = map[string]struct{}{
-			"a": struct{}{},
-			"b": struct{}{},
-			"c": struct{}{},
+			"a": {},
+			"b": {},
+			"c": {},
 		}
 		lastID string
 	)

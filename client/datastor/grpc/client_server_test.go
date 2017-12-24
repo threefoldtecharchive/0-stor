@@ -120,15 +120,15 @@ func TestClientWithServer_API(t *testing.T) {
 
 	// now let's list them all, they should all appear!
 	objects := map[string]datastor.Object{
-		string(key): datastor.Object{
+		string(key): {
 			Key:  key,
 			Data: data,
 		},
-		string(otherKey): datastor.Object{
+		string(otherKey): {
 			Key:  otherKey,
 			Data: otherData,
 		},
-		string(yetAnotherKey): datastor.Object{
+		string(yetAnotherKey): {
 			Key:  yetAnotherKey,
 			Data: whyNotData,
 		},

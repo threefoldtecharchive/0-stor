@@ -101,7 +101,7 @@ func (sop *SingleObjectPipeline) Write(r io.Reader) ([]metastor.Chunk, error) {
 	}
 
 	return []metastor.Chunk{
-		metastor.Chunk{
+		{
 			Size:    cfg.Size,
 			Objects: cfg.Objects,
 			Hash:    hash,

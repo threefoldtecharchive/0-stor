@@ -12,9 +12,9 @@ func TestObjectEncodingDecoding(t *testing.T) {
 	require := require.New(t)
 
 	validTestCases := []server.Object{
-		server.Object{Data: []byte("1")},
-		server.Object{Data: []byte("Hello, World!")},
-		server.Object{Data: []byte("大家好")},
+		{Data: []byte("1")},
+		{Data: []byte("Hello, World!")},
+		{Data: []byte("大家好")},
 	}
 	for _, validTestCase := range validTestCases {
 		data, err := EncodeObject(validTestCase)
@@ -59,10 +59,10 @@ func TestNamespaceEncodingDecoding(t *testing.T) {
 	require := require.New(t)
 
 	validTestCases := []server.Namespace{
-		server.Namespace{Label: []byte("1")},
-		server.Namespace{Reserved: 1, Label: []byte("1")},
-		server.Namespace{Reserved: 42, Label: []byte("42")},
-		server.Namespace{Reserved: math.MaxUint64, Label: []byte("大家好")},
+		{Label: []byte("1")},
+		{Reserved: 1, Label: []byte("1")},
+		{Reserved: 42, Label: []byte("42")},
+		{Reserved: math.MaxUint64, Label: []byte("大家好")},
 	}
 	for _, validTestCase := range validTestCases {
 		data, err := EncodeNamespace(validTestCase)
@@ -113,16 +113,16 @@ func TestStoreStatEncodingDecoding(t *testing.T) {
 	require := require.New(t)
 
 	validTestCases := []server.StoreStat{
-		server.StoreStat{},
-		server.StoreStat{SizeAvailable: 1, SizeUsed: 0},
-		server.StoreStat{SizeAvailable: 0, SizeUsed: 1},
-		server.StoreStat{SizeAvailable: 1, SizeUsed: 1},
-		server.StoreStat{SizeAvailable: math.MaxUint64, SizeUsed: 0},
-		server.StoreStat{SizeAvailable: math.MaxUint64, SizeUsed: 42},
-		server.StoreStat{SizeAvailable: 0, SizeUsed: math.MaxUint64},
-		server.StoreStat{SizeAvailable: 42, SizeUsed: math.MaxUint64},
-		server.StoreStat{SizeAvailable: 123456789, SizeUsed: 987654321},
-		server.StoreStat{SizeAvailable: math.MaxUint64, SizeUsed: math.MaxUint64},
+		{},
+		{SizeAvailable: 1, SizeUsed: 0},
+		{SizeAvailable: 0, SizeUsed: 1},
+		{SizeAvailable: 1, SizeUsed: 1},
+		{SizeAvailable: math.MaxUint64, SizeUsed: 0},
+		{SizeAvailable: math.MaxUint64, SizeUsed: 42},
+		{SizeAvailable: 0, SizeUsed: math.MaxUint64},
+		{SizeAvailable: 42, SizeUsed: math.MaxUint64},
+		{SizeAvailable: 123456789, SizeUsed: 987654321},
+		{SizeAvailable: math.MaxUint64, SizeUsed: math.MaxUint64},
 	}
 	for _, validTestCase := range validTestCases {
 		data := EncodeStoreStat(validTestCase)

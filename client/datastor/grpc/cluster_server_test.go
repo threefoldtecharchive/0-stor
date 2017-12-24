@@ -86,9 +86,9 @@ func TestGetRandomShards(t *testing.T) {
 	}, "invalid iterator, need to call Next First")
 
 	keys := map[string]struct{}{
-		ids[0]: struct{}{},
-		ids[1]: struct{}{},
-		ids[2]: struct{}{},
+		ids[0]: {},
+		ids[1]: {},
+		ids[2]: {},
 	}
 	for it.Next() {
 		shard := it.Shard()
@@ -106,8 +106,8 @@ func TestGetRandomShards(t *testing.T) {
 	require.NotNil(it)
 
 	keys = map[string]struct{}{
-		ids[0]: struct{}{},
-		ids[2]: struct{}{},
+		ids[0]: {},
+		ids[2]: {},
 	}
 	for it.Next() {
 		shard := it.Shard()

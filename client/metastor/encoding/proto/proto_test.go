@@ -14,53 +14,53 @@ func TestMarshalUnmarshal(t *testing.T) {
 	require := require.New(t)
 
 	metadataSlice := []metastor.Metadata{
-		metastor.Metadata{
+		{
 			Key: []byte("foo"),
 		},
-		metastor.Metadata{
+		{
 			Key:           []byte("bar"),
 			CreationEpoch: 42,
 		},
-		metastor.Metadata{
+		{
 			Key:            []byte("42"),
 			CreationEpoch:  42,
 			LastWriteEpoch: 42,
 		},
-		metastor.Metadata{
+		{
 			Key:            []byte("baz"),
 			CreationEpoch:  math.MaxInt64,
 			LastWriteEpoch: math.MinInt64,
 			NextKey:        []byte("foo"),
 			PreviousKey:    []byte("baz"),
 		},
-		metastor.Metadata{
+		{
 			Key:            []byte("two"),
 			CreationEpoch:  123456789,
 			LastWriteEpoch: 123456789,
 			Chunks: []metastor.Chunk{
-				metastor.Chunk{
+				{
 					Size:    math.MaxInt64,
 					Objects: nil,
 					Hash:    []byte("foo"),
 				},
-				metastor.Chunk{
+				{
 					Size: 1234,
 					Objects: []metastor.Object{
-						metastor.Object{
+						{
 							Key:     []byte("foo"),
 							ShardID: "bar",
 						},
 					},
 					Hash: []byte("bar"),
 				},
-				metastor.Chunk{
+				{
 					Size: 2,
 					Objects: []metastor.Object{
-						metastor.Object{
+						{
 							Key:     []byte("bar"),
 							ShardID: "foo",
 						},
-						metastor.Object{
+						{
 							Key:     []byte("foo"),
 							ShardID: "bar",
 						},
