@@ -50,6 +50,7 @@ func getTokenBench(require *require.Assertions) string {
 	require.NoError(err)
 
 	iyoCl, err := stubs.NewStubIYOClient("testorg", key)
+	require.NoError(err)
 
 	token, err := iyoCl.CreateJWT("mynamespace", itsyouonline.Permission{
 		Read:   true,

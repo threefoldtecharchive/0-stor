@@ -43,6 +43,7 @@ matrix:
       script:
         - go vet $(go list ./... | grep -v vendor)
         - diff -u <(echo -n) <(gofmt -d $(find . -name "*\.go" | grep -v '\.git/' | grep -v vendor))
+        - utils/scripts/ineffassign.sh
 
     - language: go
       sudo: true
