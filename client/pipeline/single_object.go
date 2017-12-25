@@ -129,7 +129,7 @@ func (sop *SingleObjectPipeline) Write(r io.Reader) ([]metastor.Chunk, error) {
 // the function will return immediately with that error.
 func (sop *SingleObjectPipeline) Read(chunks []metastor.Chunk, w io.Writer) error {
 	if len(chunks) != 1 {
-		return errors.New("unexpected chunk count, SingleObjectPipeline requires one and only one chunk")
+		return errUnexpectedChunkCount
 	}
 	if w == nil {
 		return errors.New("nil writer")
@@ -165,10 +165,51 @@ func (sop *SingleObjectPipeline) Read(chunks []metastor.Chunk, w io.Writer) erro
 	return err
 }
 
-// GetChunkStorage implements Pipeline.GetChunkStorage
-func (sop *SingleObjectPipeline) GetChunkStorage() storage.ChunkStorage {
-	return sop.storage
+// Check implements Pipeline.Check
+func (sop *SingleObjectPipeline) Check(chunks []metastor.Chunk, fast bool) (storage.CheckStatus, error) {
+	if len(chunks) != 1 {
+		return storage.CheckStatus(0), errUnexpectedChunkCount
+	}
+	return sop.storage.CheckChunk(storage.ChunkConfig{
+		Size:    chunks[0].Size,
+		Objects: chunks[0].Objects,
+	}, fast)
 }
+
+// Repair implements Pipeline.Repair
+func (sop *SingleObjectPipeline) Repair(chunks []metastor.Chunk) ([]metastor.Chunk, error) {
+	if len(chunks) != 1 {
+		return nil, errUnexpectedChunkCount
+	}
+	cfg, err := sop.storage.RepairChunk(storage.ChunkConfig{
+		Size:    chunks[0].Size,
+		Objects: chunks[0].Objects,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return []metastor.Chunk{{
+		Size:    cfg.Size,
+		Objects: cfg.Objects,
+		Hash:    chunks[0].Hash,
+	}}, nil
+}
+
+// Delete implements Pipeline.Delete
+func (sop *SingleObjectPipeline) Delete(chunks []metastor.Chunk) error {
+	if len(chunks) != 1 {
+		return errUnexpectedChunkCount
+	}
+	return sop.storage.DeleteChunk(storage.ChunkConfig{
+		Size:    chunks[0].Size,
+		Objects: chunks[0].Objects,
+	})
+}
+
+var (
+	errUnexpectedChunkCount = errors.New(
+		"unexpected chunk count, SingleObjectPipeline requires one and only one chunk")
+)
 
 var (
 	_ Pipeline = (*SingleObjectPipeline)(nil)

@@ -3,9 +3,8 @@ package client
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
-	"runtime"
-	"sync"
 	"time"
 
 	"github.com/zero-os/0-stor/client/pipeline"
@@ -22,9 +21,8 @@ import (
 )
 
 var (
-	errWriteFChunkerOnly    = errors.New("WriteF only support chunker as first pipe")
-	errReadFChunkerOnly     = errors.New("ReadF only support chunker as first pipe")
-	errNoDataShardAvailable = errors.New("no more data shard available")
+	// ErrRepairSupport is returned when data is not stored using replication or distribution
+	ErrRepairSupport = fmt.Errorf("data is not stored using replication or distribution, repair impossible")
 )
 
 // Client defines 0-stor client
@@ -95,7 +93,7 @@ func NewClient(dataCluster datastor.Cluster, metaClient metastor.Client, dataPip
 		panic("0-stor Client: no metastor client given")
 	}
 
-	// create default pipeline
+	// create default pipeline if none is given
 	if dataPipeline == nil {
 		pipeline, err := pipeline.NewPipeline(pipeline.Config{}, dataCluster, -1)
 		if err != nil {
@@ -162,12 +160,10 @@ func (c *Client) writeFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMet
 		}
 	}
 
-	// update chunks in metadata
-	md.Chunks = make([]metastor.Chunk, len(chunks))
+	// set/update chunks and size in metadata
+	md.Chunks = chunks
 	md.Size = 0
-	for index := range chunks {
-		chunk := chunks[index]
-		md.Chunks[index] = chunk
+	for _, chunk := range chunks {
 		md.Size += chunk.Size
 	}
 
@@ -240,43 +236,11 @@ func (c *Client) Delete(key []byte) error {
 // given metadata
 // It also deletes the metadatastor.
 func (c *Client) DeleteWithMeta(meta *metastor.Metadata) error {
-	var (
-		wg   = sync.WaitGroup{}
-		cJob = make(chan metastor.Object, runtime.NumCPU())
-	)
-
-	// create some worker that will delete all shards
-	wg.Add(runtime.NumCPU())
-	for i := 0; i < runtime.NumCPU(); i++ {
-		go func() {
-			defer wg.Done()
-
-			for object := range cJob {
-				shard, err := c.datastorCluster.GetShard(object.ShardID)
-				if err != nil {
-					// FIXME: probably want to handle this
-					log.Errorf("error deleting object:%v", err)
-					continue
-				}
-				if err := shard.DeleteObject(object.Key); err != nil {
-					// FIXME: probably want to handle this
-					log.Errorf("error deleting object:%v", err)
-					continue
-				}
-			}
-		}()
+	err := c.dataPipeline.Delete(meta.Chunks)
+	if err != nil {
+		log.Errorf("error deleting data :%v", err)
+		return err
 	}
-
-	// send job to the workers
-	for _, chunk := range meta.Chunks {
-		for _, object := range chunk.Objects {
-			cJob <- object
-		}
-	}
-	close(cJob)
-
-	// wait for all shards to be delete
-	wg.Wait()
 
 	// delete metadata
 	if err := c.metastorClient.DeleteMetadata(meta.Key); err != nil {
@@ -287,24 +251,54 @@ func (c *Client) DeleteWithMeta(meta *metastor.Metadata) error {
 	return nil
 }
 
-func (c *Client) Check(key []byte) (storage.CheckStatus, error) {
+func (c *Client) Check(key []byte, fast bool) (storage.CheckStatus, error) {
 	meta, err := c.metastorClient.GetMetadata(key)
 	if err != nil {
 		log.Errorf("fail to get metadata for check: %v", err)
 		return storage.CheckStatus(0), err
 	}
+	return c.dataPipeline.Check(meta.Chunks, fast)
+}
 
-	chunkStorage := c.dataPipeline.GetChunkStorage()
-	for _, chunk := range meta.Chunks {
-		status, err := chunkStorage.CheckChunk(storage.ChunkConfig{
-			Size:    chunk.Size,
-			Objects: chunk.Objects,
-		}, false)
-		if err != nil || status == storage.CheckStatusInvalid {
-			return status, err
-		}
+// Repair repairs a broken file.
+// If the file is distributed and the amount of corrupted chunks is acceptable,
+// we recreate the missing chunks.
+// Id the file is replicated and we still have one valid replicate, we create the missing replicate
+// till we reach the replication number configured in the config
+// if the file as not been distributed or replicated, we can't repair it,
+// or if not enough shards are available we cannot repair it either.
+func (c *Client) Repair(key []byte) error {
+	log.Debugf("Start repair of %x", key)
+	meta, err := c.metastorClient.GetMetadata(key)
+	if err != nil {
+		log.Errorf("repair %x, error getting metadata :%v", key, err)
+		return err
 	}
-	return storage.CheckStatusValid, nil
+
+	chunks, err := c.dataPipeline.Repair(meta.Chunks)
+	if err != nil {
+		if err == storage.ErrNotSupported {
+			return ErrRepairSupport
+		}
+		return err
+	}
+	// update chunks
+	meta.Chunks = chunks
+	// update total size
+	meta.Size = 0
+	for _, chunk := range chunks {
+		meta.Size += chunk.Size
+	}
+
+	// update last write epoch, as we have written while repairing
+	meta.LastWriteEpoch = time.Now().UnixNano()
+
+	if err := c.metastorClient.SetMetadata(*meta); err != nil {
+		log.Errorf("error writing metadata after repair: %v", err)
+		return err
+	}
+
+	return nil
 }
 
 func (c *Client) linkMeta(curMd, prevMd *metastor.Metadata, curKey, prevKey []byte) error {

@@ -108,6 +108,19 @@ func (rs *RandomChunkStorage) RepairChunk(cfg ChunkConfig) (*ChunkConfig, error)
 	return nil, ErrNotSupported
 }
 
+// DeleteChunk implements storage.ChunkStorage.DeleteChunk
+func (rs *RandomChunkStorage) DeleteChunk(cfg ChunkConfig) error {
+	if len(cfg.Objects) != 1 {
+		return ErrUnexpectedObjectCount
+	}
+	obj := &cfg.Objects[0]
+	shard, err := rs.cluster.GetShard(obj.ShardID)
+	if err != nil {
+		return err
+	}
+	return shard.DeleteObject(obj.Key)
+}
+
 var (
 	_ ChunkStorage = (*RandomChunkStorage)(nil)
 )

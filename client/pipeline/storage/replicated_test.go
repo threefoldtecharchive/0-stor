@@ -16,7 +16,7 @@ func TestNewReplicatedStoragePanics(t *testing.T) {
 	}, "no valid dataShardCount given")
 }
 
-func TestReplicationStorageReadCheckWrite(t *testing.T) {
+func TestReplicationStorageReadCheckWriteDelete(t *testing.T) {
 	t.Run("dataShardCount=1,jobCount=D", func(t *testing.T) {
 		cluster, cleanup, err := newGRPCServerCluster(2)
 		require.NoError(t, err)
@@ -25,7 +25,7 @@ func TestReplicationStorageReadCheckWrite(t *testing.T) {
 		storage, err := NewReplicatedChunkStorage(cluster, 1, 0)
 		require.NoError(t, err)
 
-		testStorageReadCheckWrite(t, storage)
+		testStorageReadCheckWriteDelete(t, storage)
 	})
 
 	t.Run("dataShardCount=2,jobCount=D", func(t *testing.T) {
@@ -36,7 +36,7 @@ func TestReplicationStorageReadCheckWrite(t *testing.T) {
 		storage, err := NewReplicatedChunkStorage(cluster, 2, 0)
 		require.NoError(t, err)
 
-		testStorageReadCheckWrite(t, storage)
+		testStorageReadCheckWriteDelete(t, storage)
 	})
 
 	t.Run("dataShardCount=2,jobCount=1", func(t *testing.T) {
@@ -47,7 +47,7 @@ func TestReplicationStorageReadCheckWrite(t *testing.T) {
 		storage, err := NewReplicatedChunkStorage(cluster, 2, 1)
 		require.NoError(t, err)
 
-		testStorageReadCheckWrite(t, storage)
+		testStorageReadCheckWriteDelete(t, storage)
 	})
 
 	t.Run("dataShardCount=16,jobCount=D", func(t *testing.T) {
@@ -58,7 +58,7 @@ func TestReplicationStorageReadCheckWrite(t *testing.T) {
 		storage, err := NewReplicatedChunkStorage(cluster, 16, 0)
 		require.NoError(t, err)
 
-		testStorageReadCheckWrite(t, storage)
+		testStorageReadCheckWriteDelete(t, storage)
 	})
 
 	t.Run("dataShardCount=16,jobCount=1", func(t *testing.T) {
@@ -69,7 +69,7 @@ func TestReplicationStorageReadCheckWrite(t *testing.T) {
 		storage, err := NewReplicatedChunkStorage(cluster, 16, 1)
 		require.NoError(t, err)
 
-		testStorageReadCheckWrite(t, storage)
+		testStorageReadCheckWriteDelete(t, storage)
 	})
 }
 

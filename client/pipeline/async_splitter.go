@@ -268,8 +268,8 @@ func (asp *AsyncSplitterPipeline) Write(r io.Reader) ([]metastor.Chunk, error) {
 //    | |[]*ChunkMeta  +----> Storage.Read +-+                                         |
 //    | |     to       |                     |                                         |
 //    | |chan ChunkMeta+----> Storage.Read +-+     +----------+                        |
-//    | +--------------+                     +-----> channels +--------------+         |
-//    |            |   ...                   |     +----------+              |         |
+//    | +----------+---+                     +-----> channels +--------------+         |
+//    |            |   ...                   |     +----+-----+              |         |
 //    |            |                         |          |         ...        |         |
 //    |            +--------> Storage.Read +-+          |                    |         |
 //    |                                         +-------v--------+  +--------v-------+ |
@@ -277,7 +277,7 @@ func (asp *AsyncSplitterPipeline) Write(r io.Reader) ([]metastor.Chunk, error) {
 //    |                                         |       +        |  |       +        | |
 //    |                                         |   Hash/Data    |  |   Hash/Data    | |
 //    |                                         |   Validation   |  |   Validation   | |
-//    |                                         +----------------+  +----------------+ |
+//    |                                         +-------+--------+  +--------+-------+ |
 //    |                                                 |                    |         |
 //    |                                                 |                    |         |
 //    |                                             +---v--------------------v---+     |
@@ -486,9 +486,290 @@ func (asp *AsyncSplitterPipeline) Read(chunks []metastor.Chunk, w io.Writer) err
 	return group.Wait()
 }
 
-// GetChunkStorage implements Pipeline.GetChunkStorage
-func (asp *AsyncSplitterPipeline) GetChunkStorage() storage.ChunkStorage {
-	return asp.storage
+// Check implements Pipeline.Check
+func (asp *AsyncSplitterPipeline) Check(chunks []metastor.Chunk, fast bool) (storage.CheckStatus, error) {
+	chunkLength := len(chunks)
+	if chunkLength == 0 {
+		return storage.CheckStatus(0), errors.New("no chunks given to check")
+	}
+	if chunkLength == 1 {
+		// if only one chunk has to be checked,
+		// we can fall back on the simpler single-object-pipeline,
+		// which will simply check the single chunk we have
+		sop := SingleObjectPipeline{
+			hasher:    asp.hasher,
+			processor: asp.processor,
+			storage:   asp.storage,
+		}
+		return sop.Check(chunks, fast)
+	}
+
+	// limit our job count,
+	// in case we don't have that many chunks to check
+	jobCount := asp.storageJobCount
+	if jobCount > chunkLength {
+		jobCount = chunkLength
+	}
+
+	// create an errgroup for all our check jobs,
+	// and one for the master jobs
+	storageGroup, ctx := errgroup.WithContext(context.Background())
+	group, ctx := errgroup.WithContext(ctx)
+
+	// spawn our chunk fetcher
+	indexCh := make(chan int, jobCount)
+	go func() {
+		defer close(indexCh)
+		for i := range chunks {
+			select {
+			case indexCh <- i:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	// returns whether the state is optimal or not,
+	// if not it means valid, but not optimal,
+	// invalid gets returned as an error
+	resultCh := make(chan bool, jobCount)
+
+	// spawn all our repair jobs
+	for i := 0; i < jobCount; i++ {
+		storageGroup.Go(func() error {
+			var (
+				err    error
+				chunk  *metastor.Chunk
+				status storage.CheckStatus
+			)
+			for index := range indexCh {
+				chunk = &chunks[index]
+				status, err = asp.storage.CheckChunk(storage.ChunkConfig{
+					Size:    chunk.Size,
+					Objects: chunk.Objects,
+				}, fast)
+				if err != nil {
+					return err
+				}
+				if status == storage.CheckStatusInvalid {
+					return errInvalidCheckStatus
+				}
+				select {
+				case resultCh <- (status == storage.CheckStatusOptimal):
+				case <-ctx.Done():
+					return nil
+				}
+			}
+			return nil
+		})
+	}
+
+	// spawn our result closer
+	group.Go(func() error {
+		err := storageGroup.Wait()
+		close(resultCh)
+		return err
+	})
+
+	// spawn our result fetcher
+	dataIsOptimal := true
+	group.Go(func() error {
+		for chunkIsOptimal := range resultCh {
+			dataIsOptimal = dataIsOptimal && chunkIsOptimal
+		}
+		return nil
+	})
+
+	// simply wait for all jobs to finish,
+	// afterward returns either the storage-originated error,
+	// or compute the data's current status based on the received information
+	err := group.Wait()
+	switch err {
+	case nil:
+		if dataIsOptimal {
+			return storage.CheckStatusOptimal, nil
+		}
+		return storage.CheckStatusValid, nil
+
+	case errInvalidCheckStatus:
+		return storage.CheckStatusInvalid, nil
+
+	default:
+		return storage.CheckStatus(0), err
+	}
+}
+
+var (
+	errInvalidCheckStatus = errors.New("invalid check status")
+)
+
+// Repair implements Pipeline.Repair
+func (asp *AsyncSplitterPipeline) Repair(chunks []metastor.Chunk) ([]metastor.Chunk, error) {
+	chunkLength := len(chunks)
+	if chunkLength == 0 {
+		return nil, errors.New("no chunks given to repair")
+	}
+	if chunkLength == 1 {
+		// if only one chunk has to be repaired,
+		// we can fall back on the simpler single-object-pipeline,
+		// which will simply repair the single chunk we have
+		sop := SingleObjectPipeline{
+			hasher:    asp.hasher,
+			processor: asp.processor,
+			storage:   asp.storage,
+		}
+		return sop.Repair(chunks)
+	}
+
+	// limit our job count,
+	// in case we don't have that many chunks to repair
+	jobCount := asp.storageJobCount
+	if jobCount > chunkLength {
+		jobCount = chunkLength
+	}
+
+	// create an errgroup for all our repair jobs,
+	// and one for the master jobs
+	storageGroup, ctx := errgroup.WithContext(context.Background())
+	group, ctx := errgroup.WithContext(ctx)
+
+	// spawn our chunk fetcher
+	indexCh := make(chan int, jobCount)
+	go func() {
+		defer close(indexCh)
+		for i := range chunks {
+			select {
+			case indexCh <- i:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	type repairResult struct {
+		Index  int
+		Config storage.ChunkConfig
+	}
+	resultCh := make(chan repairResult, jobCount)
+
+	// spawn all our repair jobs
+	for i := 0; i < jobCount; i++ {
+		storageGroup.Go(func() error {
+			var (
+				err   error
+				chunk *metastor.Chunk
+				cfg   *storage.ChunkConfig
+			)
+			for index := range indexCh {
+				chunk = &chunks[index]
+				cfg, err = asp.storage.RepairChunk(storage.ChunkConfig{
+					Size:    chunk.Size,
+					Objects: chunk.Objects,
+				})
+				if err != nil {
+					return err
+				}
+				select {
+				case resultCh <- repairResult{index, *cfg}:
+				case <-ctx.Done():
+					return nil
+				}
+			}
+			return nil
+		})
+	}
+
+	// spawn our result closer
+	group.Go(func() error {
+		err := storageGroup.Wait()
+		close(resultCh)
+		return err
+	})
+
+	// spawn our result fetcher
+	outputChunks := make([]metastor.Chunk, len(chunks))
+	group.Go(func() error {
+		for result := range resultCh {
+			outputChunks[result.Index] = metastor.Chunk{
+				Size:    result.Config.Size,
+				Objects: result.Config.Objects,
+				Hash:    chunks[result.Index].Hash,
+			}
+		}
+		return nil
+	})
+
+	// simply wait for all jobs to finish,
+	// and return its (nil) error + the output chunks
+	err := group.Wait()
+	return outputChunks, err
+}
+
+// Delete implements Pipeline.Delete
+func (asp *AsyncSplitterPipeline) Delete(chunks []metastor.Chunk) error {
+	chunkLength := len(chunks)
+	if chunkLength == 0 {
+		return errors.New("no chunks given to delete")
+	}
+	if chunkLength == 1 {
+		// if only one chunk has to be deleted,
+		// we can fall back on the simpler single-object-pipeline,
+		// which will simply delete the single chunk we have
+		sop := SingleObjectPipeline{
+			hasher:    asp.hasher,
+			processor: asp.processor,
+			storage:   asp.storage,
+		}
+		return sop.Delete(chunks)
+	}
+
+	// limit our job count,
+	// in case we don't have that many chunks to delete
+	jobCount := asp.storageJobCount
+	if jobCount > chunkLength {
+		jobCount = chunkLength
+	}
+
+	// create an errgroup for all our delete jobs
+	group, ctx := errgroup.WithContext(context.Background())
+
+	// spawn our chunk fetcher
+	indexCh := make(chan int, jobCount)
+	go func() {
+		defer close(indexCh)
+		for i := range chunks {
+			select {
+			case indexCh <- i:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	// spawn all our delete jobs
+	for i := 0; i < jobCount; i++ {
+		group.Go(func() error {
+			var (
+				err   error
+				chunk *metastor.Chunk
+			)
+			for index := range indexCh {
+				chunk = &chunks[index]
+				err = asp.storage.DeleteChunk(storage.ChunkConfig{
+					Size:    chunk.Size,
+					Objects: chunk.Objects,
+				})
+				if err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+	}
+
+	// simply wait for all jobs to finish,
+	// and return its (nil) error
+	return group.Wait()
 }
 
 type indexedDataChunk struct {

@@ -30,8 +30,16 @@ type Pipeline interface {
 	// the details depend upon the specific implementation.
 	Read(chunks []metastor.Chunk, w io.Writer) error
 
-	// GetChunkStorage returns the underlying and used ChunkStorage
-	GetChunkStorage() storage.ChunkStorage
+	// Check if content stored on a zstordb cluster is (still) valid,
+	// the details depend upon the specific implementation.
+	Check(chunks []metastor.Chunk, fast bool) (storage.CheckStatus, error)
+	// Repair content stored on a zstordb cluster,
+	// the details depend upon the specific implementation.
+	Repair(chunks []metastor.Chunk) ([]metastor.Chunk, error)
+
+	// Delete content stored on a zstordb cluster,
+	// the details depend upon the specific implementation.
+	Delete(chunks []metastor.Chunk) error
 }
 
 // Constructor types which are used to create unique instances of the types involved,

@@ -12,7 +12,7 @@ func TestNewRandomStoragePanics(t *testing.T) {
 	}, "no cluster given")
 }
 
-func TestRandomStorageReadCheckWrite(t *testing.T) {
+func TestRandomStorageReadCheckWriteDelete(t *testing.T) {
 	cluster, cleanup, err := newGRPCServerCluster(3)
 	require.NoError(t, err)
 	defer cleanup()
@@ -20,7 +20,7 @@ func TestRandomStorageReadCheckWrite(t *testing.T) {
 	storage, err := NewRandomChunkStorage(cluster)
 	require.NoError(t, err)
 
-	testStorageReadCheckWrite(t, storage)
+	testStorageReadCheckWriteDelete(t, storage)
 }
 
 func TestRandomStorageRepair(t *testing.T) {
