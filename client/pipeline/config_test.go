@@ -291,7 +291,7 @@ func TestConfigBasedPipelines_WriteRead(t *testing.T) {
 			pipeline, err := NewPipeline(testCase.Config, cluster, 0)
 			require.NoError(t, err)
 
-			testPipelineWriteRead(t, pipeline)
+			testPipelineWriteReadDelete(t, pipeline)
 		})
 	}
 }
@@ -311,7 +311,7 @@ func TestYAMLConfigBasedPipelines_WriteRead(t *testing.T) {
 			pipeline, err := NewPipeline(cfg, cluster, 0)
 			require.NoError(t, err)
 
-			testPipelineWriteRead(t, pipeline)
+			testPipelineWriteReadDelete(t, pipeline)
 		})
 	}
 }
@@ -326,7 +326,7 @@ func requiredShardCount(cfg ObjectDistributionConfig) int {
 	return cfg.DataShardCount + cfg.ParityShardCount
 }
 
-func testPipelineWriteRead(t *testing.T, pipeline Pipeline) {
+func testPipelineWriteReadDelete(t *testing.T, pipeline Pipeline) {
 	t.Run("fixed-data", func(t *testing.T) {
 		testCases := []string{
 			"a",
@@ -335,7 +335,7 @@ func testPipelineWriteRead(t *testing.T, pipeline Pipeline) {
 			"This... is my finger :)",
 		}
 		for _, testCase := range testCases {
-			testPipelineWriteReadCycle(t, pipeline, testCase)
+			testPipelineWriteReadDeleteCycle(t, pipeline, testCase)
 		}
 	})
 
@@ -344,12 +344,12 @@ func testPipelineWriteRead(t *testing.T, pipeline Pipeline) {
 			inputData := make([]byte, mathRand.Int31n(256)+1)
 			rand.Read(inputData)
 
-			testPipelineWriteReadCycle(t, pipeline, string(inputData))
+			testPipelineWriteReadDeleteCycle(t, pipeline, string(inputData))
 		}
 	})
 }
 
-func testPipelineWriteReadCycle(t *testing.T, pipeline Pipeline, inputData string) {
+func testPipelineWriteReadDeleteCycle(t *testing.T, pipeline Pipeline, inputData string) {
 	r := strings.NewReader(inputData)
 
 	chunks, err := pipeline.Write(r)
@@ -362,6 +362,15 @@ func testPipelineWriteReadCycle(t *testing.T, pipeline Pipeline, inputData strin
 	outputData := string(buf.Bytes())
 
 	require.Equal(t, inputData, outputData)
+
+	// cleanup
+	err = pipeline.Delete(chunks)
+	require.NoError(t, err)
+
+	// reading should no longer be possible
+	buf.Reset()
+	err = pipeline.Read(chunks, buf)
+	require.Error(t, err)
 }
 
 func TestPipelineReadWrite_Readme(t *testing.T) {

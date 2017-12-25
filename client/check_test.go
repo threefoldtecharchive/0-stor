@@ -33,7 +33,10 @@ func TestCheck(t *testing.T) {
 	require.NoError(t, err, "fail write data")
 
 	// Check status is ok after a write
-	status, err := c.Check(meta.Key)
+	status, err := c.Check(meta.Key, false)
+	require.NoError(t, err, "fail to check object")
+	require.True(t, status == storage.CheckStatusValid || status == storage.CheckStatusOptimal)
+	status, err = c.Check(meta.Key, true)
 	require.NoError(t, err, "fail to check object")
 	require.True(t, status == storage.CheckStatusValid || status == storage.CheckStatusOptimal)
 
@@ -49,7 +52,7 @@ func TestCheck(t *testing.T) {
 	}
 
 	// Check status is corrupted
-	status, err = c.Check(meta.Key)
+	status, err = c.Check(meta.Key, false)
 	require.NoError(t, err, "fail to check object")
 	require.True(t, status == storage.CheckStatusValid || status == storage.CheckStatusInvalid)
 }

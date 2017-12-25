@@ -31,7 +31,7 @@ func TestNewDistributedStorageErrors(t *testing.T) {
 	require.Error(t, err, "no valid parityShardCount (parity shard count) given")
 }
 
-func TestDistributedStorageReadCheckWrite(t *testing.T) {
+func TestDistributedStorageReadCheckWriteDelete(t *testing.T) {
 	t.Run("dataShardCount=1,parityShardCount=1,jobCount=D", func(t *testing.T) {
 		cluster, cleanup, err := newGRPCServerCluster(4)
 		require.NoError(t, err)
@@ -40,7 +40,7 @@ func TestDistributedStorageReadCheckWrite(t *testing.T) {
 		storage, err := NewDistributedChunkStorage(cluster, 1, 1, 0)
 		require.NoError(t, err)
 
-		testStorageReadCheckWrite(t, storage)
+		testStorageReadCheckWriteDelete(t, storage)
 	})
 
 	t.Run("dataShardCount=2,parityShardCount=1,jobCount=D", func(t *testing.T) {
@@ -51,7 +51,7 @@ func TestDistributedStorageReadCheckWrite(t *testing.T) {
 		storage, err := NewDistributedChunkStorage(cluster, 2, 1, 0)
 		require.NoError(t, err)
 
-		testStorageReadCheckWrite(t, storage)
+		testStorageReadCheckWriteDelete(t, storage)
 	})
 
 	t.Run("dataShardCount=1,parityShardCount=2,jobCount=D", func(t *testing.T) {
@@ -62,7 +62,7 @@ func TestDistributedStorageReadCheckWrite(t *testing.T) {
 		storage, err := NewDistributedChunkStorage(cluster, 1, 2, 0)
 		require.NoError(t, err)
 
-		testStorageReadCheckWrite(t, storage)
+		testStorageReadCheckWriteDelete(t, storage)
 	})
 
 	t.Run("dataShardCount=2,parityShardCount=2,jobCount=1", func(t *testing.T) {
@@ -73,7 +73,7 @@ func TestDistributedStorageReadCheckWrite(t *testing.T) {
 		storage, err := NewDistributedChunkStorage(cluster, 2, 2, 1)
 		require.NoError(t, err)
 
-		testStorageReadCheckWrite(t, storage)
+		testStorageReadCheckWriteDelete(t, storage)
 	})
 
 	t.Run("dataShardCount=8,parityShardCount=8,jobCount=D", func(t *testing.T) {
@@ -84,7 +84,7 @@ func TestDistributedStorageReadCheckWrite(t *testing.T) {
 		storage, err := NewDistributedChunkStorage(cluster, 8, 8, 0)
 		require.NoError(t, err)
 
-		testStorageReadCheckWrite(t, storage)
+		testStorageReadCheckWriteDelete(t, storage)
 	})
 
 	t.Run("dataShardCount=4,parityShardCount=8,jobCount=D", func(t *testing.T) {
@@ -95,7 +95,7 @@ func TestDistributedStorageReadCheckWrite(t *testing.T) {
 		storage, err := NewDistributedChunkStorage(cluster, 4, 8, 0)
 		require.NoError(t, err)
 
-		testStorageReadCheckWrite(t, storage)
+		testStorageReadCheckWriteDelete(t, storage)
 	})
 
 	t.Run("dataShardCount=8,parityShardCount=4,jobCount=D", func(t *testing.T) {
@@ -106,7 +106,7 @@ func TestDistributedStorageReadCheckWrite(t *testing.T) {
 		storage, err := NewDistributedChunkStorage(cluster, 8, 4, 0)
 		require.NoError(t, err)
 
-		testStorageReadCheckWrite(t, storage)
+		testStorageReadCheckWriteDelete(t, storage)
 	})
 
 	t.Run("dataShardCount=8,parityShardCount=8,jobCount=1", func(t *testing.T) {
@@ -117,7 +117,7 @@ func TestDistributedStorageReadCheckWrite(t *testing.T) {
 		storage, err := NewDistributedChunkStorage(cluster, 8, 8, 1)
 		require.NoError(t, err)
 
-		testStorageReadCheckWrite(t, storage)
+		testStorageReadCheckWriteDelete(t, storage)
 	})
 }
 

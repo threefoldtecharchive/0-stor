@@ -13,6 +13,88 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+func TestAsyncSplitterPipeline_WriteReadDeleteCheck(t *testing.T) {
+	t.Run("block_size=1+pure-default", func(t *testing.T) {
+		testAsyncSplitterPipelineWriteReadDeleteCheckCycle(t, ObjectDistributionConfig{}, 1, nil, nil)
+	})
+	t.Run("block_size=256+secure_hasher", func(t *testing.T) {
+		pk := []byte(randomString(32))
+		hc := func() (crypto.Hasher, error) {
+			return crypto.NewBlake2b256Hasher(pk)
+		}
+		testAsyncSplitterPipelineWriteReadDeleteCheckCycle(t, ObjectDistributionConfig{}, 256, nil, hc)
+	})
+	t.Run("block_size=128+distribution(k=10+m=3)+secure_hasher+lz4_compressor", func(t *testing.T) {
+		pc := func() (processing.Processor, error) {
+			return processing.NewLZ4CompressorDecompressor(processing.CompressionModeDefault)
+		}
+		pk := []byte(randomString(32))
+		hc := func() (crypto.Hasher, error) {
+			return crypto.NewBlake2b256Hasher(pk)
+		}
+		testAsyncSplitterPipelineWriteReadDeleteCheckCycle(t, ObjectDistributionConfig{
+			DataShardCount:   10,
+			ParityShardCount: 3,
+		}, 128, pc, hc)
+	})
+}
+
+func testAsyncSplitterPipelineWriteReadDeleteCheckCycle(t *testing.T, cfg ObjectDistributionConfig, blockSize int, pc ProcessorConstructor, hc HasherConstructor) {
+	require := require.New(t)
+
+	cluster, cleanup, err := newGRPCServerCluster(requiredShardCount(cfg))
+	require.NoError(err)
+	defer cleanup()
+
+	os, err := NewChunkStorage(cfg, cluster, -1)
+	require.NoError(err)
+
+	pipeline := NewAsyncSplitterPipeline(os, blockSize, pc, hc, -1)
+
+	testPipelineWriteReadDeleteCheck(t, pipeline)
+}
+
+func TestAsyncSplitterPipeline_CheckRepair(t *testing.T) {
+	t.Run("block_size=1+pure-default", func(t *testing.T) {
+		testAsyncSplitterPipelineCheckRepairCycle(t, ObjectDistributionConfig{}, 1, nil, nil)
+	})
+	t.Run("block_size=256+secure_hasher", func(t *testing.T) {
+		pk := []byte(randomString(32))
+		hc := func() (crypto.Hasher, error) {
+			return crypto.NewBlake2b256Hasher(pk)
+		}
+		testAsyncSplitterPipelineCheckRepairCycle(t, ObjectDistributionConfig{}, 256, nil, hc)
+	})
+	t.Run("block_size=128+distribution(k=10+m=3)+secure_hasher+lz4_compressor", func(t *testing.T) {
+		pc := func() (processing.Processor, error) {
+			return processing.NewLZ4CompressorDecompressor(processing.CompressionModeDefault)
+		}
+		pk := []byte(randomString(32))
+		hc := func() (crypto.Hasher, error) {
+			return crypto.NewBlake2b256Hasher(pk)
+		}
+		testAsyncSplitterPipelineCheckRepairCycle(t, ObjectDistributionConfig{
+			DataShardCount:   10,
+			ParityShardCount: 3,
+		}, 128, pc, hc)
+	})
+}
+
+func testAsyncSplitterPipelineCheckRepairCycle(t *testing.T, cfg ObjectDistributionConfig, blockSize int, pc ProcessorConstructor, hc HasherConstructor) {
+	require := require.New(t)
+
+	cluster, cleanup, err := newGRPCServerCluster(requiredShardCount(cfg))
+	require.NoError(err)
+	defer cleanup()
+
+	os, err := NewChunkStorage(cfg, cluster, -1)
+	require.NoError(err)
+
+	pipeline := NewAsyncSplitterPipeline(os, blockSize, pc, hc, -1)
+
+	testPipelineCheckRepair(t, pipeline)
+}
+
 func TestNewAsyncSplitterPipeline(t *testing.T) {
 	require.Panics(t, func() {
 		NewAsyncSplitterPipeline(nil, 42, nil, nil, -1)
@@ -93,7 +175,7 @@ func testDefaultAsyncSplitterPipeline(t *testing.T, cfg ObjectDistributionConfig
 	require.NoError(err)
 
 	pipeline := NewAsyncSplitterPipeline(os, blockSize, pc, hc, -1)
-	testPipelineWriteRead(t, pipeline)
+	testPipelineWriteReadDelete(t, pipeline)
 }
 
 func TestAsyncDataSplitter(t *testing.T) {

@@ -53,6 +53,13 @@ type ChunkStorage interface {
 	// If the chunk could be repaired, the updated chunk config will be returned and
 	// indicate the current objects are stored/used for this chunk.
 	RepairChunk(cfg ChunkConfig) (*ChunkConfig, error)
+
+	// DeleteChunk will delete a chunk, previously stored within the Storage.
+	// If the chunk was written using a different type of ChunkStorage,
+	// it might not be possible to delete that chunk.
+	// When an error is returned it should be assumed the chunk wasn't deleted,
+	// if no error is returned, however, it can be assumed that the chunk was deleted.
+	DeleteChunk(cfg ChunkConfig) error
 }
 
 // ChunkConfig is a configuration type,

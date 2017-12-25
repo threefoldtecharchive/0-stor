@@ -15,6 +15,88 @@ func TestNewSingleObjectPipelinePanics(t *testing.T) {
 	}, "no object storage given")
 }
 
+func TestSingleObjectPipeline_WriteReadDeleteCheck(t *testing.T) {
+	t.Run("pure-default", func(t *testing.T) {
+		testSingleObjectPipelineWriteReadDeleteCheckCycle(t, ObjectDistributionConfig{}, nil, nil)
+	})
+	t.Run("secure_hasher", func(t *testing.T) {
+		pk := []byte(randomString(32))
+		hc := func() (crypto.Hasher, error) {
+			return crypto.NewBlake2b256Hasher(pk)
+		}
+		testSingleObjectPipelineWriteReadDeleteCheckCycle(t, ObjectDistributionConfig{}, nil, hc)
+	})
+	t.Run("distribution(k=10+m=3)+secure_hasher+lz4_compressor", func(t *testing.T) {
+		pc := func() (processing.Processor, error) {
+			return processing.NewLZ4CompressorDecompressor(processing.CompressionModeDefault)
+		}
+		pk := []byte(randomString(32))
+		hc := func() (crypto.Hasher, error) {
+			return crypto.NewBlake2b256Hasher(pk)
+		}
+		testSingleObjectPipelineWriteReadDeleteCheckCycle(t, ObjectDistributionConfig{
+			DataShardCount:   10,
+			ParityShardCount: 3,
+		}, pc, hc)
+	})
+}
+
+func testSingleObjectPipelineWriteReadDeleteCheckCycle(t *testing.T, cfg ObjectDistributionConfig, pc ProcessorConstructor, hc HasherConstructor) {
+	require := require.New(t)
+
+	cluster, cleanup, err := newGRPCServerCluster(requiredShardCount(cfg))
+	require.NoError(err)
+	defer cleanup()
+
+	os, err := NewChunkStorage(cfg, cluster, -1)
+	require.NoError(err)
+
+	pipeline := NewSingleObjectPipeline(os, pc, hc)
+
+	testPipelineWriteReadDeleteCheck(t, pipeline)
+}
+
+func TestSingleObjectPipeline_CheckRepair(t *testing.T) {
+	t.Run("pure-default", func(t *testing.T) {
+		testSingleObjectPipelineCheckRepairCycle(t, ObjectDistributionConfig{}, nil, nil)
+	})
+	t.Run("secure_hasher", func(t *testing.T) {
+		pk := []byte(randomString(32))
+		hc := func() (crypto.Hasher, error) {
+			return crypto.NewBlake2b256Hasher(pk)
+		}
+		testSingleObjectPipelineCheckRepairCycle(t, ObjectDistributionConfig{}, nil, hc)
+	})
+	t.Run("distribution(k=10+m=3)+secure_hasher+lz4_compressor", func(t *testing.T) {
+		pc := func() (processing.Processor, error) {
+			return processing.NewLZ4CompressorDecompressor(processing.CompressionModeDefault)
+		}
+		pk := []byte(randomString(32))
+		hc := func() (crypto.Hasher, error) {
+			return crypto.NewBlake2b256Hasher(pk)
+		}
+		testSingleObjectPipelineCheckRepairCycle(t, ObjectDistributionConfig{
+			DataShardCount:   10,
+			ParityShardCount: 3,
+		}, pc, hc)
+	})
+}
+
+func testSingleObjectPipelineCheckRepairCycle(t *testing.T, cfg ObjectDistributionConfig, pc ProcessorConstructor, hc HasherConstructor) {
+	require := require.New(t)
+
+	cluster, cleanup, err := newGRPCServerCluster(requiredShardCount(cfg))
+	require.NoError(err)
+	defer cleanup()
+
+	os, err := NewChunkStorage(cfg, cluster, -1)
+	require.NoError(err)
+
+	pipeline := NewSingleObjectPipeline(os, pc, hc)
+
+	testPipelineCheckRepair(t, pipeline)
+}
+
 func TestDefaultSingleObjectPipelines(t *testing.T) {
 	t.Run("pure-default", func(t *testing.T) {
 		testDefaultSingleObjectPipeline(t, ObjectDistributionConfig{}, nil, nil)
@@ -79,5 +161,5 @@ func testDefaultSingleObjectPipeline(t *testing.T, cfg ObjectDistributionConfig,
 	require.NoError(err)
 
 	pipeline := NewSingleObjectPipeline(os, pc, hc)
-	testPipelineWriteRead(t, pipeline)
+	testPipelineWriteReadDelete(t, pipeline)
 }

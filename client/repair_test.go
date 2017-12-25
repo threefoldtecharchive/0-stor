@@ -76,7 +76,10 @@ func testRepair(t *testing.T, config Config, repairErr error) {
 	lastWriteEpoch := meta.LastWriteEpoch
 
 	// Check status is ok after a write
-	status, err := c.Check(meta.Key)
+	status, err := c.Check(meta.Key, false)
+	require.NoError(t, err, "fail to check object")
+	require.True(t, status == storage.CheckStatusValid || status == storage.CheckStatusOptimal)
+	status, err = c.Check(meta.Key, true)
 	require.NoError(t, err, "fail to check object")
 	require.True(t, status == storage.CheckStatusValid || status == storage.CheckStatusOptimal)
 
@@ -87,7 +90,7 @@ func testRepair(t *testing.T, config Config, repairErr error) {
 	require.NoError(t, err)
 
 	// Check status is corrupted
-	status, err = c.Check(meta.Key)
+	status, err = c.Check(meta.Key, false)
 	require.NoError(t, err, "fail to check object")
 	require.True(t, status == storage.CheckStatusValid || status == storage.CheckStatusInvalid)
 

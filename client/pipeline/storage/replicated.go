@@ -569,6 +569,76 @@ func (rs *ReplicatedChunkStorage) write(exceptShards []string, dataShardCount in
 	return cfg, nil
 }
 
+// DeleteChunk implements storage.ChunkStorage.DeleteChunk
+func (rs *ReplicatedChunkStorage) DeleteChunk(cfg ChunkConfig) error {
+	objectLength := len(cfg.Objects)
+	if objectLength == 0 {
+		// if no objects are given, something is wrong
+		return ErrUnexpectedObjectCount
+	}
+
+	if objectLength == 1 {
+		// it will be weird if only 1 object is given,
+		// but if so, we don't really want to spin any goroutines
+		obj := &cfg.Objects[0]
+		shard, err := rs.cluster.GetShard(obj.ShardID)
+		if err != nil {
+			return err
+		}
+		return shard.DeleteObject(obj.Key)
+	}
+
+	// limit our job count,
+	// in case we don't have that many objects to delete
+	jobCount := rs.jobCount
+	if jobCount > objectLength {
+		jobCount = objectLength
+	}
+
+	// create an errgroup for all our delete jobs
+	group, ctx := errgroup.WithContext(context.Background())
+
+	// spawn our object fetcher
+	indexCh := make(chan int, jobCount)
+	go func() {
+		defer close(indexCh)
+		for i := range cfg.Objects {
+			select {
+			case indexCh <- i:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	// spawn all our delete jobs
+	for i := 0; i < jobCount; i++ {
+		group.Go(func() error {
+			var (
+				err   error
+				obj   *metastor.Object
+				shard datastor.Shard
+			)
+			for index := range indexCh {
+				obj = &cfg.Objects[index]
+				shard, err = rs.cluster.GetShard(obj.ShardID)
+				if err != nil {
+					return err
+				}
+				err = shard.DeleteObject(obj.Key)
+				if err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+	}
+
+	// simply wait for all jobs to finish,
+	// and return its (nil) error
+	return group.Wait()
+}
+
 var (
 	_ ChunkStorage = (*ReplicatedChunkStorage)(nil)
 )
