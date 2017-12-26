@@ -21,6 +21,7 @@ func TestReplicationStorageReadCheckWriteDelete(t *testing.T) {
 		cluster, cleanup, err := newGRPCServerCluster(2)
 		require.NoError(t, err)
 		defer cleanup()
+		defer cluster.Close()
 
 		storage, err := NewReplicatedChunkStorage(cluster, 1, 0)
 		require.NoError(t, err)
@@ -32,6 +33,7 @@ func TestReplicationStorageReadCheckWriteDelete(t *testing.T) {
 		cluster, cleanup, err := newGRPCServerCluster(4)
 		require.NoError(t, err)
 		defer cleanup()
+		defer cluster.Close()
 
 		storage, err := NewReplicatedChunkStorage(cluster, 2, 0)
 		require.NoError(t, err)
@@ -43,6 +45,7 @@ func TestReplicationStorageReadCheckWriteDelete(t *testing.T) {
 		cluster, cleanup, err := newGRPCServerCluster(4)
 		require.NoError(t, err)
 		defer cleanup()
+		defer cluster.Close()
 
 		storage, err := NewReplicatedChunkStorage(cluster, 2, 1)
 		require.NoError(t, err)
@@ -54,6 +57,7 @@ func TestReplicationStorageReadCheckWriteDelete(t *testing.T) {
 		cluster, cleanup, err := newGRPCServerCluster(32)
 		require.NoError(t, err)
 		defer cleanup()
+		defer cluster.Close()
 
 		storage, err := NewReplicatedChunkStorage(cluster, 16, 0)
 		require.NoError(t, err)
@@ -65,6 +69,7 @@ func TestReplicationStorageReadCheckWriteDelete(t *testing.T) {
 		cluster, cleanup, err := newGRPCServerCluster(32)
 		require.NoError(t, err)
 		defer cleanup()
+		defer cluster.Close()
 
 		storage, err := NewReplicatedChunkStorage(cluster, 16, 1)
 		require.NoError(t, err)
@@ -103,6 +108,7 @@ func testReplicatedStorageCheckRepair(t *testing.T, dataShardCount, jobCount int
 	cluster, cleanup, err := newGRPCServerCluster(dataShardCount * 2)
 	require.NoError(err)
 	defer cleanup()
+	defer cluster.Close()
 
 	storage, err := NewReplicatedChunkStorage(cluster, dataShardCount, jobCount)
 	require.NoError(err)

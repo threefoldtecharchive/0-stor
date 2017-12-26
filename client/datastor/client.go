@@ -61,4 +61,7 @@ type Client interface {
 	// ErrKeyNotFound is returned in case no
 	// stored namespace exist for the used label.
 	GetNamespace() (*Namespace, error)
+
+	// Close any open resources.
+	Close() error
 }

@@ -121,6 +121,11 @@ func (rs *RandomChunkStorage) DeleteChunk(cfg ChunkConfig) error {
 	return shard.DeleteObject(obj.Key)
 }
 
+// Close implements ChunkStorage.Close
+func (rs *RandomChunkStorage) Close() error {
+	return rs.cluster.Close()
+}
+
 var (
 	_ ChunkStorage = (*RandomChunkStorage)(nil)
 )

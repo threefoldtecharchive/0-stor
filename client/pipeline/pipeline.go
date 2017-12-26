@@ -40,6 +40,9 @@ type Pipeline interface {
 	// Delete content stored on a zstordb cluster,
 	// the details depend upon the specific implementation.
 	Delete(chunks []metastor.Chunk) error
+
+	// Close any open resources.
+	Close() error
 }
 
 // Constructor types which are used to create unique instances of the types involved,

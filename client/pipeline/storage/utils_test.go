@@ -30,20 +30,16 @@ func newGRPCServerCluster(count int) (*clientGRPC.Cluster, func(), error) {
 		cleanupSlice = append(cleanupSlice, cleanup)
 		addressSlice = append(addressSlice, addr)
 	}
+	cleanup := func() {
+		for _, cleanup := range cleanupSlice {
+			cleanup()
+		}
+	}
 
 	cluster, err := clientGRPC.NewCluster(addressSlice, "myLabel", nil)
 	if err != nil {
-		for _, cleanup := range cleanupSlice {
-			cleanup()
-		}
+		cleanup()
 		return nil, nil, err
-	}
-
-	cleanup := func() {
-		cluster.Close()
-		for _, cleanup := range cleanupSlice {
-			cleanup()
-		}
 	}
 	return cluster, cleanup, nil
 }
@@ -85,6 +81,7 @@ func (dc dummyCluster) GetRandomShardIterator(exceptShards []string) datastor.Sh
 func (dc dummyCluster) ListedShardCount() int {
 	return int(math.MaxInt32)
 }
+func (dc dummyCluster) Close() error { return nil }
 
 var (
 	_ datastor.Cluster = dummyCluster{}

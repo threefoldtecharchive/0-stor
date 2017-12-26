@@ -16,6 +16,7 @@ func TestRandomStorageReadCheckWriteDelete(t *testing.T) {
 	cluster, cleanup, err := newGRPCServerCluster(3)
 	require.NoError(t, err)
 	defer cleanup()
+	defer cluster.Close()
 
 	storage, err := NewRandomChunkStorage(cluster)
 	require.NoError(t, err)

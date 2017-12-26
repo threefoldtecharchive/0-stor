@@ -5,13 +5,13 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/zero-os/0-stor/client/datastor"
 	"github.com/zero-os/0-stor/client/metastor"
 
 	"golang.org/x/sync/errgroup"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/templexxx/reedsolomon"
-	"github.com/zero-os/0-stor/client/datastor"
 )
 
 // NewDistributedChunkStorage creates a new DistributedChunkStorage,
@@ -595,6 +595,11 @@ func (ds *DistributedChunkStorage) DeleteChunk(cfg ChunkConfig) error {
 	// simply wait for all jobs to finish,
 	// and return its (nil) error
 	return group.Wait()
+}
+
+// Close implements ChunkStorage.Close
+func (ds *DistributedChunkStorage) Close() error {
+	return ds.cluster.Close()
 }
 
 // DistributedEncoderDecoder is the type used internally to

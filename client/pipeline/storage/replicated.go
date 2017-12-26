@@ -639,6 +639,11 @@ func (rs *ReplicatedChunkStorage) DeleteChunk(cfg ChunkConfig) error {
 	return group.Wait()
 }
 
+// Close implements ChunkStorage.Close
+func (rs *ReplicatedChunkStorage) Close() error {
+	return rs.cluster.Close()
+}
+
 var (
 	_ ChunkStorage = (*ReplicatedChunkStorage)(nil)
 )

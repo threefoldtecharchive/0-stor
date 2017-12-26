@@ -772,6 +772,11 @@ func (asp *AsyncSplitterPipeline) Delete(chunks []metastor.Chunk) error {
 	return group.Wait()
 }
 
+// Close implements Pipeline.Close
+func (asp *AsyncSplitterPipeline) Close() error {
+	return asp.storage.Close()
+}
+
 type indexedDataChunk struct {
 	Index int
 	Data  []byte

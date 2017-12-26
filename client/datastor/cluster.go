@@ -48,6 +48,9 @@ type Cluster interface {
 
 	// ListedShardCount returns the amount of listed shards available in this cluster.
 	ListedShardCount() int
+
+	// Close any open resources.
+	Close() error
 }
 
 // ShardIterator defines the interface of an iterator which can be used

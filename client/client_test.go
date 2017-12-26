@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/zero-os/0-stor/client/pipeline/processing"
+	"github.com/zero-os/0-stor/client/pipeline/storage"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -69,7 +70,7 @@ func testGRPCServer(t testing.TB, n int) ([]api.Server, func()) {
 	return servers, clean
 }
 
-func getTestClient(cfg Config) (*Client, error) {
+func getTestClient(cfg Config) (*Client, datastor.Cluster, error) {
 	var (
 		err             error
 		datastorCluster datastor.Cluster
@@ -87,27 +88,27 @@ func getTestClient(cfg Config) (*Client, error) {
 		datastorCluster, err = storgrpc.NewCluster(cfg.DataStor.Shards, cfg.Namespace, nil)
 	}
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// create data pipeline, using our datastor cluster
 	dataPipeline, err := pipeline.NewPipeline(cfg.Pipeline, datastorCluster, -1)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// if no metadata shards are given, we'll use a memory client
 	if len(cfg.MetaStor.Shards) == 0 {
-		return NewClient(datastorCluster, memory.NewClient(), dataPipeline)
+		return NewClient(memory.NewClient(), dataPipeline), datastorCluster, nil
 	}
 
 	// create metastor client first,
 	// and than create our master 0-stor client with all features.
 	metastorClient, err := etcd.NewClient(cfg.MetaStor.Shards)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return NewClient(datastorCluster, metastorClient, dataPipeline)
+	return NewClient(metastorClient, dataPipeline), datastorCluster, nil
 }
 
 func TestRoundTripGRPC(t *testing.T) {
@@ -221,7 +222,7 @@ func TestRoundTripGRPC(t *testing.T) {
 			config.Pipeline.Distribution.DataShardCount = tc.DataShards
 			config.Pipeline.Distribution.ParityShardCount = tc.ParityShards
 
-			c, err := getTestClient(config)
+			c, _, err := getTestClient(config)
 			require.NoError(t, err, "fail to create client")
 
 			data := make([]byte, blockSize*4)
@@ -230,33 +231,25 @@ func TestRoundTripGRPC(t *testing.T) {
 
 			// write data to the store
 			key := []byte("testkey")
-			meta, err := c.Write(key, data)
+			err = c.Write(key, bytes.NewReader(data))
 			require.NoError(t, err, "fail to write data to the store")
-
-			// validate metadata
-			assert.Equal(t, key, meta.Key, "Key in metadata is not the same")
-			// assert.EqualValues(t, len(data), meta.Size(), "size in the metadat doesn't correspond with the size of the data")
-			for _, chunk := range meta.Chunks {
-				for _, object := range chunk.Objects {
-					assert.Contains(t, shards, object.ShardID,
-						"shards in metadata is not one of the shards configured in the client")
-				}
-			}
 
 			// b, err := json.Marshal(meta)
 			// require.NoError(t, err)
 			// fmt.Println(string(b))
 
 			// read data back
-			dataRead, err := c.Read(key)
+			dataReadBuf := bytes.NewBuffer(nil)
+			err = c.Read(key, dataReadBuf)
 			require.NoError(t, err, "fail to read data from the store")
+			dataRead := dataReadBuf.Bytes()
 			if bytes.Compare(data, dataRead) != 0 {
 				t.Errorf("data read from store is not the same as original data")
 				t.Errorf("len original: %d len actual %d", len(data), len(dataRead))
 			}
 
 			//delete data
-			err = c.DeleteWithMeta(meta)
+			err = c.Delete(key)
 			require.NoError(t, err, "failed to delete from the store")
 
 			// makes sure metadata does not exist anymore
@@ -289,7 +282,7 @@ func TestBlocksizes(t *testing.T) {
 
 		t.Run(fmt.Sprint(blockSize), func(t *testing.T) {
 			config.Pipeline.BlockSize = blockSize
-			c, err := getTestClient(config)
+			c, _, err := getTestClient(config)
 			require.NoError(t, err, "fail to create client")
 
 			data := make([]byte, blockSize)
@@ -298,21 +291,14 @@ func TestBlocksizes(t *testing.T) {
 
 			// write data to the store
 			key := []byte(fmt.Sprintf("testkey-%d", i))
-			meta, err := c.Write(key, data)
+			err = c.Write(key, bytes.NewReader(data))
 			require.NoError(t, err, "fail to write data to the store")
 
-			// validate metadata
-			assert.Equal(t, key, meta.Key, "Key in metadata is not the same")
-			for _, chunk := range meta.Chunks {
-				for _, object := range chunk.Objects {
-					assert.Contains(t, shards, object.ShardID,
-						"shards in metadata is not one of the shards configured in the client")
-				}
-			}
-
 			// read data back
-			dataRead, err := c.Read(key)
+			dataReadBuf := bytes.NewBuffer(nil)
+			err = c.Read(key, dataReadBuf)
 			require.NoError(t, err, "fail to read data from the store")
+			dataRead := dataReadBuf.Bytes()
 			if bytes.Compare(data, dataRead) != 0 {
 				t.Errorf("data read from store is not the same as original data")
 				t.Errorf("len original: %d len actual %d", len(data), len(dataRead))
@@ -321,7 +307,7 @@ func TestBlocksizes(t *testing.T) {
 	}
 }
 
-func TestMultipleDownload(t *testing.T) {
+func TestMultipleDownload_Issue208(t *testing.T) {
 	// #test for https://github.com/zero-os/0-stor/issues/208
 
 	servers, serverClean := testGRPCServer(t, 4)
@@ -336,7 +322,7 @@ func TestMultipleDownload(t *testing.T) {
 
 	config := newDefaultConfig(shards, blockSize)
 
-	c, err := getTestClient(config)
+	c, _, err := getTestClient(config)
 	require.NoError(t, err, "fail to create client")
 	defer c.Close()
 
@@ -346,13 +332,16 @@ func TestMultipleDownload(t *testing.T) {
 	require.NoError(t, err, "fail to read random data")
 	key := []byte("testkey")
 
-	_, err = c.Write(key, data)
+	err = c.Write(key, bytes.NewReader(data))
 	require.NoError(t, err, "fail write data")
 
+	buf := bytes.NewBuffer(nil)
 	for i := 0; i < 100; i++ {
-		result, err := c.Read(key)
+		err = c.Read(key, buf)
 		require.NoError(t, err, "fail read data")
-		assert.Equal(t, data, result)
+		result := buf.Bytes()
+		require.Equal(t, data, result)
+		buf.Reset()
 	}
 }
 
@@ -372,7 +361,7 @@ func TestConcurrentWriteRead(t *testing.T) {
 	config := newDefaultConfig(shards, blockSize)
 
 	doReadWrite := func(i, size int) {
-		c, err := getTestClient(config)
+		c, _, err := getTestClient(config)
 		require.NoError(t, err, "fail to create client")
 		defer c.Close()
 
@@ -381,11 +370,13 @@ func TestConcurrentWriteRead(t *testing.T) {
 		require.NoError(t, err, "fail to read random data")
 		key := []byte(fmt.Sprintf("testkey-%d", i))
 
-		_, err = c.Write(key, data)
+		err = c.Write(key, bytes.NewReader(data))
 		require.NoError(t, err, "fail write data")
 
-		result, err := c.Read(key)
+		buf := bytes.NewBuffer(nil)
+		err = c.Read(key, buf)
 		require.NoError(t, err, "fail read data")
+		result := buf.Bytes()
 		require.Equal(t, data, result, "data read is not same as data written")
 	}
 
@@ -422,7 +413,7 @@ func BenchmarkWriteFilesSizes(b *testing.B) {
 
 	config := newDefaultConfig(shards, 1024*1024)
 
-	c, err := getTestClient(config)
+	c, _, err := getTestClient(config)
 	require.NoError(b, err, "fail to create client")
 	defer c.Close()
 
@@ -452,7 +443,7 @@ func BenchmarkWriteFilesSizes(b *testing.B) {
 
 			for i := 0; i < b.N; i++ {
 				// write data to the store
-				_, err := c.Write(key, data)
+				err = c.Write(key, bytes.NewReader(data))
 				require.NoError(b, err, "fail to write data to the store")
 			}
 		})
@@ -472,7 +463,7 @@ func TestIssue225(t *testing.T) {
 
 	config := newDefaultConfig(shards, blockSize)
 
-	c, err := getTestClient(config)
+	c, _, err := getTestClient(config)
 	require.NoError(t, err, "fail to create client")
 	defer c.Close()
 
@@ -482,11 +473,13 @@ func TestIssue225(t *testing.T) {
 	require.NoError(t, err, "fail to read random data")
 	key := []byte("testkey")
 
-	_, err = c.Write(key, data)
+	err = c.Write(key, bytes.NewReader(data))
 	require.NoError(t, err, "fail write data")
 
-	result, err := c.Read(key)
+	buf := bytes.NewBuffer(nil)
+	err = c.Read(key, buf)
 	require.NoError(t, err, "fail read data")
+	result := buf.Bytes()
 	assert.Equal(t, data, result)
 }
 
@@ -511,43 +504,165 @@ func newDefaultConfig(dataShards []string, blockSize int) Config {
 		},
 	}
 }
+func TestClientCheck(t *testing.T) {
+	servers, serverClean := testGRPCServer(t, 4)
+	defer serverClean()
 
-// func BenchmarkDirectWriteGRPC(b *testing.B) {
-// 	servers, serverClean := testGRPCServer(b, 1)
-// 	defer serverClean()
+	shards := make([]string, len(servers))
+	for i, server := range servers {
+		shards[i] = server.Address()
+	}
 
-// 	shards := make([]string, len(servers))
-// 	for i, server := range servers {
-// 		shards[i] = server.ListenAddress()
-// 	}
+	config := newDefaultConfig(shards, 1024)
 
-// 	conf := config.Config{
-// 		Organization: "testorg",
-// 		Namespace:    "testnamespace",
-//
-// 		Shards:       shards,
-// 		MetaShards:   []string{"test"},
-// 		IYOAppID:     "id",
-// 		IYOSecret:    "secret",
-// 	}
+	c, datastorCluster, err := getTestClient(config)
+	require.NoError(t, err, "fail to create client")
+	defer c.Close()
 
-// 	for _, proto := range []string{"rest", "grpc"} {
-// 		b.Run(proto, func(b *testing.B) {
-// 			c, err := getTestClient(&conf)
-// 			require.NoError(b, err, "fail to create client")
+	data := make([]byte, 602*10)
 
-// 			data := make([]byte, 1024*1024)
-// 			_, err = rand.Read(data)
-// 			require.NoError(b, err, "fail to read random data")
+	_, err = rand.Read(data)
+	require.NoError(t, err, "fail to read random data")
+	key := []byte("testkey")
 
-// 			// write data to the store
+	err = c.Write(key, bytes.NewReader(data))
+	require.NoError(t, err, "fail write data")
 
-// 			b.ResetTimer()
-// 			for i := 0; i < b.N; i++ {
-// 				key := []byte("testkey")
-// 				_, err := c.Write(key, data, nil, nil, nil)
-// 				require.NoError(b, err, "fail to write data to the store")
-// 			}
-// 		})
-// 	}
-// }
+	// Check status is ok after a write
+	status, err := c.Check(key, false)
+	require.NoError(t, err, "fail to check object")
+	require.Equal(t, storage.CheckStatusOptimal, status)
+	status, err = c.Check(key, true)
+	require.NoError(t, err, "fail to check object")
+	require.True(t, status == storage.CheckStatusValid || status == storage.CheckStatusOptimal)
+
+	meta, err := c.metastorClient.GetMetadata(key)
+	require.NoError(t, err)
+	// corrupt file by removing blocks
+	for i := 0; i < len(meta.Chunks); i += 4 {
+		if i%4 == 0 {
+			chunk := &meta.Chunks[i]
+			store, err := datastorCluster.GetShard(chunk.Objects[0].ShardID)
+			require.NoError(t, err)
+			err = store.DeleteObject(chunk.Objects[0].Key)
+			require.NoError(t, err)
+		}
+	}
+
+	// Check status is corrupted
+	status, err = c.Check(meta.Key, false)
+	require.NoError(t, err, "fail to check object")
+	require.True(t, status == storage.CheckStatusValid || status == storage.CheckStatusInvalid)
+}
+
+func TestClientRepair(t *testing.T) {
+	servers, serverClean := testGRPCServer(t, 4)
+	defer serverClean()
+
+	shards := make([]string, len(servers))
+	for i, server := range servers {
+		shards[i] = server.Address()
+	}
+
+	config := newDefaultConfig(shards, 1024)
+
+	tt := []struct {
+		name string
+
+		DataShardCount   int
+		ParityShardCount int
+
+		repairErr error
+	}{
+		{
+			name:           "replication",
+			DataShardCount: 4,
+			repairErr:      nil,
+		},
+		{
+			name:             "distribution",
+			DataShardCount:   3,
+			ParityShardCount: 1,
+			repairErr:        nil,
+		},
+		{
+			name:             "no-repair-suport",
+			DataShardCount:   0,
+			ParityShardCount: 0,
+			repairErr:        ErrRepairSupport,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			config.Pipeline.Distribution.DataShardCount = tc.DataShardCount
+			config.Pipeline.Distribution.ParityShardCount = tc.ParityShardCount
+			testRepair(t, config, tc.repairErr)
+		})
+	}
+}
+
+func testRepair(t *testing.T, config Config, repairErr error) {
+	c, datastorCluster, err := getTestClient(config)
+	require.NoError(t, err, "fail to create client")
+	defer c.Close()
+
+	data := make([]byte, 1204*10)
+	key := make([]byte, 64)
+
+	_, err = rand.Read(data)
+	require.NoError(t, err, "fail to read random data")
+	_, err = rand.Read(key)
+	require.NoError(t, err, "fail to read random key")
+
+	err = c.Write(key, bytes.NewReader(data))
+	require.NoError(t, err, "fail write data")
+
+	meta, err := c.metastorClient.GetMetadata(key)
+	require.NoError(t, err)
+	// store last-write epoch, so we can compare it later after repair
+	lastWriteEpoch := meta.LastWriteEpoch
+
+	// Check status is ok after a write
+	status, err := c.Check(meta.Key, false)
+	require.NoError(t, err, "fail to check object")
+	require.True(t, status == storage.CheckStatusValid || status == storage.CheckStatusOptimal)
+	status, err = c.Check(meta.Key, true)
+	require.NoError(t, err, "fail to check object")
+	require.True(t, status == storage.CheckStatusValid || status == storage.CheckStatusOptimal)
+
+	// corrupt file by removing a block
+	store, err := datastorCluster.GetShard(meta.Chunks[0].Objects[0].ShardID)
+	require.NoError(t, err)
+	err = store.DeleteObject(meta.Chunks[0].Objects[0].Key)
+	require.NoError(t, err)
+
+	// Check status is corrupted
+	status, err = c.Check(meta.Key, false)
+	require.NoError(t, err, "fail to check object")
+	require.True(t, status == storage.CheckStatusValid || status == storage.CheckStatusInvalid)
+
+	// try to repair
+	err = c.Repair(meta.Key)
+	if repairErr != nil {
+		require.Error(t, repairErr, err)
+		return
+	}
+	require.NoError(t, err)
+
+	// ensure the last-write epoch is updated
+	fetchedMeta, err := c.metastorClient.GetMetadata(meta.Key)
+	require.NoError(t, err)
+	require.NotNil(t, fetchedMeta)
+	require.True(t, fetchedMeta.LastWriteEpoch != 0 && fetchedMeta.LastWriteEpoch != lastWriteEpoch)
+
+	require.Equal(t, meta.Key, fetchedMeta.Key)
+
+	// make sure we can read the data again
+	buf := bytes.NewBuffer(nil)
+	err = c.Read(fetchedMeta.Key, buf)
+	require.NoError(t, err)
+	readData := buf.Bytes()
+	require.Equal(t, data, readData, "restored data is not the same as initial data")
+
+}

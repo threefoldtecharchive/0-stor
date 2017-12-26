@@ -206,6 +206,11 @@ func (sop *SingleObjectPipeline) Delete(chunks []metastor.Chunk) error {
 	})
 }
 
+// Close implements Pipeline.Close
+func (sop *SingleObjectPipeline) Close() error {
+	return sop.storage.Close()
+}
+
 var (
 	errUnexpectedChunkCount = errors.New(
 		"unexpected chunk count, SingleObjectPipeline requires one and only one chunk")

@@ -60,6 +60,9 @@ type ChunkStorage interface {
 	// When an error is returned it should be assumed the chunk wasn't deleted,
 	// if no error is returned, however, it can be assumed that the chunk was deleted.
 	DeleteChunk(cfg ChunkConfig) error
+
+	// Close any open resources.
+	Close() error
 }
 
 // ChunkConfig is a configuration type,

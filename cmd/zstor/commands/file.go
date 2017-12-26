@@ -58,7 +58,7 @@ var fileUploadCmd = &cobra.Command{
 		}
 
 		// upload the content from the input reader as the given/set key
-		_, err = cl.WriteF([]byte(key), input)
+		err = cl.Write([]byte(key), input)
 		if err != nil {
 			return fmt.Errorf("uploading data from %q as %q failed: %v", inputName, key, err)
 		}
@@ -96,7 +96,7 @@ var fileDownloadCmd = &cobra.Command{
 			output = os.Stdout
 		}
 
-		err = cl.ReadF([]byte(key), output)
+		err = cl.Read([]byte(key), output)
 		if err != nil {
 			return fmt.Errorf("downloading file (key: %s) failed: %v", key, err)
 		}

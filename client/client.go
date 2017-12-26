@@ -1,9 +1,7 @@
 package client
 
 import (
-	"bytes"
 	"errors"
-	"fmt"
 	"io"
 	"time"
 
@@ -16,24 +14,28 @@ import (
 	"github.com/zero-os/0-stor/client/itsyouonline"
 	"github.com/zero-os/0-stor/client/metastor"
 	"github.com/zero-os/0-stor/client/pipeline/storage"
-
-	log "github.com/Sirupsen/logrus"
 )
 
 var (
+	// ErrNilKey is an error returned in case a nil key is given to a client method.
+	ErrNilKey = errors.New("Client: nil/empty key given")
+	// ErrNilContext is an error returned in case a context given to a client method is nil.
+	ErrNilContext = errors.New("Client: nil context given")
+
 	// ErrRepairSupport is returned when data is not stored using replication or distribution
-	ErrRepairSupport = fmt.Errorf("data is not stored using replication or distribution, repair impossible")
+	ErrRepairSupport = errors.New("data is not stored using replication or distribution, repair impossible")
 )
 
 // Client defines 0-stor client
 type Client struct {
-	datastorCluster datastor.Cluster
-	dataPipeline    pipeline.Pipeline
-
+	dataPipeline   pipeline.Pipeline
 	metastorClient metastor.Client
 }
 
 // NewClientFromConfig creates new 0-stor client using the given config.
+//
+// If JobCount is 0 or negative, the default JobCount will be used,
+// as defined by the pipeline package.
 func NewClientFromConfig(cfg Config, jobCount int) (*Client, error) {
 	var (
 		err             error
@@ -76,205 +78,129 @@ func NewClientFromConfig(cfg Config, jobCount int) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewClient(datastorCluster, metastorClient, dataPipeline)
+	return NewClient(metastorClient, dataPipeline), nil
 }
 
 // NewClient creates a 0-stor client,
 // with the data (zstordb) cluster already created,
 // used to read/write object data, as well as the metastor client,
 // which is used to read/write the metadata of the objects.
-//
-// The given data pipeline is optional and a default one will be created should it not be defined.
-func NewClient(dataCluster datastor.Cluster, metaClient metastor.Client, dataPipeline pipeline.Pipeline) (*Client, error) {
-	if dataCluster == nil {
-		panic("0-stor Client: no datastor cluster given")
-	}
+func NewClient(metaClient metastor.Client, dataPipeline pipeline.Pipeline) *Client {
 	if metaClient == nil {
 		panic("0-stor Client: no metastor client given")
 	}
-
-	// create default pipeline if none is given
 	if dataPipeline == nil {
-		pipeline, err := pipeline.NewPipeline(pipeline.Config{}, dataCluster, -1)
-		if err != nil {
-			return nil, err
-		}
-		dataPipeline = pipeline
+		panic("0-stor Client: no data pipeline given")
 	}
-
 	return &Client{
-		datastorCluster: dataCluster,
-		dataPipeline:    dataPipeline,
-		metastorClient:  metaClient,
-	}, nil
-}
-
-// Close the client
-func (c *Client) Close() error {
-	c.metastorClient.Close()
-	if closer, ok := c.datastorCluster.(interface {
-		Close() error
-	}); ok {
-		return closer.Close()
+		dataPipeline:   dataPipeline,
+		metastorClient: metaClient,
 	}
-	return nil
 }
 
-// Write write the value to the the 0-stors configured by the client config
-func (c *Client) Write(key, value []byte) (*metastor.Metadata, error) {
-	return c.WriteWithMeta(key, value, nil, nil, nil)
-}
+// Write writes the data to a 0-stor cluster,
+// storing the metadata using the internal metastor client.
+func (c *Client) Write(key []byte, r io.Reader) error {
+	if len(key) == 0 {
+		return ErrNilKey // ensure a key is given
+	}
 
-func (c *Client) WriteF(key []byte, r io.Reader) (*metastor.Metadata, error) {
-	return c.writeFWithMeta(key, r, nil, nil, nil)
-}
-
-// WriteWithMeta writes the key-value to the configured pipes.
-// Metadata linked list will be build if prevKey is not nil
-// prevMeta is optional previous metadata, to be used in case of user already has the prev metastor.
-// So the client won't need to fetch it back from the metadata server.
-// prevKey still need to be set it prevMeta is set
-// initialMeta is optional metadata, if user want to set his own initial metadata for example set own epoch
-func (c *Client) WriteWithMeta(key, val []byte, prevKey []byte, prevMeta, md *metastor.Metadata) (*metastor.Metadata, error) {
-	r := bytes.NewReader(val)
-	return c.writeFWithMeta(key, r, prevKey, prevMeta, md)
-}
-
-func (c *Client) WriteFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMeta, md *metastor.Metadata) (*metastor.Metadata, error) {
-	return c.writeFWithMeta(key, r, prevKey, prevMeta, md)
-}
-
-func (c *Client) writeFWithMeta(key []byte, r io.Reader, prevKey []byte, prevMeta, md *metastor.Metadata) (*metastor.Metadata, error) {
+	// process and write the data
 	chunks, err := c.dataPipeline.Write(r)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	// create new metadata if not given
-	if md == nil {
-		now := time.Now().UnixNano()
-		md = &metastor.Metadata{
-			Key:            key,
-			CreationEpoch:  now,
-			LastWriteEpoch: now,
-		}
+	// create new metadata, as we'll overwrite either way
+	now := EpochNow()
+	md := metastor.Metadata{
+		Key:            key,
+		CreationEpoch:  now,
+		LastWriteEpoch: now,
 	}
 
 	// set/update chunks and size in metadata
 	md.Chunks = chunks
-	md.Size = 0
 	for _, chunk := range chunks {
 		md.Size += chunk.Size
 	}
 
-	err = c.linkMeta(md, prevMeta, key, prevKey)
-	if err != nil {
-		return md, err
-	}
-
-	return md, nil
+	// store metadata
+	// TODO: If an error is returned...
+	//       what about stored data of currentMD,
+	//       shouldn't we delete it again?
+	return c.metastorClient.SetMetadata(md)
 }
 
-// Read reads value with given key from the 0-stors configured by the client cnfig
-// it will first try to get the metadata associated with key from the Metadata servers.
-func (c *Client) Read(key []byte) ([]byte, error) {
-	md, err := c.metastorClient.GetMetadata(key)
-	if err != nil {
-		return nil, err
+// Read reads the data, from the 0-stor cluster,
+// using the reference information fetched from the metadata (which is linked to the given key).
+func (c *Client) Read(key []byte, w io.Writer) error {
+	if len(key) == 0 {
+		return ErrNilKey // ensure a key is given
 	}
-
-	w := &bytes.Buffer{}
-	err = c.readFWithMeta(md, w)
-	if err != nil {
-		return nil, err
-	}
-	return w.Bytes(), nil
-}
-
-// ReadF similar as Read but write the data to w instead of returning a slice of bytes
-func (c *Client) ReadF(key []byte, w io.Writer) error {
-	md, err := c.metastorClient.GetMetadata(key)
+	meta, err := c.metastorClient.GetMetadata(key)
 	if err != nil {
 		return err
 	}
-	return c.readFWithMeta(md, w)
-
+	return c.dataPipeline.Read(meta.Chunks, w)
 }
 
-// ReadWithMeta reads the value described by md
-func (c *Client) ReadWithMeta(md *metastor.Metadata) ([]byte, error) {
-	w := &bytes.Buffer{}
-	err := c.readFWithMeta(md, w)
-	if err != nil {
-		return nil, err
-	}
-
-	return w.Bytes(), nil
-}
-
-func (c *Client) readFWithMeta(md *metastor.Metadata, w io.Writer) error {
-	// get chunks from metadata
-	chunks := make([]metastor.Chunk, len(md.Chunks))
-	for index := range md.Chunks {
-		chunks[index] = md.Chunks[index]
-	}
-	return c.dataPipeline.Read(chunks, w)
-}
-
-// Delete deletes object from the 0-stor server pointed by the key
-// It also deletes the metadatastor.
+// Delete deletes the data, from the 0-stor cluster,
+// using the reference information fetched from the metadata (which is linked to the given key).
 func (c *Client) Delete(key []byte) error {
+	if len(key) == 0 {
+		return ErrNilKey // ensure a key is given
+	}
 	meta, err := c.metastorClient.GetMetadata(key)
 	if err != nil {
-		log.Errorf("fail to read metadata: %v", err)
 		return err
 	}
-	return c.DeleteWithMeta(meta)
-}
-
-// DeleteWithMeta deletes object from the 0-stor server pointed by the
-// given metadata
-// It also deletes the metadatastor.
-func (c *Client) DeleteWithMeta(meta *metastor.Metadata) error {
-	err := c.dataPipeline.Delete(meta.Chunks)
+	// delete data
+	err = c.dataPipeline.Delete(meta.Chunks)
 	if err != nil {
-		log.Errorf("error deleting data :%v", err)
 		return err
 	}
-
 	// delete metadata
-	if err := c.metastorClient.DeleteMetadata(meta.Key); err != nil {
-		log.Errorf("error deleting metadata :%v", err)
-		return err
-	}
-
-	return nil
+	return c.metastorClient.DeleteMetadata(meta.Key)
 }
 
+// Check gets the status of data stored in a 0-stor cluster.
+// It does so using the chunks stored as metadata, after fetching those, using the metastor client.
+// If the metadata cannot be fetched or the status of a/the data chunk(s) cannot be retrieved,
+// an error will be returned. Otherwise CheckStatusInvalid indicates the data is invalid and non-repairable,
+// Any other value indicates the data is readable, but if it's not optimal, it could use a repair.
 func (c *Client) Check(key []byte, fast bool) (storage.CheckStatus, error) {
+	if len(key) == 0 {
+		return storage.CheckStatus(0), ErrNilKey // ensure a key is given
+	}
 	meta, err := c.metastorClient.GetMetadata(key)
 	if err != nil {
-		log.Errorf("fail to get metadata for check: %v", err)
 		return storage.CheckStatus(0), err
 	}
 	return c.dataPipeline.Check(meta.Chunks, fast)
 }
 
-// Repair repairs a broken file.
-// If the file is distributed and the amount of corrupted chunks is acceptable,
+// Repair repairs broken data, whether it's needed or not.
+//
+// If the data is distributed and the amount of corrupted chunks is acceptable,
 // we recreate the missing chunks.
-// Id the file is replicated and we still have one valid replicate, we create the missing replicate
-// till we reach the replication number configured in the config
-// if the file as not been distributed or replicated, we can't repair it,
+//
+// Id the data is replicated and we still have one valid replication, we create the missing replications
+// until we reach the replication number configured in the config.
+//
+// if the data has not been distributed or replicated, we can't repair it,
 // or if not enough shards are available we cannot repair it either.
 func (c *Client) Repair(key []byte) error {
-	log.Debugf("Start repair of %x", key)
+	if len(key) == 0 {
+		return ErrNilKey // ensure a key is given
+	}
+
 	meta, err := c.metastorClient.GetMetadata(key)
 	if err != nil {
-		log.Errorf("repair %x, error getting metadata :%v", key, err)
 		return err
 	}
 
+	// repair the chunks (if possible)
 	chunks, err := c.dataPipeline.Repair(meta.Chunks)
 	if err != nil {
 		if err == storage.ErrNotSupported {
@@ -282,6 +208,7 @@ func (c *Client) Repair(key []byte) error {
 		}
 		return err
 	}
+
 	// update chunks
 	meta.Chunks = chunks
 	// update total size
@@ -291,32 +218,50 @@ func (c *Client) Repair(key []byte) error {
 	}
 
 	// update last write epoch, as we have written while repairing
-	meta.LastWriteEpoch = time.Now().UnixNano()
+	meta.LastWriteEpoch = EpochNow()
 
-	if err := c.metastorClient.SetMetadata(*meta); err != nil {
-		log.Errorf("error writing metadata after repair: %v", err)
-		return err
+	// update the metadata as retrieved from the client
+	// TODO: what if the metadata couldn't be stored?
+	//       this might make the newly stored data unreachable,
+	//       should the metastor client not handle this kind of failure
+	// TODO: fix potentialrace-condition...
+	//       we are updating a value from memory,
+	//       and writing it back to the metadata storage,
+	//       possibly overwriting any other update
+	//       that happened in the meantime
+	return c.metastorClient.SetMetadata(*meta)
+}
+
+// Close the client and all its used (internal/indirect) resources.
+func (c *Client) Close() error {
+	var ce closeErrors
+	err := c.metastorClient.Close()
+	if err != nil {
+		ce = append(ce, err)
 	}
-
+	err = c.dataPipeline.Close()
+	if err != nil {
+		ce = append(ce, err)
+	}
+	if len(ce) > 0 {
+		return ce
+	}
 	return nil
 }
 
-func (c *Client) linkMeta(curMd, prevMd *metastor.Metadata, curKey, prevKey []byte) error {
-	if len(prevKey) == 0 {
-		return c.metastorClient.SetMetadata(*curMd)
+// EpochNow returns the current time,
+// expressed in nano seconds, within the UTC timezone, in the epoch (unix) format.
+func EpochNow() int64 {
+	return time.Now().UTC().UnixNano()
+}
+
+type closeErrors []error
+
+// Error implements error.Error
+func (ce closeErrors) Error() string {
+	var str string
+	for _, e := range ce {
+		str += e.Error() + ";"
 	}
-
-	// point next key of previous meta to new meta
-	prevMd.NextKey = curKey
-
-	// point prev key of new meta to previous one
-	curMd.PreviousKey = prevKey
-
-	// update prev meta
-	if err := c.metastorClient.SetMetadata(*prevMd); err != nil {
-		return err
-	}
-
-	// update new meta
-	return c.metastorClient.SetMetadata(*curMd)
+	return str
 }
