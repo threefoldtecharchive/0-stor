@@ -2,6 +2,7 @@ package client
 
 import (
 	"io/ioutil"
+	"net"
 	"os"
 	"path"
 	"testing"
@@ -23,14 +24,22 @@ const (
 	testPubKeyPath = "./../devcert/jwt_pub.pem"
 )
 
-func testGRPCServer(t testing.TB, n int) ([]api.Server, func()) {
+type testServer struct {
+	api.Server
+	addr string
+}
+
+func (ts *testServer) Address() string {
+	return ts.addr
+}
+
+func testGRPCServer(t testing.TB, n int) ([]*testServer, func()) {
 	require := require.New(t)
 
-	servers := make([]api.Server, n)
+	servers := make([]*testServer, n)
 	dirs := make([]string, n)
 
 	for i := 0; i < n; i++ {
-
 		tmpDir, err := ioutil.TempDir("", "0stortest")
 		require.NoError(err)
 		dirs[i] = tmpDir
@@ -41,12 +50,17 @@ func testGRPCServer(t testing.TB, n int) ([]api.Server, func()) {
 		server, err := grpc.New(db, nil, 4, 0)
 		require.NoError(err)
 
+		listener, err := net.Listen("tcp", "localhost:0")
+		require.NoError(err, "failed to create listener on /any/ open (local) port")
+
 		go func() {
-			err := server.Listen("localhost:0")
-			require.NoError(err, "server failed to start listening")
+			err := server.Serve(listener)
+			if err != nil {
+				panic(err)
+			}
 		}()
 
-		servers[i] = server
+		servers[i] = &testServer{Server: server, addr: listener.Addr().String()}
 	}
 
 	clean := func() {

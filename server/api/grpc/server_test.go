@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io"
+	"net"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -20,23 +21,28 @@ import (
 )
 
 func TestServerMsgSize(t *testing.T) {
-	require := require.New(t)
-
 	mib := 1024 * 1024
 
 	for i := 2; i <= 64; i *= 4 {
 		t.Run(fmt.Sprintf("size %d", i), func(t *testing.T) {
+			require := require.New(t)
+
+			listener, err := net.Listen("tcp", "localhost:0")
+			require.NoError(err)
+
 			maxSize := i
 			srv, err := New(memory.New(), nil, maxSize, 0)
 			require.NoError(err, "server should have been created")
 			defer srv.Close()
 
 			go func() {
-				err := srv.Listen("localhost:0")
-				require.NoError(err, "server should have started listening")
+				err := srv.Serve(listener)
+				if err != nil {
+					panic(err)
+				}
 			}()
 
-			cl, err := storgrpc.NewClient(srv.Address(), "testnamespace", nil)
+			cl, err := storgrpc.NewClient(listener.Addr().String(), "testnamespace", nil)
 			require.NoError(err, "client should have been created")
 
 			bigData := make([]byte, (maxSize*mib)+10)
