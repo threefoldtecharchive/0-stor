@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"testing"
 
 	jwtgo "github.com/dgrijalva/jwt-go"
@@ -35,7 +36,19 @@ const (
 	label = "testorg_0stor_testnamespace"
 )
 
-func getTestGRPCServer(t *testing.T, organization string) (*Server, stubs.IYOClient, func()) {
+type testServer struct {
+	*Server
+	addr string
+}
+
+func (ts *testServer) Address() string {
+	return ts.addr
+}
+
+func getTestGRPCServer(t *testing.T, organization string) (*testServer, stubs.IYOClient, func()) {
+	listener, err := net.Listen("tcp", "localhost:0")
+	require.NoError(t, err)
+
 	var client stubs.IYOClient
 	var verifier jwt.TokenVerifier
 	if organization != "" {
@@ -51,16 +64,17 @@ func getTestGRPCServer(t *testing.T, organization string) (*Server, stubs.IYOCli
 	require.NoError(t, err)
 
 	go func() {
-		err := server.Listen("localhost:0")
-		require.NoError(t, err)
+		err := server.Serve(listener)
+		if err != nil {
+			panic(err)
+		}
 	}()
-	require.NoError(t, err, "server failed to start listening")
 
 	clean := func() {
 		fmt.Sprintln("clean called")
 		server.Close()
 	}
-	return server, client, clean
+	return &testServer{server, listener.Addr().String()}, client, clean
 }
 
 func getTestVerifier(pubKeyPath string) (*jwt.Verifier, error) {

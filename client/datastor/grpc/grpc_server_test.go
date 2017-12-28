@@ -3,6 +3,7 @@ package grpc
 import (
 	"errors"
 	"fmt"
+	"net"
 
 	"github.com/zero-os/0-stor/server/api/grpc"
 	"github.com/zero-os/0-stor/server/db/memory"
@@ -46,17 +47,29 @@ func newServerCluster(count int) (*Cluster, func(), error) {
 }
 
 func newServer() (string, func(), error) {
+	listener, err := net.Listen("tcp", "localhost:0")
+	if err != nil {
+		return "", nil, err
+	}
+
 	server, err := grpc.New(memory.New(), nil, 0, 0)
 	if err != nil {
 		return "", nil, err
 	}
+
 	go func() {
-		err := server.Listen("localhost:0")
+		err := server.Serve(listener)
 		if err != nil {
 			panic(err)
 		}
 	}()
-	return server.Address(), server.Close, nil
+	cleanup := func() {
+		err := server.Close()
+		if err != nil {
+			panic(err)
+		}
+	}
+	return listener.Addr().String(), cleanup, nil
 }
 
 func newServerClient() (*Client, string, func(), error) {

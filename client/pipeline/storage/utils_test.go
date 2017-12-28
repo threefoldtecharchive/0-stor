@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"net"
 
 	"github.com/zero-os/0-stor/client/datastor"
 	clientGRPC "github.com/zero-os/0-stor/client/datastor/grpc"
@@ -45,18 +46,23 @@ func newGRPCServerCluster(count int) (*clientGRPC.Cluster, func(), error) {
 }
 
 func newGRPCServerClient() (*clientGRPC.Client, string, func(), error) {
+	listener, err := net.Listen("tcp", "localhost:0")
+	if err != nil {
+		return nil, "", nil, err
+	}
+
 	server, err := serverGRPC.New(memory.New(), nil, 0, 0)
 	if err != nil {
 		return nil, "", nil, err
 	}
 	go func() {
-		err := server.Listen("localhost:0")
+		err := server.Serve(listener)
 		if err != nil {
 			panic(err)
 		}
 	}()
 
-	client, err := clientGRPC.NewClient(server.Address(), "myLabel", nil)
+	client, err := clientGRPC.NewClient(listener.Addr().String(), "myLabel", nil)
 	if err != nil {
 		server.Close()
 		return nil, "", nil, err
@@ -64,11 +70,17 @@ func newGRPCServerClient() (*clientGRPC.Client, string, func(), error) {
 
 	clean := func() {
 		fmt.Sprintln("clean called")
-		client.Close()
-		server.Close()
+		err := client.Close()
+		if err != nil {
+			panic(err)
+		}
+		err = server.Close()
+		if err != nil {
+			panic(err)
+		}
 	}
 
-	return client, server.Address(), clean, nil
+	return client, listener.Addr().String(), clean, nil
 }
 
 type dummyCluster struct{}

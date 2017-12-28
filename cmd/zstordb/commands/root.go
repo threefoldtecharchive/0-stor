@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -117,18 +118,24 @@ func rootFunc(*cobra.Command, []string) error {
 		}
 	}
 
+	// create a TCP listener for our server
+	listener, err := net.Listen("tcp", rootCfg.ListenAddress.String())
+	if err != nil {
+		return err
+	}
+
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT)
 
 	errChan := make(chan error, 1)
 
 	go func() {
-		err := storServer.Listen(rootCfg.ListenAddress.String())
+		err := storServer.Serve(listener)
 		errChan <- err
 	}()
 
 	log.Infof("Server interface: grpc")
-	log.Infof("Server listening on %s", storServer.Address())
+	log.Infof("Server listening on %s", listener.Addr().String())
 
 	select {
 	case err := <-errChan:

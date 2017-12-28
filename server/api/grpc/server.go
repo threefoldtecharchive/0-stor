@@ -1,7 +1,6 @@
 package grpc
 
 import (
-	"errors"
 	"net"
 	"runtime"
 	"strings"
@@ -29,9 +28,6 @@ const (
 // Server represents a 0-stor server GRPC Server API.
 type Server struct {
 	db         db.DB
-	address    string
-	addressCh  chan string
-	listener   net.Listener
 	grpcServer *grpc.Server
 }
 
@@ -53,10 +49,7 @@ func New(db db.DB, verifier jwt.TokenVerifier, maxSizeMsg, jobs int) (*Server, e
 		jobs = DefaultJobCount
 	}
 
-	s := &Server{
-		db:        db,
-		addressCh: make(chan string, 1),
-	}
+	s := &Server{db: db}
 
 	// create our grpc server
 	if verifier != nil {
@@ -89,52 +82,31 @@ func New(db db.DB, verifier jwt.TokenVerifier, maxSizeMsg, jobs int) (*Server, e
 	return s, nil
 }
 
-// Listen implements Server.Listen
-func (s *Server) Listen(addr string) error {
-	if s.listener != nil {
-		return errors.New("server is already listening")
-	}
-
-	var err error
-	s.listener, err = net.Listen("tcp", addr)
-	if err != nil {
-		s.addressCh <- ""
-		return err
-	}
-	s.addressCh <- s.listener.Addr().String()
-
-	err = s.grpcServer.Serve(s.listener)
-	if err != nil && err != grpc.ErrServerStopped && !isClosedConnError(err) {
+// Serve implements Server.Serve
+func (s *Server) Serve(lis net.Listener) error {
+	err := s.grpcServer.Serve(lis)
+	if err != nil && !isClosedConnError(err) {
 		return err
 	}
 	return nil
 }
 
+// Close implements Server.Close
+func (s *Server) Close() error {
+	log.Debugln("stop grpc server and all its active listeners")
+	s.grpcServer.GracefulStop()
+	log.Debugln("closing database")
+	return s.db.Close()
+}
+
 // isClosedConnError returns true if the error is from closing listener, cmux.
 // copied from golang.org/x/net/http2/http2.go
 func isClosedConnError(err error) bool {
+	if err == grpc.ErrServerStopped {
+		return true
+	}
 	// 'use of closed network connection' (Go <=1.8)
 	// 'use of closed file or network connection' (Go >1.8, internal/poll.ErrClosing)
 	// 'mux: listener closed' (cmux.ErrListenerClosed)
 	return strings.Contains(err.Error(), "closed")
-}
-
-// Close implements Server.Close
-func (s *Server) Close() {
-	if s.listener != nil {
-		log.Debugln("stop listener")
-		s.listener.Close()
-	}
-	log.Debugln("stop grpc server")
-	s.grpcServer.GracefulStop()
-	log.Debugln("closing database")
-	s.db.Close()
-}
-
-// Address implements Server.Address
-func (s *Server) Address() string {
-	if s.address == "" {
-		s.address = <-s.addressCh
-	}
-	return s.address
 }
