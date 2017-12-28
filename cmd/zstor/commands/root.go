@@ -47,7 +47,7 @@ func getClient() (*client.Client, error) {
 		return nil, err
 	}
 	// create client
-	cl, err := client.NewClientFromConfig(cfg, rootCfg.JobCount)
+	cl, err := client.NewClientFromConfig(*cfg, rootCfg.JobCount)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create 0-stor client: %v", err)
 	}

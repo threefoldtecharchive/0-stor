@@ -4,111 +4,53 @@ import (
 	"bytes"
 	"crypto/rand"
 	"fmt"
-	"io/ioutil"
-	"os"
-	"path"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/zero-os/0-stor/client/metastor/memory"
 	"github.com/zero-os/0-stor/client/pipeline/processing"
 	"github.com/zero-os/0-stor/client/pipeline/storage"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/zero-os/0-stor/client/datastor"
-	storgrpc "github.com/zero-os/0-stor/client/datastor/grpc"
-	"github.com/zero-os/0-stor/client/itsyouonline"
-	"github.com/zero-os/0-stor/client/metastor/etcd"
-	"github.com/zero-os/0-stor/client/metastor/memory"
 	"github.com/zero-os/0-stor/client/pipeline"
-	"github.com/zero-os/0-stor/server/api"
-	"github.com/zero-os/0-stor/server/api/grpc"
-	"github.com/zero-os/0-stor/server/db/badger"
 )
 
-const (
-	// path to testing public key
-	testPubKeyPath = "./../devcert/jwt_pub.pem"
-)
-
-func testGRPCServer(t testing.TB, n int) ([]api.Server, func()) {
+func TestNewClientFromConfigErrors(t *testing.T) {
 	require := require.New(t)
 
-	servers := make([]api.Server, n)
-	dirs := make([]string, n)
+	_, err := NewClientFromConfig(Config{}, -1)
+	require.Error(err, "missing: data shards, meta shards and namespace")
 
-	for i := 0; i < n; i++ {
+	_, err = NewClientFromConfig(Config{Namespace: "foo"}, -1)
+	require.Error(err, "missing: data shards and meta shards")
 
-		tmpDir, err := ioutil.TempDir("", "0stortest")
-		require.NoError(err)
-		dirs[i] = tmpDir
+	servers, serverClean := testGRPCServer(t, 4)
+	defer serverClean()
 
-		db, err := badger.New(path.Join(tmpDir, "data"), path.Join(tmpDir, "meta"))
-		require.NoError(err)
+	_, err = NewClientFromConfig(Config{
+		Namespace: "foo",
+		DataStor:  DataStorConfig{Shards: []string{servers[0].Address()}}}, -1)
+	require.Error(err, "missing: meta shards")
 
-		server, err := grpc.New(db, nil, 4, 0)
-		require.NoError(err)
-
-		go func() {
-			err := server.Listen("localhost:0")
-			require.NoError(err, "server failed to start listening")
-		}()
-
-		servers[i] = server
-	}
-
-	clean := func() {
-		for _, server := range servers {
-			server.Close()
-		}
-		for _, dir := range dirs {
-			os.RemoveAll(dir)
-		}
-	}
-
-	return servers, clean
+	// hard to test metastor creation, as it would require an etcd connection for now
+	// TODO: once we have alternatives meta clients (e.g. badger), complete this test
+	//       see: https://github.com/zero-os/0-stor/issues/419
 }
 
-func getTestClient(cfg Config) (*Client, datastor.Cluster, error) {
-	var (
-		err             error
-		datastorCluster datastor.Cluster
-	)
-	// create datastor cluster
-	if cfg.IYO != (itsyouonline.Config{}) {
-		var client *itsyouonline.Client
-		client, err = itsyouonline.NewClient(cfg.IYO)
-		if err == nil {
-			tokenGetter := jwtTokenGetterFromIYOClient(
-				cfg.IYO.Organization, client)
-			datastorCluster, err = storgrpc.NewCluster(cfg.DataStor.Shards, cfg.Namespace, tokenGetter)
-		}
-	} else {
-		datastorCluster, err = storgrpc.NewCluster(cfg.DataStor.Shards, cfg.Namespace, nil)
-	}
-	if err != nil {
-		return nil, nil, err
-	}
+func TestNewClientPanics(t *testing.T) {
+	require := require.New(t)
 
-	// create data pipeline, using our datastor cluster
-	dataPipeline, err := pipeline.NewPipeline(cfg.Pipeline, datastorCluster, -1)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// if no metadata shards are given, we'll use a memory client
-	if len(cfg.MetaStor.Shards) == 0 {
-		return NewClient(memory.NewClient(), dataPipeline), datastorCluster, nil
-	}
-
-	// create metastor client first,
-	// and than create our master 0-stor client with all features.
-	metastorClient, err := etcd.NewClient(cfg.MetaStor.Shards)
-	if err != nil {
-		return nil, nil, err
-	}
-	return NewClient(metastorClient, dataPipeline), datastorCluster, nil
+	require.Panics(func() {
+		NewClient(nil, nil)
+	}, "nothing given")
+	require.Panics(func() {
+		NewClient(nil, new(pipeline.SingleObjectPipeline))
+	}, "no metastor client given")
+	require.Panics(func() {
+		NewClient(memory.NewClient(), nil)
+	}, "no data pipeline given")
 }
 
 func TestRoundTripGRPC(t *testing.T) {
@@ -664,5 +606,43 @@ func testRepair(t *testing.T, config Config, repairErr error) {
 	require.NoError(t, err)
 	readData := buf.Bytes()
 	require.Equal(t, data, readData, "restored data is not the same as initial data")
+}
 
+func TestClient_ExplicitErrors(t *testing.T) {
+	require := require.New(t)
+
+	servers, serverClean := testGRPCServer(t, 1)
+	defer serverClean()
+
+	dataShards := []string{servers[0].Address()}
+	config := newDefaultConfig(dataShards, 0)
+	config.Pipeline.Distribution = pipeline.ObjectDistributionConfig{}
+
+	cli, _, err := getTestClient(config)
+	require.NoError(err)
+	defer cli.Close()
+
+	err = cli.Write(nil, nil)
+	require.Error(err, "no key or reader given")
+	err = cli.Write([]byte("foo"), nil)
+	require.Error(err, "no reader given")
+	err = cli.Write(nil, bytes.NewReader(nil))
+	require.Error(err, "no key given")
+
+	err = cli.Read(nil, nil)
+	require.Error(err, "no key or writer given")
+	err = cli.Read([]byte("foo"), nil)
+	require.Error(err, "key not found")
+
+	err = cli.Delete(nil)
+	require.Error(err, "no key given")
+
+	_, err = cli.Check(nil, false)
+	require.Error(err, "no key given")
+
+	err = cli.Repair(nil)
+	require.Error(err, "no key given")
+
+	require.NoError(cli.Close())
+	require.Error(cli.Close())
 }

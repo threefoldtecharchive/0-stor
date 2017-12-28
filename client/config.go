@@ -13,19 +13,18 @@ import (
 // ReadConfig reads the configuration from a file.
 // NOTE that it isn't validated, this will be done automatically,
 // when you use the config to create a 0-stor client.
-func ReadConfig(path string) (Config, error) {
+func ReadConfig(path string) (*Config, error) {
 	bytes, err := ioutil.ReadFile(path)
 	if err != nil {
-		return Config{}, err
+		return nil, err
 	}
-
-	var cfg Config
 
 	// for now we only support YAML
-	if yaml.Unmarshal(bytes, &cfg); err != nil {
-		return Config{}, err
+	var cfg Config
+	if err = yaml.Unmarshal(bytes, &cfg); err != nil {
+		return nil, err
 	}
-	return cfg, nil
+	return &cfg, nil
 }
 
 // Config defines the configuration of the 0-stor client.

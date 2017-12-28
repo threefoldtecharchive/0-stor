@@ -130,6 +130,10 @@ func (c *Client) WriteLinked(key, prevKey []byte, r io.Reader) error {
 // It starts searching from a given startKey and will iterate through all (meta)data,
 // which has a registered CreationEpoch in the given inclusive epoch range.
 //
+// Both the fromEpoch and toEpoch input parameters are optional and do not have to be given.
+// Any value of 0 or less can be given as to not specify them. Not giving an epoch limit,
+// simply means that this limit won't be used/enforced.
+//
 // An error will be returned in case no (valid) startKey is given,
 // or in case the given epoch range is invalid (fromEpoch > toEpoch).
 //
@@ -144,7 +148,13 @@ func (c *Client) Traverse(startKey []byte, fromEpoch, toEpoch int64) (TraverseIt
 	if len(startKey) == 0 {
 		return nil, ErrNilKey
 	}
-	if fromEpoch > toEpoch {
+	if fromEpoch <= 0 {
+		fromEpoch = -1
+	}
+	if toEpoch <= 0 {
+		toEpoch = -1
+	}
+	if toEpoch != -1 && fromEpoch > toEpoch {
 		return nil, ErrInvalidEpochRange
 	}
 	return &forwardTraverseIterator{
@@ -163,6 +173,10 @@ func (c *Client) Traverse(startKey []byte, fromEpoch, toEpoch int64) (TraverseIt
 // It starts searching from a given startKey and will iterate through all (meta)data,
 // which has a registered CreationEpoch in the given inclusive epoch range.
 //
+// Both the fromEpoch and toEpoch input parameters are optional and do not have to be given.
+// Any value of 0 or less can be given as to not specify them. Not giving an epoch limit,
+// simply means that this limit won't be used/enforced.
+//
 // As this method traverses backwards, the startKey is expected
 // to be the newest data as the given fromEpoch should be the most recent time in this chain.
 //
@@ -180,7 +194,13 @@ func (c *Client) TraversePostOrder(startKey []byte, fromEpoch, toEpoch int64) (T
 	if len(startKey) == 0 {
 		return nil, ErrNilKey
 	}
-	if toEpoch > fromEpoch {
+	if fromEpoch <= 0 {
+		fromEpoch = -1
+	}
+	if toEpoch <= 0 {
+		toEpoch = -1
+	}
+	if fromEpoch != -1 && toEpoch > fromEpoch {
 		return nil, ErrInvalidEpochRange
 	}
 	return &backwardTraverseIterator{
@@ -252,7 +272,7 @@ func (it *forwardTraverseIterator) Next() bool {
 			return false
 		}
 
-		if md.CreationEpoch > it.toEpoch {
+		if it.toEpoch != -1 && md.CreationEpoch > it.toEpoch {
 			// we've exhausted the iterator
 			it.nextKey = nil
 			return false
@@ -260,7 +280,7 @@ func (it *forwardTraverseIterator) Next() bool {
 
 		it.nextKey = md.NextKey
 
-		if md.CreationEpoch < it.fromEpoch {
+		if it.fromEpoch != -1 && md.CreationEpoch < it.fromEpoch {
 			continue
 		}
 
@@ -298,7 +318,7 @@ func (it *backwardTraverseIterator) Next() bool {
 			return false
 		}
 
-		if md.CreationEpoch < it.toEpoch {
+		if it.toEpoch != -1 && md.CreationEpoch < it.toEpoch {
 			// we've exhausted the iterator
 			it.previousKey = nil
 			return false
@@ -306,7 +326,7 @@ func (it *backwardTraverseIterator) Next() bool {
 
 		it.previousKey = md.PreviousKey
 
-		if md.CreationEpoch > it.fromEpoch {
+		if it.fromEpoch != -1 && md.CreationEpoch > it.fromEpoch {
 			continue
 		}
 

@@ -12,6 +12,7 @@ import (
 func TestDecodeZstorExampleConfig(t *testing.T) {
 	cfg, err := ReadConfig("../cmd/zstor/config.yaml")
 	require.NoError(t, err)
+	require.NotNil(t, cfg)
 
 	expectedCfg := Config{
 		IYO: itsyouonline.Config{
@@ -52,5 +53,17 @@ func TestDecodeZstorExampleConfig(t *testing.T) {
 		},
 	}
 
-	require.Equal(t, expectedCfg, cfg)
+	require.Equal(t, expectedCfg, *cfg)
+}
+
+func TestReadConfigErrors(t *testing.T) {
+	require := require.New(t)
+
+	cfg, err := ReadConfig("")
+	require.Error(err, "invalid path")
+	require.Nil(cfg)
+
+	cfg, err = ReadConfig(testPrivateKeyPath)
+	require.Error(err, "invalid config")
+	require.Nil(cfg)
 }
