@@ -304,8 +304,6 @@ func TestMultipleDownload_Issue208(t *testing.T) {
 }
 
 func TestConcurrentWriteRead(t *testing.T) {
-	t.SkipNow()
-
 	servers, serverClean := testGRPCServer(t, 4)
 	defer serverClean()
 

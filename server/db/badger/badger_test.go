@@ -301,14 +301,9 @@ func TestSetIncremented_Async(t *testing.T) {
 		_, ok = m[output.Key]
 		require.False(t, ok)
 
-		// TODO: UN-COMMENT
-		// For some reason this line returns ErrKeyNotFound,
-		// even though this key is just added, not sure if this a bug
-		// in our code, a bug in badger, or simply to be expected.
-		// Either way, some ms later, it is available, as can be see in the for loop, below.
-		/*value, err := ddb.Get([]byte(output.Key))
+		value, err := ddb.Get([]byte(output.Key))
 		require.NoErrorf(t, err, "key: %s", output.Key)
-		require.Equal(t, output.Value, string(value))*/
+		require.Equal(t, output.Value, string(value))
 
 		m[output.Key] = output.Value
 	}

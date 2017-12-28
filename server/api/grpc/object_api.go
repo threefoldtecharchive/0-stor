@@ -211,8 +211,14 @@ func (api *ObjectAPI) ListObjectKeys(req *pb.ListObjectKeysRequest, stream pb.Ob
 		for item := range ch {
 			// copy key to take ownership over it
 			key = item.Key()
-			if len(key) <= scopeKeyLength {
-				panic("invalid item key (filtered key is too short)")
+			if n := len(key); n < scopeKeyLength {
+				panic("invalid item key '" + string(key) +
+					"' (filtered key is too short)")
+			} else if n == scopeKeyLength {
+				log.Warningf(
+					"skipping listed key result, '%s', as it equals the given scopeKey",
+					scopeKey)
+				continue
 			}
 			key = key[scopeKeyLength:]
 			resp.Key = make([]byte, len(key))
