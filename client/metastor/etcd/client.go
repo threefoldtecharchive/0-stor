@@ -2,9 +2,11 @@ package etcd
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/coreos/etcd/clientv3"
+	"github.com/coreos/etcd/clientv3/concurrency"
 	"github.com/zero-os/0-stor/client/metastor"
 	"github.com/zero-os/0-stor/client/metastor/encoding"
 	"github.com/zero-os/0-stor/client/metastor/encoding/proto"
@@ -54,7 +56,7 @@ type Client struct {
 
 // SetMetadata implements metastor.Client.SetMetadata
 func (c *Client) SetMetadata(data metastor.Metadata) error {
-	if data.Key == nil {
+	if len(data.Key) == 0 {
 		return metastor.ErrNilKey
 	}
 
@@ -70,9 +72,62 @@ func (c *Client) SetMetadata(data metastor.Metadata) error {
 	return err
 }
 
+// UpdateMetadata implements metastor.Client.UpdateMetadata
+func (c *Client) UpdateMetadata(key []byte, cb metastor.UpdateMetadataFunc) (*metastor.Metadata, error) {
+	if cb == nil {
+		panic("Metastor (etcd) Client: required UpdateMetadata CB is not given")
+	}
+	if len(key) == 0 {
+		return nil, metastor.ErrNilKey
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), metaOpTimeout)
+	defer cancel()
+
+	var (
+		output *metastor.Metadata
+		keyStr = string(key)
+	)
+	resp, err := concurrency.NewSTM(c.etcdClient, func(stm concurrency.STM) error {
+		// get the metadata
+		var (
+			input metastor.Metadata
+			value = stm.Get(keyStr)
+		)
+		if len(value) == 0 {
+			return metastor.ErrNotFound
+		}
+		err := c.unmarshal([]byte(value), &input)
+		if err != nil {
+			return err
+		}
+
+		// update the metadata
+		output, err = cb(input)
+		if err != nil {
+			return err
+		}
+
+		// store the metadata
+		bytes, err := c.marshal(*output)
+		if err != nil {
+			return err
+		}
+		stm.Put(keyStr, string(bytes))
+		return nil
+	}, concurrency.WithPrefetch(keyStr), concurrency.WithAbortContext(ctx))
+	if err != nil {
+		return nil, err
+	}
+	if !resp.Succeeded {
+		return nil, fmt.Errorf("update of %s didn't succeed", key)
+	}
+	return output, nil
+}
+
 // GetMetadata implements metastor.Client.GetMetadata
 func (c *Client) GetMetadata(key []byte) (*metastor.Metadata, error) {
-	if key == nil {
+	if len(key) == 0 {
 		return nil, metastor.ErrNilKey
 	}
 
@@ -97,7 +152,7 @@ func (c *Client) GetMetadata(key []byte) (*metastor.Metadata, error) {
 
 // DeleteMetadata implements metastor.Client.DeleteMetadata
 func (c *Client) DeleteMetadata(key []byte) error {
-	if key == nil {
+	if len(key) == 0 {
 		return metastor.ErrNilKey
 	}
 
@@ -119,7 +174,7 @@ func (c *Client) Endpoints() []string {
 	return c.etcdClient.Endpoints()
 }
 
-var (
+const (
 	metaOpTimeout = 30 * time.Second
 )
 
