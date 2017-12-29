@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/zero-os/0-stor/client/metastor"
@@ -36,6 +37,47 @@ func TestClient_WriteLinkedErrors(t *testing.T) {
 	require.Error(err, "no reader given")
 	err = cli.WriteLinked(nil, nil, nil)
 	require.Error(err, "nothing given")
+}
+
+func TestClient_WriteLinked(t *testing.T) {
+	servers, serverClean := testGRPCServer(t, 1)
+	defer serverClean()
+
+	dataShards := []string{servers[0].Address()}
+	config := newDefaultConfig(dataShards, 0)
+	config.Pipeline.Distribution = pipeline.ObjectDistributionConfig{}
+
+	cli, _, err := getTestClient(config)
+	require := require.New(t)
+	require.NoError(err)
+
+	err = cli.Write([]byte{'a'}, strings.NewReader("foo"))
+	require.NoError(err)
+	err = cli.WriteLinked([]byte{'b'}, []byte{'a'}, strings.NewReader("bar"))
+	require.NoError(err)
+	err = cli.WriteLinked([]byte{'c'}, []byte{'b'}, strings.NewReader("baz"))
+	require.NoError(err)
+
+	md, err := cli.metastorClient.GetMetadata([]byte{'a'})
+	require.NoError(err)
+	require.NotNil(md)
+	require.Equal("a", string(md.Key))
+	require.Nil(md.PreviousKey)
+	require.Equal("b", string(md.NextKey))
+
+	md, err = cli.metastorClient.GetMetadata([]byte{'b'})
+	require.NoError(err)
+	require.NotNil(md)
+	require.Equal("b", string(md.Key))
+	require.Equal("a", string(md.PreviousKey))
+	require.Equal("c", string(md.NextKey))
+
+	md, err = cli.metastorClient.GetMetadata([]byte{'c'})
+	require.NoError(err)
+	require.NotNil(md)
+	require.Equal("c", string(md.Key))
+	require.Equal("b", string(md.PreviousKey))
+	require.Nil(md.NextKey)
 }
 
 func TestClient_Traverse(t *testing.T) {

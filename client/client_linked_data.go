@@ -79,50 +79,51 @@ func (c *Client) WriteLinked(key, prevKey []byte, r io.Reader) error {
 		return ErrNilKey
 	}
 
-	// ensure there is metadata stored for the prevKey
-	prevMetadata, err := c.metastorClient.GetMetadata(prevKey)
-	if err != nil {
-		return err
-	}
+	// ensure the prevmetadata exists, and lock it until we've updated it,
+	// however we want to make sure that we only create+store the current metadata once,
+	// hence why we have the created bool
+	var created bool
+	_, err := c.metastorClient.UpdateMetadata(prevKey,
+		func(prevMetadata metastor.Metadata) (*metastor.Metadata, error) {
+			// create the current metadata, should it not be created yet
+			if !created {
+				// process and write the data
+				chunks, err := c.dataPipeline.Write(r)
+				if err != nil {
+					return nil, err
+				}
 
-	// process and write the data
-	chunks, err := c.dataPipeline.Write(r)
-	if err != nil {
-		return err
-	}
+				// create new metadata, as we'll overwrite either way
+				now := EpochNow()
+				md := metastor.Metadata{
+					Key:            key,
+					CreationEpoch:  now,
+					LastWriteEpoch: now,
+					PreviousKey:    prevKey,
+				}
 
-	// create new metadata, as we'll overwrite either way
-	now := EpochNow()
-	md := metastor.Metadata{
-		Key:            key,
-		CreationEpoch:  now,
-		LastWriteEpoch: now,
-	}
+				// set/update chunks and size in metadata
+				md.Chunks = chunks
+				for _, chunk := range chunks {
+					md.Size += chunk.Size
+				}
 
-	// set/update chunks and size in metadata
-	md.Chunks = chunks
-	for _, chunk := range chunks {
-		md.Size += chunk.Size
-	}
+				// store current metadata
+				err = c.metastorClient.SetMetadata(md)
+				if err != nil {
+					return nil, err
+				}
 
-	// update the linked-list Keys
-	prevMetadata.NextKey, md.PreviousKey = key, prevKey
+				// toggle the created boolean to true,
+				// so that we don't have to create this metadata again
+				created = true
+			}
 
-	// store the previous metadata
-	// TODO: fix potentialrace-condition...
-	//       we are updating a value from memory,
-	//       and writing it back to the metadata storage,
-	//       possibly overwriting any other update
-	//       that happened in the meantime
-	err = c.metastorClient.SetMetadata(*prevMetadata)
-	if err != nil {
-		// TODO: what about stored data of currentMD,
-		//       shouldn't we delete it again?
-		return err
-	}
-
-	// store metadata
-	return c.metastorClient.SetMetadata(md)
+			// do the actual update of the prevMetadata
+			prevMetadata.NextKey = key
+			return &prevMetadata, nil
+		})
+	return err
 }
 
 // Traverse traverses the stored (meta)data,

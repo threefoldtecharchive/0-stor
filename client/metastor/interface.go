@@ -26,6 +26,13 @@ type Client interface {
 	// An error is returned in case the metadata couldn't be set.
 	SetMetadata(md Metadata) error
 
+	// UpdateMetadata updates already existing metadata,
+	// returning an error in case there is no metadata to be found for the given key.
+	// See `UpdateMetadataFunc` for more information about the required callback.
+	//
+	// UpdateMetadata panics when no callback is given.
+	UpdateMetadata(key []byte, cb UpdateMetadataFunc) (*Metadata, error)
+
 	// GetMetadata returns the metadata linked to the given key.
 	//
 	// An error is returned in case the linked data couldn't be found.
@@ -43,3 +50,9 @@ type Client interface {
 	// Close any open resources of this metadata client.
 	Close() error
 }
+
+// UpdateMetadataFunc defines a function which receives an already stored metadata,
+// and which can modify the metadate, safely, prior to returning it.
+// In worst case it can return an error,
+// and that error will be propagated back to the user.
+type UpdateMetadataFunc func(md Metadata) (*Metadata, error)

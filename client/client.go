@@ -195,41 +195,48 @@ func (c *Client) Repair(key []byte) error {
 		return ErrNilKey // ensure a key is given
 	}
 
-	meta, err := c.metastorClient.GetMetadata(key)
-	if err != nil {
-		return err
-	}
+	// because of conflicts, the callback might be called multiple times,
+	// hence why we want to only do the actual repairing once
+	var (
+		repairedChunks       []metastor.Chunk
+		totalSizeAfterRepair int64
+		repairEpoch          int64
+	)
+	_, err := c.metastorClient.UpdateMetadata(key,
+		func(meta metastor.Metadata) (*metastor.Metadata, error) {
+			// repair if not yet repaired
+			if repairEpoch == 0 {
+				var err error
+				// repair the chunks (if possible)
+				repairedChunks, err = c.dataPipeline.Repair(meta.Chunks)
+				if err != nil {
+					if err == storage.ErrNotSupported {
+						return nil, ErrRepairSupport
+					}
+					return nil, err
+				}
+				// create the last-write epoch here,
+				// such that this time is correct,
+				// even when we have to retry multiple times, due to conflicts
+				repairEpoch = EpochNow()
+				// do the size computation here,
+				// such that we only have to compute it once
+				for _, chunk := range repairedChunks {
+					totalSizeAfterRepair += chunk.Size
+				}
+			}
 
-	// repair the chunks (if possible)
-	chunks, err := c.dataPipeline.Repair(meta.Chunks)
-	if err != nil {
-		if err == storage.ErrNotSupported {
-			return ErrRepairSupport
-		}
-		return err
-	}
+			// update chunks
+			meta.Chunks = repairedChunks
+			// update total size
+			meta.Size = totalSizeAfterRepair
+			// update last write epoch, as we have written while repairing
+			meta.LastWriteEpoch = repairEpoch
 
-	// update chunks
-	meta.Chunks = chunks
-	// update total size
-	meta.Size = 0
-	for _, chunk := range chunks {
-		meta.Size += chunk.Size
-	}
-
-	// update last write epoch, as we have written while repairing
-	meta.LastWriteEpoch = EpochNow()
-
-	// update the metadata as retrieved from the client
-	// TODO: what if the metadata couldn't be stored?
-	//       this might make the newly stored data unreachable,
-	//       should the metastor client not handle this kind of failure
-	// TODO: fix potentialrace-condition...
-	//       we are updating a value from memory,
-	//       and writing it back to the metadata storage,
-	//       possibly overwriting any other update
-	//       that happened in the meantime
-	return c.metastorClient.SetMetadata(*meta)
+			// return the updated metadata
+			return &meta, nil
+		})
+	return err
 }
 
 // Close the client and all its used (internal/indirect) resources.

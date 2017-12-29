@@ -3,10 +3,16 @@ package etcd
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math"
 	"net"
+	"sort"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
+
+	"golang.org/x/sync/errgroup"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -223,9 +229,11 @@ func TestServerDown(t *testing.T) {
 
 	select {
 	case err := <-errCh:
-		netErr, ok := err.(net.Error)
-		require.True(ok)
-		require.True(netErr.Timeout())
+		timeOutErr, ok := err.(interface {
+			Timeout() bool
+		})
+		require.Truef(ok, "unexpected error type: %[1]v (%[1]T)", err)
+		require.True(timeOutErr.Timeout())
 		t.Logf("operation exited successfully")
 	case <-time.After(metaOpTimeout + time.Second*30):
 		// the put operation should be exited before the timeout
@@ -245,17 +253,128 @@ func TestServerDown(t *testing.T) {
 
 	select {
 	case err := <-errCh:
-		netErr, ok := err.(net.Error)
-		require.True(ok)
-		require.True(netErr.Timeout())
+		timeOutErr, ok := err.(interface {
+			Timeout() bool
+		})
+		require.Truef(ok, "unexpected error type: %[1]v (%[1]T)", err)
+		require.True(timeOutErr.Timeout())
 		t.Logf("operation exited successfully")
 	case <-time.After(metaOpTimeout + time.Second*30):
 		// the Get operation should be exited before the timeout
 		t.Error("the operation should already returns with error")
 	}
-
 }
 
-func init() {
-	metaOpTimeout = time.Second * 5
+func TestClientUpdate(t *testing.T) {
+	require := require.New(t)
+
+	etcd, err := NewEmbeddedServer()
+	require.NoError(err)
+
+	c, err := NewClient([]string{etcd.ListenAddr()})
+	require.NoError(err)
+	defer c.Close()
+
+	require.Panics(func() {
+		c.UpdateMetadata([]byte("foo"), nil)
+	}, "no callback given")
+
+	_, err = c.UpdateMetadata(nil,
+		func(md metastor.Metadata) (*metastor.Metadata, error) { return &md, nil })
+	require.Equal(metastor.ErrNilKey, err)
+
+	_, err = c.UpdateMetadata([]byte("foo"),
+		func(md metastor.Metadata) (*metastor.Metadata, error) { return &md, nil })
+	require.Equal(metastor.ErrNotFound, err)
+
+	err = c.SetMetadata(metastor.Metadata{Key: []byte("foo")})
+	require.NoError(err)
+
+	md, err := c.GetMetadata([]byte("foo"))
+	require.NoError(err)
+	require.Equal("foo", string(md.Key))
+	require.Equal(int64(0), md.Size)
+
+	md, err = c.UpdateMetadata([]byte("foo"),
+		func(md metastor.Metadata) (*metastor.Metadata, error) {
+			md.Size = 42
+			return &md, nil
+		})
+	require.NoError(err)
+	require.Equal("foo", string(md.Key))
+	require.Equal(int64(42), md.Size)
+
+	md, err = c.GetMetadata([]byte("foo"))
+	require.NoError(err)
+	require.Equal("foo", string(md.Key))
+	require.Equal(int64(42), md.Size)
+}
+
+func TestClientUpdateAsync(t *testing.T) {
+	require := require.New(t)
+
+	etcd, err := NewEmbeddedServer()
+	require.NoError(err)
+
+	c, err := NewClient([]string{etcd.ListenAddr()})
+	require.NoError(err)
+	defer c.Close()
+
+	const (
+		jobs = 128
+	)
+	var (
+		key = []byte("foo")
+	)
+
+	err = c.SetMetadata(metastor.Metadata{Key: key})
+	require.NoError(err)
+
+	group, _ := errgroup.WithContext(context.Background())
+	for i := 0; i < jobs; i++ {
+		i := i
+		group.Go(func() error {
+			var expectedSize int64
+			md, err := c.UpdateMetadata(key,
+				func(md metastor.Metadata) (*metastor.Metadata, error) {
+					md.Size++
+					md.NextKey = []byte(string(md.NextKey) + fmt.Sprintf("%d,", i))
+					expectedSize = md.Size
+					return &md, nil
+				})
+			if err != nil {
+				return err
+			}
+			if md == nil {
+				return fmt.Errorf("job #%d: md is nil while this is not expected", i)
+			}
+			if expectedSize != md.Size {
+				return fmt.Errorf("job #%d: unexpected size => %d != %d",
+					i, expectedSize, md.Size)
+			}
+			return nil
+		})
+	}
+	require.NoError(group.Wait())
+
+	md, err := c.GetMetadata(key)
+	require.NoError(err)
+	require.Equal(string(key), string(md.Key))
+	require.Equal(int64(jobs), md.Size)
+	require.NotEmpty(md.NextKey)
+
+	rawIntegers := strings.Split(string(md.NextKey[:len(md.NextKey)-1]), ",")
+	require.Len(rawIntegers, jobs)
+
+	integers := make([]int, jobs)
+	for i, raw := range rawIntegers {
+		integer, err := strconv.Atoi(raw)
+		require.NoError(err)
+		integers[i] = integer
+	}
+
+	sort.Ints(integers)
+	for i := 0; i < jobs; i++ {
+		require.Equal(i, integers[i])
+	}
 }

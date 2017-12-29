@@ -13,7 +13,10 @@ import (
 // and shouldn't be used for anything serious,
 // given that it will lose all data as soon as it goes out of scope.
 func NewClient() *Client {
-	return &Client{md: make(map[string]metastor.Metadata)}
+	return &Client{
+		md:       make(map[string]metastor.Metadata),
+		versions: make(map[string]uint64),
+	}
 }
 
 // Client defines client to store metadata,
@@ -23,26 +26,73 @@ func NewClient() *Client {
 // and shouldn't be used for anything serious,
 // given that it will lose all data as soon as it goes out of scope.
 type Client struct {
-	md  map[string]metastor.Metadata
-	mux sync.RWMutex
+	md       map[string]metastor.Metadata
+	versions map[string]uint64
+	mux      sync.RWMutex
 }
 
 // SetMetadata implements metastor.Client.SetMetadata
 func (c *Client) SetMetadata(data metastor.Metadata) error {
-	if data.Key == nil {
+	if len(data.Key) == 0 {
 		return metastor.ErrNilKey
 	}
 
+	keyStr := string(data.Key)
 	c.mux.Lock()
-	c.md[string(data.Key)] = data
+	c.md[keyStr] = data
+	c.versions[keyStr]++
 	c.mux.Unlock()
 
 	return nil
 }
 
+// UpdateMetadata implements metastor.Client.UpdateMetadata
+func (c *Client) UpdateMetadata(key []byte, cb metastor.UpdateMetadataFunc) (*metastor.Metadata, error) {
+	if cb == nil {
+		panic("Metastor (Memory) Client: required UpdateMetadata CB is not given")
+	}
+	if len(key) == 0 {
+		return nil, metastor.ErrNilKey
+	}
+
+	var (
+		output *metastor.Metadata
+		keyStr = string(key)
+	)
+	for {
+		c.mux.RLock()
+		input, ok := c.md[keyStr]
+		version := c.versions[keyStr]
+		c.mux.RUnlock()
+		if !ok {
+			return nil, metastor.ErrNotFound
+		}
+
+		var err error
+		output, err = cb(input)
+		if err != nil {
+			return nil, err
+		}
+
+		c.mux.Lock()
+		if c.versions[keyStr] != version {
+			c.mux.Unlock()
+			continue // retry once again
+		}
+
+		c.md[keyStr] = *output
+		c.versions[keyStr]++
+		c.mux.Unlock()
+		break
+	}
+
+	// return actual stored output
+	return output, nil
+}
+
 // GetMetadata implements metastor.Client.GetMetadata
 func (c *Client) GetMetadata(key []byte) (*metastor.Metadata, error) {
-	if key == nil {
+	if len(key) == 0 {
 		return nil, metastor.ErrNilKey
 	}
 
@@ -58,12 +108,14 @@ func (c *Client) GetMetadata(key []byte) (*metastor.Metadata, error) {
 
 // DeleteMetadata implements metastor.Client.DeleteMetadata
 func (c *Client) DeleteMetadata(key []byte) error {
-	if key == nil {
+	if len(key) == 0 {
 		return metastor.ErrNilKey
 	}
 
+	keyStr := string(key)
 	c.mux.Lock()
-	delete(c.md, string(key))
+	delete(c.md, keyStr)
+	delete(c.versions, keyStr)
 	c.mux.Unlock()
 
 	return nil
@@ -73,6 +125,7 @@ func (c *Client) DeleteMetadata(key []byte) error {
 func (c *Client) Close() error {
 	c.mux.Lock()
 	c.md = make(map[string]metastor.Metadata)
+	c.versions = make(map[string]uint64)
 	c.mux.Unlock()
 
 	return nil
