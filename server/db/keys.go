@@ -4,6 +4,12 @@ import (
 	"encoding/binary"
 )
 
+const (
+	// SequenceKeyByteSize is the amount of bytes used to store the sequence
+	// as part of a ScopedSequenceKey.
+	SequenceKeyByteSize = 8
+)
+
 // ScopedSequenceKey is a utility functions which allows you to generate
 // a binary key for a given scope (key) and sequence (index).
 //
@@ -14,9 +20,9 @@ func ScopedSequenceKey(scopeKey []byte, sequence uint64) []byte {
 		panic("no scopeKey given")
 	}
 	skl := len(scopeKey)
-	key := make([]byte, skl+4)
+	key := make([]byte, skl+SequenceKeyByteSize)
 	copy(key, scopeKey)
-	binary.PutUvarint(key[skl:], sequence)
+	binary.LittleEndian.PutUint64(key[skl:], sequence)
 	return key
 }
 

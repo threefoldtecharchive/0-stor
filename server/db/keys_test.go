@@ -1,6 +1,7 @@
 package db
 
 import (
+	"math"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -13,10 +14,12 @@ func TestScopedSequenceKey(t *testing.T) {
 		ScopedSequenceKey(nil, 0)
 	}, "should panic when no label is given")
 
-	require.Equal("foo"+string([]byte{1, 0, 0, 0}),
-		s(ScopedSequenceKey(bs("foo"), 1)))
-	require.Equal("大家好"+string([]byte{0, 0, 0, 0}),
+	require.Equal("大家好"+string([]byte{0, 0, 0, 0, 0, 0, 0, 0}),
 		s(ScopedSequenceKey(bs("大家好"), 0)))
+	require.Equal("max-uint64"+string([]byte{255, 255, 255, 255, 255, 255, 255, 255}),
+		s(ScopedSequenceKey(bs("max-uint64"), math.MaxUint64)))
+	require.Equal("order-sequence-check"+string([]byte{1, 2, 3, 4, 5, 6, 7, 8}),
+		s(ScopedSequenceKey(bs("order-sequence-check"), 578437695752307201)))
 }
 
 func TestDataKey(t *testing.T) {
