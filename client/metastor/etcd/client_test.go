@@ -244,11 +244,7 @@ func TestServerDown(t *testing.T) {
 
 	select {
 	case err := <-errCh:
-		timeOutErr, ok := err.(interface {
-			Timeout() bool
-		})
-		require.Truef(ok, "unexpected error type: %[1]v (%[1]T)", err)
-		require.True(timeOutErr.Timeout())
+		require.Error(err)
 		t.Logf("operation exited successfully")
 	case <-time.After(metaOpTimeout + time.Second*30):
 		// the put operation should be exited before the timeout
@@ -268,11 +264,7 @@ func TestServerDown(t *testing.T) {
 
 	select {
 	case err := <-errCh:
-		timeOutErr, ok := err.(interface {
-			Timeout() bool
-		})
-		require.Truef(ok, "unexpected error type: %[1]v (%[1]T)", err)
-		require.True(timeOutErr.Timeout())
+		require.Error(err)
 		t.Logf("operation exited successfully")
 	case <-time.After(metaOpTimeout + time.Second*30):
 		// the Get operation should be exited before the timeout
