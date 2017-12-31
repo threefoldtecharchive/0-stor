@@ -24,8 +24,6 @@ import (
 	"testing"
 
 	"github.com/zero-os/0-stor/client/datastor"
-	storgrpc "github.com/zero-os/0-stor/client/datastor/grpc"
-	"github.com/zero-os/0-stor/client/itsyouonline"
 	"github.com/zero-os/0-stor/client/metastor/etcd"
 	"github.com/zero-os/0-stor/client/metastor/memory"
 	"github.com/zero-os/0-stor/client/pipeline"
@@ -93,22 +91,8 @@ func testGRPCServer(t testing.TB, n int) ([]*testServer, func()) {
 }
 
 func getTestClient(cfg Config) (*Client, datastor.Cluster, error) {
-	var (
-		err             error
-		datastorCluster datastor.Cluster
-	)
 	// create datastor cluster
-	if cfg.IYO != (itsyouonline.Config{}) {
-		var client *itsyouonline.Client
-		client, err = itsyouonline.NewClient(cfg.IYO)
-		if err == nil {
-			tokenGetter := jwtTokenGetterFromIYOClient(
-				cfg.IYO.Organization, client)
-			datastorCluster, err = storgrpc.NewCluster(cfg.DataStor.Shards, cfg.Namespace, tokenGetter)
-		}
-	} else {
-		datastorCluster, err = storgrpc.NewCluster(cfg.DataStor.Shards, cfg.Namespace, nil)
-	}
+	datastorCluster, err := createDataClusterFromConfig(&cfg)
 	if err != nil {
 		return nil, nil, err
 	}
