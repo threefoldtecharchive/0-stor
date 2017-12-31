@@ -60,14 +60,14 @@ func main() {
 	key := []byte("hi guys")
 
 	// store onto 0-stor
-	_, err = c.WriteF(key, bytes.NewReader(data))
+	err = c.Write(key, bytes.NewReader(data))
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// read the data
 	buf := bytes.NewBuffer(nil)
-	err = c.ReadF(key, buf)
+	err = c.Read(key, buf)
 	if err != nil {
 		log.Fatal(err)
 	}
