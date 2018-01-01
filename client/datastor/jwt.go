@@ -199,6 +199,16 @@ type jwtTokenCacheBucket struct {
 
 // GetJWTToken implements JWTTokenGetter.GetJWTToken
 func (b *jwtTokenCacheBucket) GetJWTToken(namespace string) (string, error) {
+	// The reason we choose to lock over the entire scope of this function,
+	// is such that we want to prevent that we hit the IYO webserver multiple times for the same token,
+	// as can be happen due to the async nature of our storage code,
+	// meaning that from multiple goroutines at once, for the same namespace (and even data),
+	// we might want to write to a zstordb server.
+	// If instead we would have just used a type that locks locally as part of `cache.Get`,
+	// those multiple goroutines would all think the token is not yet in the cache,
+	// and will all try to add it, and thus we would get multiple hits to the IYO webserver.
+	// Not sure if this is the best lock/cache strategy to go for,
+	// but hopefully this clarifies why we currently lock at such a high level.
 	b.cacheMux.Lock()
 	defer b.cacheMux.Unlock()
 
