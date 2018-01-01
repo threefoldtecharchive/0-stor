@@ -84,3 +84,5 @@ func TestReadConfigErrors(t *testing.T) {
 	require.Error(err, "invalid config")
 	require.Nil(cfg)
 }
+
+const testPrivateKeyPath = "../devcert/jwt_key.pem"

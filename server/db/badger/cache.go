@@ -46,6 +46,9 @@ type sequenceCache struct {
 }
 
 func (cache *sequenceCache) IncrementKey(scopeKey []byte) ([]byte, error) {
+	// TODO: research if there is a faster algorithm that we might
+	// want to use instead of the std ChecksumIEEE,
+	// for now this one is used, inspired by golang's semi-standard memcache.
 	index := crc32.ChecksumIEEE(scopeKey) % sequenceCacheBucketCount
 	seqIndex, err := cache.buckets[index].IncrementKey(scopeKey)
 	if err != nil {

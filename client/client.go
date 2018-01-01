@@ -51,22 +51,8 @@ type Client struct {
 // If JobCount is 0 or negative, the default JobCount will be used,
 // as defined by the pipeline package.
 func NewClientFromConfig(cfg Config, jobCount int) (*Client, error) {
-	var (
-		err             error
-		datastorCluster datastor.Cluster
-	)
 	// create datastor cluster
-	if cfg.IYO != (itsyouonline.Config{}) {
-		var client *itsyouonline.Client
-		client, err = itsyouonline.NewClient(cfg.IYO)
-		if err == nil {
-			tokenGetter := jwtTokenGetterFromIYOClient(
-				cfg.IYO.Organization, client)
-			datastorCluster, err = storgrpc.NewCluster(cfg.DataStor.Shards, cfg.Namespace, tokenGetter)
-		}
-	} else {
-		datastorCluster, err = storgrpc.NewCluster(cfg.DataStor.Shards, cfg.Namespace, nil)
-	}
+	datastorCluster, err := createDataClusterFromConfig(&cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -93,6 +79,35 @@ func NewClientFromConfig(cfg Config, jobCount int) (*Client, error) {
 		return nil, err
 	}
 	return NewClient(metastorClient, dataPipeline), nil
+}
+
+func createDataClusterFromConfig(cfg *Config) (datastor.Cluster, error) {
+	if cfg.IYO == (itsyouonline.Config{}) {
+		// create datastor cluster without the use of IYO-backed JWT Tokens,
+		// this will only work if all shards use zstordb servers that
+		// do not require any authentication
+		return storgrpc.NewCluster(cfg.DataStor.Shards, cfg.Namespace, nil)
+	}
+
+	// create IYO client
+	client, err := itsyouonline.NewClient(cfg.IYO)
+	if err != nil {
+		return nil, err
+	}
+
+	// create JWT Token Getter (Using the earlier created IYO Client)
+	tokenGetter, err := datastor.JWTTokenGetterUsingIYOClient(cfg.IYO.Organization, client)
+	if err != nil {
+		return nil, err
+	}
+	// create cached token getter from this getter, using the default bucket size and count
+	cachedTokenGetter, err := datastor.CachedJWTTokenGetter(tokenGetter, -1, -1)
+	if err != nil {
+		return nil, err
+	}
+
+	// create datastor cluster, with the use of IYO-backed JWT Tokens
+	return storgrpc.NewCluster(cfg.DataStor.Shards, cfg.Namespace, cachedTokenGetter)
 }
 
 // NewClient creates a 0-stor client,

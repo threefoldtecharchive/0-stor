@@ -98,17 +98,3 @@ var _ObjectStatusEnumToStringMapping = map[ObjectStatus]string{
 	ObjectStatusOK:        _ObjectStatusStrings[7:9],
 	ObjectStatusCorrupted: _ObjectStatusStrings[9:],
 }
-
-// JWTTokenGetter defines the interface of a type which can provide us
-// with a valid JWT token at all times.
-//
-// The implementation can return an error,
-// should it not be possible to return a valid JWT Token for whatever reason,
-// if no error is returned, it should be assumed that the returned value is valid.
-type JWTTokenGetter interface {
-	// GetJWTToken gets a cached JWT token or create a new JWT token should it be invalid.
-	GetJWTToken(namespace string) (string, error)
-
-	// GetLabel gets the label for the given namespace
-	GetLabel(namespace string) (string, error)
-}
