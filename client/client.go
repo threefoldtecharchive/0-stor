@@ -150,15 +150,15 @@ func NewClient(metaClient metastor.Client, dataPipeline pipeline.Pipeline) *Clie
 
 // Write writes the data to a 0-stor cluster,
 // storing the metadata using the internal metastor client.
-func (c *Client) Write(key []byte, r io.Reader) error {
+func (c *Client) Write(key []byte, r io.Reader) (*metastor.Metadata, error) {
 	if len(key) == 0 {
-		return ErrNilKey // ensure a key is given
+		return nil, ErrNilKey // ensure a key is given
 	}
 
 	// process and write the data
 	chunks, err := c.dataPipeline.Write(r)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// create new metadata, as we'll overwrite either way
@@ -176,14 +176,13 @@ func (c *Client) Write(key []byte, r io.Reader) error {
 	}
 
 	// store metadata
-	// TODO: If an error is returned...
-	//       what about stored data of currentMD,
-	//       shouldn't we delete it again?
-	return c.metastorClient.SetMetadata(md)
+	err = c.metastorClient.SetMetadata(md)
+	return &md, err
 }
 
 // Read reads the data, from the 0-stor cluster,
-// using the reference information fetched from the metadata (which is linked to the given key).
+// using the reference information fetched from the storage-retrieved metadata
+// (which is linked to the given key).
 func (c *Client) Read(key []byte, w io.Writer) error {
 	if len(key) == 0 {
 		return ErrNilKey // ensure a key is given
@@ -192,6 +191,12 @@ func (c *Client) Read(key []byte, w io.Writer) error {
 	if err != nil {
 		return err
 	}
+	return c.dataPipeline.Read(meta.Chunks, w)
+}
+
+// ReadWithMeta reads the data, from the 0-stor cluster,
+// using the reference information fetched from the given metadata.
+func (c *Client) ReadWithMeta(meta metastor.Metadata, w io.Writer) error {
 	return c.dataPipeline.Read(meta.Chunks, w)
 }
 
@@ -205,8 +210,15 @@ func (c *Client) Delete(key []byte) error {
 	if err != nil {
 		return err
 	}
+	return c.DeleteWithMeta(*meta)
+}
+
+// DeleteWithMeta deletes the data, from the 0-stor cluster,
+// using the reference information fetched from the given metadata
+// (which is linked to the given key).
+func (c *Client) DeleteWithMeta(meta metastor.Metadata) error {
 	// delete data
-	err = c.dataPipeline.Delete(meta.Chunks)
+	err := c.dataPipeline.Delete(meta.Chunks)
 	if err != nil {
 		return err
 	}
@@ -230,6 +242,15 @@ func (c *Client) Check(key []byte, fast bool) (storage.CheckStatus, error) {
 	return c.dataPipeline.Check(meta.Chunks, fast)
 }
 
+// CheckWithMeta gets the status of data stored in a 0-stor cluster.
+// It does so using the chunks stored as metadata, after fetching those, using the metastor client.
+// If the metadata cannot be fetched or the status of a/the data chunk(s) cannot be retrieved,
+// an error will be returned. Otherwise CheckStatusInvalid indicates the data is invalid and non-repairable,
+// Any other value indicates the data is readable, but if it's not optimal, it could use a repair.
+func (c *Client) CheckWithMeta(meta metastor.Metadata, fast bool) (storage.CheckStatus, error) {
+	return c.dataPipeline.Check(meta.Chunks, fast)
+}
+
 // Repair repairs broken data, whether it's needed or not.
 //
 // If the data is distributed and the amount of corrupted chunks is acceptable,
@@ -240,9 +261,9 @@ func (c *Client) Check(key []byte, fast bool) (storage.CheckStatus, error) {
 //
 // if the data has not been distributed or replicated, we can't repair it,
 // or if not enough shards are available we cannot repair it either.
-func (c *Client) Repair(key []byte) error {
+func (c *Client) Repair(key []byte) (*metastor.Metadata, error) {
 	if len(key) == 0 {
-		return ErrNilKey // ensure a key is given
+		return nil, ErrNilKey // ensure a key is given
 	}
 
 	// because of conflicts, the callback might be called multiple times,
@@ -252,7 +273,7 @@ func (c *Client) Repair(key []byte) error {
 		totalSizeAfterRepair int64
 		repairEpoch          int64
 	)
-	_, err := c.metastorClient.UpdateMetadata(key,
+	return c.metastorClient.UpdateMetadata(key,
 		func(meta metastor.Metadata) (*metastor.Metadata, error) {
 			// repair if not yet repaired
 			if repairEpoch == 0 {
@@ -286,7 +307,6 @@ func (c *Client) Repair(key []byte) error {
 			// return the updated metadata
 			return &meta, nil
 		})
-	return err
 }
 
 // Close the client and all its used (internal/indirect) resources.

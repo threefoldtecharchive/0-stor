@@ -189,7 +189,7 @@ func TestRoundTripGRPC(t *testing.T) {
 
 			// write data to the store
 			key := []byte("testkey")
-			err = c.Write(key, bytes.NewReader(data))
+			_, err = c.Write(key, bytes.NewReader(data))
 			require.NoError(t, err, "fail to write data to the store")
 
 			// b, err := json.Marshal(meta)
@@ -249,7 +249,7 @@ func TestBlocksizes(t *testing.T) {
 
 			// write data to the store
 			key := []byte(fmt.Sprintf("testkey-%d", i))
-			err = c.Write(key, bytes.NewReader(data))
+			_, err = c.Write(key, bytes.NewReader(data))
 			require.NoError(t, err, "fail to write data to the store")
 
 			// read data back
@@ -290,7 +290,7 @@ func TestMultipleDownload_Issue208(t *testing.T) {
 	require.NoError(t, err, "fail to read random data")
 	key := []byte("testkey")
 
-	err = c.Write(key, bytes.NewReader(data))
+	_, err = c.Write(key, bytes.NewReader(data))
 	require.NoError(t, err, "fail write data")
 
 	buf := bytes.NewBuffer(nil)
@@ -328,7 +328,7 @@ func TestConcurrentWriteRead(t *testing.T) {
 		require.NoError(t, err, "fail to read random data")
 		key := []byte(fmt.Sprintf("testkey-%d", i))
 
-		err = c.Write(key, bytes.NewReader(data))
+		_, err = c.Write(key, bytes.NewReader(data))
 		require.NoError(t, err, "fail write data")
 
 		buf := bytes.NewBuffer(nil)
@@ -401,7 +401,7 @@ func BenchmarkWriteFilesSizes(b *testing.B) {
 
 			for i := 0; i < b.N; i++ {
 				// write data to the store
-				err = c.Write(key, bytes.NewReader(data))
+				_, err = c.Write(key, bytes.NewReader(data))
 				require.NoError(b, err, "fail to write data to the store")
 			}
 		})
@@ -431,7 +431,7 @@ func TestIssue225(t *testing.T) {
 	require.NoError(t, err, "fail to read random data")
 	key := []byte("testkey")
 
-	err = c.Write(key, bytes.NewReader(data))
+	_, err = c.Write(key, bytes.NewReader(data))
 	require.NoError(t, err, "fail write data")
 
 	buf := bytes.NewBuffer(nil)
@@ -483,7 +483,7 @@ func TestClientCheck(t *testing.T) {
 	require.NoError(t, err, "fail to read random data")
 	key := []byte("testkey")
 
-	err = c.Write(key, bytes.NewReader(data))
+	_, err = c.Write(key, bytes.NewReader(data))
 	require.NoError(t, err, "fail write data")
 
 	// Check status is ok after a write
@@ -573,7 +573,7 @@ func testRepair(t *testing.T, config Config, repairErr error) {
 	_, err = rand.Read(key)
 	require.NoError(t, err, "fail to read random key")
 
-	err = c.Write(key, bytes.NewReader(data))
+	_, err = c.Write(key, bytes.NewReader(data))
 	require.NoError(t, err, "fail write data")
 
 	meta, err := c.metastorClient.GetMetadata(key)
@@ -601,7 +601,7 @@ func testRepair(t *testing.T, config Config, repairErr error) {
 	require.True(t, status == storage.CheckStatusValid || status == storage.CheckStatusInvalid)
 
 	// try to repair
-	err = c.Repair(meta.Key)
+	repairMeta, err := c.Repair(meta.Key)
 	if repairErr != nil {
 		require.Error(t, repairErr, err)
 		return
@@ -609,16 +609,14 @@ func testRepair(t *testing.T, config Config, repairErr error) {
 	require.NoError(t, err)
 
 	// ensure the last-write epoch is updated
-	fetchedMeta, err := c.metastorClient.GetMetadata(meta.Key)
 	require.NoError(t, err)
-	require.NotNil(t, fetchedMeta)
-	require.True(t, fetchedMeta.LastWriteEpoch != 0 && fetchedMeta.LastWriteEpoch != lastWriteEpoch)
-
-	require.Equal(t, meta.Key, fetchedMeta.Key)
+	require.NotNil(t, repairMeta)
+	require.True(t, repairMeta.LastWriteEpoch != 0 && repairMeta.LastWriteEpoch != lastWriteEpoch)
+	require.Equal(t, meta.Key, repairMeta.Key)
 
 	// make sure we can read the data again
 	buf := bytes.NewBuffer(nil)
-	err = c.Read(fetchedMeta.Key, buf)
+	err = c.Read(repairMeta.Key, buf)
 	require.NoError(t, err)
 	readData := buf.Bytes()
 	require.Equal(t, data, readData, "restored data is not the same as initial data")
@@ -638,11 +636,11 @@ func TestClient_ExplicitErrors(t *testing.T) {
 	require.NoError(err)
 	defer cli.Close()
 
-	err = cli.Write(nil, nil)
+	_, err = cli.Write(nil, nil)
 	require.Error(err, "no key or reader given")
-	err = cli.Write([]byte("foo"), nil)
+	_, err = cli.Write([]byte("foo"), nil)
 	require.Error(err, "no reader given")
-	err = cli.Write(nil, bytes.NewReader(nil))
+	_, err = cli.Write(nil, bytes.NewReader(nil))
 	require.Error(err, "no key given")
 
 	err = cli.Read(nil, nil)
@@ -656,7 +654,7 @@ func TestClient_ExplicitErrors(t *testing.T) {
 	_, err = cli.Check(nil, false)
 	require.Error(err, "no key given")
 
-	err = cli.Repair(nil)
+	_, err = cli.Repair(nil)
 	require.Error(err, "no key given")
 
 	require.NoError(cli.Close())

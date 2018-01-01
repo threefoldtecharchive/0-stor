@@ -42,15 +42,15 @@ func TestClient_WriteLinkedErrors(t *testing.T) {
 	require := require.New(t)
 	require.NoError(err)
 
-	err = cli.WriteLinked(nil, []byte("bar"), bytes.NewReader(nil))
+	_, _, err = cli.WriteLinked(nil, []byte("bar"), bytes.NewReader(nil))
 	require.Error(err, "no key given")
-	err = cli.WriteLinked([]byte("foo"), nil, bytes.NewReader(nil))
+	_, _, err = cli.WriteLinked([]byte("foo"), nil, bytes.NewReader(nil))
 	require.Error(err, "no prev-key given")
-	err = cli.WriteLinked(nil, nil, bytes.NewReader(nil))
+	_, _, err = cli.WriteLinked(nil, nil, bytes.NewReader(nil))
 	require.Error(err, "no key or prev-key given")
-	err = cli.WriteLinked([]byte("foo"), []byte("bar"), nil)
+	_, _, err = cli.WriteLinked([]byte("foo"), []byte("bar"), nil)
 	require.Error(err, "no reader given")
-	err = cli.WriteLinked(nil, nil, nil)
+	_, _, err = cli.WriteLinked(nil, nil, nil)
 	require.Error(err, "nothing given")
 }
 
@@ -66,11 +66,11 @@ func TestClient_WriteLinked(t *testing.T) {
 	require := require.New(t)
 	require.NoError(err)
 
-	err = cli.Write([]byte{'a'}, strings.NewReader("foo"))
+	_, err = cli.Write([]byte{'a'}, strings.NewReader("foo"))
 	require.NoError(err)
-	err = cli.WriteLinked([]byte{'b'}, []byte{'a'}, strings.NewReader("bar"))
+	_, _, err = cli.WriteLinked([]byte{'b'}, []byte{'a'}, strings.NewReader("bar"))
 	require.NoError(err)
-	err = cli.WriteLinked([]byte{'c'}, []byte{'b'}, strings.NewReader("baz"))
+	_, _, err = cli.WriteLinked([]byte{'c'}, []byte{'b'}, strings.NewReader("baz"))
 	require.NoError(err)
 
 	md, err := cli.metastorClient.GetMetadata([]byte{'a'})
@@ -181,9 +181,9 @@ func testTraverse(t *testing.T, forward bool) {
 
 	for i, key := range keys {
 		if prevKey == nil {
-			err = cli.Write(key, bytes.NewReader(values[i]))
+			_, err = cli.Write(key, bytes.NewReader(values[i]))
 		} else {
-			err = cli.WriteLinked(key, prevKey, bytes.NewReader(values[i]))
+			_, _, err = cli.WriteLinked(key, prevKey, bytes.NewReader(values[i]))
 		}
 		require.NoError(t, err)
 		prevKey = key

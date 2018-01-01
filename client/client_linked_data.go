@@ -84,25 +84,23 @@ type TraverseIterator interface {
 // This method is to be considered EXPERIMENTAL,
 // and might be moved or changed in a future milestone.
 // See https://github.com/zero-os/0-stor/issues/424 for more information.
-func (c *Client) WriteLinked(key, prevKey []byte, r io.Reader) error {
+func (c *Client) WriteLinked(key, prevKey []byte, r io.Reader) (meta, prevMeta *metastor.Metadata, err error) {
 	if len(key) == 0 {
-		return ErrNilKey // ensure a key is given
+		return nil, nil, ErrNilKey // ensure a key is given
 	}
 	if len(prevKey) == 0 {
 		// ensure a prevKey is given
 		// this is not optional here,
 		// if you don't want prevKey you should use the Write method
-		return ErrNilKey
+		return nil, nil, ErrNilKey
 	}
 
 	// ensure the prevmetadata exists, and lock it until we've updated it,
-	// however we want to make sure that we only create+store the current metadata once,
-	// hence why we have the created bool
-	var created bool
-	_, err := c.metastorClient.UpdateMetadata(prevKey,
+	// however we want to make sure that we only create+store the current metadata once
+	prevMeta, err = c.metastorClient.UpdateMetadata(prevKey,
 		func(prevMetadata metastor.Metadata) (*metastor.Metadata, error) {
 			// create the current metadata, should it not be created yet
-			if !created {
+			if meta == nil {
 				// process and write the data
 				chunks, err := c.dataPipeline.Write(r)
 				if err != nil {
@@ -111,7 +109,7 @@ func (c *Client) WriteLinked(key, prevKey []byte, r io.Reader) error {
 
 				// create new metadata, as we'll overwrite either way
 				now := EpochNow()
-				md := metastor.Metadata{
+				meta = &metastor.Metadata{
 					Key:            key,
 					CreationEpoch:  now,
 					LastWriteEpoch: now,
@@ -119,27 +117,23 @@ func (c *Client) WriteLinked(key, prevKey []byte, r io.Reader) error {
 				}
 
 				// set/update chunks and size in metadata
-				md.Chunks = chunks
+				meta.Chunks = chunks
 				for _, chunk := range chunks {
-					md.Size += chunk.Size
+					meta.Size += chunk.Size
 				}
 
 				// store current metadata
-				err = c.metastorClient.SetMetadata(md)
+				err = c.metastorClient.SetMetadata(*meta)
 				if err != nil {
 					return nil, err
 				}
-
-				// toggle the created boolean to true,
-				// so that we don't have to create this metadata again
-				created = true
 			}
 
 			// do the actual update of the prevMetadata
 			prevMetadata.NextKey = key
 			return &prevMetadata, nil
 		})
-	return err
+	return meta, prevMeta, err
 }
 
 // Traverse traverses the stored (meta)data,

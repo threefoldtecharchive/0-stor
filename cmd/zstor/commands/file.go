@@ -74,7 +74,7 @@ var fileUploadCmd = &cobra.Command{
 		}
 
 		// upload the content from the input reader as the given/set key
-		err = cl.Write([]byte(key), input)
+		_, err = cl.Write([]byte(key), input)
 		if err != nil {
 			return fmt.Errorf("uploading data from %q as %q failed: %v", inputName, key, err)
 		}
@@ -205,7 +205,7 @@ var fileRepairCmd = &cobra.Command{
 
 		key := args[0]
 
-		err = cl.Repair([]byte(key))
+		_, err = cl.Repair([]byte(key))
 		if err != nil {
 			return fmt.Errorf("repair file %q failed: %v", key, err)
 		}
