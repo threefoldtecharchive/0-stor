@@ -92,7 +92,7 @@ func testGRPCServer(t testing.TB, n int) ([]*testServer, func()) {
 
 func getTestClient(cfg Config) (*Client, datastor.Cluster, error) {
 	// create datastor cluster
-	datastorCluster, err := createDataClusterFromConfig(&cfg)
+	datastorCluster, err := createDataClusterFromConfig(&cfg, false)
 	if err != nil {
 		return nil, nil, err
 	}

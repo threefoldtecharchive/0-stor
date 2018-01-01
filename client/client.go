@@ -46,13 +46,30 @@ type Client struct {
 	metastorClient metastor.Client
 }
 
-// NewClientFromConfig creates new 0-stor client using the given config.
+// NewClientFromConfig creates new 0-stor client using the given config,
+// with (JWT Token) caching enabled only if required.
+//
+// JWT Token caching is required only if IYO credentials have been configured
+// in the given config, which are to be used to create tokens using the IYO Web API.
 //
 // If JobCount is 0 or negative, the default JobCount will be used,
 // as defined by the pipeline package.
 func NewClientFromConfig(cfg Config, jobCount int) (*Client, error) {
+	return newClientFromConfig(&cfg, jobCount, true)
+}
+
+// NewClientFromConfigWithoutCaching creates new 0-stor client using the given config,
+// and with (JWT Token) caching disabled.
+//
+// If JobCount is 0 or negative, the default JobCount will be used,
+// as defined by the pipeline package.
+func NewClientFromConfigWithoutCaching(cfg Config, jobCount int) (*Client, error) {
+	return newClientFromConfig(&cfg, jobCount, false)
+}
+
+func newClientFromConfig(cfg *Config, jobCount int, enableCaching bool) (*Client, error) {
 	// create datastor cluster
-	datastorCluster, err := createDataClusterFromConfig(&cfg)
+	datastorCluster, err := createDataClusterFromConfig(cfg, enableCaching)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +98,7 @@ func NewClientFromConfig(cfg Config, jobCount int) (*Client, error) {
 	return NewClient(metastorClient, dataPipeline), nil
 }
 
-func createDataClusterFromConfig(cfg *Config) (datastor.Cluster, error) {
+func createDataClusterFromConfig(cfg *Config, enableCaching bool) (datastor.Cluster, error) {
 	if cfg.IYO == (itsyouonline.Config{}) {
 		// create datastor cluster without the use of IYO-backed JWT Tokens,
 		// this will only work if all shards use zstordb servers that
@@ -95,19 +112,23 @@ func createDataClusterFromConfig(cfg *Config) (datastor.Cluster, error) {
 		return nil, err
 	}
 
+	var tokenGetter datastor.JWTTokenGetter
 	// create JWT Token Getter (Using the earlier created IYO Client)
-	tokenGetter, err := datastor.JWTTokenGetterUsingIYOClient(cfg.IYO.Organization, client)
-	if err != nil {
-		return nil, err
-	}
-	// create cached token getter from this getter, using the default bucket size and count
-	cachedTokenGetter, err := datastor.CachedJWTTokenGetter(tokenGetter, -1, -1)
+	tokenGetter, err = datastor.JWTTokenGetterUsingIYOClient(cfg.IYO.Organization, client)
 	if err != nil {
 		return nil, err
 	}
 
+	if enableCaching {
+		// create cached token getter from this getter, using the default bucket size and count
+		tokenGetter, err = datastor.CachedJWTTokenGetter(tokenGetter, -1, -1)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// create datastor cluster, with the use of IYO-backed JWT Tokens
-	return storgrpc.NewCluster(cfg.DataStor.Shards, cfg.Namespace, cachedTokenGetter)
+	return storgrpc.NewCluster(cfg.DataStor.Shards, cfg.Namespace, tokenGetter)
 }
 
 // NewClient creates a 0-stor client,
