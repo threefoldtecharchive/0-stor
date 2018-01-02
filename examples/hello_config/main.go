@@ -46,7 +46,7 @@ func main() {
 	key := []byte("hi guys")
 
 	// store onto 0-stor
-	err = c.Write(key, bytes.NewReader(data))
+	_, err = c.Write(key, bytes.NewReader(data))
 	if err != nil {
 		log.Fatal(err)
 	}
