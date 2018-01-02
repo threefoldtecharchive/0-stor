@@ -77,6 +77,7 @@ func (c *Client) CreateJWT(namespace string, perm Permission) (string, error) {
 		"grant_type":    "client_credentials",
 		"client_id":     c.cfg.ApplicationID,
 		"client_secret": c.cfg.ApplicationSecret,
+		"validity":      "300", // 5 minutes, expressed in seconds
 	}
 
 	// build scopes query
