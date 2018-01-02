@@ -65,7 +65,7 @@
   branch = "master"
   name = "github.com/dgraph-io/badger"
   packages = [".","options","protos","skl","table","y"]
-  revision = "9e707c0f2074afbd43bcd11d058fed6ca7609105"
+  revision = "05c461659d9dd8579a5d26175fbb454e9dca6cf1"
 
 [[projects]]
   name = "github.com/dgrijalva/jwt-go"
