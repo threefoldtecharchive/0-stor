@@ -46,25 +46,29 @@ type DB struct {
 
 // New creates new badger DB with default options
 func New(data, meta string) (*DB, error) {
+	if len(data) == 0 {
+		panic("no data directory defined")
+	}
+	if len(meta) == 0 {
+		panic("no meta directory defined")
+	}
 	opts := badgerdb.DefaultOptions
 	opts.SyncWrites = true
-	return NewWithOpts(data, meta, opts)
+	opts.Dir, opts.ValueDir = meta, data
+	return NewWithOpts(opts)
 }
 
 // NewWithOpts creates new badger DB with own options
-func NewWithOpts(data, meta string, opts badgerdb.Options) (*DB, error) {
-	if err := os.MkdirAll(meta, 0774); err != nil {
-		log.Errorf("Meta dir %q couldn't be created: %v", meta, err)
+func NewWithOpts(opts badgerdb.Options) (*DB, error) {
+	if err := os.MkdirAll(opts.Dir, 0774); err != nil {
+		log.Errorf("Meta dir %q couldn't be created: %v", opts.Dir, err)
 		return nil, err
 	}
 
-	if err := os.MkdirAll(data, 0774); err != nil {
-		log.Errorf("Data dir %q couldn't be created: %v", data, err)
+	if err := os.MkdirAll(opts.ValueDir, 0774); err != nil {
+		log.Errorf("Data dir %q couldn't be created: %v", opts.ValueDir, err)
 		return nil, err
 	}
-
-	opts.Dir = meta
-	opts.ValueDir = data
 
 	db, err := badgerdb.Open(opts)
 	if err != nil {

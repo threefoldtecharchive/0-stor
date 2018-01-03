@@ -31,7 +31,7 @@ import (
 	"github.com/zero-os/0-stor/server/jwt"
 
 	log "github.com/Sirupsen/logrus"
-	badgerkv "github.com/dgraph-io/badger"
+	badgerdb "github.com/dgraph-io/badger"
 	"github.com/pkg/profile"
 	"github.com/spf13/cobra"
 )
@@ -64,10 +64,12 @@ var rootCmd = &cobra.Command{
 func rootFunc(*cobra.Command, []string) error {
 	cmd.LogVersion()
 
-	dbOpts := badgerkv.DefaultOptions
+	dbOpts := badgerdb.DefaultOptions
 	dbOpts.SyncWrites = !rootCfg.AsyncWrite
+	dbOpts.Dir = rootCfg.DB.Dirs.Meta
+	dbOpts.ValueDir = rootCfg.DB.Dirs.Data
 
-	db, err := badger.NewWithOpts(rootCfg.DB.Dirs.Data, rootCfg.DB.Dirs.Meta, dbOpts)
+	db, err := badger.NewWithOpts(dbOpts)
 	if err != nil {
 		log.Errorf("error while opening database files: %v", err)
 		return err

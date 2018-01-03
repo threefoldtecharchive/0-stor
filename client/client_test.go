@@ -24,7 +24,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/zero-os/0-stor/client/metastor/memory"
+	"github.com/zero-os/0-stor/client/metastor/test"
 	"github.com/zero-os/0-stor/client/pipeline"
 	"github.com/zero-os/0-stor/client/pipeline/processing"
 	"github.com/zero-os/0-stor/client/pipeline/storage"
@@ -65,7 +65,7 @@ func TestNewClientPanics(t *testing.T) {
 		NewClient(nil, new(pipeline.SingleObjectPipeline))
 	}, "no metastor client given")
 	require.Panics(func() {
-		NewClient(memory.NewClient(), nil)
+		NewClient(test.NewClient(), nil)
 	}, "no data pipeline given")
 }
 
