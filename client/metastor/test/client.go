@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package memory
+package test
 
 import (
 	"context"
@@ -32,13 +32,13 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func TestRoundTrip(t *testing.T) {
+// RoundTrip simply tests test the client's set-get-delete cycle
+// for all kinds of metadata.
+func RoundTrip(t *testing.T, c metastor.Client) {
 	assert := assert.New(t)
 	require := require.New(t)
 
-	c := NewClient()
 	require.NotNil(c)
-	defer c.Close()
 
 	// prepare the data
 	md := metastor.Metadata{
@@ -104,12 +104,11 @@ func TestRoundTrip(t *testing.T) {
 	require.Equal(metastor.ErrNotFound, err)
 }
 
-func TestClientNilKeys(t *testing.T) {
+// ClientNilKeys tests that the given client
+// returns the correct ErrNilKey error when no key is given
+// for the given functions.
+func ClientNilKeys(t *testing.T, c metastor.Client) {
 	require := require.New(t)
-
-	c := NewClient()
-	require.NotNil(c)
-	defer c.Close()
 
 	_, err := c.GetMetadata(nil)
 	require.Equal(metastor.ErrNilKey, err)
@@ -117,16 +116,18 @@ func TestClientNilKeys(t *testing.T) {
 	err = c.SetMetadata(metastor.Metadata{})
 	require.Equal(metastor.ErrNilKey, err)
 
+	_, err = c.UpdateMetadata(nil,
+		func(metastor.Metadata) (*metastor.Metadata, error) { return nil, nil })
+	require.Equal(metastor.ErrNilKey, err)
+
 	err = c.DeleteMetadata(nil)
 	require.Equal(metastor.ErrNilKey, err)
 }
 
-func TestClientUpdate(t *testing.T) {
+// ClientUpdate tests that the given function
+// can Update existing metadata in a synchronous scenario.
+func ClientUpdate(t *testing.T, c metastor.Client) {
 	require := require.New(t)
-
-	c := NewClient()
-	require.NotNil(c)
-	defer c.Close()
 
 	require.Panics(func() {
 		c.UpdateMetadata([]byte("foo"), nil)
@@ -163,15 +164,13 @@ func TestClientUpdate(t *testing.T) {
 	require.Equal(int64(42), md.Size)
 }
 
-func TestClientUpdateAsync(t *testing.T) {
+// ClientUpdateAsync tests that the given function
+// can Update existing metadata in an asynchronous scenario.
+func ClientUpdateAsync(t *testing.T, c metastor.Client) {
 	require := require.New(t)
 
-	c := NewClient()
-	require.NotNil(c)
-	defer c.Close()
-
 	const (
-		jobs = 1024
+		jobs = 128
 	)
 	var (
 		err error

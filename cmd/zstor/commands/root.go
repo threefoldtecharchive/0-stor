@@ -80,7 +80,7 @@ func getMetaClient() (metastor.Client, error) {
 	if len(cfg.MetaStor.Shards) == 0 {
 		return nil, errors.New("failed to create metastor client: no metastor shards defined")
 	}
-	return etcd.NewClient(cfg.MetaStor.Shards)
+	return etcd.NewClient(cfg.MetaStor.Shards, nil)
 }
 
 func getNamespaceManager() (*itsyouonline.Client, error) {

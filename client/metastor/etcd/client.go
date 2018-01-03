@@ -30,23 +30,27 @@ import (
 )
 
 // NewClient creates new Metadata client, using an ETCD cluster as storage medium.
-// This default constructor uses Proto for the (un)marshaling of metadata values.
-func NewClient(endpoints []string) (*Client, error) {
-	return NewClientWithEncoding(endpoints, proto.MarshalMetadata, proto.UnmarshalMetadata)
-}
-
-// NewClientWithEncoding creates new Metadata client, using an ETCD cluster as storage medium.
-// This constructor allows you to use any valid marshal/unmarshal pair.
-// All parameters are required.
-func NewClientWithEncoding(endpoints []string, marshal encoding.MarshalMetadata, unmarshal encoding.UnmarshalMetadata) (*Client, error) {
+// The encoding pair of functions is optional, and if nil,
+// Proto Marshal/Unmarshal funcs are used for the (un)marshaling of metadata values.
+//
+// Note that if a pair is defined,
+// NewClient will panic if the Marshal and/or Unmarshal func(s) are undefined/nil.
+func NewClient(endpoints []string, pair *encoding.MarshalFuncPair) (*Client, error) {
 	if len(endpoints) == 0 {
 		panic("no endpoints given")
 	}
-	if marshal == nil {
-		panic("no metadata-marshal func given")
-	}
-	if unmarshal == nil {
-		panic("no metadata-unmarshal func given")
+	if pair != nil {
+		if pair.Marshal == nil {
+			panic("defined MarshalFuncPair is missing a marshal func")
+		}
+		if pair.Unmarshal == nil {
+			panic("defined MarshalFuncPair is missing an unmarshal func")
+		}
+	} else {
+		pair = &encoding.MarshalFuncPair{
+			Marshal:   proto.MarshalMetadata,
+			Unmarshal: proto.UnmarshalMetadata,
+		}
 	}
 
 	cli, err := clientv3.New(clientv3.Config{
@@ -58,8 +62,8 @@ func NewClientWithEncoding(endpoints []string, marshal encoding.MarshalMetadata,
 	}
 	return &Client{
 		etcdClient: cli,
-		marshal:    marshal,
-		unmarshal:  unmarshal,
+		marshal:    pair.Marshal,
+		unmarshal:  pair.Unmarshal,
 	}, nil
 }
 
@@ -183,12 +187,6 @@ func (c *Client) DeleteMetadata(key []byte) error {
 // Close implements metastor.Client.Close
 func (c *Client) Close() error {
 	return c.etcdClient.Close()
-}
-
-// Endpoints returns the ETCD endpoints from the ETCD cluster
-// used by this client.
-func (c *Client) Endpoints() []string {
-	return c.etcdClient.Endpoints()
 }
 
 const (

@@ -25,7 +25,7 @@ import (
 
 	"github.com/zero-os/0-stor/client/datastor"
 	"github.com/zero-os/0-stor/client/metastor/etcd"
-	"github.com/zero-os/0-stor/client/metastor/memory"
+	"github.com/zero-os/0-stor/client/metastor/test"
 	"github.com/zero-os/0-stor/client/pipeline"
 	"github.com/zero-os/0-stor/server/api"
 	"github.com/zero-os/0-stor/server/api/grpc"
@@ -105,12 +105,12 @@ func getTestClient(cfg Config) (*Client, datastor.Cluster, error) {
 
 	// if no metadata shards are given, we'll use a memory client
 	if len(cfg.MetaStor.Shards) == 0 {
-		return NewClient(memory.NewClient(), dataPipeline), datastorCluster, nil
+		return NewClient(test.NewClient(), dataPipeline), datastorCluster, nil
 	}
 
 	// create metastor client first,
 	// and than create our master 0-stor client with all features.
-	metastorClient, err := etcd.NewClient(cfg.MetaStor.Shards)
+	metastorClient, err := etcd.NewClient(cfg.MetaStor.Shards, nil)
 	if err != nil {
 		return nil, nil, err
 	}

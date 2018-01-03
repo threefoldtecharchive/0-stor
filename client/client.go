@@ -91,7 +91,7 @@ func newClientFromConfig(cfg *Config, jobCount int, enableCaching bool) (*Client
 
 	// create metastor client first,
 	// and than create our master 0-stor client with all features.
-	metastorClient, err := etcd.NewClient(cfg.MetaStor.Shards)
+	metastorClient, err := etcd.NewClient(cfg.MetaStor.Shards, nil)
 	if err != nil {
 		return nil, err
 	}
