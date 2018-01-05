@@ -30,7 +30,7 @@ import (
 var (
 	// CurrentVersion represents the current global
 	// version of the zerostor modules
-	CurrentVersion = NewVersion(1, 1, 0, versionLabel("beta-2"))
+	CurrentVersion = NewVersion(1, 1, 0, versionLabel("beta-3"))
 	// NilVersion represents the Nil Version.
 	NilVersion = Version{}
 	// CommitHash represents the Git commit hash at built time
