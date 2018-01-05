@@ -46,7 +46,7 @@ test: testserver testclient testdaemon testcmd
 testcov:
 	utils/scripts/coverage_test.sh
 
-testrace: testserverrace testclientrace
+testrace: testserverrace testclientrace testdaemonrace
 
 testserver:
 	go test -v -timeout $(TIMEOUT) $(SERVER_PACKAGES)
@@ -97,4 +97,4 @@ prune_deps:
 $(OUTPUT):
 	mkdir -p $(OUTPUT)
 
-.PHONY: $(OUTPUT) client server install test testcov testrace testserver testclient testcmd testserverrace testclientrace testcodegen ensure_deps add_dep update_dep update_deps prune_deps
+.PHONY: $(OUTPUT) client server install test testcov testrace testserver testclient testdaemon testcmd testserverrace testclientrace testdaemonrace testcodegen ensure_deps add_dep update_dep update_deps prune_deps

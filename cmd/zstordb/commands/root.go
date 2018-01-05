@@ -56,7 +56,7 @@ var rootCmd = &cobra.Command{
 			log.Debug("Debug logging enabled")
 		}
 		if rootCfg.AuthDisabled {
-			log.Warning("!! Authentification disabled, don't use this mode for production!!!")
+			log.Warning("!! Authentication disabled, don't use this mode for production!!!")
 		}
 	},
 }
@@ -85,10 +85,6 @@ func rootFunc(*cobra.Command, []string) error {
 		log.Errorf("error while creating database layer: %v", err)
 		return err
 	}
-	defer func() {
-		log.Println("Gracefully closing zstordb")
-		storServer.Close()
-	}()
 
 	if rootCfg.ProfileAddress != "" {
 		go func() {
@@ -160,7 +156,7 @@ func rootFunc(*cobra.Command, []string) error {
 	case err := <-errChan:
 		return err
 	case <-sigChan:
-		return nil
+		return storServer.Close()
 	}
 }
 

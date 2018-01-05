@@ -2,49 +2,68 @@
 // source: schema/daemon.proto
 
 /*
-	Package proxy is a generated protocol buffer package.
+	Package schema is a generated protocol buffer package.
 
 	It is generated from these files:
 		schema/daemon.proto
 
 	It has these top-level messages:
 		Permission
-		CreateJWTRequest
-		CreateJWTReply
-		NamespaceRequest
-		NamespaceReply
-		EditPermissionRequest
-		EditPermissionReply
+		CreateNamespaceRequest
+		CreateNamespaceResponse
+		DeleteNamespaceRequest
+		DeleteNamespaceResponse
+		SetPermissionRequest
+		SetPermissionResponse
 		GetPermissionRequest
-		GetPermissionReply
+		GetPermissionResponse
+		Metadata
 		Chunk
-		Meta
+		Object
 		WriteRequest
-		WriteReply
+		WriteResponse
 		WriteFileRequest
-		WriteFileReply
+		WriteFileResponse
 		WriteStreamRequest
-		WriteStreamReply
+		WriteStreamResponse
 		ReadRequest
-		ReadReply
+		ReadResponse
 		ReadFileRequest
-		ReadFileReply
+		ReadFileResponse
 		ReadStreamRequest
-		ReadStreamReply
+		ReadStreamResponse
 		DeleteRequest
-		DeleteReply
-		WalkRequest
-		WalkReply
-		AppendReferenceListRequest
-		RemoveReferenceListRequest
-		AppendReferenceListReply
-		RemoveReferenceListReply
+		DeleteResponse
 		CheckRequest
-		CheckReply
+		CheckResponse
 		RepairRequest
-		RepairReply
+		RepairResponse
+		SetMetadataRequest
+		SetMetadataResponse
+		GetMetadataRequest
+		GetMetadataResponse
+		DeleteMetadataRequest
+		DeleteMetadataResponse
+		DataWriteRequest
+		DataWriteResponse
+		DataWriteFileRequest
+		DataWriteFileResponse
+		DataWriteStreamRequest
+		DataWriteStreamResponse
+		DataReadRequest
+		DataReadResponse
+		DataReadFileRequest
+		DataReadFileResponse
+		DataReadStreamRequest
+		DataReadStreamResponse
+		DataDeleteRequest
+		DataDeleteResponse
+		DataCheckRequest
+		DataCheckResponse
+		DataRepairRequest
+		DataRepairResponse
 */
-package proxy
+package schema
 
 import proto "github.com/gogo/protobuf/proto"
 import fmt "fmt"
@@ -74,31 +93,54 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
 
-type CheckReply_Status int32
+type CheckStatus int32
 
 const (
-	CheckReplyStatusInvalid CheckReply_Status = 0
-	CheckReplyStatusValid   CheckReply_Status = 1
-	CheckReplyStatusOptimal CheckReply_Status = 2
+	CheckStatusInvalid CheckStatus = 0
+	CheckStatusValid   CheckStatus = 1
+	CheckStatusOptimal CheckStatus = 2
 )
 
-var CheckReply_Status_name = map[int32]string{
+var CheckStatus_name = map[int32]string{
 	0: "invalid",
 	1: "valid",
 	2: "optimal",
 }
-var CheckReply_Status_value = map[string]int32{
+var CheckStatus_value = map[string]int32{
 	"invalid": 0,
 	"valid":   1,
 	"optimal": 2,
 }
 
-func (CheckReply_Status) EnumDescriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{32, 0} }
+func (CheckStatus) EnumDescriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{0} }
 
-// IYO permission
+type FileMode int32
+
+const (
+	// if the file already exists, truncate it to 0 bytes prior to writing
+	FileModeTruncate FileMode = 0
+	// append to the file should it already exists, otherwise create it
+	FileModeAppend FileMode = 1
+	// create a non-existing file and write to it
+	FileModeExclusive FileMode = 2
+)
+
+var FileMode_name = map[int32]string{
+	0: "truncate",
+	1: "append",
+	2: "exclusive",
+}
+var FileMode_value = map[string]int32{
+	"truncate":  0,
+	"append":    1,
+	"exclusive": 2,
+}
+
+func (FileMode) EnumDescriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{1} }
+
 type Permission struct {
-	Write  bool `protobuf:"varint,1,opt,name=write,proto3" json:"write,omitempty"`
-	Read   bool `protobuf:"varint,2,opt,name=read,proto3" json:"read,omitempty"`
+	Read   bool `protobuf:"varint,1,opt,name=read,proto3" json:"read,omitempty"`
+	Write  bool `protobuf:"varint,2,opt,name=write,proto3" json:"write,omitempty"`
 	Delete bool `protobuf:"varint,3,opt,name=delete,proto3" json:"delete,omitempty"`
 	Admin  bool `protobuf:"varint,4,opt,name=admin,proto3" json:"admin,omitempty"`
 }
@@ -107,16 +149,16 @@ func (m *Permission) Reset()                    { *m = Permission{} }
 func (*Permission) ProtoMessage()               {}
 func (*Permission) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{0} }
 
-func (m *Permission) GetWrite() bool {
+func (m *Permission) GetRead() bool {
 	if m != nil {
-		return m.Write
+		return m.Read
 	}
 	return false
 }
 
-func (m *Permission) GetRead() bool {
+func (m *Permission) GetWrite() bool {
 	if m != nil {
-		return m.Read
+		return m.Write
 	}
 	return false
 }
@@ -135,103 +177,87 @@ func (m *Permission) GetAdmin() bool {
 	return false
 }
 
-type CreateJWTRequest struct {
-	Namespace  string      `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
-	Permission *Permission `protobuf:"bytes,2,opt,name=permission" json:"permission,omitempty"`
-}
-
-func (m *CreateJWTRequest) Reset()                    { *m = CreateJWTRequest{} }
-func (*CreateJWTRequest) ProtoMessage()               {}
-func (*CreateJWTRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{1} }
-
-func (m *CreateJWTRequest) GetNamespace() string {
-	if m != nil {
-		return m.Namespace
-	}
-	return ""
-}
-
-func (m *CreateJWTRequest) GetPermission() *Permission {
-	if m != nil {
-		return m.Permission
-	}
-	return nil
-}
-
-type CreateJWTReply struct {
-	Token string `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
-}
-
-func (m *CreateJWTReply) Reset()                    { *m = CreateJWTReply{} }
-func (*CreateJWTReply) ProtoMessage()               {}
-func (*CreateJWTReply) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{2} }
-
-func (m *CreateJWTReply) GetToken() string {
-	if m != nil {
-		return m.Token
-	}
-	return ""
-}
-
-type NamespaceRequest struct {
+type CreateNamespaceRequest struct {
 	Namespace string `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
 }
 
-func (m *NamespaceRequest) Reset()                    { *m = NamespaceRequest{} }
-func (*NamespaceRequest) ProtoMessage()               {}
-func (*NamespaceRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{3} }
+func (m *CreateNamespaceRequest) Reset()                    { *m = CreateNamespaceRequest{} }
+func (*CreateNamespaceRequest) ProtoMessage()               {}
+func (*CreateNamespaceRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{1} }
 
-func (m *NamespaceRequest) GetNamespace() string {
+func (m *CreateNamespaceRequest) GetNamespace() string {
 	if m != nil {
 		return m.Namespace
 	}
 	return ""
 }
 
-type NamespaceReply struct {
+type CreateNamespaceResponse struct {
 }
 
-func (m *NamespaceReply) Reset()                    { *m = NamespaceReply{} }
-func (*NamespaceReply) ProtoMessage()               {}
-func (*NamespaceReply) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{4} }
+func (m *CreateNamespaceResponse) Reset()                    { *m = CreateNamespaceResponse{} }
+func (*CreateNamespaceResponse) ProtoMessage()               {}
+func (*CreateNamespaceResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{2} }
 
-type EditPermissionRequest struct {
+type DeleteNamespaceRequest struct {
+	Namespace string `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
+}
+
+func (m *DeleteNamespaceRequest) Reset()                    { *m = DeleteNamespaceRequest{} }
+func (*DeleteNamespaceRequest) ProtoMessage()               {}
+func (*DeleteNamespaceRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{3} }
+
+func (m *DeleteNamespaceRequest) GetNamespace() string {
+	if m != nil {
+		return m.Namespace
+	}
+	return ""
+}
+
+type DeleteNamespaceResponse struct {
+}
+
+func (m *DeleteNamespaceResponse) Reset()                    { *m = DeleteNamespaceResponse{} }
+func (*DeleteNamespaceResponse) ProtoMessage()               {}
+func (*DeleteNamespaceResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{4} }
+
+type SetPermissionRequest struct {
 	Namespace  string      `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
 	UserID     string      `protobuf:"bytes,2,opt,name=userID,proto3" json:"userID,omitempty"`
 	Permission *Permission `protobuf:"bytes,3,opt,name=permission" json:"permission,omitempty"`
 }
 
-func (m *EditPermissionRequest) Reset()                    { *m = EditPermissionRequest{} }
-func (*EditPermissionRequest) ProtoMessage()               {}
-func (*EditPermissionRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{5} }
+func (m *SetPermissionRequest) Reset()                    { *m = SetPermissionRequest{} }
+func (*SetPermissionRequest) ProtoMessage()               {}
+func (*SetPermissionRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{5} }
 
-func (m *EditPermissionRequest) GetNamespace() string {
+func (m *SetPermissionRequest) GetNamespace() string {
 	if m != nil {
 		return m.Namespace
 	}
 	return ""
 }
 
-func (m *EditPermissionRequest) GetUserID() string {
+func (m *SetPermissionRequest) GetUserID() string {
 	if m != nil {
 		return m.UserID
 	}
 	return ""
 }
 
-func (m *EditPermissionRequest) GetPermission() *Permission {
+func (m *SetPermissionRequest) GetPermission() *Permission {
 	if m != nil {
 		return m.Permission
 	}
 	return nil
 }
 
-type EditPermissionReply struct {
+type SetPermissionResponse struct {
 }
 
-func (m *EditPermissionReply) Reset()                    { *m = EditPermissionReply{} }
-func (*EditPermissionReply) ProtoMessage()               {}
-func (*EditPermissionReply) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{6} }
+func (m *SetPermissionResponse) Reset()                    { *m = SetPermissionResponse{} }
+func (*SetPermissionResponse) ProtoMessage()               {}
+func (*SetPermissionResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{6} }
 
 type GetPermissionRequest struct {
 	Namespace string `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
@@ -256,119 +282,148 @@ func (m *GetPermissionRequest) GetUserID() string {
 	return ""
 }
 
-type GetPermissionReply struct {
+type GetPermissionResponse struct {
 	Permission *Permission `protobuf:"bytes,1,opt,name=permission" json:"permission,omitempty"`
 }
 
-func (m *GetPermissionReply) Reset()                    { *m = GetPermissionReply{} }
-func (*GetPermissionReply) ProtoMessage()               {}
-func (*GetPermissionReply) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{8} }
+func (m *GetPermissionResponse) Reset()                    { *m = GetPermissionResponse{} }
+func (*GetPermissionResponse) ProtoMessage()               {}
+func (*GetPermissionResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{8} }
 
-func (m *GetPermissionReply) GetPermission() *Permission {
+func (m *GetPermissionResponse) GetPermission() *Permission {
 	if m != nil {
 		return m.Permission
 	}
 	return nil
 }
 
-type Chunk struct {
-	Size_  int64    `protobuf:"varint,1,opt,name=size,proto3" json:"size,omitempty"`
-	Key    []byte   `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
-	Shards []string `protobuf:"bytes,3,rep,name=shards" json:"shards,omitempty"`
+type Metadata struct {
+	// key defines the key of the data,
+	// and is chosen by the owner of this data.
+	Key []byte `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	// size in bytes represents the total size of all chunks,
+	// that make up the stored data, combined.
+	SizeInBytes int64 `protobuf:"varint,2,opt,name=size,proto3" json:"size,omitempty"`
+	// creationEpoch defines the time this data was initially created,
+	// in the Unix epoch format, in nano seconds.
+	CreationEpoch int64 `protobuf:"varint,3,opt,name=creationEpoch,proto3" json:"creationEpoch,omitempty"`
+	// lastWriteEpoch defines the time this data
+	// was last modified (e.g. repaired),
+	// in the Unix epoch format, in nano seconds.
+	LastWriteEpoch int64 `protobuf:"varint,4,opt,name=lastWriteEpoch,proto3" json:"lastWriteEpoch,omitempty"`
+	// chunks is the metadata list of all chunks
+	// that make up the data, when combined.
+	Chunks []Chunk `protobuf:"bytes,5,rep,name=chunks" json:"chunks"`
 }
 
-func (m *Chunk) Reset()                    { *m = Chunk{} }
-func (*Chunk) ProtoMessage()               {}
-func (*Chunk) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{9} }
+func (m *Metadata) Reset()                    { *m = Metadata{} }
+func (*Metadata) ProtoMessage()               {}
+func (*Metadata) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{9} }
 
-func (m *Chunk) GetSize_() int64 {
-	if m != nil {
-		return m.Size_
-	}
-	return 0
-}
-
-func (m *Chunk) GetKey() []byte {
-	if m != nil {
-		return m.Key
-	}
-	return nil
-}
-
-func (m *Chunk) GetShards() []string {
-	if m != nil {
-		return m.Shards
-	}
-	return nil
-}
-
-type Meta struct {
-	Epoch    int64    `protobuf:"varint,1,opt,name=epoch,proto3" json:"epoch,omitempty"`
-	Key      []byte   `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
-	EncrKey  []byte   `protobuf:"bytes,3,opt,name=encrKey,proto3" json:"encrKey,omitempty"`
-	Chunks   []*Chunk `protobuf:"bytes,4,rep,name=chunks" json:"chunks,omitempty"`
-	Previous []byte   `protobuf:"bytes,5,opt,name=previous,proto3" json:"previous,omitempty"`
-	Next     []byte   `protobuf:"bytes,6,opt,name=next,proto3" json:"next,omitempty"`
-}
-
-func (m *Meta) Reset()                    { *m = Meta{} }
-func (*Meta) ProtoMessage()               {}
-func (*Meta) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{10} }
-
-func (m *Meta) GetEpoch() int64 {
-	if m != nil {
-		return m.Epoch
-	}
-	return 0
-}
-
-func (m *Meta) GetKey() []byte {
+func (m *Metadata) GetKey() []byte {
 	if m != nil {
 		return m.Key
 	}
 	return nil
 }
 
-func (m *Meta) GetEncrKey() []byte {
+func (m *Metadata) GetSizeInBytes() int64 {
 	if m != nil {
-		return m.EncrKey
+		return m.SizeInBytes
 	}
-	return nil
+	return 0
 }
 
-func (m *Meta) GetChunks() []*Chunk {
+func (m *Metadata) GetCreationEpoch() int64 {
+	if m != nil {
+		return m.CreationEpoch
+	}
+	return 0
+}
+
+func (m *Metadata) GetLastWriteEpoch() int64 {
+	if m != nil {
+		return m.LastWriteEpoch
+	}
+	return 0
+}
+
+func (m *Metadata) GetChunks() []Chunk {
 	if m != nil {
 		return m.Chunks
 	}
 	return nil
 }
 
-func (m *Meta) GetPrevious() []byte {
+type Chunk struct {
+	// size of the chunk in bytes
+	SizeInBytes int64 `protobuf:"varint,1,opt,name=size,proto3" json:"size,omitempty"`
+	// objects defines the metadata of the objects
+	// that make up this chunk.
+	Objects []Object `protobuf:"bytes,2,rep,name=objects" json:"objects"`
+	// hash contains the checksum/signature of the chunk (data),
+	// meaning the data of all objects (of this chunk) combined.
+	Hash []byte `protobuf:"bytes,3,opt,name=hash,proto3" json:"hash,omitempty"`
+}
+
+func (m *Chunk) Reset()                    { *m = Chunk{} }
+func (*Chunk) ProtoMessage()               {}
+func (*Chunk) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{10} }
+
+func (m *Chunk) GetSizeInBytes() int64 {
 	if m != nil {
-		return m.Previous
+		return m.SizeInBytes
+	}
+	return 0
+}
+
+func (m *Chunk) GetObjects() []Object {
+	if m != nil {
+		return m.Objects
 	}
 	return nil
 }
 
-func (m *Meta) GetNext() []byte {
+func (m *Chunk) GetHash() []byte {
 	if m != nil {
-		return m.Next
+		return m.Hash
 	}
 	return nil
+}
+
+type Object struct {
+	// key of the Object
+	Key []byte `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	// shardID defines the ID of the shard the object is stored on
+	ShardID string `protobuf:"bytes,2,opt,name=shardID,proto3" json:"shardID,omitempty"`
+}
+
+func (m *Object) Reset()                    { *m = Object{} }
+func (*Object) ProtoMessage()               {}
+func (*Object) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{11} }
+
+func (m *Object) GetKey() []byte {
+	if m != nil {
+		return m.Key
+	}
+	return nil
+}
+
+func (m *Object) GetShardID() string {
+	if m != nil {
+		return m.ShardID
+	}
+	return ""
 }
 
 type WriteRequest struct {
-	Key           []byte   `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	Meta          *Meta    `protobuf:"bytes,2,opt,name=meta" json:"meta,omitempty"`
-	Value         []byte   `protobuf:"bytes,3,opt,name=value,proto3" json:"value,omitempty"`
-	ReferenceList []string `protobuf:"bytes,4,rep,name=referenceList" json:"referenceList,omitempty"`
-	PrevKey       string   `protobuf:"bytes,5,opt,name=prevKey,proto3" json:"prevKey,omitempty"`
-	PrevMeta      *Meta    `protobuf:"bytes,6,opt,name=prevMeta" json:"prevMeta,omitempty"`
+	Key  []byte `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Data []byte `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
 }
 
 func (m *WriteRequest) Reset()                    { *m = WriteRequest{} }
 func (*WriteRequest) ProtoMessage()               {}
-func (*WriteRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{11} }
+func (*WriteRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{12} }
 
 func (m *WriteRequest) GetKey() []byte {
 	if m != nil {
@@ -377,79 +432,40 @@ func (m *WriteRequest) GetKey() []byte {
 	return nil
 }
 
-func (m *WriteRequest) GetMeta() *Meta {
+func (m *WriteRequest) GetData() []byte {
 	if m != nil {
-		return m.Meta
+		return m.Data
 	}
 	return nil
 }
 
-func (m *WriteRequest) GetValue() []byte {
-	if m != nil {
-		return m.Value
-	}
-	return nil
+type WriteResponse struct {
+	Metadata *Metadata `protobuf:"bytes,1,opt,name=metadata" json:"metadata,omitempty"`
 }
 
-func (m *WriteRequest) GetReferenceList() []string {
+func (m *WriteResponse) Reset()                    { *m = WriteResponse{} }
+func (*WriteResponse) ProtoMessage()               {}
+func (*WriteResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{13} }
+
+func (m *WriteResponse) GetMetadata() *Metadata {
 	if m != nil {
-		return m.ReferenceList
-	}
-	return nil
-}
-
-func (m *WriteRequest) GetPrevKey() string {
-	if m != nil {
-		return m.PrevKey
-	}
-	return ""
-}
-
-func (m *WriteRequest) GetPrevMeta() *Meta {
-	if m != nil {
-		return m.PrevMeta
-	}
-	return nil
-}
-
-type WriteReply struct {
-	Meta *Meta `protobuf:"bytes,1,opt,name=meta" json:"meta,omitempty"`
-}
-
-func (m *WriteReply) Reset()                    { *m = WriteReply{} }
-func (*WriteReply) ProtoMessage()               {}
-func (*WriteReply) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{12} }
-
-func (m *WriteReply) GetMeta() *Meta {
-	if m != nil {
-		return m.Meta
+		return m.Metadata
 	}
 	return nil
 }
 
 type WriteFileRequest struct {
-	Key           []byte   `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	Meta          *Meta    `protobuf:"bytes,2,opt,name=meta" json:"meta,omitempty"`
-	FilePath      string   `protobuf:"bytes,3,opt,name=filePath,proto3" json:"filePath,omitempty"`
-	ReferenceList []string `protobuf:"bytes,4,rep,name=referenceList" json:"referenceList,omitempty"`
-	PrevKey       string   `protobuf:"bytes,5,opt,name=prevKey,proto3" json:"prevKey,omitempty"`
-	PrevMeta      *Meta    `protobuf:"bytes,6,opt,name=prevMeta" json:"prevMeta,omitempty"`
+	Key      []byte `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	FilePath string `protobuf:"bytes,2,opt,name=filePath,proto3" json:"filePath,omitempty"`
 }
 
 func (m *WriteFileRequest) Reset()                    { *m = WriteFileRequest{} }
 func (*WriteFileRequest) ProtoMessage()               {}
-func (*WriteFileRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{13} }
+func (*WriteFileRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{14} }
 
 func (m *WriteFileRequest) GetKey() []byte {
 	if m != nil {
 		return m.Key
-	}
-	return nil
-}
-
-func (m *WriteFileRequest) GetMeta() *Meta {
-	if m != nil {
-		return m.Meta
 	}
 	return nil
 }
@@ -461,170 +477,377 @@ func (m *WriteFileRequest) GetFilePath() string {
 	return ""
 }
 
-func (m *WriteFileRequest) GetReferenceList() []string {
+type WriteFileResponse struct {
+	Metadata *Metadata `protobuf:"bytes,1,opt,name=metadata" json:"metadata,omitempty"`
+}
+
+func (m *WriteFileResponse) Reset()                    { *m = WriteFileResponse{} }
+func (*WriteFileResponse) ProtoMessage()               {}
+func (*WriteFileResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{15} }
+
+func (m *WriteFileResponse) GetMetadata() *Metadata {
 	if m != nil {
-		return m.ReferenceList
+		return m.Metadata
 	}
 	return nil
 }
 
-func (m *WriteFileRequest) GetPrevKey() string {
-	if m != nil {
-		return m.PrevKey
-	}
-	return ""
-}
-
-func (m *WriteFileRequest) GetPrevMeta() *Meta {
-	if m != nil {
-		return m.PrevMeta
-	}
-	return nil
-}
-
-type WriteFileReply struct {
-	Meta *Meta `protobuf:"bytes,1,opt,name=meta" json:"meta,omitempty"`
-}
-
-func (m *WriteFileReply) Reset()                    { *m = WriteFileReply{} }
-func (*WriteFileReply) ProtoMessage()               {}
-func (*WriteFileReply) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{14} }
-
-func (m *WriteFileReply) GetMeta() *Meta {
-	if m != nil {
-		return m.Meta
-	}
-	return nil
-}
-
+// key is send as part of header
 type WriteStreamRequest struct {
-	Key           []byte   `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	Meta          *Meta    `protobuf:"bytes,2,opt,name=meta" json:"meta,omitempty"`
-	Value         []byte   `protobuf:"bytes,3,opt,name=value,proto3" json:"value,omitempty"`
-	ReferenceList []string `protobuf:"bytes,4,rep,name=referenceList" json:"referenceList,omitempty"`
-	PrevKey       []byte   `protobuf:"bytes,5,opt,name=prevKey,proto3" json:"prevKey,omitempty"`
-	PrevMeta      *Meta    `protobuf:"bytes,6,opt,name=prevMeta" json:"prevMeta,omitempty"`
+	// Types that are valid to be assigned to Input:
+	//	*WriteStreamRequest_Metadata_
+	//	*WriteStreamRequest_Data_
+	Input isWriteStreamRequest_Input `protobuf_oneof:"input"`
 }
 
 func (m *WriteStreamRequest) Reset()                    { *m = WriteStreamRequest{} }
 func (*WriteStreamRequest) ProtoMessage()               {}
-func (*WriteStreamRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{15} }
+func (*WriteStreamRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{16} }
 
-func (m *WriteStreamRequest) GetKey() []byte {
+type isWriteStreamRequest_Input interface {
+	isWriteStreamRequest_Input()
+	Equal(interface{}) bool
+	MarshalTo([]byte) (int, error)
+	Size() int
+}
+
+type WriteStreamRequest_Metadata_ struct {
+	Metadata *WriteStreamRequest_Metadata `protobuf:"bytes,1,opt,name=metadata,oneof"`
+}
+type WriteStreamRequest_Data_ struct {
+	Data *WriteStreamRequest_Data `protobuf:"bytes,2,opt,name=data,oneof"`
+}
+
+func (*WriteStreamRequest_Metadata_) isWriteStreamRequest_Input() {}
+func (*WriteStreamRequest_Data_) isWriteStreamRequest_Input()     {}
+
+func (m *WriteStreamRequest) GetInput() isWriteStreamRequest_Input {
+	if m != nil {
+		return m.Input
+	}
+	return nil
+}
+
+func (m *WriteStreamRequest) GetMetadata() *WriteStreamRequest_Metadata {
+	if x, ok := m.GetInput().(*WriteStreamRequest_Metadata_); ok {
+		return x.Metadata
+	}
+	return nil
+}
+
+func (m *WriteStreamRequest) GetData() *WriteStreamRequest_Data {
+	if x, ok := m.GetInput().(*WriteStreamRequest_Data_); ok {
+		return x.Data
+	}
+	return nil
+}
+
+// XXX_OneofFuncs is for the internal use of the proto package.
+func (*WriteStreamRequest) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
+	return _WriteStreamRequest_OneofMarshaler, _WriteStreamRequest_OneofUnmarshaler, _WriteStreamRequest_OneofSizer, []interface{}{
+		(*WriteStreamRequest_Metadata_)(nil),
+		(*WriteStreamRequest_Data_)(nil),
+	}
+}
+
+func _WriteStreamRequest_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
+	m := msg.(*WriteStreamRequest)
+	// input
+	switch x := m.Input.(type) {
+	case *WriteStreamRequest_Metadata_:
+		_ = b.EncodeVarint(1<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Metadata); err != nil {
+			return err
+		}
+	case *WriteStreamRequest_Data_:
+		_ = b.EncodeVarint(2<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Data); err != nil {
+			return err
+		}
+	case nil:
+	default:
+		return fmt.Errorf("WriteStreamRequest.Input has unexpected type %T", x)
+	}
+	return nil
+}
+
+func _WriteStreamRequest_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
+	m := msg.(*WriteStreamRequest)
+	switch tag {
+	case 1: // input.metadata
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(WriteStreamRequest_Metadata)
+		err := b.DecodeMessage(msg)
+		m.Input = &WriteStreamRequest_Metadata_{msg}
+		return true, err
+	case 2: // input.data
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(WriteStreamRequest_Data)
+		err := b.DecodeMessage(msg)
+		m.Input = &WriteStreamRequest_Data_{msg}
+		return true, err
+	default:
+		return false, nil
+	}
+}
+
+func _WriteStreamRequest_OneofSizer(msg proto.Message) (n int) {
+	m := msg.(*WriteStreamRequest)
+	// input
+	switch x := m.Input.(type) {
+	case *WriteStreamRequest_Metadata_:
+		s := proto.Size(x.Metadata)
+		n += proto.SizeVarint(1<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *WriteStreamRequest_Data_:
+		s := proto.Size(x.Data)
+		n += proto.SizeVarint(2<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case nil:
+	default:
+		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
+	}
+	return n
+}
+
+type WriteStreamRequest_Metadata struct {
+	Key []byte `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+}
+
+func (m *WriteStreamRequest_Metadata) Reset()      { *m = WriteStreamRequest_Metadata{} }
+func (*WriteStreamRequest_Metadata) ProtoMessage() {}
+func (*WriteStreamRequest_Metadata) Descriptor() ([]byte, []int) {
+	return fileDescriptorDaemon, []int{16, 0}
+}
+
+func (m *WriteStreamRequest_Metadata) GetKey() []byte {
 	if m != nil {
 		return m.Key
 	}
 	return nil
 }
 
-func (m *WriteStreamRequest) GetMeta() *Meta {
+type WriteStreamRequest_Data struct {
+	DataChunk []byte `protobuf:"bytes,2,opt,name=dataChunk,proto3" json:"dataChunk,omitempty"`
+}
+
+func (m *WriteStreamRequest_Data) Reset()      { *m = WriteStreamRequest_Data{} }
+func (*WriteStreamRequest_Data) ProtoMessage() {}
+func (*WriteStreamRequest_Data) Descriptor() ([]byte, []int) {
+	return fileDescriptorDaemon, []int{16, 1}
+}
+
+func (m *WriteStreamRequest_Data) GetDataChunk() []byte {
 	if m != nil {
-		return m.Meta
+		return m.DataChunk
 	}
 	return nil
 }
 
-func (m *WriteStreamRequest) GetValue() []byte {
-	if m != nil {
-		return m.Value
-	}
-	return nil
+type WriteStreamResponse struct {
+	Metadata *Metadata `protobuf:"bytes,1,opt,name=metadata" json:"metadata,omitempty"`
 }
 
-func (m *WriteStreamRequest) GetReferenceList() []string {
+func (m *WriteStreamResponse) Reset()                    { *m = WriteStreamResponse{} }
+func (*WriteStreamResponse) ProtoMessage()               {}
+func (*WriteStreamResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{17} }
+
+func (m *WriteStreamResponse) GetMetadata() *Metadata {
 	if m != nil {
-		return m.ReferenceList
-	}
-	return nil
-}
-
-func (m *WriteStreamRequest) GetPrevKey() []byte {
-	if m != nil {
-		return m.PrevKey
-	}
-	return nil
-}
-
-func (m *WriteStreamRequest) GetPrevMeta() *Meta {
-	if m != nil {
-		return m.PrevMeta
-	}
-	return nil
-}
-
-type WriteStreamReply struct {
-	Meta *Meta `protobuf:"bytes,1,opt,name=meta" json:"meta,omitempty"`
-}
-
-func (m *WriteStreamReply) Reset()                    { *m = WriteStreamReply{} }
-func (*WriteStreamReply) ProtoMessage()               {}
-func (*WriteStreamReply) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{16} }
-
-func (m *WriteStreamReply) GetMeta() *Meta {
-	if m != nil {
-		return m.Meta
+		return m.Metadata
 	}
 	return nil
 }
 
 type ReadRequest struct {
-	Key  []byte `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	Meta *Meta  `protobuf:"bytes,2,opt,name=meta" json:"meta,omitempty"`
+	// Types that are valid to be assigned to Input:
+	//	*ReadRequest_Key
+	//	*ReadRequest_Metadata
+	Input isReadRequest_Input `protobuf_oneof:"input"`
 }
 
 func (m *ReadRequest) Reset()                    { *m = ReadRequest{} }
 func (*ReadRequest) ProtoMessage()               {}
-func (*ReadRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{17} }
+func (*ReadRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{18} }
+
+type isReadRequest_Input interface {
+	isReadRequest_Input()
+	Equal(interface{}) bool
+	MarshalTo([]byte) (int, error)
+	Size() int
+}
+
+type ReadRequest_Key struct {
+	Key []byte `protobuf:"bytes,1,opt,name=key,proto3,oneof"`
+}
+type ReadRequest_Metadata struct {
+	Metadata *Metadata `protobuf:"bytes,2,opt,name=metadata,oneof"`
+}
+
+func (*ReadRequest_Key) isReadRequest_Input()      {}
+func (*ReadRequest_Metadata) isReadRequest_Input() {}
+
+func (m *ReadRequest) GetInput() isReadRequest_Input {
+	if m != nil {
+		return m.Input
+	}
+	return nil
+}
 
 func (m *ReadRequest) GetKey() []byte {
-	if m != nil {
-		return m.Key
+	if x, ok := m.GetInput().(*ReadRequest_Key); ok {
+		return x.Key
 	}
 	return nil
 }
 
-func (m *ReadRequest) GetMeta() *Meta {
-	if m != nil {
-		return m.Meta
+func (m *ReadRequest) GetMetadata() *Metadata {
+	if x, ok := m.GetInput().(*ReadRequest_Metadata); ok {
+		return x.Metadata
 	}
 	return nil
 }
 
-type ReadReply struct {
-	Value         []byte   `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
-	ReferenceList []string `protobuf:"bytes,2,rep,name=referenceList" json:"referenceList,omitempty"`
+// XXX_OneofFuncs is for the internal use of the proto package.
+func (*ReadRequest) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
+	return _ReadRequest_OneofMarshaler, _ReadRequest_OneofUnmarshaler, _ReadRequest_OneofSizer, []interface{}{
+		(*ReadRequest_Key)(nil),
+		(*ReadRequest_Metadata)(nil),
+	}
 }
 
-func (m *ReadReply) Reset()                    { *m = ReadReply{} }
-func (*ReadReply) ProtoMessage()               {}
-func (*ReadReply) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{18} }
-
-func (m *ReadReply) GetValue() []byte {
-	if m != nil {
-		return m.Value
+func _ReadRequest_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
+	m := msg.(*ReadRequest)
+	// input
+	switch x := m.Input.(type) {
+	case *ReadRequest_Key:
+		_ = b.EncodeVarint(1<<3 | proto.WireBytes)
+		_ = b.EncodeRawBytes(x.Key)
+	case *ReadRequest_Metadata:
+		_ = b.EncodeVarint(2<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Metadata); err != nil {
+			return err
+		}
+	case nil:
+	default:
+		return fmt.Errorf("ReadRequest.Input has unexpected type %T", x)
 	}
 	return nil
 }
 
-func (m *ReadReply) GetReferenceList() []string {
+func _ReadRequest_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
+	m := msg.(*ReadRequest)
+	switch tag {
+	case 1: // input.key
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		x, err := b.DecodeRawBytes(true)
+		m.Input = &ReadRequest_Key{x}
+		return true, err
+	case 2: // input.metadata
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(Metadata)
+		err := b.DecodeMessage(msg)
+		m.Input = &ReadRequest_Metadata{msg}
+		return true, err
+	default:
+		return false, nil
+	}
+}
+
+func _ReadRequest_OneofSizer(msg proto.Message) (n int) {
+	m := msg.(*ReadRequest)
+	// input
+	switch x := m.Input.(type) {
+	case *ReadRequest_Key:
+		n += proto.SizeVarint(1<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(len(x.Key)))
+		n += len(x.Key)
+	case *ReadRequest_Metadata:
+		s := proto.Size(x.Metadata)
+		n += proto.SizeVarint(2<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case nil:
+	default:
+		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
+	}
+	return n
+}
+
+type ReadResponse struct {
+	Data []byte `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
+}
+
+func (m *ReadResponse) Reset()                    { *m = ReadResponse{} }
+func (*ReadResponse) ProtoMessage()               {}
+func (*ReadResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{19} }
+
+func (m *ReadResponse) GetData() []byte {
 	if m != nil {
-		return m.ReferenceList
+		return m.Data
 	}
 	return nil
 }
 
 type ReadFileRequest struct {
-	Key      []byte `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	FilePath string `protobuf:"bytes,3,opt,name=filePath,proto3" json:"filePath,omitempty"`
+	// Types that are valid to be assigned to Input:
+	//	*ReadFileRequest_Key
+	//	*ReadFileRequest_Metadata
+	Input isReadFileRequest_Input `protobuf_oneof:"input"`
+	// destination file and its configuration
+	FilePath      string   `protobuf:"bytes,3,opt,name=filePath,proto3" json:"filePath,omitempty"`
+	FileMode      FileMode `protobuf:"varint,4,opt,name=fileMode,proto3,enum=schema.FileMode" json:"fileMode,omitempty"`
+	SynchronousIO bool     `protobuf:"varint,5,opt,name=synchronousIO,proto3" json:"synchronousIO,omitempty"`
 }
 
 func (m *ReadFileRequest) Reset()                    { *m = ReadFileRequest{} }
 func (*ReadFileRequest) ProtoMessage()               {}
-func (*ReadFileRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{19} }
+func (*ReadFileRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{20} }
+
+type isReadFileRequest_Input interface {
+	isReadFileRequest_Input()
+	Equal(interface{}) bool
+	MarshalTo([]byte) (int, error)
+	Size() int
+}
+
+type ReadFileRequest_Key struct {
+	Key []byte `protobuf:"bytes,1,opt,name=key,proto3,oneof"`
+}
+type ReadFileRequest_Metadata struct {
+	Metadata *Metadata `protobuf:"bytes,2,opt,name=metadata,oneof"`
+}
+
+func (*ReadFileRequest_Key) isReadFileRequest_Input()      {}
+func (*ReadFileRequest_Metadata) isReadFileRequest_Input() {}
+
+func (m *ReadFileRequest) GetInput() isReadFileRequest_Input {
+	if m != nil {
+		return m.Input
+	}
+	return nil
+}
 
 func (m *ReadFileRequest) GetKey() []byte {
-	if m != nil {
-		return m.Key
+	if x, ok := m.GetInput().(*ReadFileRequest_Key); ok {
+		return x.Key
+	}
+	return nil
+}
+
+func (m *ReadFileRequest) GetMetadata() *Metadata {
+	if x, ok := m.GetInput().(*ReadFileRequest_Metadata); ok {
+		return x.Metadata
 	}
 	return nil
 }
@@ -636,267 +859,505 @@ func (m *ReadFileRequest) GetFilePath() string {
 	return ""
 }
 
-type ReadFileReply struct {
-	ReferenceList []string `protobuf:"bytes,1,rep,name=referenceList" json:"referenceList,omitempty"`
+func (m *ReadFileRequest) GetFileMode() FileMode {
+	if m != nil {
+		return m.FileMode
+	}
+	return FileModeTruncate
 }
 
-func (m *ReadFileReply) Reset()                    { *m = ReadFileReply{} }
-func (*ReadFileReply) ProtoMessage()               {}
-func (*ReadFileReply) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{20} }
-
-func (m *ReadFileReply) GetReferenceList() []string {
+func (m *ReadFileRequest) GetSynchronousIO() bool {
 	if m != nil {
-		return m.ReferenceList
+		return m.SynchronousIO
+	}
+	return false
+}
+
+// XXX_OneofFuncs is for the internal use of the proto package.
+func (*ReadFileRequest) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
+	return _ReadFileRequest_OneofMarshaler, _ReadFileRequest_OneofUnmarshaler, _ReadFileRequest_OneofSizer, []interface{}{
+		(*ReadFileRequest_Key)(nil),
+		(*ReadFileRequest_Metadata)(nil),
+	}
+}
+
+func _ReadFileRequest_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
+	m := msg.(*ReadFileRequest)
+	// input
+	switch x := m.Input.(type) {
+	case *ReadFileRequest_Key:
+		_ = b.EncodeVarint(1<<3 | proto.WireBytes)
+		_ = b.EncodeRawBytes(x.Key)
+	case *ReadFileRequest_Metadata:
+		_ = b.EncodeVarint(2<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Metadata); err != nil {
+			return err
+		}
+	case nil:
+	default:
+		return fmt.Errorf("ReadFileRequest.Input has unexpected type %T", x)
 	}
 	return nil
 }
 
+func _ReadFileRequest_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
+	m := msg.(*ReadFileRequest)
+	switch tag {
+	case 1: // input.key
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		x, err := b.DecodeRawBytes(true)
+		m.Input = &ReadFileRequest_Key{x}
+		return true, err
+	case 2: // input.metadata
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(Metadata)
+		err := b.DecodeMessage(msg)
+		m.Input = &ReadFileRequest_Metadata{msg}
+		return true, err
+	default:
+		return false, nil
+	}
+}
+
+func _ReadFileRequest_OneofSizer(msg proto.Message) (n int) {
+	m := msg.(*ReadFileRequest)
+	// input
+	switch x := m.Input.(type) {
+	case *ReadFileRequest_Key:
+		n += proto.SizeVarint(1<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(len(x.Key)))
+		n += len(x.Key)
+	case *ReadFileRequest_Metadata:
+		s := proto.Size(x.Metadata)
+		n += proto.SizeVarint(2<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case nil:
+	default:
+		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
+	}
+	return n
+}
+
+type ReadFileResponse struct {
+}
+
+func (m *ReadFileResponse) Reset()                    { *m = ReadFileResponse{} }
+func (*ReadFileResponse) ProtoMessage()               {}
+func (*ReadFileResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{21} }
+
 type ReadStreamRequest struct {
-	Key []byte `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	// Types that are valid to be assigned to Input:
+	//	*ReadStreamRequest_Key
+	//	*ReadStreamRequest_Metadata
+	Input     isReadStreamRequest_Input `protobuf_oneof:"input"`
+	ChunkSize int64                     `protobuf:"varint,3,opt,name=chunkSize,proto3" json:"chunkSize,omitempty"`
 }
 
 func (m *ReadStreamRequest) Reset()                    { *m = ReadStreamRequest{} }
 func (*ReadStreamRequest) ProtoMessage()               {}
-func (*ReadStreamRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{21} }
+func (*ReadStreamRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{22} }
+
+type isReadStreamRequest_Input interface {
+	isReadStreamRequest_Input()
+	Equal(interface{}) bool
+	MarshalTo([]byte) (int, error)
+	Size() int
+}
+
+type ReadStreamRequest_Key struct {
+	Key []byte `protobuf:"bytes,1,opt,name=key,proto3,oneof"`
+}
+type ReadStreamRequest_Metadata struct {
+	Metadata *Metadata `protobuf:"bytes,2,opt,name=metadata,oneof"`
+}
+
+func (*ReadStreamRequest_Key) isReadStreamRequest_Input()      {}
+func (*ReadStreamRequest_Metadata) isReadStreamRequest_Input() {}
+
+func (m *ReadStreamRequest) GetInput() isReadStreamRequest_Input {
+	if m != nil {
+		return m.Input
+	}
+	return nil
+}
 
 func (m *ReadStreamRequest) GetKey() []byte {
-	if m != nil {
-		return m.Key
+	if x, ok := m.GetInput().(*ReadStreamRequest_Key); ok {
+		return x.Key
 	}
 	return nil
 }
 
-type ReadStreamReply struct {
-	Value         []byte   `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
-	ReferenceList []string `protobuf:"bytes,2,rep,name=referenceList" json:"referenceList,omitempty"`
-}
-
-func (m *ReadStreamReply) Reset()                    { *m = ReadStreamReply{} }
-func (*ReadStreamReply) ProtoMessage()               {}
-func (*ReadStreamReply) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{22} }
-
-func (m *ReadStreamReply) GetValue() []byte {
-	if m != nil {
-		return m.Value
+func (m *ReadStreamRequest) GetMetadata() *Metadata {
+	if x, ok := m.GetInput().(*ReadStreamRequest_Metadata); ok {
+		return x.Metadata
 	}
 	return nil
 }
 
-func (m *ReadStreamReply) GetReferenceList() []string {
+func (m *ReadStreamRequest) GetChunkSize() int64 {
 	if m != nil {
-		return m.ReferenceList
+		return m.ChunkSize
+	}
+	return 0
+}
+
+// XXX_OneofFuncs is for the internal use of the proto package.
+func (*ReadStreamRequest) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
+	return _ReadStreamRequest_OneofMarshaler, _ReadStreamRequest_OneofUnmarshaler, _ReadStreamRequest_OneofSizer, []interface{}{
+		(*ReadStreamRequest_Key)(nil),
+		(*ReadStreamRequest_Metadata)(nil),
+	}
+}
+
+func _ReadStreamRequest_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
+	m := msg.(*ReadStreamRequest)
+	// input
+	switch x := m.Input.(type) {
+	case *ReadStreamRequest_Key:
+		_ = b.EncodeVarint(1<<3 | proto.WireBytes)
+		_ = b.EncodeRawBytes(x.Key)
+	case *ReadStreamRequest_Metadata:
+		_ = b.EncodeVarint(2<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Metadata); err != nil {
+			return err
+		}
+	case nil:
+	default:
+		return fmt.Errorf("ReadStreamRequest.Input has unexpected type %T", x)
+	}
+	return nil
+}
+
+func _ReadStreamRequest_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
+	m := msg.(*ReadStreamRequest)
+	switch tag {
+	case 1: // input.key
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		x, err := b.DecodeRawBytes(true)
+		m.Input = &ReadStreamRequest_Key{x}
+		return true, err
+	case 2: // input.metadata
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(Metadata)
+		err := b.DecodeMessage(msg)
+		m.Input = &ReadStreamRequest_Metadata{msg}
+		return true, err
+	default:
+		return false, nil
+	}
+}
+
+func _ReadStreamRequest_OneofSizer(msg proto.Message) (n int) {
+	m := msg.(*ReadStreamRequest)
+	// input
+	switch x := m.Input.(type) {
+	case *ReadStreamRequest_Key:
+		n += proto.SizeVarint(1<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(len(x.Key)))
+		n += len(x.Key)
+	case *ReadStreamRequest_Metadata:
+		s := proto.Size(x.Metadata)
+		n += proto.SizeVarint(2<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case nil:
+	default:
+		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
+	}
+	return n
+}
+
+type ReadStreamResponse struct {
+	DataChunk []byte `protobuf:"bytes,1,opt,name=dataChunk,proto3" json:"dataChunk,omitempty"`
+}
+
+func (m *ReadStreamResponse) Reset()                    { *m = ReadStreamResponse{} }
+func (*ReadStreamResponse) ProtoMessage()               {}
+func (*ReadStreamResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{23} }
+
+func (m *ReadStreamResponse) GetDataChunk() []byte {
+	if m != nil {
+		return m.DataChunk
 	}
 	return nil
 }
 
 type DeleteRequest struct {
-	Key  []byte `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	Meta *Meta  `protobuf:"bytes,2,opt,name=meta" json:"meta,omitempty"`
+	// Types that are valid to be assigned to Input:
+	//	*DeleteRequest_Key
+	//	*DeleteRequest_Metadata
+	Input isDeleteRequest_Input `protobuf_oneof:"input"`
 }
 
 func (m *DeleteRequest) Reset()                    { *m = DeleteRequest{} }
 func (*DeleteRequest) ProtoMessage()               {}
-func (*DeleteRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{23} }
+func (*DeleteRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{24} }
+
+type isDeleteRequest_Input interface {
+	isDeleteRequest_Input()
+	Equal(interface{}) bool
+	MarshalTo([]byte) (int, error)
+	Size() int
+}
+
+type DeleteRequest_Key struct {
+	Key []byte `protobuf:"bytes,1,opt,name=key,proto3,oneof"`
+}
+type DeleteRequest_Metadata struct {
+	Metadata *Metadata `protobuf:"bytes,2,opt,name=metadata,oneof"`
+}
+
+func (*DeleteRequest_Key) isDeleteRequest_Input()      {}
+func (*DeleteRequest_Metadata) isDeleteRequest_Input() {}
+
+func (m *DeleteRequest) GetInput() isDeleteRequest_Input {
+	if m != nil {
+		return m.Input
+	}
+	return nil
+}
 
 func (m *DeleteRequest) GetKey() []byte {
-	if m != nil {
-		return m.Key
+	if x, ok := m.GetInput().(*DeleteRequest_Key); ok {
+		return x.Key
 	}
 	return nil
 }
 
-func (m *DeleteRequest) GetMeta() *Meta {
-	if m != nil {
-		return m.Meta
+func (m *DeleteRequest) GetMetadata() *Metadata {
+	if x, ok := m.GetInput().(*DeleteRequest_Metadata); ok {
+		return x.Metadata
 	}
 	return nil
 }
 
-type DeleteReply struct {
+// XXX_OneofFuncs is for the internal use of the proto package.
+func (*DeleteRequest) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
+	return _DeleteRequest_OneofMarshaler, _DeleteRequest_OneofUnmarshaler, _DeleteRequest_OneofSizer, []interface{}{
+		(*DeleteRequest_Key)(nil),
+		(*DeleteRequest_Metadata)(nil),
+	}
 }
 
-func (m *DeleteReply) Reset()                    { *m = DeleteReply{} }
-func (*DeleteReply) ProtoMessage()               {}
-func (*DeleteReply) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{24} }
-
-type WalkRequest struct {
-	StartKey  []byte `protobuf:"bytes,1,opt,name=startKey,proto3" json:"startKey,omitempty"`
-	FromEpoch int64  `protobuf:"varint,2,opt,name=fromEpoch,proto3" json:"fromEpoch,omitempty"`
-	ToEpoch   int64  `protobuf:"varint,3,opt,name=toEpoch,proto3" json:"toEpoch,omitempty"`
-}
-
-func (m *WalkRequest) Reset()                    { *m = WalkRequest{} }
-func (*WalkRequest) ProtoMessage()               {}
-func (*WalkRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{25} }
-
-func (m *WalkRequest) GetStartKey() []byte {
-	if m != nil {
-		return m.StartKey
+func _DeleteRequest_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
+	m := msg.(*DeleteRequest)
+	// input
+	switch x := m.Input.(type) {
+	case *DeleteRequest_Key:
+		_ = b.EncodeVarint(1<<3 | proto.WireBytes)
+		_ = b.EncodeRawBytes(x.Key)
+	case *DeleteRequest_Metadata:
+		_ = b.EncodeVarint(2<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Metadata); err != nil {
+			return err
+		}
+	case nil:
+	default:
+		return fmt.Errorf("DeleteRequest.Input has unexpected type %T", x)
 	}
 	return nil
 }
 
-func (m *WalkRequest) GetFromEpoch() int64 {
-	if m != nil {
-		return m.FromEpoch
+func _DeleteRequest_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
+	m := msg.(*DeleteRequest)
+	switch tag {
+	case 1: // input.key
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		x, err := b.DecodeRawBytes(true)
+		m.Input = &DeleteRequest_Key{x}
+		return true, err
+	case 2: // input.metadata
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(Metadata)
+		err := b.DecodeMessage(msg)
+		m.Input = &DeleteRequest_Metadata{msg}
+		return true, err
+	default:
+		return false, nil
 	}
-	return 0
 }
 
-func (m *WalkRequest) GetToEpoch() int64 {
-	if m != nil {
-		return m.ToEpoch
+func _DeleteRequest_OneofSizer(msg proto.Message) (n int) {
+	m := msg.(*DeleteRequest)
+	// input
+	switch x := m.Input.(type) {
+	case *DeleteRequest_Key:
+		n += proto.SizeVarint(1<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(len(x.Key)))
+		n += len(x.Key)
+	case *DeleteRequest_Metadata:
+		s := proto.Size(x.Metadata)
+		n += proto.SizeVarint(2<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case nil:
+	default:
+		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
 	}
-	return 0
+	return n
 }
 
-type WalkReply struct {
-	Key           []byte   `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	Meta          *Meta    `protobuf:"bytes,2,opt,name=meta" json:"meta,omitempty"`
-	Value         []byte   `protobuf:"bytes,3,opt,name=value,proto3" json:"value,omitempty"`
-	ReferenceList []string `protobuf:"bytes,4,rep,name=referenceList" json:"referenceList,omitempty"`
+type DeleteResponse struct {
 }
 
-func (m *WalkReply) Reset()                    { *m = WalkReply{} }
-func (*WalkReply) ProtoMessage()               {}
-func (*WalkReply) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{26} }
-
-func (m *WalkReply) GetKey() []byte {
-	if m != nil {
-		return m.Key
-	}
-	return nil
-}
-
-func (m *WalkReply) GetMeta() *Meta {
-	if m != nil {
-		return m.Meta
-	}
-	return nil
-}
-
-func (m *WalkReply) GetValue() []byte {
-	if m != nil {
-		return m.Value
-	}
-	return nil
-}
-
-func (m *WalkReply) GetReferenceList() []string {
-	if m != nil {
-		return m.ReferenceList
-	}
-	return nil
-}
-
-type AppendReferenceListRequest struct {
-	Key           []byte   `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	Meta          *Meta    `protobuf:"bytes,2,opt,name=meta" json:"meta,omitempty"`
-	ReferenceList []string `protobuf:"bytes,3,rep,name=referenceList" json:"referenceList,omitempty"`
-}
-
-func (m *AppendReferenceListRequest) Reset()      { *m = AppendReferenceListRequest{} }
-func (*AppendReferenceListRequest) ProtoMessage() {}
-func (*AppendReferenceListRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptorDaemon, []int{27}
-}
-
-func (m *AppendReferenceListRequest) GetKey() []byte {
-	if m != nil {
-		return m.Key
-	}
-	return nil
-}
-
-func (m *AppendReferenceListRequest) GetMeta() *Meta {
-	if m != nil {
-		return m.Meta
-	}
-	return nil
-}
-
-func (m *AppendReferenceListRequest) GetReferenceList() []string {
-	if m != nil {
-		return m.ReferenceList
-	}
-	return nil
-}
-
-type RemoveReferenceListRequest struct {
-	Key           []byte   `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	Meta          *Meta    `protobuf:"bytes,2,opt,name=meta" json:"meta,omitempty"`
-	ReferenceList []string `protobuf:"bytes,3,rep,name=referenceList" json:"referenceList,omitempty"`
-}
-
-func (m *RemoveReferenceListRequest) Reset()      { *m = RemoveReferenceListRequest{} }
-func (*RemoveReferenceListRequest) ProtoMessage() {}
-func (*RemoveReferenceListRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptorDaemon, []int{28}
-}
-
-func (m *RemoveReferenceListRequest) GetKey() []byte {
-	if m != nil {
-		return m.Key
-	}
-	return nil
-}
-
-func (m *RemoveReferenceListRequest) GetMeta() *Meta {
-	if m != nil {
-		return m.Meta
-	}
-	return nil
-}
-
-func (m *RemoveReferenceListRequest) GetReferenceList() []string {
-	if m != nil {
-		return m.ReferenceList
-	}
-	return nil
-}
-
-type AppendReferenceListReply struct {
-}
-
-func (m *AppendReferenceListReply) Reset()                    { *m = AppendReferenceListReply{} }
-func (*AppendReferenceListReply) ProtoMessage()               {}
-func (*AppendReferenceListReply) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{29} }
-
-type RemoveReferenceListReply struct {
-}
-
-func (m *RemoveReferenceListReply) Reset()                    { *m = RemoveReferenceListReply{} }
-func (*RemoveReferenceListReply) ProtoMessage()               {}
-func (*RemoveReferenceListReply) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{30} }
+func (m *DeleteResponse) Reset()                    { *m = DeleteResponse{} }
+func (*DeleteResponse) ProtoMessage()               {}
+func (*DeleteResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{25} }
 
 type CheckRequest struct {
-	Key []byte `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	// Types that are valid to be assigned to Input:
+	//	*CheckRequest_Key
+	//	*CheckRequest_Metadata
+	Input isCheckRequest_Input `protobuf_oneof:"input"`
+	Fast  bool                 `protobuf:"varint,3,opt,name=fast,proto3" json:"fast,omitempty"`
 }
 
 func (m *CheckRequest) Reset()                    { *m = CheckRequest{} }
 func (*CheckRequest) ProtoMessage()               {}
-func (*CheckRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{31} }
+func (*CheckRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{26} }
 
-func (m *CheckRequest) GetKey() []byte {
+type isCheckRequest_Input interface {
+	isCheckRequest_Input()
+	Equal(interface{}) bool
+	MarshalTo([]byte) (int, error)
+	Size() int
+}
+
+type CheckRequest_Key struct {
+	Key []byte `protobuf:"bytes,1,opt,name=key,proto3,oneof"`
+}
+type CheckRequest_Metadata struct {
+	Metadata *Metadata `protobuf:"bytes,2,opt,name=metadata,oneof"`
+}
+
+func (*CheckRequest_Key) isCheckRequest_Input()      {}
+func (*CheckRequest_Metadata) isCheckRequest_Input() {}
+
+func (m *CheckRequest) GetInput() isCheckRequest_Input {
 	if m != nil {
-		return m.Key
+		return m.Input
 	}
 	return nil
 }
 
-type CheckReply struct {
-	Status CheckReply_Status `protobuf:"varint,1,opt,name=status,proto3,enum=proxy.CheckReply_Status" json:"status,omitempty"`
+func (m *CheckRequest) GetKey() []byte {
+	if x, ok := m.GetInput().(*CheckRequest_Key); ok {
+		return x.Key
+	}
+	return nil
 }
 
-func (m *CheckReply) Reset()                    { *m = CheckReply{} }
-func (*CheckReply) ProtoMessage()               {}
-func (*CheckReply) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{32} }
+func (m *CheckRequest) GetMetadata() *Metadata {
+	if x, ok := m.GetInput().(*CheckRequest_Metadata); ok {
+		return x.Metadata
+	}
+	return nil
+}
 
-func (m *CheckReply) GetStatus() CheckReply_Status {
+func (m *CheckRequest) GetFast() bool {
+	if m != nil {
+		return m.Fast
+	}
+	return false
+}
+
+// XXX_OneofFuncs is for the internal use of the proto package.
+func (*CheckRequest) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
+	return _CheckRequest_OneofMarshaler, _CheckRequest_OneofUnmarshaler, _CheckRequest_OneofSizer, []interface{}{
+		(*CheckRequest_Key)(nil),
+		(*CheckRequest_Metadata)(nil),
+	}
+}
+
+func _CheckRequest_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
+	m := msg.(*CheckRequest)
+	// input
+	switch x := m.Input.(type) {
+	case *CheckRequest_Key:
+		_ = b.EncodeVarint(1<<3 | proto.WireBytes)
+		_ = b.EncodeRawBytes(x.Key)
+	case *CheckRequest_Metadata:
+		_ = b.EncodeVarint(2<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Metadata); err != nil {
+			return err
+		}
+	case nil:
+	default:
+		return fmt.Errorf("CheckRequest.Input has unexpected type %T", x)
+	}
+	return nil
+}
+
+func _CheckRequest_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
+	m := msg.(*CheckRequest)
+	switch tag {
+	case 1: // input.key
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		x, err := b.DecodeRawBytes(true)
+		m.Input = &CheckRequest_Key{x}
+		return true, err
+	case 2: // input.metadata
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(Metadata)
+		err := b.DecodeMessage(msg)
+		m.Input = &CheckRequest_Metadata{msg}
+		return true, err
+	default:
+		return false, nil
+	}
+}
+
+func _CheckRequest_OneofSizer(msg proto.Message) (n int) {
+	m := msg.(*CheckRequest)
+	// input
+	switch x := m.Input.(type) {
+	case *CheckRequest_Key:
+		n += proto.SizeVarint(1<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(len(x.Key)))
+		n += len(x.Key)
+	case *CheckRequest_Metadata:
+		s := proto.Size(x.Metadata)
+		n += proto.SizeVarint(2<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case nil:
+	default:
+		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
+	}
+	return n
+}
+
+type CheckResponse struct {
+	Status CheckStatus `protobuf:"varint,1,opt,name=status,proto3,enum=schema.CheckStatus" json:"status,omitempty"`
+}
+
+func (m *CheckResponse) Reset()                    { *m = CheckResponse{} }
+func (*CheckResponse) ProtoMessage()               {}
+func (*CheckResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{27} }
+
+func (m *CheckResponse) GetStatus() CheckStatus {
 	if m != nil {
 		return m.Status
 	}
-	return CheckReplyStatusInvalid
+	return CheckStatusInvalid
 }
 
 type RepairRequest struct {
@@ -905,7 +1366,7 @@ type RepairRequest struct {
 
 func (m *RepairRequest) Reset()                    { *m = RepairRequest{} }
 func (*RepairRequest) ProtoMessage()               {}
-func (*RepairRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{33} }
+func (*RepairRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{28} }
 
 func (m *RepairRequest) GetKey() []byte {
 	if m != nil {
@@ -914,53 +1375,459 @@ func (m *RepairRequest) GetKey() []byte {
 	return nil
 }
 
-type RepairReply struct {
+type RepairResponse struct {
+	Metadata *Metadata `protobuf:"bytes,1,opt,name=metadata" json:"metadata,omitempty"`
 }
 
-func (m *RepairReply) Reset()                    { *m = RepairReply{} }
-func (*RepairReply) ProtoMessage()               {}
-func (*RepairReply) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{34} }
+func (m *RepairResponse) Reset()                    { *m = RepairResponse{} }
+func (*RepairResponse) ProtoMessage()               {}
+func (*RepairResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{29} }
+
+func (m *RepairResponse) GetMetadata() *Metadata {
+	if m != nil {
+		return m.Metadata
+	}
+	return nil
+}
+
+type SetMetadataRequest struct {
+	Metadata *Metadata `protobuf:"bytes,1,opt,name=metadata" json:"metadata,omitempty"`
+}
+
+func (m *SetMetadataRequest) Reset()                    { *m = SetMetadataRequest{} }
+func (*SetMetadataRequest) ProtoMessage()               {}
+func (*SetMetadataRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{30} }
+
+func (m *SetMetadataRequest) GetMetadata() *Metadata {
+	if m != nil {
+		return m.Metadata
+	}
+	return nil
+}
+
+type SetMetadataResponse struct {
+}
+
+func (m *SetMetadataResponse) Reset()                    { *m = SetMetadataResponse{} }
+func (*SetMetadataResponse) ProtoMessage()               {}
+func (*SetMetadataResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{31} }
+
+type GetMetadataRequest struct {
+	Key []byte `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+}
+
+func (m *GetMetadataRequest) Reset()                    { *m = GetMetadataRequest{} }
+func (*GetMetadataRequest) ProtoMessage()               {}
+func (*GetMetadataRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{32} }
+
+func (m *GetMetadataRequest) GetKey() []byte {
+	if m != nil {
+		return m.Key
+	}
+	return nil
+}
+
+type GetMetadataResponse struct {
+	Metadata *Metadata `protobuf:"bytes,1,opt,name=metadata" json:"metadata,omitempty"`
+}
+
+func (m *GetMetadataResponse) Reset()                    { *m = GetMetadataResponse{} }
+func (*GetMetadataResponse) ProtoMessage()               {}
+func (*GetMetadataResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{33} }
+
+func (m *GetMetadataResponse) GetMetadata() *Metadata {
+	if m != nil {
+		return m.Metadata
+	}
+	return nil
+}
+
+type DeleteMetadataRequest struct {
+	Key []byte `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+}
+
+func (m *DeleteMetadataRequest) Reset()                    { *m = DeleteMetadataRequest{} }
+func (*DeleteMetadataRequest) ProtoMessage()               {}
+func (*DeleteMetadataRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{34} }
+
+func (m *DeleteMetadataRequest) GetKey() []byte {
+	if m != nil {
+		return m.Key
+	}
+	return nil
+}
+
+type DeleteMetadataResponse struct {
+}
+
+func (m *DeleteMetadataResponse) Reset()                    { *m = DeleteMetadataResponse{} }
+func (*DeleteMetadataResponse) ProtoMessage()               {}
+func (*DeleteMetadataResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{35} }
+
+type DataWriteRequest struct {
+	Data []byte `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
+}
+
+func (m *DataWriteRequest) Reset()                    { *m = DataWriteRequest{} }
+func (*DataWriteRequest) ProtoMessage()               {}
+func (*DataWriteRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{36} }
+
+func (m *DataWriteRequest) GetData() []byte {
+	if m != nil {
+		return m.Data
+	}
+	return nil
+}
+
+type DataWriteResponse struct {
+	Chunks []Chunk `protobuf:"bytes,1,rep,name=chunks" json:"chunks"`
+}
+
+func (m *DataWriteResponse) Reset()                    { *m = DataWriteResponse{} }
+func (*DataWriteResponse) ProtoMessage()               {}
+func (*DataWriteResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{37} }
+
+func (m *DataWriteResponse) GetChunks() []Chunk {
+	if m != nil {
+		return m.Chunks
+	}
+	return nil
+}
+
+type DataWriteFileRequest struct {
+	FilePath string `protobuf:"bytes,1,opt,name=filePath,proto3" json:"filePath,omitempty"`
+}
+
+func (m *DataWriteFileRequest) Reset()                    { *m = DataWriteFileRequest{} }
+func (*DataWriteFileRequest) ProtoMessage()               {}
+func (*DataWriteFileRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{38} }
+
+func (m *DataWriteFileRequest) GetFilePath() string {
+	if m != nil {
+		return m.FilePath
+	}
+	return ""
+}
+
+type DataWriteFileResponse struct {
+	Chunks []Chunk `protobuf:"bytes,1,rep,name=chunks" json:"chunks"`
+}
+
+func (m *DataWriteFileResponse) Reset()                    { *m = DataWriteFileResponse{} }
+func (*DataWriteFileResponse) ProtoMessage()               {}
+func (*DataWriteFileResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{39} }
+
+func (m *DataWriteFileResponse) GetChunks() []Chunk {
+	if m != nil {
+		return m.Chunks
+	}
+	return nil
+}
+
+type DataWriteStreamRequest struct {
+	DataChunk []byte `protobuf:"bytes,1,opt,name=dataChunk,proto3" json:"dataChunk,omitempty"`
+}
+
+func (m *DataWriteStreamRequest) Reset()                    { *m = DataWriteStreamRequest{} }
+func (*DataWriteStreamRequest) ProtoMessage()               {}
+func (*DataWriteStreamRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{40} }
+
+func (m *DataWriteStreamRequest) GetDataChunk() []byte {
+	if m != nil {
+		return m.DataChunk
+	}
+	return nil
+}
+
+type DataWriteStreamResponse struct {
+	Chunks []Chunk `protobuf:"bytes,1,rep,name=chunks" json:"chunks"`
+}
+
+func (m *DataWriteStreamResponse) Reset()                    { *m = DataWriteStreamResponse{} }
+func (*DataWriteStreamResponse) ProtoMessage()               {}
+func (*DataWriteStreamResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{41} }
+
+func (m *DataWriteStreamResponse) GetChunks() []Chunk {
+	if m != nil {
+		return m.Chunks
+	}
+	return nil
+}
+
+type DataReadRequest struct {
+	Chunks []Chunk `protobuf:"bytes,1,rep,name=chunks" json:"chunks"`
+}
+
+func (m *DataReadRequest) Reset()                    { *m = DataReadRequest{} }
+func (*DataReadRequest) ProtoMessage()               {}
+func (*DataReadRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{42} }
+
+func (m *DataReadRequest) GetChunks() []Chunk {
+	if m != nil {
+		return m.Chunks
+	}
+	return nil
+}
+
+type DataReadResponse struct {
+	Data []byte `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
+}
+
+func (m *DataReadResponse) Reset()                    { *m = DataReadResponse{} }
+func (*DataReadResponse) ProtoMessage()               {}
+func (*DataReadResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{43} }
+
+func (m *DataReadResponse) GetData() []byte {
+	if m != nil {
+		return m.Data
+	}
+	return nil
+}
+
+type DataReadFileRequest struct {
+	Chunks []Chunk `protobuf:"bytes,1,rep,name=chunks" json:"chunks"`
+	// destination file and its configuration
+	FilePath      string   `protobuf:"bytes,2,opt,name=filePath,proto3" json:"filePath,omitempty"`
+	FileMode      FileMode `protobuf:"varint,3,opt,name=fileMode,proto3,enum=schema.FileMode" json:"fileMode,omitempty"`
+	SynchronousIO bool     `protobuf:"varint,4,opt,name=synchronousIO,proto3" json:"synchronousIO,omitempty"`
+}
+
+func (m *DataReadFileRequest) Reset()                    { *m = DataReadFileRequest{} }
+func (*DataReadFileRequest) ProtoMessage()               {}
+func (*DataReadFileRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{44} }
+
+func (m *DataReadFileRequest) GetChunks() []Chunk {
+	if m != nil {
+		return m.Chunks
+	}
+	return nil
+}
+
+func (m *DataReadFileRequest) GetFilePath() string {
+	if m != nil {
+		return m.FilePath
+	}
+	return ""
+}
+
+func (m *DataReadFileRequest) GetFileMode() FileMode {
+	if m != nil {
+		return m.FileMode
+	}
+	return FileModeTruncate
+}
+
+func (m *DataReadFileRequest) GetSynchronousIO() bool {
+	if m != nil {
+		return m.SynchronousIO
+	}
+	return false
+}
+
+type DataReadFileResponse struct {
+}
+
+func (m *DataReadFileResponse) Reset()                    { *m = DataReadFileResponse{} }
+func (*DataReadFileResponse) ProtoMessage()               {}
+func (*DataReadFileResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{45} }
+
+type DataReadStreamRequest struct {
+	Chunks    []Chunk `protobuf:"bytes,1,rep,name=chunks" json:"chunks"`
+	ChunkSize int64   `protobuf:"varint,2,opt,name=chunkSize,proto3" json:"chunkSize,omitempty"`
+}
+
+func (m *DataReadStreamRequest) Reset()                    { *m = DataReadStreamRequest{} }
+func (*DataReadStreamRequest) ProtoMessage()               {}
+func (*DataReadStreamRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{46} }
+
+func (m *DataReadStreamRequest) GetChunks() []Chunk {
+	if m != nil {
+		return m.Chunks
+	}
+	return nil
+}
+
+func (m *DataReadStreamRequest) GetChunkSize() int64 {
+	if m != nil {
+		return m.ChunkSize
+	}
+	return 0
+}
+
+type DataReadStreamResponse struct {
+	DataChunk []byte `protobuf:"bytes,1,opt,name=dataChunk,proto3" json:"dataChunk,omitempty"`
+}
+
+func (m *DataReadStreamResponse) Reset()                    { *m = DataReadStreamResponse{} }
+func (*DataReadStreamResponse) ProtoMessage()               {}
+func (*DataReadStreamResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{47} }
+
+func (m *DataReadStreamResponse) GetDataChunk() []byte {
+	if m != nil {
+		return m.DataChunk
+	}
+	return nil
+}
+
+type DataDeleteRequest struct {
+	Chunks []Chunk `protobuf:"bytes,1,rep,name=chunks" json:"chunks"`
+}
+
+func (m *DataDeleteRequest) Reset()                    { *m = DataDeleteRequest{} }
+func (*DataDeleteRequest) ProtoMessage()               {}
+func (*DataDeleteRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{48} }
+
+func (m *DataDeleteRequest) GetChunks() []Chunk {
+	if m != nil {
+		return m.Chunks
+	}
+	return nil
+}
+
+type DataDeleteResponse struct {
+}
+
+func (m *DataDeleteResponse) Reset()                    { *m = DataDeleteResponse{} }
+func (*DataDeleteResponse) ProtoMessage()               {}
+func (*DataDeleteResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{49} }
+
+type DataCheckRequest struct {
+	Chunks []Chunk `protobuf:"bytes,1,rep,name=chunks" json:"chunks"`
+	Fast   bool    `protobuf:"varint,2,opt,name=fast,proto3" json:"fast,omitempty"`
+}
+
+func (m *DataCheckRequest) Reset()                    { *m = DataCheckRequest{} }
+func (*DataCheckRequest) ProtoMessage()               {}
+func (*DataCheckRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{50} }
+
+func (m *DataCheckRequest) GetChunks() []Chunk {
+	if m != nil {
+		return m.Chunks
+	}
+	return nil
+}
+
+func (m *DataCheckRequest) GetFast() bool {
+	if m != nil {
+		return m.Fast
+	}
+	return false
+}
+
+type DataCheckResponse struct {
+	Status CheckStatus `protobuf:"varint,1,opt,name=status,proto3,enum=schema.CheckStatus" json:"status,omitempty"`
+}
+
+func (m *DataCheckResponse) Reset()                    { *m = DataCheckResponse{} }
+func (*DataCheckResponse) ProtoMessage()               {}
+func (*DataCheckResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{51} }
+
+func (m *DataCheckResponse) GetStatus() CheckStatus {
+	if m != nil {
+		return m.Status
+	}
+	return CheckStatusInvalid
+}
+
+type DataRepairRequest struct {
+	Chunks []Chunk `protobuf:"bytes,1,rep,name=chunks" json:"chunks"`
+}
+
+func (m *DataRepairRequest) Reset()                    { *m = DataRepairRequest{} }
+func (*DataRepairRequest) ProtoMessage()               {}
+func (*DataRepairRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{52} }
+
+func (m *DataRepairRequest) GetChunks() []Chunk {
+	if m != nil {
+		return m.Chunks
+	}
+	return nil
+}
+
+type DataRepairResponse struct {
+	Chunks []Chunk `protobuf:"bytes,1,rep,name=chunks" json:"chunks"`
+}
+
+func (m *DataRepairResponse) Reset()                    { *m = DataRepairResponse{} }
+func (*DataRepairResponse) ProtoMessage()               {}
+func (*DataRepairResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{53} }
+
+func (m *DataRepairResponse) GetChunks() []Chunk {
+	if m != nil {
+		return m.Chunks
+	}
+	return nil
+}
 
 func init() {
-	proto.RegisterType((*Permission)(nil), "proxy.Permission")
-	proto.RegisterType((*CreateJWTRequest)(nil), "proxy.CreateJWTRequest")
-	proto.RegisterType((*CreateJWTReply)(nil), "proxy.CreateJWTReply")
-	proto.RegisterType((*NamespaceRequest)(nil), "proxy.NamespaceRequest")
-	proto.RegisterType((*NamespaceReply)(nil), "proxy.NamespaceReply")
-	proto.RegisterType((*EditPermissionRequest)(nil), "proxy.EditPermissionRequest")
-	proto.RegisterType((*EditPermissionReply)(nil), "proxy.EditPermissionReply")
-	proto.RegisterType((*GetPermissionRequest)(nil), "proxy.GetPermissionRequest")
-	proto.RegisterType((*GetPermissionReply)(nil), "proxy.GetPermissionReply")
-	proto.RegisterType((*Chunk)(nil), "proxy.Chunk")
-	proto.RegisterType((*Meta)(nil), "proxy.Meta")
-	proto.RegisterType((*WriteRequest)(nil), "proxy.WriteRequest")
-	proto.RegisterType((*WriteReply)(nil), "proxy.WriteReply")
-	proto.RegisterType((*WriteFileRequest)(nil), "proxy.WriteFileRequest")
-	proto.RegisterType((*WriteFileReply)(nil), "proxy.WriteFileReply")
-	proto.RegisterType((*WriteStreamRequest)(nil), "proxy.WriteStreamRequest")
-	proto.RegisterType((*WriteStreamReply)(nil), "proxy.WriteStreamReply")
-	proto.RegisterType((*ReadRequest)(nil), "proxy.ReadRequest")
-	proto.RegisterType((*ReadReply)(nil), "proxy.ReadReply")
-	proto.RegisterType((*ReadFileRequest)(nil), "proxy.ReadFileRequest")
-	proto.RegisterType((*ReadFileReply)(nil), "proxy.ReadFileReply")
-	proto.RegisterType((*ReadStreamRequest)(nil), "proxy.ReadStreamRequest")
-	proto.RegisterType((*ReadStreamReply)(nil), "proxy.ReadStreamReply")
-	proto.RegisterType((*DeleteRequest)(nil), "proxy.DeleteRequest")
-	proto.RegisterType((*DeleteReply)(nil), "proxy.DeleteReply")
-	proto.RegisterType((*WalkRequest)(nil), "proxy.WalkRequest")
-	proto.RegisterType((*WalkReply)(nil), "proxy.WalkReply")
-	proto.RegisterType((*AppendReferenceListRequest)(nil), "proxy.AppendReferenceListRequest")
-	proto.RegisterType((*RemoveReferenceListRequest)(nil), "proxy.RemoveReferenceListRequest")
-	proto.RegisterType((*AppendReferenceListReply)(nil), "proxy.AppendReferenceListReply")
-	proto.RegisterType((*RemoveReferenceListReply)(nil), "proxy.RemoveReferenceListReply")
-	proto.RegisterType((*CheckRequest)(nil), "proxy.CheckRequest")
-	proto.RegisterType((*CheckReply)(nil), "proxy.CheckReply")
-	proto.RegisterType((*RepairRequest)(nil), "proxy.RepairRequest")
-	proto.RegisterType((*RepairReply)(nil), "proxy.RepairReply")
-	proto.RegisterEnum("proxy.CheckReply_Status", CheckReply_Status_name, CheckReply_Status_value)
+	proto.RegisterType((*Permission)(nil), "schema.Permission")
+	proto.RegisterType((*CreateNamespaceRequest)(nil), "schema.CreateNamespaceRequest")
+	proto.RegisterType((*CreateNamespaceResponse)(nil), "schema.CreateNamespaceResponse")
+	proto.RegisterType((*DeleteNamespaceRequest)(nil), "schema.DeleteNamespaceRequest")
+	proto.RegisterType((*DeleteNamespaceResponse)(nil), "schema.DeleteNamespaceResponse")
+	proto.RegisterType((*SetPermissionRequest)(nil), "schema.SetPermissionRequest")
+	proto.RegisterType((*SetPermissionResponse)(nil), "schema.SetPermissionResponse")
+	proto.RegisterType((*GetPermissionRequest)(nil), "schema.GetPermissionRequest")
+	proto.RegisterType((*GetPermissionResponse)(nil), "schema.GetPermissionResponse")
+	proto.RegisterType((*Metadata)(nil), "schema.Metadata")
+	proto.RegisterType((*Chunk)(nil), "schema.Chunk")
+	proto.RegisterType((*Object)(nil), "schema.Object")
+	proto.RegisterType((*WriteRequest)(nil), "schema.WriteRequest")
+	proto.RegisterType((*WriteResponse)(nil), "schema.WriteResponse")
+	proto.RegisterType((*WriteFileRequest)(nil), "schema.WriteFileRequest")
+	proto.RegisterType((*WriteFileResponse)(nil), "schema.WriteFileResponse")
+	proto.RegisterType((*WriteStreamRequest)(nil), "schema.WriteStreamRequest")
+	proto.RegisterType((*WriteStreamRequest_Metadata)(nil), "schema.WriteStreamRequest.Metadata")
+	proto.RegisterType((*WriteStreamRequest_Data)(nil), "schema.WriteStreamRequest.Data")
+	proto.RegisterType((*WriteStreamResponse)(nil), "schema.WriteStreamResponse")
+	proto.RegisterType((*ReadRequest)(nil), "schema.ReadRequest")
+	proto.RegisterType((*ReadResponse)(nil), "schema.ReadResponse")
+	proto.RegisterType((*ReadFileRequest)(nil), "schema.ReadFileRequest")
+	proto.RegisterType((*ReadFileResponse)(nil), "schema.ReadFileResponse")
+	proto.RegisterType((*ReadStreamRequest)(nil), "schema.ReadStreamRequest")
+	proto.RegisterType((*ReadStreamResponse)(nil), "schema.ReadStreamResponse")
+	proto.RegisterType((*DeleteRequest)(nil), "schema.DeleteRequest")
+	proto.RegisterType((*DeleteResponse)(nil), "schema.DeleteResponse")
+	proto.RegisterType((*CheckRequest)(nil), "schema.CheckRequest")
+	proto.RegisterType((*CheckResponse)(nil), "schema.CheckResponse")
+	proto.RegisterType((*RepairRequest)(nil), "schema.RepairRequest")
+	proto.RegisterType((*RepairResponse)(nil), "schema.RepairResponse")
+	proto.RegisterType((*SetMetadataRequest)(nil), "schema.SetMetadataRequest")
+	proto.RegisterType((*SetMetadataResponse)(nil), "schema.SetMetadataResponse")
+	proto.RegisterType((*GetMetadataRequest)(nil), "schema.GetMetadataRequest")
+	proto.RegisterType((*GetMetadataResponse)(nil), "schema.GetMetadataResponse")
+	proto.RegisterType((*DeleteMetadataRequest)(nil), "schema.DeleteMetadataRequest")
+	proto.RegisterType((*DeleteMetadataResponse)(nil), "schema.DeleteMetadataResponse")
+	proto.RegisterType((*DataWriteRequest)(nil), "schema.DataWriteRequest")
+	proto.RegisterType((*DataWriteResponse)(nil), "schema.DataWriteResponse")
+	proto.RegisterType((*DataWriteFileRequest)(nil), "schema.DataWriteFileRequest")
+	proto.RegisterType((*DataWriteFileResponse)(nil), "schema.DataWriteFileResponse")
+	proto.RegisterType((*DataWriteStreamRequest)(nil), "schema.DataWriteStreamRequest")
+	proto.RegisterType((*DataWriteStreamResponse)(nil), "schema.DataWriteStreamResponse")
+	proto.RegisterType((*DataReadRequest)(nil), "schema.DataReadRequest")
+	proto.RegisterType((*DataReadResponse)(nil), "schema.DataReadResponse")
+	proto.RegisterType((*DataReadFileRequest)(nil), "schema.DataReadFileRequest")
+	proto.RegisterType((*DataReadFileResponse)(nil), "schema.DataReadFileResponse")
+	proto.RegisterType((*DataReadStreamRequest)(nil), "schema.DataReadStreamRequest")
+	proto.RegisterType((*DataReadStreamResponse)(nil), "schema.DataReadStreamResponse")
+	proto.RegisterType((*DataDeleteRequest)(nil), "schema.DataDeleteRequest")
+	proto.RegisterType((*DataDeleteResponse)(nil), "schema.DataDeleteResponse")
+	proto.RegisterType((*DataCheckRequest)(nil), "schema.DataCheckRequest")
+	proto.RegisterType((*DataCheckResponse)(nil), "schema.DataCheckResponse")
+	proto.RegisterType((*DataRepairRequest)(nil), "schema.DataRepairRequest")
+	proto.RegisterType((*DataRepairResponse)(nil), "schema.DataRepairResponse")
+	proto.RegisterEnum("schema.CheckStatus", CheckStatus_name, CheckStatus_value)
+	proto.RegisterEnum("schema.FileMode", FileMode_name, FileMode_value)
 }
-func (x CheckReply_Status) String() string {
-	s, ok := CheckReply_Status_name[int32(x)]
+func (x CheckStatus) String() string {
+	s, ok := CheckStatus_name[int32(x)]
+	if ok {
+		return s
+	}
+	return strconv.Itoa(int(x))
+}
+func (x FileMode) String() string {
+	s, ok := FileMode_name[int32(x)]
 	if ok {
 		return s
 	}
@@ -985,10 +1852,10 @@ func (this *Permission) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
-	if this.Write != that1.Write {
+	if this.Read != that1.Read {
 		return false
 	}
-	if this.Read != that1.Read {
+	if this.Write != that1.Write {
 		return false
 	}
 	if this.Delete != that1.Delete {
@@ -999,65 +1866,14 @@ func (this *Permission) Equal(that interface{}) bool {
 	}
 	return true
 }
-func (this *CreateJWTRequest) Equal(that interface{}) bool {
+func (this *CreateNamespaceRequest) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*CreateJWTRequest)
+	that1, ok := that.(*CreateNamespaceRequest)
 	if !ok {
-		that2, ok := that.(CreateJWTRequest)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
-		return false
-	}
-	if this.Namespace != that1.Namespace {
-		return false
-	}
-	if !this.Permission.Equal(that1.Permission) {
-		return false
-	}
-	return true
-}
-func (this *CreateJWTReply) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
-
-	that1, ok := that.(*CreateJWTReply)
-	if !ok {
-		that2, ok := that.(CreateJWTReply)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
-		return false
-	}
-	if this.Token != that1.Token {
-		return false
-	}
-	return true
-}
-func (this *NamespaceRequest) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
-
-	that1, ok := that.(*NamespaceRequest)
-	if !ok {
-		that2, ok := that.(NamespaceRequest)
+		that2, ok := that.(CreateNamespaceRequest)
 		if ok {
 			that1 = &that2
 		} else {
@@ -1074,14 +1890,14 @@ func (this *NamespaceRequest) Equal(that interface{}) bool {
 	}
 	return true
 }
-func (this *NamespaceReply) Equal(that interface{}) bool {
+func (this *CreateNamespaceResponse) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*NamespaceReply)
+	that1, ok := that.(*CreateNamespaceResponse)
 	if !ok {
-		that2, ok := that.(NamespaceReply)
+		that2, ok := that.(CreateNamespaceResponse)
 		if ok {
 			that1 = &that2
 		} else {
@@ -1095,14 +1911,59 @@ func (this *NamespaceReply) Equal(that interface{}) bool {
 	}
 	return true
 }
-func (this *EditPermissionRequest) Equal(that interface{}) bool {
+func (this *DeleteNamespaceRequest) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*EditPermissionRequest)
+	that1, ok := that.(*DeleteNamespaceRequest)
 	if !ok {
-		that2, ok := that.(EditPermissionRequest)
+		that2, ok := that.(DeleteNamespaceRequest)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.Namespace != that1.Namespace {
+		return false
+	}
+	return true
+}
+func (this *DeleteNamespaceResponse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*DeleteNamespaceResponse)
+	if !ok {
+		that2, ok := that.(DeleteNamespaceResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	return true
+}
+func (this *SetPermissionRequest) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*SetPermissionRequest)
+	if !ok {
+		that2, ok := that.(SetPermissionRequest)
 		if ok {
 			that1 = &that2
 		} else {
@@ -1125,14 +1986,14 @@ func (this *EditPermissionRequest) Equal(that interface{}) bool {
 	}
 	return true
 }
-func (this *EditPermissionReply) Equal(that interface{}) bool {
+func (this *SetPermissionResponse) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*EditPermissionReply)
+	that1, ok := that.(*SetPermissionResponse)
 	if !ok {
-		that2, ok := that.(EditPermissionReply)
+		that2, ok := that.(SetPermissionResponse)
 		if ok {
 			that1 = &that2
 		} else {
@@ -1173,14 +2034,14 @@ func (this *GetPermissionRequest) Equal(that interface{}) bool {
 	}
 	return true
 }
-func (this *GetPermissionReply) Equal(that interface{}) bool {
+func (this *GetPermissionResponse) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*GetPermissionReply)
+	that1, ok := that.(*GetPermissionResponse)
 	if !ok {
-		that2, ok := that.(GetPermissionReply)
+		that2, ok := that.(GetPermissionResponse)
 		if ok {
 			that1 = &that2
 		} else {
@@ -1194,6 +2055,47 @@ func (this *GetPermissionReply) Equal(that interface{}) bool {
 	}
 	if !this.Permission.Equal(that1.Permission) {
 		return false
+	}
+	return true
+}
+func (this *Metadata) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*Metadata)
+	if !ok {
+		that2, ok := that.(Metadata)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !bytes.Equal(this.Key, that1.Key) {
+		return false
+	}
+	if this.SizeInBytes != that1.SizeInBytes {
+		return false
+	}
+	if this.CreationEpoch != that1.CreationEpoch {
+		return false
+	}
+	if this.LastWriteEpoch != that1.LastWriteEpoch {
+		return false
+	}
+	if len(this.Chunks) != len(that1.Chunks) {
+		return false
+	}
+	for i := range this.Chunks {
+		if !this.Chunks[i].Equal(&that1.Chunks[i]) {
+			return false
+		}
 	}
 	return true
 }
@@ -1216,30 +2118,30 @@ func (this *Chunk) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
-	if this.Size_ != that1.Size_ {
+	if this.SizeInBytes != that1.SizeInBytes {
 		return false
 	}
-	if !bytes.Equal(this.Key, that1.Key) {
+	if len(this.Objects) != len(that1.Objects) {
 		return false
 	}
-	if len(this.Shards) != len(that1.Shards) {
-		return false
-	}
-	for i := range this.Shards {
-		if this.Shards[i] != that1.Shards[i] {
+	for i := range this.Objects {
+		if !this.Objects[i].Equal(&that1.Objects[i]) {
 			return false
 		}
 	}
+	if !bytes.Equal(this.Hash, that1.Hash) {
+		return false
+	}
 	return true
 }
-func (this *Meta) Equal(that interface{}) bool {
+func (this *Object) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*Meta)
+	that1, ok := that.(*Object)
 	if !ok {
-		that2, ok := that.(Meta)
+		that2, ok := that.(Object)
 		if ok {
 			that1 = &that2
 		} else {
@@ -1251,27 +2153,10 @@ func (this *Meta) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
-	if this.Epoch != that1.Epoch {
-		return false
-	}
 	if !bytes.Equal(this.Key, that1.Key) {
 		return false
 	}
-	if !bytes.Equal(this.EncrKey, that1.EncrKey) {
-		return false
-	}
-	if len(this.Chunks) != len(that1.Chunks) {
-		return false
-	}
-	for i := range this.Chunks {
-		if !this.Chunks[i].Equal(that1.Chunks[i]) {
-			return false
-		}
-	}
-	if !bytes.Equal(this.Previous, that1.Previous) {
-		return false
-	}
-	if !bytes.Equal(this.Next, that1.Next) {
+	if this.ShardID != that1.ShardID {
 		return false
 	}
 	return true
@@ -1298,36 +2183,19 @@ func (this *WriteRequest) Equal(that interface{}) bool {
 	if !bytes.Equal(this.Key, that1.Key) {
 		return false
 	}
-	if !this.Meta.Equal(that1.Meta) {
-		return false
-	}
-	if !bytes.Equal(this.Value, that1.Value) {
-		return false
-	}
-	if len(this.ReferenceList) != len(that1.ReferenceList) {
-		return false
-	}
-	for i := range this.ReferenceList {
-		if this.ReferenceList[i] != that1.ReferenceList[i] {
-			return false
-		}
-	}
-	if this.PrevKey != that1.PrevKey {
-		return false
-	}
-	if !this.PrevMeta.Equal(that1.PrevMeta) {
+	if !bytes.Equal(this.Data, that1.Data) {
 		return false
 	}
 	return true
 }
-func (this *WriteReply) Equal(that interface{}) bool {
+func (this *WriteResponse) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*WriteReply)
+	that1, ok := that.(*WriteResponse)
 	if !ok {
-		that2, ok := that.(WriteReply)
+		that2, ok := that.(WriteResponse)
 		if ok {
 			that1 = &that2
 		} else {
@@ -1339,7 +2207,7 @@ func (this *WriteReply) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
-	if !this.Meta.Equal(that1.Meta) {
+	if !this.Metadata.Equal(that1.Metadata) {
 		return false
 	}
 	return true
@@ -1366,36 +2234,19 @@ func (this *WriteFileRequest) Equal(that interface{}) bool {
 	if !bytes.Equal(this.Key, that1.Key) {
 		return false
 	}
-	if !this.Meta.Equal(that1.Meta) {
-		return false
-	}
 	if this.FilePath != that1.FilePath {
-		return false
-	}
-	if len(this.ReferenceList) != len(that1.ReferenceList) {
-		return false
-	}
-	for i := range this.ReferenceList {
-		if this.ReferenceList[i] != that1.ReferenceList[i] {
-			return false
-		}
-	}
-	if this.PrevKey != that1.PrevKey {
-		return false
-	}
-	if !this.PrevMeta.Equal(that1.PrevMeta) {
 		return false
 	}
 	return true
 }
-func (this *WriteFileReply) Equal(that interface{}) bool {
+func (this *WriteFileResponse) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*WriteFileReply)
+	that1, ok := that.(*WriteFileResponse)
 	if !ok {
-		that2, ok := that.(WriteFileReply)
+		that2, ok := that.(WriteFileResponse)
 		if ok {
 			that1 = &that2
 		} else {
@@ -1407,7 +2258,7 @@ func (this *WriteFileReply) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
-	if !this.Meta.Equal(that1.Meta) {
+	if !this.Metadata.Equal(that1.Metadata) {
 		return false
 	}
 	return true
@@ -1431,39 +2282,25 @@ func (this *WriteStreamRequest) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
-	if !bytes.Equal(this.Key, that1.Key) {
-		return false
-	}
-	if !this.Meta.Equal(that1.Meta) {
-		return false
-	}
-	if !bytes.Equal(this.Value, that1.Value) {
-		return false
-	}
-	if len(this.ReferenceList) != len(that1.ReferenceList) {
-		return false
-	}
-	for i := range this.ReferenceList {
-		if this.ReferenceList[i] != that1.ReferenceList[i] {
+	if that1.Input == nil {
+		if this.Input != nil {
 			return false
 		}
-	}
-	if !bytes.Equal(this.PrevKey, that1.PrevKey) {
+	} else if this.Input == nil {
 		return false
-	}
-	if !this.PrevMeta.Equal(that1.PrevMeta) {
+	} else if !this.Input.Equal(that1.Input) {
 		return false
 	}
 	return true
 }
-func (this *WriteStreamReply) Equal(that interface{}) bool {
+func (this *WriteStreamRequest_Metadata_) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*WriteStreamReply)
+	that1, ok := that.(*WriteStreamRequest_Metadata_)
 	if !ok {
-		that2, ok := that.(WriteStreamReply)
+		that2, ok := that.(WriteStreamRequest_Metadata_)
 		if ok {
 			that1 = &that2
 		} else {
@@ -1475,7 +2312,103 @@ func (this *WriteStreamReply) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
-	if !this.Meta.Equal(that1.Meta) {
+	if !this.Metadata.Equal(that1.Metadata) {
+		return false
+	}
+	return true
+}
+func (this *WriteStreamRequest_Data_) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*WriteStreamRequest_Data_)
+	if !ok {
+		that2, ok := that.(WriteStreamRequest_Data_)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.Data.Equal(that1.Data) {
+		return false
+	}
+	return true
+}
+func (this *WriteStreamRequest_Metadata) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*WriteStreamRequest_Metadata)
+	if !ok {
+		that2, ok := that.(WriteStreamRequest_Metadata)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !bytes.Equal(this.Key, that1.Key) {
+		return false
+	}
+	return true
+}
+func (this *WriteStreamRequest_Data) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*WriteStreamRequest_Data)
+	if !ok {
+		that2, ok := that.(WriteStreamRequest_Data)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !bytes.Equal(this.DataChunk, that1.DataChunk) {
+		return false
+	}
+	return true
+}
+func (this *WriteStreamResponse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*WriteStreamResponse)
+	if !ok {
+		that2, ok := that.(WriteStreamResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.Metadata.Equal(that1.Metadata) {
 		return false
 	}
 	return true
@@ -1499,22 +2432,25 @@ func (this *ReadRequest) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
-	if !bytes.Equal(this.Key, that1.Key) {
+	if that1.Input == nil {
+		if this.Input != nil {
+			return false
+		}
+	} else if this.Input == nil {
 		return false
-	}
-	if !this.Meta.Equal(that1.Meta) {
+	} else if !this.Input.Equal(that1.Input) {
 		return false
 	}
 	return true
 }
-func (this *ReadReply) Equal(that interface{}) bool {
+func (this *ReadRequest_Key) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*ReadReply)
+	that1, ok := that.(*ReadRequest_Key)
 	if !ok {
-		that2, ok := that.(ReadReply)
+		that2, ok := that.(ReadRequest_Key)
 		if ok {
 			that1 = &that2
 		} else {
@@ -1526,16 +2462,56 @@ func (this *ReadReply) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
-	if !bytes.Equal(this.Value, that1.Value) {
+	if !bytes.Equal(this.Key, that1.Key) {
 		return false
 	}
-	if len(this.ReferenceList) != len(that1.ReferenceList) {
-		return false
+	return true
+}
+func (this *ReadRequest_Metadata) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
 	}
-	for i := range this.ReferenceList {
-		if this.ReferenceList[i] != that1.ReferenceList[i] {
+
+	that1, ok := that.(*ReadRequest_Metadata)
+	if !ok {
+		that2, ok := that.(ReadRequest_Metadata)
+		if ok {
+			that1 = &that2
+		} else {
 			return false
 		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.Metadata.Equal(that1.Metadata) {
+		return false
+	}
+	return true
+}
+func (this *ReadResponse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*ReadResponse)
+	if !ok {
+		that2, ok := that.(ReadResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !bytes.Equal(this.Data, that1.Data) {
+		return false
 	}
 	return true
 }
@@ -1558,22 +2534,34 @@ func (this *ReadFileRequest) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
-	if !bytes.Equal(this.Key, that1.Key) {
+	if that1.Input == nil {
+		if this.Input != nil {
+			return false
+		}
+	} else if this.Input == nil {
+		return false
+	} else if !this.Input.Equal(that1.Input) {
 		return false
 	}
 	if this.FilePath != that1.FilePath {
 		return false
 	}
+	if this.FileMode != that1.FileMode {
+		return false
+	}
+	if this.SynchronousIO != that1.SynchronousIO {
+		return false
+	}
 	return true
 }
-func (this *ReadFileReply) Equal(that interface{}) bool {
+func (this *ReadFileRequest_Key) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*ReadFileReply)
+	that1, ok := that.(*ReadFileRequest_Key)
 	if !ok {
-		that2, ok := that.(ReadFileReply)
+		that2, ok := that.(ReadFileRequest_Key)
 		if ok {
 			that1 = &that2
 		} else {
@@ -1585,13 +2573,53 @@ func (this *ReadFileReply) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
-	if len(this.ReferenceList) != len(that1.ReferenceList) {
+	if !bytes.Equal(this.Key, that1.Key) {
 		return false
 	}
-	for i := range this.ReferenceList {
-		if this.ReferenceList[i] != that1.ReferenceList[i] {
+	return true
+}
+func (this *ReadFileRequest_Metadata) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*ReadFileRequest_Metadata)
+	if !ok {
+		that2, ok := that.(ReadFileRequest_Metadata)
+		if ok {
+			that1 = &that2
+		} else {
 			return false
 		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.Metadata.Equal(that1.Metadata) {
+		return false
+	}
+	return true
+}
+func (this *ReadFileResponse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*ReadFileResponse)
+	if !ok {
+		that2, ok := that.(ReadFileResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
 	}
 	return true
 }
@@ -1614,19 +2642,28 @@ func (this *ReadStreamRequest) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
-	if !bytes.Equal(this.Key, that1.Key) {
+	if that1.Input == nil {
+		if this.Input != nil {
+			return false
+		}
+	} else if this.Input == nil {
+		return false
+	} else if !this.Input.Equal(that1.Input) {
+		return false
+	}
+	if this.ChunkSize != that1.ChunkSize {
 		return false
 	}
 	return true
 }
-func (this *ReadStreamReply) Equal(that interface{}) bool {
+func (this *ReadStreamRequest_Key) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*ReadStreamReply)
+	that1, ok := that.(*ReadStreamRequest_Key)
 	if !ok {
-		that2, ok := that.(ReadStreamReply)
+		that2, ok := that.(ReadStreamRequest_Key)
 		if ok {
 			that1 = &that2
 		} else {
@@ -1638,16 +2675,56 @@ func (this *ReadStreamReply) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
-	if !bytes.Equal(this.Value, that1.Value) {
+	if !bytes.Equal(this.Key, that1.Key) {
 		return false
 	}
-	if len(this.ReferenceList) != len(that1.ReferenceList) {
-		return false
+	return true
+}
+func (this *ReadStreamRequest_Metadata) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
 	}
-	for i := range this.ReferenceList {
-		if this.ReferenceList[i] != that1.ReferenceList[i] {
+
+	that1, ok := that.(*ReadStreamRequest_Metadata)
+	if !ok {
+		that2, ok := that.(ReadStreamRequest_Metadata)
+		if ok {
+			that1 = &that2
+		} else {
 			return false
 		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.Metadata.Equal(that1.Metadata) {
+		return false
+	}
+	return true
+}
+func (this *ReadStreamResponse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*ReadStreamResponse)
+	if !ok {
+		that2, ok := that.(ReadStreamResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !bytes.Equal(this.DataChunk, that1.DataChunk) {
+		return false
 	}
 	return true
 }
@@ -1670,73 +2747,25 @@ func (this *DeleteRequest) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
-	if !bytes.Equal(this.Key, that1.Key) {
-		return false
-	}
-	if !this.Meta.Equal(that1.Meta) {
-		return false
-	}
-	return true
-}
-func (this *DeleteReply) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
-
-	that1, ok := that.(*DeleteReply)
-	if !ok {
-		that2, ok := that.(DeleteReply)
-		if ok {
-			that1 = &that2
-		} else {
+	if that1.Input == nil {
+		if this.Input != nil {
 			return false
 		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
+	} else if this.Input == nil {
+		return false
+	} else if !this.Input.Equal(that1.Input) {
 		return false
 	}
 	return true
 }
-func (this *WalkRequest) Equal(that interface{}) bool {
+func (this *DeleteRequest_Key) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*WalkRequest)
+	that1, ok := that.(*DeleteRequest_Key)
 	if !ok {
-		that2, ok := that.(WalkRequest)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
-		return false
-	}
-	if !bytes.Equal(this.StartKey, that1.StartKey) {
-		return false
-	}
-	if this.FromEpoch != that1.FromEpoch {
-		return false
-	}
-	if this.ToEpoch != that1.ToEpoch {
-		return false
-	}
-	return true
-}
-func (this *WalkReply) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
-
-	that1, ok := that.(*WalkReply)
-	if !ok {
-		that2, ok := that.(WalkReply)
+		that2, ok := that.(DeleteRequest_Key)
 		if ok {
 			that1 = &that2
 		} else {
@@ -1751,30 +2780,16 @@ func (this *WalkReply) Equal(that interface{}) bool {
 	if !bytes.Equal(this.Key, that1.Key) {
 		return false
 	}
-	if !this.Meta.Equal(that1.Meta) {
-		return false
-	}
-	if !bytes.Equal(this.Value, that1.Value) {
-		return false
-	}
-	if len(this.ReferenceList) != len(that1.ReferenceList) {
-		return false
-	}
-	for i := range this.ReferenceList {
-		if this.ReferenceList[i] != that1.ReferenceList[i] {
-			return false
-		}
-	}
 	return true
 }
-func (this *AppendReferenceListRequest) Equal(that interface{}) bool {
+func (this *DeleteRequest_Metadata) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*AppendReferenceListRequest)
+	that1, ok := that.(*DeleteRequest_Metadata)
 	if !ok {
-		that2, ok := that.(AppendReferenceListRequest)
+		that2, ok := that.(DeleteRequest_Metadata)
 		if ok {
 			that1 = &that2
 		} else {
@@ -1786,86 +2801,19 @@ func (this *AppendReferenceListRequest) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
-	if !bytes.Equal(this.Key, that1.Key) {
-		return false
-	}
-	if !this.Meta.Equal(that1.Meta) {
-		return false
-	}
-	if len(this.ReferenceList) != len(that1.ReferenceList) {
-		return false
-	}
-	for i := range this.ReferenceList {
-		if this.ReferenceList[i] != that1.ReferenceList[i] {
-			return false
-		}
-	}
-	return true
-}
-func (this *RemoveReferenceListRequest) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
-
-	that1, ok := that.(*RemoveReferenceListRequest)
-	if !ok {
-		that2, ok := that.(RemoveReferenceListRequest)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
-		return false
-	}
-	if !bytes.Equal(this.Key, that1.Key) {
-		return false
-	}
-	if !this.Meta.Equal(that1.Meta) {
-		return false
-	}
-	if len(this.ReferenceList) != len(that1.ReferenceList) {
-		return false
-	}
-	for i := range this.ReferenceList {
-		if this.ReferenceList[i] != that1.ReferenceList[i] {
-			return false
-		}
-	}
-	return true
-}
-func (this *AppendReferenceListReply) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
-
-	that1, ok := that.(*AppendReferenceListReply)
-	if !ok {
-		that2, ok := that.(AppendReferenceListReply)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
+	if !this.Metadata.Equal(that1.Metadata) {
 		return false
 	}
 	return true
 }
-func (this *RemoveReferenceListReply) Equal(that interface{}) bool {
+func (this *DeleteResponse) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*RemoveReferenceListReply)
+	that1, ok := that.(*DeleteResponse)
 	if !ok {
-		that2, ok := that.(RemoveReferenceListReply)
+		that2, ok := that.(DeleteResponse)
 		if ok {
 			that1 = &that2
 		} else {
@@ -1898,19 +2846,76 @@ func (this *CheckRequest) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
+	if that1.Input == nil {
+		if this.Input != nil {
+			return false
+		}
+	} else if this.Input == nil {
+		return false
+	} else if !this.Input.Equal(that1.Input) {
+		return false
+	}
+	if this.Fast != that1.Fast {
+		return false
+	}
+	return true
+}
+func (this *CheckRequest_Key) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*CheckRequest_Key)
+	if !ok {
+		that2, ok := that.(CheckRequest_Key)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
 	if !bytes.Equal(this.Key, that1.Key) {
 		return false
 	}
 	return true
 }
-func (this *CheckReply) Equal(that interface{}) bool {
+func (this *CheckRequest_Metadata) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*CheckReply)
+	that1, ok := that.(*CheckRequest_Metadata)
 	if !ok {
-		that2, ok := that.(CheckReply)
+		that2, ok := that.(CheckRequest_Metadata)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.Metadata.Equal(that1.Metadata) {
+		return false
+	}
+	return true
+}
+func (this *CheckResponse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*CheckResponse)
+	if !ok {
+		that2, ok := that.(CheckResponse)
 		if ok {
 			that1 = &that2
 		} else {
@@ -1951,14 +2956,62 @@ func (this *RepairRequest) Equal(that interface{}) bool {
 	}
 	return true
 }
-func (this *RepairReply) Equal(that interface{}) bool {
+func (this *RepairResponse) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*RepairReply)
+	that1, ok := that.(*RepairResponse)
 	if !ok {
-		that2, ok := that.(RepairReply)
+		that2, ok := that.(RepairResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.Metadata.Equal(that1.Metadata) {
+		return false
+	}
+	return true
+}
+func (this *SetMetadataRequest) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*SetMetadataRequest)
+	if !ok {
+		that2, ok := that.(SetMetadataRequest)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.Metadata.Equal(that1.Metadata) {
+		return false
+	}
+	return true
+}
+func (this *SetMetadataResponse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*SetMetadataResponse)
+	if !ok {
+		that2, ok := that.(SetMetadataResponse)
 		if ok {
 			that1 = &that2
 		} else {
@@ -1972,67 +3025,647 @@ func (this *RepairReply) Equal(that interface{}) bool {
 	}
 	return true
 }
+func (this *GetMetadataRequest) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*GetMetadataRequest)
+	if !ok {
+		that2, ok := that.(GetMetadataRequest)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !bytes.Equal(this.Key, that1.Key) {
+		return false
+	}
+	return true
+}
+func (this *GetMetadataResponse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*GetMetadataResponse)
+	if !ok {
+		that2, ok := that.(GetMetadataResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.Metadata.Equal(that1.Metadata) {
+		return false
+	}
+	return true
+}
+func (this *DeleteMetadataRequest) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*DeleteMetadataRequest)
+	if !ok {
+		that2, ok := that.(DeleteMetadataRequest)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !bytes.Equal(this.Key, that1.Key) {
+		return false
+	}
+	return true
+}
+func (this *DeleteMetadataResponse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*DeleteMetadataResponse)
+	if !ok {
+		that2, ok := that.(DeleteMetadataResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	return true
+}
+func (this *DataWriteRequest) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*DataWriteRequest)
+	if !ok {
+		that2, ok := that.(DataWriteRequest)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !bytes.Equal(this.Data, that1.Data) {
+		return false
+	}
+	return true
+}
+func (this *DataWriteResponse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*DataWriteResponse)
+	if !ok {
+		that2, ok := that.(DataWriteResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if len(this.Chunks) != len(that1.Chunks) {
+		return false
+	}
+	for i := range this.Chunks {
+		if !this.Chunks[i].Equal(&that1.Chunks[i]) {
+			return false
+		}
+	}
+	return true
+}
+func (this *DataWriteFileRequest) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*DataWriteFileRequest)
+	if !ok {
+		that2, ok := that.(DataWriteFileRequest)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.FilePath != that1.FilePath {
+		return false
+	}
+	return true
+}
+func (this *DataWriteFileResponse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*DataWriteFileResponse)
+	if !ok {
+		that2, ok := that.(DataWriteFileResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if len(this.Chunks) != len(that1.Chunks) {
+		return false
+	}
+	for i := range this.Chunks {
+		if !this.Chunks[i].Equal(&that1.Chunks[i]) {
+			return false
+		}
+	}
+	return true
+}
+func (this *DataWriteStreamRequest) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*DataWriteStreamRequest)
+	if !ok {
+		that2, ok := that.(DataWriteStreamRequest)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !bytes.Equal(this.DataChunk, that1.DataChunk) {
+		return false
+	}
+	return true
+}
+func (this *DataWriteStreamResponse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*DataWriteStreamResponse)
+	if !ok {
+		that2, ok := that.(DataWriteStreamResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if len(this.Chunks) != len(that1.Chunks) {
+		return false
+	}
+	for i := range this.Chunks {
+		if !this.Chunks[i].Equal(&that1.Chunks[i]) {
+			return false
+		}
+	}
+	return true
+}
+func (this *DataReadRequest) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*DataReadRequest)
+	if !ok {
+		that2, ok := that.(DataReadRequest)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if len(this.Chunks) != len(that1.Chunks) {
+		return false
+	}
+	for i := range this.Chunks {
+		if !this.Chunks[i].Equal(&that1.Chunks[i]) {
+			return false
+		}
+	}
+	return true
+}
+func (this *DataReadResponse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*DataReadResponse)
+	if !ok {
+		that2, ok := that.(DataReadResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !bytes.Equal(this.Data, that1.Data) {
+		return false
+	}
+	return true
+}
+func (this *DataReadFileRequest) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*DataReadFileRequest)
+	if !ok {
+		that2, ok := that.(DataReadFileRequest)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if len(this.Chunks) != len(that1.Chunks) {
+		return false
+	}
+	for i := range this.Chunks {
+		if !this.Chunks[i].Equal(&that1.Chunks[i]) {
+			return false
+		}
+	}
+	if this.FilePath != that1.FilePath {
+		return false
+	}
+	if this.FileMode != that1.FileMode {
+		return false
+	}
+	if this.SynchronousIO != that1.SynchronousIO {
+		return false
+	}
+	return true
+}
+func (this *DataReadFileResponse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*DataReadFileResponse)
+	if !ok {
+		that2, ok := that.(DataReadFileResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	return true
+}
+func (this *DataReadStreamRequest) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*DataReadStreamRequest)
+	if !ok {
+		that2, ok := that.(DataReadStreamRequest)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if len(this.Chunks) != len(that1.Chunks) {
+		return false
+	}
+	for i := range this.Chunks {
+		if !this.Chunks[i].Equal(&that1.Chunks[i]) {
+			return false
+		}
+	}
+	if this.ChunkSize != that1.ChunkSize {
+		return false
+	}
+	return true
+}
+func (this *DataReadStreamResponse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*DataReadStreamResponse)
+	if !ok {
+		that2, ok := that.(DataReadStreamResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !bytes.Equal(this.DataChunk, that1.DataChunk) {
+		return false
+	}
+	return true
+}
+func (this *DataDeleteRequest) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*DataDeleteRequest)
+	if !ok {
+		that2, ok := that.(DataDeleteRequest)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if len(this.Chunks) != len(that1.Chunks) {
+		return false
+	}
+	for i := range this.Chunks {
+		if !this.Chunks[i].Equal(&that1.Chunks[i]) {
+			return false
+		}
+	}
+	return true
+}
+func (this *DataDeleteResponse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*DataDeleteResponse)
+	if !ok {
+		that2, ok := that.(DataDeleteResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	return true
+}
+func (this *DataCheckRequest) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*DataCheckRequest)
+	if !ok {
+		that2, ok := that.(DataCheckRequest)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if len(this.Chunks) != len(that1.Chunks) {
+		return false
+	}
+	for i := range this.Chunks {
+		if !this.Chunks[i].Equal(&that1.Chunks[i]) {
+			return false
+		}
+	}
+	if this.Fast != that1.Fast {
+		return false
+	}
+	return true
+}
+func (this *DataCheckResponse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*DataCheckResponse)
+	if !ok {
+		that2, ok := that.(DataCheckResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.Status != that1.Status {
+		return false
+	}
+	return true
+}
+func (this *DataRepairRequest) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*DataRepairRequest)
+	if !ok {
+		that2, ok := that.(DataRepairRequest)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if len(this.Chunks) != len(that1.Chunks) {
+		return false
+	}
+	for i := range this.Chunks {
+		if !this.Chunks[i].Equal(&that1.Chunks[i]) {
+			return false
+		}
+	}
+	return true
+}
+func (this *DataRepairResponse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*DataRepairResponse)
+	if !ok {
+		that2, ok := that.(DataRepairResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if len(this.Chunks) != len(that1.Chunks) {
+		return false
+	}
+	for i := range this.Chunks {
+		if !this.Chunks[i].Equal(&that1.Chunks[i]) {
+			return false
+		}
+	}
+	return true
+}
 func (this *Permission) GoString() string {
 	if this == nil {
 		return "nil"
 	}
 	s := make([]string, 0, 8)
-	s = append(s, "&proxy.Permission{")
-	s = append(s, "Write: "+fmt.Sprintf("%#v", this.Write)+",\n")
+	s = append(s, "&schema.Permission{")
 	s = append(s, "Read: "+fmt.Sprintf("%#v", this.Read)+",\n")
+	s = append(s, "Write: "+fmt.Sprintf("%#v", this.Write)+",\n")
 	s = append(s, "Delete: "+fmt.Sprintf("%#v", this.Delete)+",\n")
 	s = append(s, "Admin: "+fmt.Sprintf("%#v", this.Admin)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
-func (this *CreateJWTRequest) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 6)
-	s = append(s, "&proxy.CreateJWTRequest{")
-	s = append(s, "Namespace: "+fmt.Sprintf("%#v", this.Namespace)+",\n")
-	if this.Permission != nil {
-		s = append(s, "Permission: "+fmt.Sprintf("%#v", this.Permission)+",\n")
-	}
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
-func (this *CreateJWTReply) GoString() string {
+func (this *CreateNamespaceRequest) GoString() string {
 	if this == nil {
 		return "nil"
 	}
 	s := make([]string, 0, 5)
-	s = append(s, "&proxy.CreateJWTReply{")
-	s = append(s, "Token: "+fmt.Sprintf("%#v", this.Token)+",\n")
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
-func (this *NamespaceRequest) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 5)
-	s = append(s, "&proxy.NamespaceRequest{")
+	s = append(s, "&schema.CreateNamespaceRequest{")
 	s = append(s, "Namespace: "+fmt.Sprintf("%#v", this.Namespace)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
-func (this *NamespaceReply) GoString() string {
+func (this *CreateNamespaceResponse) GoString() string {
 	if this == nil {
 		return "nil"
 	}
 	s := make([]string, 0, 4)
-	s = append(s, "&proxy.NamespaceReply{")
+	s = append(s, "&schema.CreateNamespaceResponse{")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
-func (this *EditPermissionRequest) GoString() string {
+func (this *DeleteNamespaceRequest) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&schema.DeleteNamespaceRequest{")
+	s = append(s, "Namespace: "+fmt.Sprintf("%#v", this.Namespace)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *DeleteNamespaceResponse) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 4)
+	s = append(s, "&schema.DeleteNamespaceResponse{")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *SetPermissionRequest) GoString() string {
 	if this == nil {
 		return "nil"
 	}
 	s := make([]string, 0, 7)
-	s = append(s, "&proxy.EditPermissionRequest{")
+	s = append(s, "&schema.SetPermissionRequest{")
 	s = append(s, "Namespace: "+fmt.Sprintf("%#v", this.Namespace)+",\n")
 	s = append(s, "UserID: "+fmt.Sprintf("%#v", this.UserID)+",\n")
 	if this.Permission != nil {
@@ -2041,12 +3674,12 @@ func (this *EditPermissionRequest) GoString() string {
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
-func (this *EditPermissionReply) GoString() string {
+func (this *SetPermissionResponse) GoString() string {
 	if this == nil {
 		return "nil"
 	}
 	s := make([]string, 0, 4)
-	s = append(s, "&proxy.EditPermissionReply{")
+	s = append(s, "&schema.SetPermissionResponse{")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -2055,20 +3688,40 @@ func (this *GetPermissionRequest) GoString() string {
 		return "nil"
 	}
 	s := make([]string, 0, 6)
-	s = append(s, "&proxy.GetPermissionRequest{")
+	s = append(s, "&schema.GetPermissionRequest{")
 	s = append(s, "Namespace: "+fmt.Sprintf("%#v", this.Namespace)+",\n")
 	s = append(s, "UserID: "+fmt.Sprintf("%#v", this.UserID)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
-func (this *GetPermissionReply) GoString() string {
+func (this *GetPermissionResponse) GoString() string {
 	if this == nil {
 		return "nil"
 	}
 	s := make([]string, 0, 5)
-	s = append(s, "&proxy.GetPermissionReply{")
+	s = append(s, "&schema.GetPermissionResponse{")
 	if this.Permission != nil {
 		s = append(s, "Permission: "+fmt.Sprintf("%#v", this.Permission)+",\n")
+	}
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *Metadata) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 9)
+	s = append(s, "&schema.Metadata{")
+	s = append(s, "Key: "+fmt.Sprintf("%#v", this.Key)+",\n")
+	s = append(s, "SizeInBytes: "+fmt.Sprintf("%#v", this.SizeInBytes)+",\n")
+	s = append(s, "CreationEpoch: "+fmt.Sprintf("%#v", this.CreationEpoch)+",\n")
+	s = append(s, "LastWriteEpoch: "+fmt.Sprintf("%#v", this.LastWriteEpoch)+",\n")
+	if this.Chunks != nil {
+		vs := make([]*Chunk, len(this.Chunks))
+		for i := range vs {
+			vs[i] = &this.Chunks[i]
+		}
+		s = append(s, "Chunks: "+fmt.Sprintf("%#v", vs)+",\n")
 	}
 	s = append(s, "}")
 	return strings.Join(s, "")
@@ -2078,27 +3731,27 @@ func (this *Chunk) GoString() string {
 		return "nil"
 	}
 	s := make([]string, 0, 7)
-	s = append(s, "&proxy.Chunk{")
-	s = append(s, "Size_: "+fmt.Sprintf("%#v", this.Size_)+",\n")
-	s = append(s, "Key: "+fmt.Sprintf("%#v", this.Key)+",\n")
-	s = append(s, "Shards: "+fmt.Sprintf("%#v", this.Shards)+",\n")
+	s = append(s, "&schema.Chunk{")
+	s = append(s, "SizeInBytes: "+fmt.Sprintf("%#v", this.SizeInBytes)+",\n")
+	if this.Objects != nil {
+		vs := make([]*Object, len(this.Objects))
+		for i := range vs {
+			vs[i] = &this.Objects[i]
+		}
+		s = append(s, "Objects: "+fmt.Sprintf("%#v", vs)+",\n")
+	}
+	s = append(s, "Hash: "+fmt.Sprintf("%#v", this.Hash)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
-func (this *Meta) GoString() string {
+func (this *Object) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 10)
-	s = append(s, "&proxy.Meta{")
-	s = append(s, "Epoch: "+fmt.Sprintf("%#v", this.Epoch)+",\n")
+	s := make([]string, 0, 6)
+	s = append(s, "&schema.Object{")
 	s = append(s, "Key: "+fmt.Sprintf("%#v", this.Key)+",\n")
-	s = append(s, "EncrKey: "+fmt.Sprintf("%#v", this.EncrKey)+",\n")
-	if this.Chunks != nil {
-		s = append(s, "Chunks: "+fmt.Sprintf("%#v", this.Chunks)+",\n")
-	}
-	s = append(s, "Previous: "+fmt.Sprintf("%#v", this.Previous)+",\n")
-	s = append(s, "Next: "+fmt.Sprintf("%#v", this.Next)+",\n")
+	s = append(s, "ShardID: "+fmt.Sprintf("%#v", this.ShardID)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -2106,29 +3759,21 @@ func (this *WriteRequest) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 10)
-	s = append(s, "&proxy.WriteRequest{")
+	s := make([]string, 0, 6)
+	s = append(s, "&schema.WriteRequest{")
 	s = append(s, "Key: "+fmt.Sprintf("%#v", this.Key)+",\n")
-	if this.Meta != nil {
-		s = append(s, "Meta: "+fmt.Sprintf("%#v", this.Meta)+",\n")
-	}
-	s = append(s, "Value: "+fmt.Sprintf("%#v", this.Value)+",\n")
-	s = append(s, "ReferenceList: "+fmt.Sprintf("%#v", this.ReferenceList)+",\n")
-	s = append(s, "PrevKey: "+fmt.Sprintf("%#v", this.PrevKey)+",\n")
-	if this.PrevMeta != nil {
-		s = append(s, "PrevMeta: "+fmt.Sprintf("%#v", this.PrevMeta)+",\n")
-	}
+	s = append(s, "Data: "+fmt.Sprintf("%#v", this.Data)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
-func (this *WriteReply) GoString() string {
+func (this *WriteResponse) GoString() string {
 	if this == nil {
 		return "nil"
 	}
 	s := make([]string, 0, 5)
-	s = append(s, "&proxy.WriteReply{")
-	if this.Meta != nil {
-		s = append(s, "Meta: "+fmt.Sprintf("%#v", this.Meta)+",\n")
+	s = append(s, "&schema.WriteResponse{")
+	if this.Metadata != nil {
+		s = append(s, "Metadata: "+fmt.Sprintf("%#v", this.Metadata)+",\n")
 	}
 	s = append(s, "}")
 	return strings.Join(s, "")
@@ -2137,29 +3782,21 @@ func (this *WriteFileRequest) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 10)
-	s = append(s, "&proxy.WriteFileRequest{")
+	s := make([]string, 0, 6)
+	s = append(s, "&schema.WriteFileRequest{")
 	s = append(s, "Key: "+fmt.Sprintf("%#v", this.Key)+",\n")
-	if this.Meta != nil {
-		s = append(s, "Meta: "+fmt.Sprintf("%#v", this.Meta)+",\n")
-	}
 	s = append(s, "FilePath: "+fmt.Sprintf("%#v", this.FilePath)+",\n")
-	s = append(s, "ReferenceList: "+fmt.Sprintf("%#v", this.ReferenceList)+",\n")
-	s = append(s, "PrevKey: "+fmt.Sprintf("%#v", this.PrevKey)+",\n")
-	if this.PrevMeta != nil {
-		s = append(s, "PrevMeta: "+fmt.Sprintf("%#v", this.PrevMeta)+",\n")
-	}
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
-func (this *WriteFileReply) GoString() string {
+func (this *WriteFileResponse) GoString() string {
 	if this == nil {
 		return "nil"
 	}
 	s := make([]string, 0, 5)
-	s = append(s, "&proxy.WriteFileReply{")
-	if this.Meta != nil {
-		s = append(s, "Meta: "+fmt.Sprintf("%#v", this.Meta)+",\n")
+	s = append(s, "&schema.WriteFileResponse{")
+	if this.Metadata != nil {
+		s = append(s, "Metadata: "+fmt.Sprintf("%#v", this.Metadata)+",\n")
 	}
 	s = append(s, "}")
 	return strings.Join(s, "")
@@ -2168,29 +3805,58 @@ func (this *WriteStreamRequest) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 10)
-	s = append(s, "&proxy.WriteStreamRequest{")
-	s = append(s, "Key: "+fmt.Sprintf("%#v", this.Key)+",\n")
-	if this.Meta != nil {
-		s = append(s, "Meta: "+fmt.Sprintf("%#v", this.Meta)+",\n")
-	}
-	s = append(s, "Value: "+fmt.Sprintf("%#v", this.Value)+",\n")
-	s = append(s, "ReferenceList: "+fmt.Sprintf("%#v", this.ReferenceList)+",\n")
-	s = append(s, "PrevKey: "+fmt.Sprintf("%#v", this.PrevKey)+",\n")
-	if this.PrevMeta != nil {
-		s = append(s, "PrevMeta: "+fmt.Sprintf("%#v", this.PrevMeta)+",\n")
+	s := make([]string, 0, 6)
+	s = append(s, "&schema.WriteStreamRequest{")
+	if this.Input != nil {
+		s = append(s, "Input: "+fmt.Sprintf("%#v", this.Input)+",\n")
 	}
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
-func (this *WriteStreamReply) GoString() string {
+func (this *WriteStreamRequest_Metadata_) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&schema.WriteStreamRequest_Metadata_{` +
+		`Metadata:` + fmt.Sprintf("%#v", this.Metadata) + `}`}, ", ")
+	return s
+}
+func (this *WriteStreamRequest_Data_) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&schema.WriteStreamRequest_Data_{` +
+		`Data:` + fmt.Sprintf("%#v", this.Data) + `}`}, ", ")
+	return s
+}
+func (this *WriteStreamRequest_Metadata) GoString() string {
 	if this == nil {
 		return "nil"
 	}
 	s := make([]string, 0, 5)
-	s = append(s, "&proxy.WriteStreamReply{")
-	if this.Meta != nil {
-		s = append(s, "Meta: "+fmt.Sprintf("%#v", this.Meta)+",\n")
+	s = append(s, "&schema.WriteStreamRequest_Metadata{")
+	s = append(s, "Key: "+fmt.Sprintf("%#v", this.Key)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *WriteStreamRequest_Data) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&schema.WriteStreamRequest_Data{")
+	s = append(s, "DataChunk: "+fmt.Sprintf("%#v", this.DataChunk)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *WriteStreamResponse) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&schema.WriteStreamResponse{")
+	if this.Metadata != nil {
+		s = append(s, "Metadata: "+fmt.Sprintf("%#v", this.Metadata)+",\n")
 	}
 	s = append(s, "}")
 	return strings.Join(s, "")
@@ -2200,22 +3866,36 @@ func (this *ReadRequest) GoString() string {
 		return "nil"
 	}
 	s := make([]string, 0, 6)
-	s = append(s, "&proxy.ReadRequest{")
-	s = append(s, "Key: "+fmt.Sprintf("%#v", this.Key)+",\n")
-	if this.Meta != nil {
-		s = append(s, "Meta: "+fmt.Sprintf("%#v", this.Meta)+",\n")
+	s = append(s, "&schema.ReadRequest{")
+	if this.Input != nil {
+		s = append(s, "Input: "+fmt.Sprintf("%#v", this.Input)+",\n")
 	}
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
-func (this *ReadReply) GoString() string {
+func (this *ReadRequest_Key) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 6)
-	s = append(s, "&proxy.ReadReply{")
-	s = append(s, "Value: "+fmt.Sprintf("%#v", this.Value)+",\n")
-	s = append(s, "ReferenceList: "+fmt.Sprintf("%#v", this.ReferenceList)+",\n")
+	s := strings.Join([]string{`&schema.ReadRequest_Key{` +
+		`Key:` + fmt.Sprintf("%#v", this.Key) + `}`}, ", ")
+	return s
+}
+func (this *ReadRequest_Metadata) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&schema.ReadRequest_Metadata{` +
+		`Metadata:` + fmt.Sprintf("%#v", this.Metadata) + `}`}, ", ")
+	return s
+}
+func (this *ReadResponse) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&schema.ReadResponse{")
+	s = append(s, "Data: "+fmt.Sprintf("%#v", this.Data)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -2223,20 +3903,39 @@ func (this *ReadFileRequest) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 6)
-	s = append(s, "&proxy.ReadFileRequest{")
-	s = append(s, "Key: "+fmt.Sprintf("%#v", this.Key)+",\n")
+	s := make([]string, 0, 9)
+	s = append(s, "&schema.ReadFileRequest{")
+	if this.Input != nil {
+		s = append(s, "Input: "+fmt.Sprintf("%#v", this.Input)+",\n")
+	}
 	s = append(s, "FilePath: "+fmt.Sprintf("%#v", this.FilePath)+",\n")
+	s = append(s, "FileMode: "+fmt.Sprintf("%#v", this.FileMode)+",\n")
+	s = append(s, "SynchronousIO: "+fmt.Sprintf("%#v", this.SynchronousIO)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
-func (this *ReadFileReply) GoString() string {
+func (this *ReadFileRequest_Key) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 5)
-	s = append(s, "&proxy.ReadFileReply{")
-	s = append(s, "ReferenceList: "+fmt.Sprintf("%#v", this.ReferenceList)+",\n")
+	s := strings.Join([]string{`&schema.ReadFileRequest_Key{` +
+		`Key:` + fmt.Sprintf("%#v", this.Key) + `}`}, ", ")
+	return s
+}
+func (this *ReadFileRequest_Metadata) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&schema.ReadFileRequest_Metadata{` +
+		`Metadata:` + fmt.Sprintf("%#v", this.Metadata) + `}`}, ", ")
+	return s
+}
+func (this *ReadFileResponse) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 4)
+	s = append(s, "&schema.ReadFileResponse{")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -2244,20 +3943,38 @@ func (this *ReadStreamRequest) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 5)
-	s = append(s, "&proxy.ReadStreamRequest{")
-	s = append(s, "Key: "+fmt.Sprintf("%#v", this.Key)+",\n")
+	s := make([]string, 0, 7)
+	s = append(s, "&schema.ReadStreamRequest{")
+	if this.Input != nil {
+		s = append(s, "Input: "+fmt.Sprintf("%#v", this.Input)+",\n")
+	}
+	s = append(s, "ChunkSize: "+fmt.Sprintf("%#v", this.ChunkSize)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
-func (this *ReadStreamReply) GoString() string {
+func (this *ReadStreamRequest_Key) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 6)
-	s = append(s, "&proxy.ReadStreamReply{")
-	s = append(s, "Value: "+fmt.Sprintf("%#v", this.Value)+",\n")
-	s = append(s, "ReferenceList: "+fmt.Sprintf("%#v", this.ReferenceList)+",\n")
+	s := strings.Join([]string{`&schema.ReadStreamRequest_Key{` +
+		`Key:` + fmt.Sprintf("%#v", this.Key) + `}`}, ", ")
+	return s
+}
+func (this *ReadStreamRequest_Metadata) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&schema.ReadStreamRequest_Metadata{` +
+		`Metadata:` + fmt.Sprintf("%#v", this.Metadata) + `}`}, ", ")
+	return s
+}
+func (this *ReadStreamResponse) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&schema.ReadStreamResponse{")
+	s = append(s, "DataChunk: "+fmt.Sprintf("%#v", this.DataChunk)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -2266,93 +3983,35 @@ func (this *DeleteRequest) GoString() string {
 		return "nil"
 	}
 	s := make([]string, 0, 6)
-	s = append(s, "&proxy.DeleteRequest{")
-	s = append(s, "Key: "+fmt.Sprintf("%#v", this.Key)+",\n")
-	if this.Meta != nil {
-		s = append(s, "Meta: "+fmt.Sprintf("%#v", this.Meta)+",\n")
+	s = append(s, "&schema.DeleteRequest{")
+	if this.Input != nil {
+		s = append(s, "Input: "+fmt.Sprintf("%#v", this.Input)+",\n")
 	}
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
-func (this *DeleteReply) GoString() string {
+func (this *DeleteRequest_Key) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&schema.DeleteRequest_Key{` +
+		`Key:` + fmt.Sprintf("%#v", this.Key) + `}`}, ", ")
+	return s
+}
+func (this *DeleteRequest_Metadata) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&schema.DeleteRequest_Metadata{` +
+		`Metadata:` + fmt.Sprintf("%#v", this.Metadata) + `}`}, ", ")
+	return s
+}
+func (this *DeleteResponse) GoString() string {
 	if this == nil {
 		return "nil"
 	}
 	s := make([]string, 0, 4)
-	s = append(s, "&proxy.DeleteReply{")
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
-func (this *WalkRequest) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 7)
-	s = append(s, "&proxy.WalkRequest{")
-	s = append(s, "StartKey: "+fmt.Sprintf("%#v", this.StartKey)+",\n")
-	s = append(s, "FromEpoch: "+fmt.Sprintf("%#v", this.FromEpoch)+",\n")
-	s = append(s, "ToEpoch: "+fmt.Sprintf("%#v", this.ToEpoch)+",\n")
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
-func (this *WalkReply) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 8)
-	s = append(s, "&proxy.WalkReply{")
-	s = append(s, "Key: "+fmt.Sprintf("%#v", this.Key)+",\n")
-	if this.Meta != nil {
-		s = append(s, "Meta: "+fmt.Sprintf("%#v", this.Meta)+",\n")
-	}
-	s = append(s, "Value: "+fmt.Sprintf("%#v", this.Value)+",\n")
-	s = append(s, "ReferenceList: "+fmt.Sprintf("%#v", this.ReferenceList)+",\n")
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
-func (this *AppendReferenceListRequest) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 7)
-	s = append(s, "&proxy.AppendReferenceListRequest{")
-	s = append(s, "Key: "+fmt.Sprintf("%#v", this.Key)+",\n")
-	if this.Meta != nil {
-		s = append(s, "Meta: "+fmt.Sprintf("%#v", this.Meta)+",\n")
-	}
-	s = append(s, "ReferenceList: "+fmt.Sprintf("%#v", this.ReferenceList)+",\n")
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
-func (this *RemoveReferenceListRequest) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 7)
-	s = append(s, "&proxy.RemoveReferenceListRequest{")
-	s = append(s, "Key: "+fmt.Sprintf("%#v", this.Key)+",\n")
-	if this.Meta != nil {
-		s = append(s, "Meta: "+fmt.Sprintf("%#v", this.Meta)+",\n")
-	}
-	s = append(s, "ReferenceList: "+fmt.Sprintf("%#v", this.ReferenceList)+",\n")
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
-func (this *AppendReferenceListReply) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 4)
-	s = append(s, "&proxy.AppendReferenceListReply{")
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
-func (this *RemoveReferenceListReply) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 4)
-	s = append(s, "&proxy.RemoveReferenceListReply{")
+	s = append(s, "&schema.DeleteResponse{")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -2360,18 +4019,37 @@ func (this *CheckRequest) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 5)
-	s = append(s, "&proxy.CheckRequest{")
-	s = append(s, "Key: "+fmt.Sprintf("%#v", this.Key)+",\n")
+	s := make([]string, 0, 7)
+	s = append(s, "&schema.CheckRequest{")
+	if this.Input != nil {
+		s = append(s, "Input: "+fmt.Sprintf("%#v", this.Input)+",\n")
+	}
+	s = append(s, "Fast: "+fmt.Sprintf("%#v", this.Fast)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
-func (this *CheckReply) GoString() string {
+func (this *CheckRequest_Key) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&schema.CheckRequest_Key{` +
+		`Key:` + fmt.Sprintf("%#v", this.Key) + `}`}, ", ")
+	return s
+}
+func (this *CheckRequest_Metadata) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&schema.CheckRequest_Metadata{` +
+		`Metadata:` + fmt.Sprintf("%#v", this.Metadata) + `}`}, ", ")
+	return s
+}
+func (this *CheckResponse) GoString() string {
 	if this == nil {
 		return "nil"
 	}
 	s := make([]string, 0, 5)
-	s = append(s, "&proxy.CheckReply{")
+	s = append(s, "&schema.CheckResponse{")
 	s = append(s, "Status: "+fmt.Sprintf("%#v", this.Status)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
@@ -2381,17 +4059,325 @@ func (this *RepairRequest) GoString() string {
 		return "nil"
 	}
 	s := make([]string, 0, 5)
-	s = append(s, "&proxy.RepairRequest{")
+	s = append(s, "&schema.RepairRequest{")
 	s = append(s, "Key: "+fmt.Sprintf("%#v", this.Key)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
-func (this *RepairReply) GoString() string {
+func (this *RepairResponse) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&schema.RepairResponse{")
+	if this.Metadata != nil {
+		s = append(s, "Metadata: "+fmt.Sprintf("%#v", this.Metadata)+",\n")
+	}
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *SetMetadataRequest) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&schema.SetMetadataRequest{")
+	if this.Metadata != nil {
+		s = append(s, "Metadata: "+fmt.Sprintf("%#v", this.Metadata)+",\n")
+	}
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *SetMetadataResponse) GoString() string {
 	if this == nil {
 		return "nil"
 	}
 	s := make([]string, 0, 4)
-	s = append(s, "&proxy.RepairReply{")
+	s = append(s, "&schema.SetMetadataResponse{")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *GetMetadataRequest) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&schema.GetMetadataRequest{")
+	s = append(s, "Key: "+fmt.Sprintf("%#v", this.Key)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *GetMetadataResponse) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&schema.GetMetadataResponse{")
+	if this.Metadata != nil {
+		s = append(s, "Metadata: "+fmt.Sprintf("%#v", this.Metadata)+",\n")
+	}
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *DeleteMetadataRequest) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&schema.DeleteMetadataRequest{")
+	s = append(s, "Key: "+fmt.Sprintf("%#v", this.Key)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *DeleteMetadataResponse) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 4)
+	s = append(s, "&schema.DeleteMetadataResponse{")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *DataWriteRequest) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&schema.DataWriteRequest{")
+	s = append(s, "Data: "+fmt.Sprintf("%#v", this.Data)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *DataWriteResponse) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&schema.DataWriteResponse{")
+	if this.Chunks != nil {
+		vs := make([]*Chunk, len(this.Chunks))
+		for i := range vs {
+			vs[i] = &this.Chunks[i]
+		}
+		s = append(s, "Chunks: "+fmt.Sprintf("%#v", vs)+",\n")
+	}
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *DataWriteFileRequest) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&schema.DataWriteFileRequest{")
+	s = append(s, "FilePath: "+fmt.Sprintf("%#v", this.FilePath)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *DataWriteFileResponse) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&schema.DataWriteFileResponse{")
+	if this.Chunks != nil {
+		vs := make([]*Chunk, len(this.Chunks))
+		for i := range vs {
+			vs[i] = &this.Chunks[i]
+		}
+		s = append(s, "Chunks: "+fmt.Sprintf("%#v", vs)+",\n")
+	}
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *DataWriteStreamRequest) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&schema.DataWriteStreamRequest{")
+	s = append(s, "DataChunk: "+fmt.Sprintf("%#v", this.DataChunk)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *DataWriteStreamResponse) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&schema.DataWriteStreamResponse{")
+	if this.Chunks != nil {
+		vs := make([]*Chunk, len(this.Chunks))
+		for i := range vs {
+			vs[i] = &this.Chunks[i]
+		}
+		s = append(s, "Chunks: "+fmt.Sprintf("%#v", vs)+",\n")
+	}
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *DataReadRequest) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&schema.DataReadRequest{")
+	if this.Chunks != nil {
+		vs := make([]*Chunk, len(this.Chunks))
+		for i := range vs {
+			vs[i] = &this.Chunks[i]
+		}
+		s = append(s, "Chunks: "+fmt.Sprintf("%#v", vs)+",\n")
+	}
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *DataReadResponse) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&schema.DataReadResponse{")
+	s = append(s, "Data: "+fmt.Sprintf("%#v", this.Data)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *DataReadFileRequest) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 8)
+	s = append(s, "&schema.DataReadFileRequest{")
+	if this.Chunks != nil {
+		vs := make([]*Chunk, len(this.Chunks))
+		for i := range vs {
+			vs[i] = &this.Chunks[i]
+		}
+		s = append(s, "Chunks: "+fmt.Sprintf("%#v", vs)+",\n")
+	}
+	s = append(s, "FilePath: "+fmt.Sprintf("%#v", this.FilePath)+",\n")
+	s = append(s, "FileMode: "+fmt.Sprintf("%#v", this.FileMode)+",\n")
+	s = append(s, "SynchronousIO: "+fmt.Sprintf("%#v", this.SynchronousIO)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *DataReadFileResponse) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 4)
+	s = append(s, "&schema.DataReadFileResponse{")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *DataReadStreamRequest) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 6)
+	s = append(s, "&schema.DataReadStreamRequest{")
+	if this.Chunks != nil {
+		vs := make([]*Chunk, len(this.Chunks))
+		for i := range vs {
+			vs[i] = &this.Chunks[i]
+		}
+		s = append(s, "Chunks: "+fmt.Sprintf("%#v", vs)+",\n")
+	}
+	s = append(s, "ChunkSize: "+fmt.Sprintf("%#v", this.ChunkSize)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *DataReadStreamResponse) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&schema.DataReadStreamResponse{")
+	s = append(s, "DataChunk: "+fmt.Sprintf("%#v", this.DataChunk)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *DataDeleteRequest) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&schema.DataDeleteRequest{")
+	if this.Chunks != nil {
+		vs := make([]*Chunk, len(this.Chunks))
+		for i := range vs {
+			vs[i] = &this.Chunks[i]
+		}
+		s = append(s, "Chunks: "+fmt.Sprintf("%#v", vs)+",\n")
+	}
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *DataDeleteResponse) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 4)
+	s = append(s, "&schema.DataDeleteResponse{")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *DataCheckRequest) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 6)
+	s = append(s, "&schema.DataCheckRequest{")
+	if this.Chunks != nil {
+		vs := make([]*Chunk, len(this.Chunks))
+		for i := range vs {
+			vs[i] = &this.Chunks[i]
+		}
+		s = append(s, "Chunks: "+fmt.Sprintf("%#v", vs)+",\n")
+	}
+	s = append(s, "Fast: "+fmt.Sprintf("%#v", this.Fast)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *DataCheckResponse) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&schema.DataCheckResponse{")
+	s = append(s, "Status: "+fmt.Sprintf("%#v", this.Status)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *DataRepairRequest) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&schema.DataRepairRequest{")
+	if this.Chunks != nil {
+		vs := make([]*Chunk, len(this.Chunks))
+		for i := range vs {
+			vs[i] = &this.Chunks[i]
+		}
+		s = append(s, "Chunks: "+fmt.Sprintf("%#v", vs)+",\n")
+	}
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *DataRepairResponse) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&schema.DataRepairResponse{")
+	if this.Chunks != nil {
+		vs := make([]*Chunk, len(this.Chunks))
+		for i := range vs {
+			vs[i] = &this.Chunks[i]
+		}
+		s = append(s, "Chunks: "+fmt.Sprintf("%#v", vs)+",\n")
+	}
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -2415,12 +4401,10 @@ const _ = grpc.SupportPackageIsVersion4
 // Client API for NamespaceService service
 
 type NamespaceServiceClient interface {
-	CreateJWT(ctx context.Context, in *CreateJWTRequest, opts ...grpc.CallOption) (*CreateJWTReply, error)
-	CreateNamespace(ctx context.Context, in *NamespaceRequest, opts ...grpc.CallOption) (*NamespaceReply, error)
-	DeleteNamespace(ctx context.Context, in *NamespaceRequest, opts ...grpc.CallOption) (*NamespaceReply, error)
-	GivePermission(ctx context.Context, in *EditPermissionRequest, opts ...grpc.CallOption) (*EditPermissionReply, error)
-	RemovePermission(ctx context.Context, in *EditPermissionRequest, opts ...grpc.CallOption) (*EditPermissionReply, error)
-	GetPermission(ctx context.Context, in *GetPermissionRequest, opts ...grpc.CallOption) (*GetPermissionReply, error)
+	CreateNamespace(ctx context.Context, in *CreateNamespaceRequest, opts ...grpc.CallOption) (*CreateNamespaceResponse, error)
+	DeleteNamespace(ctx context.Context, in *DeleteNamespaceRequest, opts ...grpc.CallOption) (*DeleteNamespaceResponse, error)
+	SetPermission(ctx context.Context, in *SetPermissionRequest, opts ...grpc.CallOption) (*SetPermissionResponse, error)
+	GetPermission(ctx context.Context, in *GetPermissionRequest, opts ...grpc.CallOption) (*GetPermissionResponse, error)
 }
 
 type namespaceServiceClient struct {
@@ -2431,54 +4415,36 @@ func NewNamespaceServiceClient(cc *grpc.ClientConn) NamespaceServiceClient {
 	return &namespaceServiceClient{cc}
 }
 
-func (c *namespaceServiceClient) CreateJWT(ctx context.Context, in *CreateJWTRequest, opts ...grpc.CallOption) (*CreateJWTReply, error) {
-	out := new(CreateJWTReply)
-	err := grpc.Invoke(ctx, "/proxy.NamespaceService/CreateJWT", in, out, c.cc, opts...)
+func (c *namespaceServiceClient) CreateNamespace(ctx context.Context, in *CreateNamespaceRequest, opts ...grpc.CallOption) (*CreateNamespaceResponse, error) {
+	out := new(CreateNamespaceResponse)
+	err := grpc.Invoke(ctx, "/schema.NamespaceService/CreateNamespace", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *namespaceServiceClient) CreateNamespace(ctx context.Context, in *NamespaceRequest, opts ...grpc.CallOption) (*NamespaceReply, error) {
-	out := new(NamespaceReply)
-	err := grpc.Invoke(ctx, "/proxy.NamespaceService/CreateNamespace", in, out, c.cc, opts...)
+func (c *namespaceServiceClient) DeleteNamespace(ctx context.Context, in *DeleteNamespaceRequest, opts ...grpc.CallOption) (*DeleteNamespaceResponse, error) {
+	out := new(DeleteNamespaceResponse)
+	err := grpc.Invoke(ctx, "/schema.NamespaceService/DeleteNamespace", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *namespaceServiceClient) DeleteNamespace(ctx context.Context, in *NamespaceRequest, opts ...grpc.CallOption) (*NamespaceReply, error) {
-	out := new(NamespaceReply)
-	err := grpc.Invoke(ctx, "/proxy.NamespaceService/DeleteNamespace", in, out, c.cc, opts...)
+func (c *namespaceServiceClient) SetPermission(ctx context.Context, in *SetPermissionRequest, opts ...grpc.CallOption) (*SetPermissionResponse, error) {
+	out := new(SetPermissionResponse)
+	err := grpc.Invoke(ctx, "/schema.NamespaceService/SetPermission", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *namespaceServiceClient) GivePermission(ctx context.Context, in *EditPermissionRequest, opts ...grpc.CallOption) (*EditPermissionReply, error) {
-	out := new(EditPermissionReply)
-	err := grpc.Invoke(ctx, "/proxy.NamespaceService/GivePermission", in, out, c.cc, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *namespaceServiceClient) RemovePermission(ctx context.Context, in *EditPermissionRequest, opts ...grpc.CallOption) (*EditPermissionReply, error) {
-	out := new(EditPermissionReply)
-	err := grpc.Invoke(ctx, "/proxy.NamespaceService/RemovePermission", in, out, c.cc, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *namespaceServiceClient) GetPermission(ctx context.Context, in *GetPermissionRequest, opts ...grpc.CallOption) (*GetPermissionReply, error) {
-	out := new(GetPermissionReply)
-	err := grpc.Invoke(ctx, "/proxy.NamespaceService/GetPermission", in, out, c.cc, opts...)
+func (c *namespaceServiceClient) GetPermission(ctx context.Context, in *GetPermissionRequest, opts ...grpc.CallOption) (*GetPermissionResponse, error) {
+	out := new(GetPermissionResponse)
+	err := grpc.Invoke(ctx, "/schema.NamespaceService/GetPermission", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -2488,38 +4454,18 @@ func (c *namespaceServiceClient) GetPermission(ctx context.Context, in *GetPermi
 // Server API for NamespaceService service
 
 type NamespaceServiceServer interface {
-	CreateJWT(context.Context, *CreateJWTRequest) (*CreateJWTReply, error)
-	CreateNamespace(context.Context, *NamespaceRequest) (*NamespaceReply, error)
-	DeleteNamespace(context.Context, *NamespaceRequest) (*NamespaceReply, error)
-	GivePermission(context.Context, *EditPermissionRequest) (*EditPermissionReply, error)
-	RemovePermission(context.Context, *EditPermissionRequest) (*EditPermissionReply, error)
-	GetPermission(context.Context, *GetPermissionRequest) (*GetPermissionReply, error)
+	CreateNamespace(context.Context, *CreateNamespaceRequest) (*CreateNamespaceResponse, error)
+	DeleteNamespace(context.Context, *DeleteNamespaceRequest) (*DeleteNamespaceResponse, error)
+	SetPermission(context.Context, *SetPermissionRequest) (*SetPermissionResponse, error)
+	GetPermission(context.Context, *GetPermissionRequest) (*GetPermissionResponse, error)
 }
 
 func RegisterNamespaceServiceServer(s *grpc.Server, srv NamespaceServiceServer) {
 	s.RegisterService(&_NamespaceService_serviceDesc, srv)
 }
 
-func _NamespaceService_CreateJWT_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CreateJWTRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(NamespaceServiceServer).CreateJWT(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/proxy.NamespaceService/CreateJWT",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(NamespaceServiceServer).CreateJWT(ctx, req.(*CreateJWTRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _NamespaceService_CreateNamespace_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(NamespaceRequest)
+	in := new(CreateNamespaceRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -2528,16 +4474,16 @@ func _NamespaceService_CreateNamespace_Handler(srv interface{}, ctx context.Cont
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/proxy.NamespaceService/CreateNamespace",
+		FullMethod: "/schema.NamespaceService/CreateNamespace",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(NamespaceServiceServer).CreateNamespace(ctx, req.(*NamespaceRequest))
+		return srv.(NamespaceServiceServer).CreateNamespace(ctx, req.(*CreateNamespaceRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _NamespaceService_DeleteNamespace_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(NamespaceRequest)
+	in := new(DeleteNamespaceRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -2546,46 +4492,28 @@ func _NamespaceService_DeleteNamespace_Handler(srv interface{}, ctx context.Cont
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/proxy.NamespaceService/DeleteNamespace",
+		FullMethod: "/schema.NamespaceService/DeleteNamespace",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(NamespaceServiceServer).DeleteNamespace(ctx, req.(*NamespaceRequest))
+		return srv.(NamespaceServiceServer).DeleteNamespace(ctx, req.(*DeleteNamespaceRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _NamespaceService_GivePermission_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(EditPermissionRequest)
+func _NamespaceService_SetPermission_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetPermissionRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(NamespaceServiceServer).GivePermission(ctx, in)
+		return srv.(NamespaceServiceServer).SetPermission(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/proxy.NamespaceService/GivePermission",
+		FullMethod: "/schema.NamespaceService/SetPermission",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(NamespaceServiceServer).GivePermission(ctx, req.(*EditPermissionRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _NamespaceService_RemovePermission_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(EditPermissionRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(NamespaceServiceServer).RemovePermission(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/proxy.NamespaceService/RemovePermission",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(NamespaceServiceServer).RemovePermission(ctx, req.(*EditPermissionRequest))
+		return srv.(NamespaceServiceServer).SetPermission(ctx, req.(*SetPermissionRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2600,7 +4528,7 @@ func _NamespaceService_GetPermission_Handler(srv interface{}, ctx context.Contex
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/proxy.NamespaceService/GetPermission",
+		FullMethod: "/schema.NamespaceService/GetPermission",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(NamespaceServiceServer).GetPermission(ctx, req.(*GetPermissionRequest))
@@ -2609,13 +4537,9 @@ func _NamespaceService_GetPermission_Handler(srv interface{}, ctx context.Contex
 }
 
 var _NamespaceService_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "proxy.NamespaceService",
+	ServiceName: "schema.NamespaceService",
 	HandlerType: (*NamespaceServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "CreateJWT",
-			Handler:    _NamespaceService_CreateJWT_Handler,
-		},
 		{
 			MethodName: "CreateNamespace",
 			Handler:    _NamespaceService_CreateNamespace_Handler,
@@ -2625,12 +4549,8 @@ var _NamespaceService_serviceDesc = grpc.ServiceDesc{
 			Handler:    _NamespaceService_DeleteNamespace_Handler,
 		},
 		{
-			MethodName: "GivePermission",
-			Handler:    _NamespaceService_GivePermission_Handler,
-		},
-		{
-			MethodName: "RemovePermission",
-			Handler:    _NamespaceService_RemovePermission_Handler,
+			MethodName: "SetPermission",
+			Handler:    _NamespaceService_SetPermission_Handler,
 		},
 		{
 			MethodName: "GetPermission",
@@ -2641,107 +4561,104 @@ var _NamespaceService_serviceDesc = grpc.ServiceDesc{
 	Metadata: "schema/daemon.proto",
 }
 
-// Client API for ObjectService service
+// Client API for FileService service
 
-type ObjectServiceClient interface {
-	Write(ctx context.Context, in *WriteRequest, opts ...grpc.CallOption) (*WriteReply, error)
-	WriteFile(ctx context.Context, in *WriteFileRequest, opts ...grpc.CallOption) (*WriteFileReply, error)
-	WriteStream(ctx context.Context, opts ...grpc.CallOption) (ObjectService_WriteStreamClient, error)
-	Read(ctx context.Context, in *ReadRequest, opts ...grpc.CallOption) (*ReadReply, error)
-	ReadFile(ctx context.Context, in *ReadFileRequest, opts ...grpc.CallOption) (*ReadFileReply, error)
-	ReadStream(ctx context.Context, in *ReadStreamRequest, opts ...grpc.CallOption) (ObjectService_ReadStreamClient, error)
-	Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*DeleteReply, error)
-	Walk(ctx context.Context, in *WalkRequest, opts ...grpc.CallOption) (ObjectService_WalkClient, error)
-	AppendReferenceList(ctx context.Context, in *AppendReferenceListRequest, opts ...grpc.CallOption) (*AppendReferenceListReply, error)
-	RemoveReferenceList(ctx context.Context, in *RemoveReferenceListRequest, opts ...grpc.CallOption) (*RemoveReferenceListReply, error)
-	Check(ctx context.Context, in *CheckRequest, opts ...grpc.CallOption) (*CheckReply, error)
-	Repair(ctx context.Context, in *RepairRequest, opts ...grpc.CallOption) (*RepairReply, error)
+type FileServiceClient interface {
+	Write(ctx context.Context, in *WriteRequest, opts ...grpc.CallOption) (*WriteResponse, error)
+	WriteFile(ctx context.Context, in *WriteFileRequest, opts ...grpc.CallOption) (*WriteFileResponse, error)
+	WriteStream(ctx context.Context, opts ...grpc.CallOption) (FileService_WriteStreamClient, error)
+	Read(ctx context.Context, in *ReadRequest, opts ...grpc.CallOption) (*ReadResponse, error)
+	ReadFile(ctx context.Context, in *ReadFileRequest, opts ...grpc.CallOption) (*ReadFileResponse, error)
+	ReadStream(ctx context.Context, in *ReadStreamRequest, opts ...grpc.CallOption) (FileService_ReadStreamClient, error)
+	Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*DeleteResponse, error)
+	Check(ctx context.Context, in *CheckRequest, opts ...grpc.CallOption) (*CheckResponse, error)
+	Repair(ctx context.Context, in *RepairRequest, opts ...grpc.CallOption) (*RepairResponse, error)
 }
 
-type objectServiceClient struct {
+type fileServiceClient struct {
 	cc *grpc.ClientConn
 }
 
-func NewObjectServiceClient(cc *grpc.ClientConn) ObjectServiceClient {
-	return &objectServiceClient{cc}
+func NewFileServiceClient(cc *grpc.ClientConn) FileServiceClient {
+	return &fileServiceClient{cc}
 }
 
-func (c *objectServiceClient) Write(ctx context.Context, in *WriteRequest, opts ...grpc.CallOption) (*WriteReply, error) {
-	out := new(WriteReply)
-	err := grpc.Invoke(ctx, "/proxy.ObjectService/Write", in, out, c.cc, opts...)
+func (c *fileServiceClient) Write(ctx context.Context, in *WriteRequest, opts ...grpc.CallOption) (*WriteResponse, error) {
+	out := new(WriteResponse)
+	err := grpc.Invoke(ctx, "/schema.FileService/Write", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *objectServiceClient) WriteFile(ctx context.Context, in *WriteFileRequest, opts ...grpc.CallOption) (*WriteFileReply, error) {
-	out := new(WriteFileReply)
-	err := grpc.Invoke(ctx, "/proxy.ObjectService/WriteFile", in, out, c.cc, opts...)
+func (c *fileServiceClient) WriteFile(ctx context.Context, in *WriteFileRequest, opts ...grpc.CallOption) (*WriteFileResponse, error) {
+	out := new(WriteFileResponse)
+	err := grpc.Invoke(ctx, "/schema.FileService/WriteFile", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *objectServiceClient) WriteStream(ctx context.Context, opts ...grpc.CallOption) (ObjectService_WriteStreamClient, error) {
-	stream, err := grpc.NewClientStream(ctx, &_ObjectService_serviceDesc.Streams[0], c.cc, "/proxy.ObjectService/WriteStream", opts...)
+func (c *fileServiceClient) WriteStream(ctx context.Context, opts ...grpc.CallOption) (FileService_WriteStreamClient, error) {
+	stream, err := grpc.NewClientStream(ctx, &_FileService_serviceDesc.Streams[0], c.cc, "/schema.FileService/WriteStream", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &objectServiceWriteStreamClient{stream}
+	x := &fileServiceWriteStreamClient{stream}
 	return x, nil
 }
 
-type ObjectService_WriteStreamClient interface {
+type FileService_WriteStreamClient interface {
 	Send(*WriteStreamRequest) error
-	CloseAndRecv() (*WriteStreamReply, error)
+	CloseAndRecv() (*WriteStreamResponse, error)
 	grpc.ClientStream
 }
 
-type objectServiceWriteStreamClient struct {
+type fileServiceWriteStreamClient struct {
 	grpc.ClientStream
 }
 
-func (x *objectServiceWriteStreamClient) Send(m *WriteStreamRequest) error {
+func (x *fileServiceWriteStreamClient) Send(m *WriteStreamRequest) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *objectServiceWriteStreamClient) CloseAndRecv() (*WriteStreamReply, error) {
+func (x *fileServiceWriteStreamClient) CloseAndRecv() (*WriteStreamResponse, error) {
 	if err := x.ClientStream.CloseSend(); err != nil {
 		return nil, err
 	}
-	m := new(WriteStreamReply)
+	m := new(WriteStreamResponse)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
 	return m, nil
 }
 
-func (c *objectServiceClient) Read(ctx context.Context, in *ReadRequest, opts ...grpc.CallOption) (*ReadReply, error) {
-	out := new(ReadReply)
-	err := grpc.Invoke(ctx, "/proxy.ObjectService/Read", in, out, c.cc, opts...)
+func (c *fileServiceClient) Read(ctx context.Context, in *ReadRequest, opts ...grpc.CallOption) (*ReadResponse, error) {
+	out := new(ReadResponse)
+	err := grpc.Invoke(ctx, "/schema.FileService/Read", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *objectServiceClient) ReadFile(ctx context.Context, in *ReadFileRequest, opts ...grpc.CallOption) (*ReadFileReply, error) {
-	out := new(ReadFileReply)
-	err := grpc.Invoke(ctx, "/proxy.ObjectService/ReadFile", in, out, c.cc, opts...)
+func (c *fileServiceClient) ReadFile(ctx context.Context, in *ReadFileRequest, opts ...grpc.CallOption) (*ReadFileResponse, error) {
+	out := new(ReadFileResponse)
+	err := grpc.Invoke(ctx, "/schema.FileService/ReadFile", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *objectServiceClient) ReadStream(ctx context.Context, in *ReadStreamRequest, opts ...grpc.CallOption) (ObjectService_ReadStreamClient, error) {
-	stream, err := grpc.NewClientStream(ctx, &_ObjectService_serviceDesc.Streams[1], c.cc, "/proxy.ObjectService/ReadStream", opts...)
+func (c *fileServiceClient) ReadStream(ctx context.Context, in *ReadStreamRequest, opts ...grpc.CallOption) (FileService_ReadStreamClient, error) {
+	stream, err := grpc.NewClientStream(ctx, &_FileService_serviceDesc.Streams[1], c.cc, "/schema.FileService/ReadStream", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &objectServiceReadStreamClient{stream}
+	x := &fileServiceReadStreamClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -2751,176 +4668,123 @@ func (c *objectServiceClient) ReadStream(ctx context.Context, in *ReadStreamRequ
 	return x, nil
 }
 
-type ObjectService_ReadStreamClient interface {
-	Recv() (*ReadStreamReply, error)
+type FileService_ReadStreamClient interface {
+	Recv() (*ReadStreamResponse, error)
 	grpc.ClientStream
 }
 
-type objectServiceReadStreamClient struct {
+type fileServiceReadStreamClient struct {
 	grpc.ClientStream
 }
 
-func (x *objectServiceReadStreamClient) Recv() (*ReadStreamReply, error) {
-	m := new(ReadStreamReply)
+func (x *fileServiceReadStreamClient) Recv() (*ReadStreamResponse, error) {
+	m := new(ReadStreamResponse)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
 	return m, nil
 }
 
-func (c *objectServiceClient) Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*DeleteReply, error) {
-	out := new(DeleteReply)
-	err := grpc.Invoke(ctx, "/proxy.ObjectService/Delete", in, out, c.cc, opts...)
+func (c *fileServiceClient) Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*DeleteResponse, error) {
+	out := new(DeleteResponse)
+	err := grpc.Invoke(ctx, "/schema.FileService/Delete", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *objectServiceClient) Walk(ctx context.Context, in *WalkRequest, opts ...grpc.CallOption) (ObjectService_WalkClient, error) {
-	stream, err := grpc.NewClientStream(ctx, &_ObjectService_serviceDesc.Streams[2], c.cc, "/proxy.ObjectService/Walk", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &objectServiceWalkClient{stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-type ObjectService_WalkClient interface {
-	Recv() (*WalkReply, error)
-	grpc.ClientStream
-}
-
-type objectServiceWalkClient struct {
-	grpc.ClientStream
-}
-
-func (x *objectServiceWalkClient) Recv() (*WalkReply, error) {
-	m := new(WalkReply)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func (c *objectServiceClient) AppendReferenceList(ctx context.Context, in *AppendReferenceListRequest, opts ...grpc.CallOption) (*AppendReferenceListReply, error) {
-	out := new(AppendReferenceListReply)
-	err := grpc.Invoke(ctx, "/proxy.ObjectService/AppendReferenceList", in, out, c.cc, opts...)
+func (c *fileServiceClient) Check(ctx context.Context, in *CheckRequest, opts ...grpc.CallOption) (*CheckResponse, error) {
+	out := new(CheckResponse)
+	err := grpc.Invoke(ctx, "/schema.FileService/Check", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *objectServiceClient) RemoveReferenceList(ctx context.Context, in *RemoveReferenceListRequest, opts ...grpc.CallOption) (*RemoveReferenceListReply, error) {
-	out := new(RemoveReferenceListReply)
-	err := grpc.Invoke(ctx, "/proxy.ObjectService/RemoveReferenceList", in, out, c.cc, opts...)
+func (c *fileServiceClient) Repair(ctx context.Context, in *RepairRequest, opts ...grpc.CallOption) (*RepairResponse, error) {
+	out := new(RepairResponse)
+	err := grpc.Invoke(ctx, "/schema.FileService/Repair", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *objectServiceClient) Check(ctx context.Context, in *CheckRequest, opts ...grpc.CallOption) (*CheckReply, error) {
-	out := new(CheckReply)
-	err := grpc.Invoke(ctx, "/proxy.ObjectService/Check", in, out, c.cc, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
+// Server API for FileService service
+
+type FileServiceServer interface {
+	Write(context.Context, *WriteRequest) (*WriteResponse, error)
+	WriteFile(context.Context, *WriteFileRequest) (*WriteFileResponse, error)
+	WriteStream(FileService_WriteStreamServer) error
+	Read(context.Context, *ReadRequest) (*ReadResponse, error)
+	ReadFile(context.Context, *ReadFileRequest) (*ReadFileResponse, error)
+	ReadStream(*ReadStreamRequest, FileService_ReadStreamServer) error
+	Delete(context.Context, *DeleteRequest) (*DeleteResponse, error)
+	Check(context.Context, *CheckRequest) (*CheckResponse, error)
+	Repair(context.Context, *RepairRequest) (*RepairResponse, error)
 }
 
-func (c *objectServiceClient) Repair(ctx context.Context, in *RepairRequest, opts ...grpc.CallOption) (*RepairReply, error) {
-	out := new(RepairReply)
-	err := grpc.Invoke(ctx, "/proxy.ObjectService/Repair", in, out, c.cc, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
+func RegisterFileServiceServer(s *grpc.Server, srv FileServiceServer) {
+	s.RegisterService(&_FileService_serviceDesc, srv)
 }
 
-// Server API for ObjectService service
-
-type ObjectServiceServer interface {
-	Write(context.Context, *WriteRequest) (*WriteReply, error)
-	WriteFile(context.Context, *WriteFileRequest) (*WriteFileReply, error)
-	WriteStream(ObjectService_WriteStreamServer) error
-	Read(context.Context, *ReadRequest) (*ReadReply, error)
-	ReadFile(context.Context, *ReadFileRequest) (*ReadFileReply, error)
-	ReadStream(*ReadStreamRequest, ObjectService_ReadStreamServer) error
-	Delete(context.Context, *DeleteRequest) (*DeleteReply, error)
-	Walk(*WalkRequest, ObjectService_WalkServer) error
-	AppendReferenceList(context.Context, *AppendReferenceListRequest) (*AppendReferenceListReply, error)
-	RemoveReferenceList(context.Context, *RemoveReferenceListRequest) (*RemoveReferenceListReply, error)
-	Check(context.Context, *CheckRequest) (*CheckReply, error)
-	Repair(context.Context, *RepairRequest) (*RepairReply, error)
-}
-
-func RegisterObjectServiceServer(s *grpc.Server, srv ObjectServiceServer) {
-	s.RegisterService(&_ObjectService_serviceDesc, srv)
-}
-
-func _ObjectService_Write_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _FileService_Write_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(WriteRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ObjectServiceServer).Write(ctx, in)
+		return srv.(FileServiceServer).Write(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/proxy.ObjectService/Write",
+		FullMethod: "/schema.FileService/Write",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ObjectServiceServer).Write(ctx, req.(*WriteRequest))
+		return srv.(FileServiceServer).Write(ctx, req.(*WriteRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ObjectService_WriteFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _FileService_WriteFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(WriteFileRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ObjectServiceServer).WriteFile(ctx, in)
+		return srv.(FileServiceServer).WriteFile(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/proxy.ObjectService/WriteFile",
+		FullMethod: "/schema.FileService/WriteFile",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ObjectServiceServer).WriteFile(ctx, req.(*WriteFileRequest))
+		return srv.(FileServiceServer).WriteFile(ctx, req.(*WriteFileRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ObjectService_WriteStream_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(ObjectServiceServer).WriteStream(&objectServiceWriteStreamServer{stream})
+func _FileService_WriteStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(FileServiceServer).WriteStream(&fileServiceWriteStreamServer{stream})
 }
 
-type ObjectService_WriteStreamServer interface {
-	SendAndClose(*WriteStreamReply) error
+type FileService_WriteStreamServer interface {
+	SendAndClose(*WriteStreamResponse) error
 	Recv() (*WriteStreamRequest, error)
 	grpc.ServerStream
 }
 
-type objectServiceWriteStreamServer struct {
+type fileServiceWriteStreamServer struct {
 	grpc.ServerStream
 }
 
-func (x *objectServiceWriteStreamServer) SendAndClose(m *WriteStreamReply) error {
+func (x *fileServiceWriteStreamServer) SendAndClose(m *WriteStreamResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *objectServiceWriteStreamServer) Recv() (*WriteStreamRequest, error) {
+func (x *fileServiceWriteStreamServer) Recv() (*WriteStreamRequest, error) {
 	m := new(WriteStreamRequest)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -2928,229 +4792,679 @@ func (x *objectServiceWriteStreamServer) Recv() (*WriteStreamRequest, error) {
 	return m, nil
 }
 
-func _ObjectService_Read_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _FileService_Read_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ReadRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ObjectServiceServer).Read(ctx, in)
+		return srv.(FileServiceServer).Read(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/proxy.ObjectService/Read",
+		FullMethod: "/schema.FileService/Read",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ObjectServiceServer).Read(ctx, req.(*ReadRequest))
+		return srv.(FileServiceServer).Read(ctx, req.(*ReadRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ObjectService_ReadFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _FileService_ReadFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ReadFileRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ObjectServiceServer).ReadFile(ctx, in)
+		return srv.(FileServiceServer).ReadFile(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/proxy.ObjectService/ReadFile",
+		FullMethod: "/schema.FileService/ReadFile",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ObjectServiceServer).ReadFile(ctx, req.(*ReadFileRequest))
+		return srv.(FileServiceServer).ReadFile(ctx, req.(*ReadFileRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ObjectService_ReadStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+func _FileService_ReadStream_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(ReadStreamRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(ObjectServiceServer).ReadStream(m, &objectServiceReadStreamServer{stream})
+	return srv.(FileServiceServer).ReadStream(m, &fileServiceReadStreamServer{stream})
 }
 
-type ObjectService_ReadStreamServer interface {
-	Send(*ReadStreamReply) error
+type FileService_ReadStreamServer interface {
+	Send(*ReadStreamResponse) error
 	grpc.ServerStream
 }
 
-type objectServiceReadStreamServer struct {
+type fileServiceReadStreamServer struct {
 	grpc.ServerStream
 }
 
-func (x *objectServiceReadStreamServer) Send(m *ReadStreamReply) error {
+func (x *fileServiceReadStreamServer) Send(m *ReadStreamResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func _ObjectService_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _FileService_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DeleteRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ObjectServiceServer).Delete(ctx, in)
+		return srv.(FileServiceServer).Delete(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/proxy.ObjectService/Delete",
+		FullMethod: "/schema.FileService/Delete",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ObjectServiceServer).Delete(ctx, req.(*DeleteRequest))
+		return srv.(FileServiceServer).Delete(ctx, req.(*DeleteRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ObjectService_Walk_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(WalkRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(ObjectServiceServer).Walk(m, &objectServiceWalkServer{stream})
-}
-
-type ObjectService_WalkServer interface {
-	Send(*WalkReply) error
-	grpc.ServerStream
-}
-
-type objectServiceWalkServer struct {
-	grpc.ServerStream
-}
-
-func (x *objectServiceWalkServer) Send(m *WalkReply) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func _ObjectService_AppendReferenceList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AppendReferenceListRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ObjectServiceServer).AppendReferenceList(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/proxy.ObjectService/AppendReferenceList",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ObjectServiceServer).AppendReferenceList(ctx, req.(*AppendReferenceListRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ObjectService_RemoveReferenceList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RemoveReferenceListRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ObjectServiceServer).RemoveReferenceList(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/proxy.ObjectService/RemoveReferenceList",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ObjectServiceServer).RemoveReferenceList(ctx, req.(*RemoveReferenceListRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ObjectService_Check_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _FileService_Check_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CheckRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ObjectServiceServer).Check(ctx, in)
+		return srv.(FileServiceServer).Check(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/proxy.ObjectService/Check",
+		FullMethod: "/schema.FileService/Check",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ObjectServiceServer).Check(ctx, req.(*CheckRequest))
+		return srv.(FileServiceServer).Check(ctx, req.(*CheckRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ObjectService_Repair_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _FileService_Repair_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(RepairRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ObjectServiceServer).Repair(ctx, in)
+		return srv.(FileServiceServer).Repair(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/proxy.ObjectService/Repair",
+		FullMethod: "/schema.FileService/Repair",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ObjectServiceServer).Repair(ctx, req.(*RepairRequest))
+		return srv.(FileServiceServer).Repair(ctx, req.(*RepairRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-var _ObjectService_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "proxy.ObjectService",
-	HandlerType: (*ObjectServiceServer)(nil),
+var _FileService_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "schema.FileService",
+	HandlerType: (*FileServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "Write",
-			Handler:    _ObjectService_Write_Handler,
+			Handler:    _FileService_Write_Handler,
 		},
 		{
 			MethodName: "WriteFile",
-			Handler:    _ObjectService_WriteFile_Handler,
+			Handler:    _FileService_WriteFile_Handler,
 		},
 		{
 			MethodName: "Read",
-			Handler:    _ObjectService_Read_Handler,
+			Handler:    _FileService_Read_Handler,
 		},
 		{
 			MethodName: "ReadFile",
-			Handler:    _ObjectService_ReadFile_Handler,
+			Handler:    _FileService_ReadFile_Handler,
 		},
 		{
 			MethodName: "Delete",
-			Handler:    _ObjectService_Delete_Handler,
-		},
-		{
-			MethodName: "AppendReferenceList",
-			Handler:    _ObjectService_AppendReferenceList_Handler,
-		},
-		{
-			MethodName: "RemoveReferenceList",
-			Handler:    _ObjectService_RemoveReferenceList_Handler,
+			Handler:    _FileService_Delete_Handler,
 		},
 		{
 			MethodName: "Check",
-			Handler:    _ObjectService_Check_Handler,
+			Handler:    _FileService_Check_Handler,
 		},
 		{
 			MethodName: "Repair",
-			Handler:    _ObjectService_Repair_Handler,
+			Handler:    _FileService_Repair_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "WriteStream",
-			Handler:       _ObjectService_WriteStream_Handler,
+			Handler:       _FileService_WriteStream_Handler,
 			ClientStreams: true,
 		},
 		{
 			StreamName:    "ReadStream",
-			Handler:       _ObjectService_ReadStream_Handler,
+			Handler:       _FileService_ReadStream_Handler,
 			ServerStreams: true,
 		},
+	},
+	Metadata: "schema/daemon.proto",
+}
+
+// Client API for MetadataService service
+
+type MetadataServiceClient interface {
+	SetMetadata(ctx context.Context, in *SetMetadataRequest, opts ...grpc.CallOption) (*SetMetadataResponse, error)
+	GetMetadata(ctx context.Context, in *GetMetadataRequest, opts ...grpc.CallOption) (*GetMetadataResponse, error)
+	DeleteMetadata(ctx context.Context, in *DeleteMetadataRequest, opts ...grpc.CallOption) (*DeleteMetadataResponse, error)
+}
+
+type metadataServiceClient struct {
+	cc *grpc.ClientConn
+}
+
+func NewMetadataServiceClient(cc *grpc.ClientConn) MetadataServiceClient {
+	return &metadataServiceClient{cc}
+}
+
+func (c *metadataServiceClient) SetMetadata(ctx context.Context, in *SetMetadataRequest, opts ...grpc.CallOption) (*SetMetadataResponse, error) {
+	out := new(SetMetadataResponse)
+	err := grpc.Invoke(ctx, "/schema.MetadataService/SetMetadata", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *metadataServiceClient) GetMetadata(ctx context.Context, in *GetMetadataRequest, opts ...grpc.CallOption) (*GetMetadataResponse, error) {
+	out := new(GetMetadataResponse)
+	err := grpc.Invoke(ctx, "/schema.MetadataService/GetMetadata", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *metadataServiceClient) DeleteMetadata(ctx context.Context, in *DeleteMetadataRequest, opts ...grpc.CallOption) (*DeleteMetadataResponse, error) {
+	out := new(DeleteMetadataResponse)
+	err := grpc.Invoke(ctx, "/schema.MetadataService/DeleteMetadata", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// Server API for MetadataService service
+
+type MetadataServiceServer interface {
+	SetMetadata(context.Context, *SetMetadataRequest) (*SetMetadataResponse, error)
+	GetMetadata(context.Context, *GetMetadataRequest) (*GetMetadataResponse, error)
+	DeleteMetadata(context.Context, *DeleteMetadataRequest) (*DeleteMetadataResponse, error)
+}
+
+func RegisterMetadataServiceServer(s *grpc.Server, srv MetadataServiceServer) {
+	s.RegisterService(&_MetadataService_serviceDesc, srv)
+}
+
+func _MetadataService_SetMetadata_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetMetadataRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MetadataServiceServer).SetMetadata(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/schema.MetadataService/SetMetadata",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MetadataServiceServer).SetMetadata(ctx, req.(*SetMetadataRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MetadataService_GetMetadata_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetMetadataRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MetadataServiceServer).GetMetadata(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/schema.MetadataService/GetMetadata",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MetadataServiceServer).GetMetadata(ctx, req.(*GetMetadataRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MetadataService_DeleteMetadata_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteMetadataRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MetadataServiceServer).DeleteMetadata(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/schema.MetadataService/DeleteMetadata",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MetadataServiceServer).DeleteMetadata(ctx, req.(*DeleteMetadataRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+var _MetadataService_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "schema.MetadataService",
+	HandlerType: (*MetadataServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
 		{
-			StreamName:    "Walk",
-			Handler:       _ObjectService_Walk_Handler,
+			MethodName: "SetMetadata",
+			Handler:    _MetadataService_SetMetadata_Handler,
+		},
+		{
+			MethodName: "GetMetadata",
+			Handler:    _MetadataService_GetMetadata_Handler,
+		},
+		{
+			MethodName: "DeleteMetadata",
+			Handler:    _MetadataService_DeleteMetadata_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "schema/daemon.proto",
+}
+
+// Client API for DataService service
+
+type DataServiceClient interface {
+	Write(ctx context.Context, in *DataWriteRequest, opts ...grpc.CallOption) (*DataWriteResponse, error)
+	WriteFile(ctx context.Context, in *DataWriteFileRequest, opts ...grpc.CallOption) (*DataWriteFileResponse, error)
+	WriteStream(ctx context.Context, opts ...grpc.CallOption) (DataService_WriteStreamClient, error)
+	Read(ctx context.Context, in *DataReadRequest, opts ...grpc.CallOption) (*DataReadResponse, error)
+	ReadFile(ctx context.Context, in *DataReadFileRequest, opts ...grpc.CallOption) (*DataReadFileResponse, error)
+	ReadStream(ctx context.Context, in *DataReadStreamRequest, opts ...grpc.CallOption) (DataService_ReadStreamClient, error)
+	Delete(ctx context.Context, in *DataDeleteRequest, opts ...grpc.CallOption) (*DataDeleteResponse, error)
+	Check(ctx context.Context, in *DataCheckRequest, opts ...grpc.CallOption) (*DataCheckResponse, error)
+	Repair(ctx context.Context, in *DataRepairRequest, opts ...grpc.CallOption) (*DataRepairResponse, error)
+}
+
+type dataServiceClient struct {
+	cc *grpc.ClientConn
+}
+
+func NewDataServiceClient(cc *grpc.ClientConn) DataServiceClient {
+	return &dataServiceClient{cc}
+}
+
+func (c *dataServiceClient) Write(ctx context.Context, in *DataWriteRequest, opts ...grpc.CallOption) (*DataWriteResponse, error) {
+	out := new(DataWriteResponse)
+	err := grpc.Invoke(ctx, "/schema.DataService/Write", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dataServiceClient) WriteFile(ctx context.Context, in *DataWriteFileRequest, opts ...grpc.CallOption) (*DataWriteFileResponse, error) {
+	out := new(DataWriteFileResponse)
+	err := grpc.Invoke(ctx, "/schema.DataService/WriteFile", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dataServiceClient) WriteStream(ctx context.Context, opts ...grpc.CallOption) (DataService_WriteStreamClient, error) {
+	stream, err := grpc.NewClientStream(ctx, &_DataService_serviceDesc.Streams[0], c.cc, "/schema.DataService/WriteStream", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &dataServiceWriteStreamClient{stream}
+	return x, nil
+}
+
+type DataService_WriteStreamClient interface {
+	Send(*DataWriteStreamRequest) error
+	CloseAndRecv() (*DataWriteStreamResponse, error)
+	grpc.ClientStream
+}
+
+type dataServiceWriteStreamClient struct {
+	grpc.ClientStream
+}
+
+func (x *dataServiceWriteStreamClient) Send(m *DataWriteStreamRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *dataServiceWriteStreamClient) CloseAndRecv() (*DataWriteStreamResponse, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(DataWriteStreamResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *dataServiceClient) Read(ctx context.Context, in *DataReadRequest, opts ...grpc.CallOption) (*DataReadResponse, error) {
+	out := new(DataReadResponse)
+	err := grpc.Invoke(ctx, "/schema.DataService/Read", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dataServiceClient) ReadFile(ctx context.Context, in *DataReadFileRequest, opts ...grpc.CallOption) (*DataReadFileResponse, error) {
+	out := new(DataReadFileResponse)
+	err := grpc.Invoke(ctx, "/schema.DataService/ReadFile", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dataServiceClient) ReadStream(ctx context.Context, in *DataReadStreamRequest, opts ...grpc.CallOption) (DataService_ReadStreamClient, error) {
+	stream, err := grpc.NewClientStream(ctx, &_DataService_serviceDesc.Streams[1], c.cc, "/schema.DataService/ReadStream", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &dataServiceReadStreamClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type DataService_ReadStreamClient interface {
+	Recv() (*DataReadStreamResponse, error)
+	grpc.ClientStream
+}
+
+type dataServiceReadStreamClient struct {
+	grpc.ClientStream
+}
+
+func (x *dataServiceReadStreamClient) Recv() (*DataReadStreamResponse, error) {
+	m := new(DataReadStreamResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *dataServiceClient) Delete(ctx context.Context, in *DataDeleteRequest, opts ...grpc.CallOption) (*DataDeleteResponse, error) {
+	out := new(DataDeleteResponse)
+	err := grpc.Invoke(ctx, "/schema.DataService/Delete", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dataServiceClient) Check(ctx context.Context, in *DataCheckRequest, opts ...grpc.CallOption) (*DataCheckResponse, error) {
+	out := new(DataCheckResponse)
+	err := grpc.Invoke(ctx, "/schema.DataService/Check", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dataServiceClient) Repair(ctx context.Context, in *DataRepairRequest, opts ...grpc.CallOption) (*DataRepairResponse, error) {
+	out := new(DataRepairResponse)
+	err := grpc.Invoke(ctx, "/schema.DataService/Repair", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// Server API for DataService service
+
+type DataServiceServer interface {
+	Write(context.Context, *DataWriteRequest) (*DataWriteResponse, error)
+	WriteFile(context.Context, *DataWriteFileRequest) (*DataWriteFileResponse, error)
+	WriteStream(DataService_WriteStreamServer) error
+	Read(context.Context, *DataReadRequest) (*DataReadResponse, error)
+	ReadFile(context.Context, *DataReadFileRequest) (*DataReadFileResponse, error)
+	ReadStream(*DataReadStreamRequest, DataService_ReadStreamServer) error
+	Delete(context.Context, *DataDeleteRequest) (*DataDeleteResponse, error)
+	Check(context.Context, *DataCheckRequest) (*DataCheckResponse, error)
+	Repair(context.Context, *DataRepairRequest) (*DataRepairResponse, error)
+}
+
+func RegisterDataServiceServer(s *grpc.Server, srv DataServiceServer) {
+	s.RegisterService(&_DataService_serviceDesc, srv)
+}
+
+func _DataService_Write_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DataWriteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DataServiceServer).Write(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/schema.DataService/Write",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DataServiceServer).Write(ctx, req.(*DataWriteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DataService_WriteFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DataWriteFileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DataServiceServer).WriteFile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/schema.DataService/WriteFile",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DataServiceServer).WriteFile(ctx, req.(*DataWriteFileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DataService_WriteStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(DataServiceServer).WriteStream(&dataServiceWriteStreamServer{stream})
+}
+
+type DataService_WriteStreamServer interface {
+	SendAndClose(*DataWriteStreamResponse) error
+	Recv() (*DataWriteStreamRequest, error)
+	grpc.ServerStream
+}
+
+type dataServiceWriteStreamServer struct {
+	grpc.ServerStream
+}
+
+func (x *dataServiceWriteStreamServer) SendAndClose(m *DataWriteStreamResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *dataServiceWriteStreamServer) Recv() (*DataWriteStreamRequest, error) {
+	m := new(DataWriteStreamRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func _DataService_Read_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DataReadRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DataServiceServer).Read(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/schema.DataService/Read",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DataServiceServer).Read(ctx, req.(*DataReadRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DataService_ReadFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DataReadFileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DataServiceServer).ReadFile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/schema.DataService/ReadFile",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DataServiceServer).ReadFile(ctx, req.(*DataReadFileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DataService_ReadStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(DataReadStreamRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(DataServiceServer).ReadStream(m, &dataServiceReadStreamServer{stream})
+}
+
+type DataService_ReadStreamServer interface {
+	Send(*DataReadStreamResponse) error
+	grpc.ServerStream
+}
+
+type dataServiceReadStreamServer struct {
+	grpc.ServerStream
+}
+
+func (x *dataServiceReadStreamServer) Send(m *DataReadStreamResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _DataService_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DataDeleteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DataServiceServer).Delete(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/schema.DataService/Delete",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DataServiceServer).Delete(ctx, req.(*DataDeleteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DataService_Check_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DataCheckRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DataServiceServer).Check(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/schema.DataService/Check",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DataServiceServer).Check(ctx, req.(*DataCheckRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DataService_Repair_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DataRepairRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DataServiceServer).Repair(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/schema.DataService/Repair",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DataServiceServer).Repair(ctx, req.(*DataRepairRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+var _DataService_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "schema.DataService",
+	HandlerType: (*DataServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Write",
+			Handler:    _DataService_Write_Handler,
+		},
+		{
+			MethodName: "WriteFile",
+			Handler:    _DataService_WriteFile_Handler,
+		},
+		{
+			MethodName: "Read",
+			Handler:    _DataService_Read_Handler,
+		},
+		{
+			MethodName: "ReadFile",
+			Handler:    _DataService_ReadFile_Handler,
+		},
+		{
+			MethodName: "Delete",
+			Handler:    _DataService_Delete_Handler,
+		},
+		{
+			MethodName: "Check",
+			Handler:    _DataService_Check_Handler,
+		},
+		{
+			MethodName: "Repair",
+			Handler:    _DataService_Repair_Handler,
+		},
+	},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "WriteStream",
+			Handler:       _DataService_WriteStream_Handler,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "ReadStream",
+			Handler:       _DataService_ReadStream_Handler,
 			ServerStreams: true,
 		},
 	},
@@ -3172,20 +5486,20 @@ func (m *Permission) MarshalTo(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if m.Write {
+	if m.Read {
 		dAtA[i] = 0x8
 		i++
-		if m.Write {
+		if m.Read {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
 		}
 		i++
 	}
-	if m.Read {
+	if m.Write {
 		dAtA[i] = 0x10
 		i++
-		if m.Read {
+		if m.Write {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
@@ -3215,7 +5529,7 @@ func (m *Permission) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
-func (m *CreateJWTRequest) Marshal() (dAtA []byte, err error) {
+func (m *CreateNamespaceRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -3225,65 +5539,7 @@ func (m *CreateJWTRequest) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *CreateJWTRequest) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if len(m.Namespace) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(len(m.Namespace)))
-		i += copy(dAtA[i:], m.Namespace)
-	}
-	if m.Permission != nil {
-		dAtA[i] = 0x12
-		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(m.Permission.Size()))
-		n1, err := m.Permission.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n1
-	}
-	return i, nil
-}
-
-func (m *CreateJWTReply) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *CreateJWTReply) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if len(m.Token) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(len(m.Token)))
-		i += copy(dAtA[i:], m.Token)
-	}
-	return i, nil
-}
-
-func (m *NamespaceRequest) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *NamespaceRequest) MarshalTo(dAtA []byte) (int, error) {
+func (m *CreateNamespaceRequest) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
@@ -3297,7 +5553,7 @@ func (m *NamespaceRequest) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
-func (m *NamespaceReply) Marshal() (dAtA []byte, err error) {
+func (m *CreateNamespaceResponse) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -3307,7 +5563,7 @@ func (m *NamespaceReply) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *NamespaceReply) MarshalTo(dAtA []byte) (int, error) {
+func (m *CreateNamespaceResponse) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
@@ -3315,7 +5571,7 @@ func (m *NamespaceReply) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
-func (m *EditPermissionRequest) Marshal() (dAtA []byte, err error) {
+func (m *DeleteNamespaceRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -3325,7 +5581,49 @@ func (m *EditPermissionRequest) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *EditPermissionRequest) MarshalTo(dAtA []byte) (int, error) {
+func (m *DeleteNamespaceRequest) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.Namespace) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintDaemon(dAtA, i, uint64(len(m.Namespace)))
+		i += copy(dAtA[i:], m.Namespace)
+	}
+	return i, nil
+}
+
+func (m *DeleteNamespaceResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DeleteNamespaceResponse) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	return i, nil
+}
+
+func (m *SetPermissionRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SetPermissionRequest) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
@@ -3346,16 +5644,16 @@ func (m *EditPermissionRequest) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0x1a
 		i++
 		i = encodeVarintDaemon(dAtA, i, uint64(m.Permission.Size()))
-		n2, err := m.Permission.MarshalTo(dAtA[i:])
+		n1, err := m.Permission.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n2
+		i += n1
 	}
 	return i, nil
 }
 
-func (m *EditPermissionReply) Marshal() (dAtA []byte, err error) {
+func (m *SetPermissionResponse) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -3365,7 +5663,7 @@ func (m *EditPermissionReply) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *EditPermissionReply) MarshalTo(dAtA []byte) (int, error) {
+func (m *SetPermissionResponse) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
@@ -3403,7 +5701,7 @@ func (m *GetPermissionRequest) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
-func (m *GetPermissionReply) Marshal() (dAtA []byte, err error) {
+func (m *GetPermissionResponse) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -3413,7 +5711,7 @@ func (m *GetPermissionReply) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *GetPermissionReply) MarshalTo(dAtA []byte) (int, error) {
+func (m *GetPermissionResponse) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
@@ -3422,11 +5720,62 @@ func (m *GetPermissionReply) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0xa
 		i++
 		i = encodeVarintDaemon(dAtA, i, uint64(m.Permission.Size()))
-		n3, err := m.Permission.MarshalTo(dAtA[i:])
+		n2, err := m.Permission.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n3
+		i += n2
+	}
+	return i, nil
+}
+
+func (m *Metadata) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *Metadata) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.Key) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintDaemon(dAtA, i, uint64(len(m.Key)))
+		i += copy(dAtA[i:], m.Key)
+	}
+	if m.SizeInBytes != 0 {
+		dAtA[i] = 0x10
+		i++
+		i = encodeVarintDaemon(dAtA, i, uint64(m.SizeInBytes))
+	}
+	if m.CreationEpoch != 0 {
+		dAtA[i] = 0x18
+		i++
+		i = encodeVarintDaemon(dAtA, i, uint64(m.CreationEpoch))
+	}
+	if m.LastWriteEpoch != 0 {
+		dAtA[i] = 0x20
+		i++
+		i = encodeVarintDaemon(dAtA, i, uint64(m.LastWriteEpoch))
+	}
+	if len(m.Chunks) > 0 {
+		for _, msg := range m.Chunks {
+			dAtA[i] = 0x2a
+			i++
+			i = encodeVarintDaemon(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
 	}
 	return i, nil
 }
@@ -3446,70 +5795,14 @@ func (m *Chunk) MarshalTo(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if m.Size_ != 0 {
+	if m.SizeInBytes != 0 {
 		dAtA[i] = 0x8
 		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(m.Size_))
+		i = encodeVarintDaemon(dAtA, i, uint64(m.SizeInBytes))
 	}
-	if len(m.Key) > 0 {
-		dAtA[i] = 0x12
-		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(len(m.Key)))
-		i += copy(dAtA[i:], m.Key)
-	}
-	if len(m.Shards) > 0 {
-		for _, s := range m.Shards {
-			dAtA[i] = 0x1a
-			i++
-			l = len(s)
-			for l >= 1<<7 {
-				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
-				l >>= 7
-				i++
-			}
-			dAtA[i] = uint8(l)
-			i++
-			i += copy(dAtA[i:], s)
-		}
-	}
-	return i, nil
-}
-
-func (m *Meta) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *Meta) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if m.Epoch != 0 {
-		dAtA[i] = 0x8
-		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(m.Epoch))
-	}
-	if len(m.Key) > 0 {
-		dAtA[i] = 0x12
-		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(len(m.Key)))
-		i += copy(dAtA[i:], m.Key)
-	}
-	if len(m.EncrKey) > 0 {
-		dAtA[i] = 0x1a
-		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(len(m.EncrKey)))
-		i += copy(dAtA[i:], m.EncrKey)
-	}
-	if len(m.Chunks) > 0 {
-		for _, msg := range m.Chunks {
-			dAtA[i] = 0x22
+	if len(m.Objects) > 0 {
+		for _, msg := range m.Objects {
+			dAtA[i] = 0x12
 			i++
 			i = encodeVarintDaemon(dAtA, i, uint64(msg.Size()))
 			n, err := msg.MarshalTo(dAtA[i:])
@@ -3519,17 +5812,41 @@ func (m *Meta) MarshalTo(dAtA []byte) (int, error) {
 			i += n
 		}
 	}
-	if len(m.Previous) > 0 {
-		dAtA[i] = 0x2a
+	if len(m.Hash) > 0 {
+		dAtA[i] = 0x1a
 		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(len(m.Previous)))
-		i += copy(dAtA[i:], m.Previous)
+		i = encodeVarintDaemon(dAtA, i, uint64(len(m.Hash)))
+		i += copy(dAtA[i:], m.Hash)
 	}
-	if len(m.Next) > 0 {
-		dAtA[i] = 0x32
+	return i, nil
+}
+
+func (m *Object) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *Object) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.Key) > 0 {
+		dAtA[i] = 0xa
 		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(len(m.Next)))
-		i += copy(dAtA[i:], m.Next)
+		i = encodeVarintDaemon(dAtA, i, uint64(len(m.Key)))
+		i += copy(dAtA[i:], m.Key)
+	}
+	if len(m.ShardID) > 0 {
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintDaemon(dAtA, i, uint64(len(m.ShardID)))
+		i += copy(dAtA[i:], m.ShardID)
 	}
 	return i, nil
 }
@@ -3555,57 +5872,16 @@ func (m *WriteRequest) MarshalTo(dAtA []byte) (int, error) {
 		i = encodeVarintDaemon(dAtA, i, uint64(len(m.Key)))
 		i += copy(dAtA[i:], m.Key)
 	}
-	if m.Meta != nil {
+	if len(m.Data) > 0 {
 		dAtA[i] = 0x12
 		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(m.Meta.Size()))
-		n4, err := m.Meta.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n4
-	}
-	if len(m.Value) > 0 {
-		dAtA[i] = 0x1a
-		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(len(m.Value)))
-		i += copy(dAtA[i:], m.Value)
-	}
-	if len(m.ReferenceList) > 0 {
-		for _, s := range m.ReferenceList {
-			dAtA[i] = 0x22
-			i++
-			l = len(s)
-			for l >= 1<<7 {
-				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
-				l >>= 7
-				i++
-			}
-			dAtA[i] = uint8(l)
-			i++
-			i += copy(dAtA[i:], s)
-		}
-	}
-	if len(m.PrevKey) > 0 {
-		dAtA[i] = 0x2a
-		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(len(m.PrevKey)))
-		i += copy(dAtA[i:], m.PrevKey)
-	}
-	if m.PrevMeta != nil {
-		dAtA[i] = 0x32
-		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(m.PrevMeta.Size()))
-		n5, err := m.PrevMeta.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n5
+		i = encodeVarintDaemon(dAtA, i, uint64(len(m.Data)))
+		i += copy(dAtA[i:], m.Data)
 	}
 	return i, nil
 }
 
-func (m *WriteReply) Marshal() (dAtA []byte, err error) {
+func (m *WriteResponse) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -3615,20 +5891,20 @@ func (m *WriteReply) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *WriteReply) MarshalTo(dAtA []byte) (int, error) {
+func (m *WriteResponse) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.Meta != nil {
+	if m.Metadata != nil {
 		dAtA[i] = 0xa
 		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(m.Meta.Size()))
-		n6, err := m.Meta.MarshalTo(dAtA[i:])
+		i = encodeVarintDaemon(dAtA, i, uint64(m.Metadata.Size()))
+		n3, err := m.Metadata.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n6
+		i += n3
 	}
 	return i, nil
 }
@@ -3654,57 +5930,16 @@ func (m *WriteFileRequest) MarshalTo(dAtA []byte) (int, error) {
 		i = encodeVarintDaemon(dAtA, i, uint64(len(m.Key)))
 		i += copy(dAtA[i:], m.Key)
 	}
-	if m.Meta != nil {
-		dAtA[i] = 0x12
-		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(m.Meta.Size()))
-		n7, err := m.Meta.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n7
-	}
 	if len(m.FilePath) > 0 {
-		dAtA[i] = 0x1a
+		dAtA[i] = 0x12
 		i++
 		i = encodeVarintDaemon(dAtA, i, uint64(len(m.FilePath)))
 		i += copy(dAtA[i:], m.FilePath)
 	}
-	if len(m.ReferenceList) > 0 {
-		for _, s := range m.ReferenceList {
-			dAtA[i] = 0x22
-			i++
-			l = len(s)
-			for l >= 1<<7 {
-				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
-				l >>= 7
-				i++
-			}
-			dAtA[i] = uint8(l)
-			i++
-			i += copy(dAtA[i:], s)
-		}
-	}
-	if len(m.PrevKey) > 0 {
-		dAtA[i] = 0x2a
-		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(len(m.PrevKey)))
-		i += copy(dAtA[i:], m.PrevKey)
-	}
-	if m.PrevMeta != nil {
-		dAtA[i] = 0x32
-		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(m.PrevMeta.Size()))
-		n8, err := m.PrevMeta.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n8
-	}
 	return i, nil
 }
 
-func (m *WriteFileReply) Marshal() (dAtA []byte, err error) {
+func (m *WriteFileResponse) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -3714,20 +5949,20 @@ func (m *WriteFileReply) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *WriteFileReply) MarshalTo(dAtA []byte) (int, error) {
+func (m *WriteFileResponse) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.Meta != nil {
+	if m.Metadata != nil {
 		dAtA[i] = 0xa
 		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(m.Meta.Size()))
-		n9, err := m.Meta.MarshalTo(dAtA[i:])
+		i = encodeVarintDaemon(dAtA, i, uint64(m.Metadata.Size()))
+		n4, err := m.Metadata.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n9
+		i += n4
 	}
 	return i, nil
 }
@@ -3747,63 +5982,45 @@ func (m *WriteStreamRequest) MarshalTo(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if len(m.Key) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(len(m.Key)))
-		i += copy(dAtA[i:], m.Key)
-	}
-	if m.Meta != nil {
-		dAtA[i] = 0x12
-		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(m.Meta.Size()))
-		n10, err := m.Meta.MarshalTo(dAtA[i:])
+	if m.Input != nil {
+		nn5, err := m.Input.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n10
-	}
-	if len(m.Value) > 0 {
-		dAtA[i] = 0x1a
-		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(len(m.Value)))
-		i += copy(dAtA[i:], m.Value)
-	}
-	if len(m.ReferenceList) > 0 {
-		for _, s := range m.ReferenceList {
-			dAtA[i] = 0x22
-			i++
-			l = len(s)
-			for l >= 1<<7 {
-				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
-				l >>= 7
-				i++
-			}
-			dAtA[i] = uint8(l)
-			i++
-			i += copy(dAtA[i:], s)
-		}
-	}
-	if len(m.PrevKey) > 0 {
-		dAtA[i] = 0x2a
-		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(len(m.PrevKey)))
-		i += copy(dAtA[i:], m.PrevKey)
-	}
-	if m.PrevMeta != nil {
-		dAtA[i] = 0x32
-		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(m.PrevMeta.Size()))
-		n11, err := m.PrevMeta.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n11
+		i += nn5
 	}
 	return i, nil
 }
 
-func (m *WriteStreamReply) Marshal() (dAtA []byte, err error) {
+func (m *WriteStreamRequest_Metadata_) MarshalTo(dAtA []byte) (int, error) {
+	i := 0
+	if m.Metadata != nil {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintDaemon(dAtA, i, uint64(m.Metadata.Size()))
+		n6, err := m.Metadata.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n6
+	}
+	return i, nil
+}
+func (m *WriteStreamRequest_Data_) MarshalTo(dAtA []byte) (int, error) {
+	i := 0
+	if m.Data != nil {
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintDaemon(dAtA, i, uint64(m.Data.Size()))
+		n7, err := m.Data.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n7
+	}
+	return i, nil
+}
+func (m *WriteStreamRequest_Metadata) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -3813,20 +6030,68 @@ func (m *WriteStreamReply) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *WriteStreamReply) MarshalTo(dAtA []byte) (int, error) {
+func (m *WriteStreamRequest_Metadata) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.Meta != nil {
+	if len(m.Key) > 0 {
 		dAtA[i] = 0xa
 		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(m.Meta.Size()))
-		n12, err := m.Meta.MarshalTo(dAtA[i:])
+		i = encodeVarintDaemon(dAtA, i, uint64(len(m.Key)))
+		i += copy(dAtA[i:], m.Key)
+	}
+	return i, nil
+}
+
+func (m *WriteStreamRequest_Data) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WriteStreamRequest_Data) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.DataChunk) > 0 {
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintDaemon(dAtA, i, uint64(len(m.DataChunk)))
+		i += copy(dAtA[i:], m.DataChunk)
+	}
+	return i, nil
+}
+
+func (m *WriteStreamResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WriteStreamResponse) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if m.Metadata != nil {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintDaemon(dAtA, i, uint64(m.Metadata.Size()))
+		n8, err := m.Metadata.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n12
+		i += n8
 	}
 	return i, nil
 }
@@ -3846,26 +6111,41 @@ func (m *ReadRequest) MarshalTo(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if len(m.Key) > 0 {
+	if m.Input != nil {
+		nn9, err := m.Input.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += nn9
+	}
+	return i, nil
+}
+
+func (m *ReadRequest_Key) MarshalTo(dAtA []byte) (int, error) {
+	i := 0
+	if m.Key != nil {
 		dAtA[i] = 0xa
 		i++
 		i = encodeVarintDaemon(dAtA, i, uint64(len(m.Key)))
 		i += copy(dAtA[i:], m.Key)
 	}
-	if m.Meta != nil {
+	return i, nil
+}
+func (m *ReadRequest_Metadata) MarshalTo(dAtA []byte) (int, error) {
+	i := 0
+	if m.Metadata != nil {
 		dAtA[i] = 0x12
 		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(m.Meta.Size()))
-		n13, err := m.Meta.MarshalTo(dAtA[i:])
+		i = encodeVarintDaemon(dAtA, i, uint64(m.Metadata.Size()))
+		n10, err := m.Metadata.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n13
+		i += n10
 	}
 	return i, nil
 }
-
-func (m *ReadReply) Marshal() (dAtA []byte, err error) {
+func (m *ReadResponse) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -3875,31 +6155,16 @@ func (m *ReadReply) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *ReadReply) MarshalTo(dAtA []byte) (int, error) {
+func (m *ReadResponse) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	if len(m.Value) > 0 {
+	if len(m.Data) > 0 {
 		dAtA[i] = 0xa
 		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(len(m.Value)))
-		i += copy(dAtA[i:], m.Value)
-	}
-	if len(m.ReferenceList) > 0 {
-		for _, s := range m.ReferenceList {
-			dAtA[i] = 0x12
-			i++
-			l = len(s)
-			for l >= 1<<7 {
-				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
-				l >>= 7
-				i++
-			}
-			dAtA[i] = uint8(l)
-			i++
-			i += copy(dAtA[i:], s)
-		}
+		i = encodeVarintDaemon(dAtA, i, uint64(len(m.Data)))
+		i += copy(dAtA[i:], m.Data)
 	}
 	return i, nil
 }
@@ -3919,11 +6184,12 @@ func (m *ReadFileRequest) MarshalTo(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if len(m.Key) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(len(m.Key)))
-		i += copy(dAtA[i:], m.Key)
+	if m.Input != nil {
+		nn11, err := m.Input.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += nn11
 	}
 	if len(m.FilePath) > 0 {
 		dAtA[i] = 0x1a
@@ -3931,10 +6197,49 @@ func (m *ReadFileRequest) MarshalTo(dAtA []byte) (int, error) {
 		i = encodeVarintDaemon(dAtA, i, uint64(len(m.FilePath)))
 		i += copy(dAtA[i:], m.FilePath)
 	}
+	if m.FileMode != 0 {
+		dAtA[i] = 0x20
+		i++
+		i = encodeVarintDaemon(dAtA, i, uint64(m.FileMode))
+	}
+	if m.SynchronousIO {
+		dAtA[i] = 0x28
+		i++
+		if m.SynchronousIO {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i++
+	}
 	return i, nil
 }
 
-func (m *ReadFileReply) Marshal() (dAtA []byte, err error) {
+func (m *ReadFileRequest_Key) MarshalTo(dAtA []byte) (int, error) {
+	i := 0
+	if m.Key != nil {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintDaemon(dAtA, i, uint64(len(m.Key)))
+		i += copy(dAtA[i:], m.Key)
+	}
+	return i, nil
+}
+func (m *ReadFileRequest_Metadata) MarshalTo(dAtA []byte) (int, error) {
+	i := 0
+	if m.Metadata != nil {
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintDaemon(dAtA, i, uint64(m.Metadata.Size()))
+		n12, err := m.Metadata.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n12
+	}
+	return i, nil
+}
+func (m *ReadFileResponse) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -3944,26 +6249,11 @@ func (m *ReadFileReply) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *ReadFileReply) MarshalTo(dAtA []byte) (int, error) {
+func (m *ReadFileResponse) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	if len(m.ReferenceList) > 0 {
-		for _, s := range m.ReferenceList {
-			dAtA[i] = 0xa
-			i++
-			l = len(s)
-			for l >= 1<<7 {
-				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
-				l >>= 7
-				i++
-			}
-			dAtA[i] = uint8(l)
-			i++
-			i += copy(dAtA[i:], s)
-		}
-	}
 	return i, nil
 }
 
@@ -3982,7 +6272,24 @@ func (m *ReadStreamRequest) MarshalTo(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if len(m.Key) > 0 {
+	if m.Input != nil {
+		nn13, err := m.Input.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += nn13
+	}
+	if m.ChunkSize != 0 {
+		dAtA[i] = 0x18
+		i++
+		i = encodeVarintDaemon(dAtA, i, uint64(m.ChunkSize))
+	}
+	return i, nil
+}
+
+func (m *ReadStreamRequest_Key) MarshalTo(dAtA []byte) (int, error) {
+	i := 0
+	if m.Key != nil {
 		dAtA[i] = 0xa
 		i++
 		i = encodeVarintDaemon(dAtA, i, uint64(len(m.Key)))
@@ -3990,8 +6297,21 @@ func (m *ReadStreamRequest) MarshalTo(dAtA []byte) (int, error) {
 	}
 	return i, nil
 }
-
-func (m *ReadStreamReply) Marshal() (dAtA []byte, err error) {
+func (m *ReadStreamRequest_Metadata) MarshalTo(dAtA []byte) (int, error) {
+	i := 0
+	if m.Metadata != nil {
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintDaemon(dAtA, i, uint64(m.Metadata.Size()))
+		n14, err := m.Metadata.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n14
+	}
+	return i, nil
+}
+func (m *ReadStreamResponse) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -4001,31 +6321,16 @@ func (m *ReadStreamReply) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *ReadStreamReply) MarshalTo(dAtA []byte) (int, error) {
+func (m *ReadStreamResponse) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	if len(m.Value) > 0 {
+	if len(m.DataChunk) > 0 {
 		dAtA[i] = 0xa
 		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(len(m.Value)))
-		i += copy(dAtA[i:], m.Value)
-	}
-	if len(m.ReferenceList) > 0 {
-		for _, s := range m.ReferenceList {
-			dAtA[i] = 0x12
-			i++
-			l = len(s)
-			for l >= 1<<7 {
-				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
-				l >>= 7
-				i++
-			}
-			dAtA[i] = uint8(l)
-			i++
-			i += copy(dAtA[i:], s)
-		}
+		i = encodeVarintDaemon(dAtA, i, uint64(len(m.DataChunk)))
+		i += copy(dAtA[i:], m.DataChunk)
 	}
 	return i, nil
 }
@@ -4045,182 +6350,41 @@ func (m *DeleteRequest) MarshalTo(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if len(m.Key) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(len(m.Key)))
-		i += copy(dAtA[i:], m.Key)
-	}
-	if m.Meta != nil {
-		dAtA[i] = 0x12
-		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(m.Meta.Size()))
-		n14, err := m.Meta.MarshalTo(dAtA[i:])
+	if m.Input != nil {
+		nn15, err := m.Input.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n14
+		i += nn15
 	}
 	return i, nil
 }
 
-func (m *DeleteReply) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *DeleteReply) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	return i, nil
-}
-
-func (m *WalkRequest) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *WalkRequest) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if len(m.StartKey) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(len(m.StartKey)))
-		i += copy(dAtA[i:], m.StartKey)
-	}
-	if m.FromEpoch != 0 {
-		dAtA[i] = 0x10
-		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(m.FromEpoch))
-	}
-	if m.ToEpoch != 0 {
-		dAtA[i] = 0x18
-		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(m.ToEpoch))
-	}
-	return i, nil
-}
-
-func (m *WalkReply) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *WalkReply) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if len(m.Key) > 0 {
+func (m *DeleteRequest_Key) MarshalTo(dAtA []byte) (int, error) {
+	i := 0
+	if m.Key != nil {
 		dAtA[i] = 0xa
 		i++
 		i = encodeVarintDaemon(dAtA, i, uint64(len(m.Key)))
 		i += copy(dAtA[i:], m.Key)
 	}
-	if m.Meta != nil {
-		dAtA[i] = 0x12
-		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(m.Meta.Size()))
-		n15, err := m.Meta.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n15
-	}
-	if len(m.Value) > 0 {
-		dAtA[i] = 0x1a
-		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(len(m.Value)))
-		i += copy(dAtA[i:], m.Value)
-	}
-	if len(m.ReferenceList) > 0 {
-		for _, s := range m.ReferenceList {
-			dAtA[i] = 0x22
-			i++
-			l = len(s)
-			for l >= 1<<7 {
-				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
-				l >>= 7
-				i++
-			}
-			dAtA[i] = uint8(l)
-			i++
-			i += copy(dAtA[i:], s)
-		}
-	}
 	return i, nil
 }
-
-func (m *AppendReferenceListRequest) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *AppendReferenceListRequest) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if len(m.Key) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(len(m.Key)))
-		i += copy(dAtA[i:], m.Key)
-	}
-	if m.Meta != nil {
+func (m *DeleteRequest_Metadata) MarshalTo(dAtA []byte) (int, error) {
+	i := 0
+	if m.Metadata != nil {
 		dAtA[i] = 0x12
 		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(m.Meta.Size()))
-		n16, err := m.Meta.MarshalTo(dAtA[i:])
+		i = encodeVarintDaemon(dAtA, i, uint64(m.Metadata.Size()))
+		n16, err := m.Metadata.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n16
 	}
-	if len(m.ReferenceList) > 0 {
-		for _, s := range m.ReferenceList {
-			dAtA[i] = 0x1a
-			i++
-			l = len(s)
-			for l >= 1<<7 {
-				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
-				l >>= 7
-				i++
-			}
-			dAtA[i] = uint8(l)
-			i++
-			i += copy(dAtA[i:], s)
-		}
-	}
 	return i, nil
 }
-
-func (m *RemoveReferenceListRequest) Marshal() (dAtA []byte, err error) {
+func (m *DeleteResponse) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -4230,74 +6394,7 @@ func (m *RemoveReferenceListRequest) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *RemoveReferenceListRequest) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if len(m.Key) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(len(m.Key)))
-		i += copy(dAtA[i:], m.Key)
-	}
-	if m.Meta != nil {
-		dAtA[i] = 0x12
-		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(m.Meta.Size()))
-		n17, err := m.Meta.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n17
-	}
-	if len(m.ReferenceList) > 0 {
-		for _, s := range m.ReferenceList {
-			dAtA[i] = 0x1a
-			i++
-			l = len(s)
-			for l >= 1<<7 {
-				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
-				l >>= 7
-				i++
-			}
-			dAtA[i] = uint8(l)
-			i++
-			i += copy(dAtA[i:], s)
-		}
-	}
-	return i, nil
-}
-
-func (m *AppendReferenceListReply) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *AppendReferenceListReply) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	return i, nil
-}
-
-func (m *RemoveReferenceListReply) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *RemoveReferenceListReply) MarshalTo(dAtA []byte) (int, error) {
+func (m *DeleteResponse) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
@@ -4320,7 +6417,29 @@ func (m *CheckRequest) MarshalTo(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if len(m.Key) > 0 {
+	if m.Input != nil {
+		nn17, err := m.Input.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += nn17
+	}
+	if m.Fast {
+		dAtA[i] = 0x18
+		i++
+		if m.Fast {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i++
+	}
+	return i, nil
+}
+
+func (m *CheckRequest_Key) MarshalTo(dAtA []byte) (int, error) {
+	i := 0
+	if m.Key != nil {
 		dAtA[i] = 0xa
 		i++
 		i = encodeVarintDaemon(dAtA, i, uint64(len(m.Key)))
@@ -4328,8 +6447,21 @@ func (m *CheckRequest) MarshalTo(dAtA []byte) (int, error) {
 	}
 	return i, nil
 }
-
-func (m *CheckReply) Marshal() (dAtA []byte, err error) {
+func (m *CheckRequest_Metadata) MarshalTo(dAtA []byte) (int, error) {
+	i := 0
+	if m.Metadata != nil {
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintDaemon(dAtA, i, uint64(m.Metadata.Size()))
+		n18, err := m.Metadata.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n18
+	}
+	return i, nil
+}
+func (m *CheckResponse) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -4339,7 +6471,7 @@ func (m *CheckReply) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *CheckReply) MarshalTo(dAtA []byte) (int, error) {
+func (m *CheckResponse) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
@@ -4376,7 +6508,7 @@ func (m *RepairRequest) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
-func (m *RepairReply) Marshal() (dAtA []byte, err error) {
+func (m *RepairResponse) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -4386,11 +6518,676 @@ func (m *RepairReply) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *RepairReply) MarshalTo(dAtA []byte) (int, error) {
+func (m *RepairResponse) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
+	if m.Metadata != nil {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintDaemon(dAtA, i, uint64(m.Metadata.Size()))
+		n19, err := m.Metadata.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n19
+	}
+	return i, nil
+}
+
+func (m *SetMetadataRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SetMetadataRequest) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if m.Metadata != nil {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintDaemon(dAtA, i, uint64(m.Metadata.Size()))
+		n20, err := m.Metadata.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n20
+	}
+	return i, nil
+}
+
+func (m *SetMetadataResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SetMetadataResponse) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	return i, nil
+}
+
+func (m *GetMetadataRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GetMetadataRequest) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.Key) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintDaemon(dAtA, i, uint64(len(m.Key)))
+		i += copy(dAtA[i:], m.Key)
+	}
+	return i, nil
+}
+
+func (m *GetMetadataResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GetMetadataResponse) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if m.Metadata != nil {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintDaemon(dAtA, i, uint64(m.Metadata.Size()))
+		n21, err := m.Metadata.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n21
+	}
+	return i, nil
+}
+
+func (m *DeleteMetadataRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DeleteMetadataRequest) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.Key) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintDaemon(dAtA, i, uint64(len(m.Key)))
+		i += copy(dAtA[i:], m.Key)
+	}
+	return i, nil
+}
+
+func (m *DeleteMetadataResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DeleteMetadataResponse) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	return i, nil
+}
+
+func (m *DataWriteRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DataWriteRequest) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.Data) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintDaemon(dAtA, i, uint64(len(m.Data)))
+		i += copy(dAtA[i:], m.Data)
+	}
+	return i, nil
+}
+
+func (m *DataWriteResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DataWriteResponse) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.Chunks) > 0 {
+		for _, msg := range m.Chunks {
+			dAtA[i] = 0xa
+			i++
+			i = encodeVarintDaemon(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
+	}
+	return i, nil
+}
+
+func (m *DataWriteFileRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DataWriteFileRequest) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.FilePath) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintDaemon(dAtA, i, uint64(len(m.FilePath)))
+		i += copy(dAtA[i:], m.FilePath)
+	}
+	return i, nil
+}
+
+func (m *DataWriteFileResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DataWriteFileResponse) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.Chunks) > 0 {
+		for _, msg := range m.Chunks {
+			dAtA[i] = 0xa
+			i++
+			i = encodeVarintDaemon(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
+	}
+	return i, nil
+}
+
+func (m *DataWriteStreamRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DataWriteStreamRequest) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.DataChunk) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintDaemon(dAtA, i, uint64(len(m.DataChunk)))
+		i += copy(dAtA[i:], m.DataChunk)
+	}
+	return i, nil
+}
+
+func (m *DataWriteStreamResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DataWriteStreamResponse) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.Chunks) > 0 {
+		for _, msg := range m.Chunks {
+			dAtA[i] = 0xa
+			i++
+			i = encodeVarintDaemon(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
+	}
+	return i, nil
+}
+
+func (m *DataReadRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DataReadRequest) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.Chunks) > 0 {
+		for _, msg := range m.Chunks {
+			dAtA[i] = 0xa
+			i++
+			i = encodeVarintDaemon(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
+	}
+	return i, nil
+}
+
+func (m *DataReadResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DataReadResponse) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.Data) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintDaemon(dAtA, i, uint64(len(m.Data)))
+		i += copy(dAtA[i:], m.Data)
+	}
+	return i, nil
+}
+
+func (m *DataReadFileRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DataReadFileRequest) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.Chunks) > 0 {
+		for _, msg := range m.Chunks {
+			dAtA[i] = 0xa
+			i++
+			i = encodeVarintDaemon(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
+	}
+	if len(m.FilePath) > 0 {
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintDaemon(dAtA, i, uint64(len(m.FilePath)))
+		i += copy(dAtA[i:], m.FilePath)
+	}
+	if m.FileMode != 0 {
+		dAtA[i] = 0x18
+		i++
+		i = encodeVarintDaemon(dAtA, i, uint64(m.FileMode))
+	}
+	if m.SynchronousIO {
+		dAtA[i] = 0x20
+		i++
+		if m.SynchronousIO {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i++
+	}
+	return i, nil
+}
+
+func (m *DataReadFileResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DataReadFileResponse) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	return i, nil
+}
+
+func (m *DataReadStreamRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DataReadStreamRequest) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.Chunks) > 0 {
+		for _, msg := range m.Chunks {
+			dAtA[i] = 0xa
+			i++
+			i = encodeVarintDaemon(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
+	}
+	if m.ChunkSize != 0 {
+		dAtA[i] = 0x10
+		i++
+		i = encodeVarintDaemon(dAtA, i, uint64(m.ChunkSize))
+	}
+	return i, nil
+}
+
+func (m *DataReadStreamResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DataReadStreamResponse) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.DataChunk) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintDaemon(dAtA, i, uint64(len(m.DataChunk)))
+		i += copy(dAtA[i:], m.DataChunk)
+	}
+	return i, nil
+}
+
+func (m *DataDeleteRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DataDeleteRequest) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.Chunks) > 0 {
+		for _, msg := range m.Chunks {
+			dAtA[i] = 0xa
+			i++
+			i = encodeVarintDaemon(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
+	}
+	return i, nil
+}
+
+func (m *DataDeleteResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DataDeleteResponse) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	return i, nil
+}
+
+func (m *DataCheckRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DataCheckRequest) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.Chunks) > 0 {
+		for _, msg := range m.Chunks {
+			dAtA[i] = 0xa
+			i++
+			i = encodeVarintDaemon(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
+	}
+	if m.Fast {
+		dAtA[i] = 0x10
+		i++
+		if m.Fast {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i++
+	}
+	return i, nil
+}
+
+func (m *DataCheckResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DataCheckResponse) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if m.Status != 0 {
+		dAtA[i] = 0x8
+		i++
+		i = encodeVarintDaemon(dAtA, i, uint64(m.Status))
+	}
+	return i, nil
+}
+
+func (m *DataRepairRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DataRepairRequest) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.Chunks) > 0 {
+		for _, msg := range m.Chunks {
+			dAtA[i] = 0xa
+			i++
+			i = encodeVarintDaemon(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
+	}
+	return i, nil
+}
+
+func (m *DataRepairResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DataRepairResponse) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.Chunks) > 0 {
+		for _, msg := range m.Chunks {
+			dAtA[i] = 0xa
+			i++
+			i = encodeVarintDaemon(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
+	}
 	return i, nil
 }
 
@@ -4406,10 +7203,10 @@ func encodeVarintDaemon(dAtA []byte, offset int, v uint64) int {
 func (m *Permission) Size() (n int) {
 	var l int
 	_ = l
-	if m.Write {
+	if m.Read {
 		n += 2
 	}
-	if m.Read {
+	if m.Write {
 		n += 2
 	}
 	if m.Delete {
@@ -4421,31 +7218,7 @@ func (m *Permission) Size() (n int) {
 	return n
 }
 
-func (m *CreateJWTRequest) Size() (n int) {
-	var l int
-	_ = l
-	l = len(m.Namespace)
-	if l > 0 {
-		n += 1 + l + sovDaemon(uint64(l))
-	}
-	if m.Permission != nil {
-		l = m.Permission.Size()
-		n += 1 + l + sovDaemon(uint64(l))
-	}
-	return n
-}
-
-func (m *CreateJWTReply) Size() (n int) {
-	var l int
-	_ = l
-	l = len(m.Token)
-	if l > 0 {
-		n += 1 + l + sovDaemon(uint64(l))
-	}
-	return n
-}
-
-func (m *NamespaceRequest) Size() (n int) {
+func (m *CreateNamespaceRequest) Size() (n int) {
 	var l int
 	_ = l
 	l = len(m.Namespace)
@@ -4455,13 +7228,29 @@ func (m *NamespaceRequest) Size() (n int) {
 	return n
 }
 
-func (m *NamespaceReply) Size() (n int) {
+func (m *CreateNamespaceResponse) Size() (n int) {
 	var l int
 	_ = l
 	return n
 }
 
-func (m *EditPermissionRequest) Size() (n int) {
+func (m *DeleteNamespaceRequest) Size() (n int) {
+	var l int
+	_ = l
+	l = len(m.Namespace)
+	if l > 0 {
+		n += 1 + l + sovDaemon(uint64(l))
+	}
+	return n
+}
+
+func (m *DeleteNamespaceResponse) Size() (n int) {
+	var l int
+	_ = l
+	return n
+}
+
+func (m *SetPermissionRequest) Size() (n int) {
 	var l int
 	_ = l
 	l = len(m.Namespace)
@@ -4479,7 +7268,7 @@ func (m *EditPermissionRequest) Size() (n int) {
 	return n
 }
 
-func (m *EditPermissionReply) Size() (n int) {
+func (m *SetPermissionResponse) Size() (n int) {
 	var l int
 	_ = l
 	return n
@@ -4499,7 +7288,7 @@ func (m *GetPermissionRequest) Size() (n int) {
 	return n
 }
 
-func (m *GetPermissionReply) Size() (n int) {
+func (m *GetPermissionResponse) Size() (n int) {
 	var l int
 	_ = l
 	if m.Permission != nil {
@@ -4509,38 +7298,21 @@ func (m *GetPermissionReply) Size() (n int) {
 	return n
 }
 
-func (m *Chunk) Size() (n int) {
+func (m *Metadata) Size() (n int) {
 	var l int
 	_ = l
-	if m.Size_ != 0 {
-		n += 1 + sovDaemon(uint64(m.Size_))
-	}
 	l = len(m.Key)
 	if l > 0 {
 		n += 1 + l + sovDaemon(uint64(l))
 	}
-	if len(m.Shards) > 0 {
-		for _, s := range m.Shards {
-			l = len(s)
-			n += 1 + l + sovDaemon(uint64(l))
-		}
+	if m.SizeInBytes != 0 {
+		n += 1 + sovDaemon(uint64(m.SizeInBytes))
 	}
-	return n
-}
-
-func (m *Meta) Size() (n int) {
-	var l int
-	_ = l
-	if m.Epoch != 0 {
-		n += 1 + sovDaemon(uint64(m.Epoch))
+	if m.CreationEpoch != 0 {
+		n += 1 + sovDaemon(uint64(m.CreationEpoch))
 	}
-	l = len(m.Key)
-	if l > 0 {
-		n += 1 + l + sovDaemon(uint64(l))
-	}
-	l = len(m.EncrKey)
-	if l > 0 {
-		n += 1 + l + sovDaemon(uint64(l))
+	if m.LastWriteEpoch != 0 {
+		n += 1 + sovDaemon(uint64(m.LastWriteEpoch))
 	}
 	if len(m.Chunks) > 0 {
 		for _, e := range m.Chunks {
@@ -4548,11 +7320,36 @@ func (m *Meta) Size() (n int) {
 			n += 1 + l + sovDaemon(uint64(l))
 		}
 	}
-	l = len(m.Previous)
+	return n
+}
+
+func (m *Chunk) Size() (n int) {
+	var l int
+	_ = l
+	if m.SizeInBytes != 0 {
+		n += 1 + sovDaemon(uint64(m.SizeInBytes))
+	}
+	if len(m.Objects) > 0 {
+		for _, e := range m.Objects {
+			l = e.Size()
+			n += 1 + l + sovDaemon(uint64(l))
+		}
+	}
+	l = len(m.Hash)
 	if l > 0 {
 		n += 1 + l + sovDaemon(uint64(l))
 	}
-	l = len(m.Next)
+	return n
+}
+
+func (m *Object) Size() (n int) {
+	var l int
+	_ = l
+	l = len(m.Key)
+	if l > 0 {
+		n += 1 + l + sovDaemon(uint64(l))
+	}
+	l = len(m.ShardID)
 	if l > 0 {
 		n += 1 + l + sovDaemon(uint64(l))
 	}
@@ -4566,36 +7363,18 @@ func (m *WriteRequest) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovDaemon(uint64(l))
 	}
-	if m.Meta != nil {
-		l = m.Meta.Size()
-		n += 1 + l + sovDaemon(uint64(l))
-	}
-	l = len(m.Value)
+	l = len(m.Data)
 	if l > 0 {
-		n += 1 + l + sovDaemon(uint64(l))
-	}
-	if len(m.ReferenceList) > 0 {
-		for _, s := range m.ReferenceList {
-			l = len(s)
-			n += 1 + l + sovDaemon(uint64(l))
-		}
-	}
-	l = len(m.PrevKey)
-	if l > 0 {
-		n += 1 + l + sovDaemon(uint64(l))
-	}
-	if m.PrevMeta != nil {
-		l = m.PrevMeta.Size()
 		n += 1 + l + sovDaemon(uint64(l))
 	}
 	return n
 }
 
-func (m *WriteReply) Size() (n int) {
+func (m *WriteResponse) Size() (n int) {
 	var l int
 	_ = l
-	if m.Meta != nil {
-		l = m.Meta.Size()
+	if m.Metadata != nil {
+		l = m.Metadata.Size()
 		n += 1 + l + sovDaemon(uint64(l))
 	}
 	return n
@@ -4608,36 +7387,18 @@ func (m *WriteFileRequest) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovDaemon(uint64(l))
 	}
-	if m.Meta != nil {
-		l = m.Meta.Size()
-		n += 1 + l + sovDaemon(uint64(l))
-	}
 	l = len(m.FilePath)
 	if l > 0 {
-		n += 1 + l + sovDaemon(uint64(l))
-	}
-	if len(m.ReferenceList) > 0 {
-		for _, s := range m.ReferenceList {
-			l = len(s)
-			n += 1 + l + sovDaemon(uint64(l))
-		}
-	}
-	l = len(m.PrevKey)
-	if l > 0 {
-		n += 1 + l + sovDaemon(uint64(l))
-	}
-	if m.PrevMeta != nil {
-		l = m.PrevMeta.Size()
 		n += 1 + l + sovDaemon(uint64(l))
 	}
 	return n
 }
 
-func (m *WriteFileReply) Size() (n int) {
+func (m *WriteFileResponse) Size() (n int) {
 	var l int
 	_ = l
-	if m.Meta != nil {
-		l = m.Meta.Size()
+	if m.Metadata != nil {
+		l = m.Metadata.Size()
 		n += 1 + l + sovDaemon(uint64(l))
 	}
 	return n
@@ -4646,40 +7407,55 @@ func (m *WriteFileReply) Size() (n int) {
 func (m *WriteStreamRequest) Size() (n int) {
 	var l int
 	_ = l
+	if m.Input != nil {
+		n += m.Input.Size()
+	}
+	return n
+}
+
+func (m *WriteStreamRequest_Metadata_) Size() (n int) {
+	var l int
+	_ = l
+	if m.Metadata != nil {
+		l = m.Metadata.Size()
+		n += 1 + l + sovDaemon(uint64(l))
+	}
+	return n
+}
+func (m *WriteStreamRequest_Data_) Size() (n int) {
+	var l int
+	_ = l
+	if m.Data != nil {
+		l = m.Data.Size()
+		n += 1 + l + sovDaemon(uint64(l))
+	}
+	return n
+}
+func (m *WriteStreamRequest_Metadata) Size() (n int) {
+	var l int
+	_ = l
 	l = len(m.Key)
 	if l > 0 {
-		n += 1 + l + sovDaemon(uint64(l))
-	}
-	if m.Meta != nil {
-		l = m.Meta.Size()
-		n += 1 + l + sovDaemon(uint64(l))
-	}
-	l = len(m.Value)
-	if l > 0 {
-		n += 1 + l + sovDaemon(uint64(l))
-	}
-	if len(m.ReferenceList) > 0 {
-		for _, s := range m.ReferenceList {
-			l = len(s)
-			n += 1 + l + sovDaemon(uint64(l))
-		}
-	}
-	l = len(m.PrevKey)
-	if l > 0 {
-		n += 1 + l + sovDaemon(uint64(l))
-	}
-	if m.PrevMeta != nil {
-		l = m.PrevMeta.Size()
 		n += 1 + l + sovDaemon(uint64(l))
 	}
 	return n
 }
 
-func (m *WriteStreamReply) Size() (n int) {
+func (m *WriteStreamRequest_Data) Size() (n int) {
 	var l int
 	_ = l
-	if m.Meta != nil {
-		l = m.Meta.Size()
+	l = len(m.DataChunk)
+	if l > 0 {
+		n += 1 + l + sovDaemon(uint64(l))
+	}
+	return n
+}
+
+func (m *WriteStreamResponse) Size() (n int) {
+	var l int
+	_ = l
+	if m.Metadata != nil {
+		l = m.Metadata.Size()
 		n += 1 + l + sovDaemon(uint64(l))
 	}
 	return n
@@ -4688,29 +7464,36 @@ func (m *WriteStreamReply) Size() (n int) {
 func (m *ReadRequest) Size() (n int) {
 	var l int
 	_ = l
-	l = len(m.Key)
-	if l > 0 {
-		n += 1 + l + sovDaemon(uint64(l))
-	}
-	if m.Meta != nil {
-		l = m.Meta.Size()
-		n += 1 + l + sovDaemon(uint64(l))
+	if m.Input != nil {
+		n += m.Input.Size()
 	}
 	return n
 }
 
-func (m *ReadReply) Size() (n int) {
+func (m *ReadRequest_Key) Size() (n int) {
 	var l int
 	_ = l
-	l = len(m.Value)
-	if l > 0 {
+	if m.Key != nil {
+		l = len(m.Key)
 		n += 1 + l + sovDaemon(uint64(l))
 	}
-	if len(m.ReferenceList) > 0 {
-		for _, s := range m.ReferenceList {
-			l = len(s)
-			n += 1 + l + sovDaemon(uint64(l))
-		}
+	return n
+}
+func (m *ReadRequest_Metadata) Size() (n int) {
+	var l int
+	_ = l
+	if m.Metadata != nil {
+		l = m.Metadata.Size()
+		n += 1 + l + sovDaemon(uint64(l))
+	}
+	return n
+}
+func (m *ReadResponse) Size() (n int) {
+	var l int
+	_ = l
+	l = len(m.Data)
+	if l > 0 {
+		n += 1 + l + sovDaemon(uint64(l))
 	}
 	return n
 }
@@ -4718,51 +7501,82 @@ func (m *ReadReply) Size() (n int) {
 func (m *ReadFileRequest) Size() (n int) {
 	var l int
 	_ = l
-	l = len(m.Key)
-	if l > 0 {
-		n += 1 + l + sovDaemon(uint64(l))
+	if m.Input != nil {
+		n += m.Input.Size()
 	}
 	l = len(m.FilePath)
 	if l > 0 {
 		n += 1 + l + sovDaemon(uint64(l))
 	}
+	if m.FileMode != 0 {
+		n += 1 + sovDaemon(uint64(m.FileMode))
+	}
+	if m.SynchronousIO {
+		n += 2
+	}
 	return n
 }
 
-func (m *ReadFileReply) Size() (n int) {
+func (m *ReadFileRequest_Key) Size() (n int) {
 	var l int
 	_ = l
-	if len(m.ReferenceList) > 0 {
-		for _, s := range m.ReferenceList {
-			l = len(s)
-			n += 1 + l + sovDaemon(uint64(l))
-		}
+	if m.Key != nil {
+		l = len(m.Key)
+		n += 1 + l + sovDaemon(uint64(l))
 	}
+	return n
+}
+func (m *ReadFileRequest_Metadata) Size() (n int) {
+	var l int
+	_ = l
+	if m.Metadata != nil {
+		l = m.Metadata.Size()
+		n += 1 + l + sovDaemon(uint64(l))
+	}
+	return n
+}
+func (m *ReadFileResponse) Size() (n int) {
+	var l int
+	_ = l
 	return n
 }
 
 func (m *ReadStreamRequest) Size() (n int) {
 	var l int
 	_ = l
-	l = len(m.Key)
-	if l > 0 {
-		n += 1 + l + sovDaemon(uint64(l))
+	if m.Input != nil {
+		n += m.Input.Size()
+	}
+	if m.ChunkSize != 0 {
+		n += 1 + sovDaemon(uint64(m.ChunkSize))
 	}
 	return n
 }
 
-func (m *ReadStreamReply) Size() (n int) {
+func (m *ReadStreamRequest_Key) Size() (n int) {
 	var l int
 	_ = l
-	l = len(m.Value)
-	if l > 0 {
+	if m.Key != nil {
+		l = len(m.Key)
 		n += 1 + l + sovDaemon(uint64(l))
 	}
-	if len(m.ReferenceList) > 0 {
-		for _, s := range m.ReferenceList {
-			l = len(s)
-			n += 1 + l + sovDaemon(uint64(l))
-		}
+	return n
+}
+func (m *ReadStreamRequest_Metadata) Size() (n int) {
+	var l int
+	_ = l
+	if m.Metadata != nil {
+		l = m.Metadata.Size()
+		n += 1 + l + sovDaemon(uint64(l))
+	}
+	return n
+}
+func (m *ReadStreamResponse) Size() (n int) {
+	var l int
+	_ = l
+	l = len(m.DataChunk)
+	if l > 0 {
+		n += 1 + l + sovDaemon(uint64(l))
 	}
 	return n
 }
@@ -4770,110 +7584,31 @@ func (m *ReadStreamReply) Size() (n int) {
 func (m *DeleteRequest) Size() (n int) {
 	var l int
 	_ = l
-	l = len(m.Key)
-	if l > 0 {
-		n += 1 + l + sovDaemon(uint64(l))
-	}
-	if m.Meta != nil {
-		l = m.Meta.Size()
-		n += 1 + l + sovDaemon(uint64(l))
+	if m.Input != nil {
+		n += m.Input.Size()
 	}
 	return n
 }
 
-func (m *DeleteReply) Size() (n int) {
+func (m *DeleteRequest_Key) Size() (n int) {
 	var l int
 	_ = l
+	if m.Key != nil {
+		l = len(m.Key)
+		n += 1 + l + sovDaemon(uint64(l))
+	}
 	return n
 }
-
-func (m *WalkRequest) Size() (n int) {
+func (m *DeleteRequest_Metadata) Size() (n int) {
 	var l int
 	_ = l
-	l = len(m.StartKey)
-	if l > 0 {
+	if m.Metadata != nil {
+		l = m.Metadata.Size()
 		n += 1 + l + sovDaemon(uint64(l))
-	}
-	if m.FromEpoch != 0 {
-		n += 1 + sovDaemon(uint64(m.FromEpoch))
-	}
-	if m.ToEpoch != 0 {
-		n += 1 + sovDaemon(uint64(m.ToEpoch))
 	}
 	return n
 }
-
-func (m *WalkReply) Size() (n int) {
-	var l int
-	_ = l
-	l = len(m.Key)
-	if l > 0 {
-		n += 1 + l + sovDaemon(uint64(l))
-	}
-	if m.Meta != nil {
-		l = m.Meta.Size()
-		n += 1 + l + sovDaemon(uint64(l))
-	}
-	l = len(m.Value)
-	if l > 0 {
-		n += 1 + l + sovDaemon(uint64(l))
-	}
-	if len(m.ReferenceList) > 0 {
-		for _, s := range m.ReferenceList {
-			l = len(s)
-			n += 1 + l + sovDaemon(uint64(l))
-		}
-	}
-	return n
-}
-
-func (m *AppendReferenceListRequest) Size() (n int) {
-	var l int
-	_ = l
-	l = len(m.Key)
-	if l > 0 {
-		n += 1 + l + sovDaemon(uint64(l))
-	}
-	if m.Meta != nil {
-		l = m.Meta.Size()
-		n += 1 + l + sovDaemon(uint64(l))
-	}
-	if len(m.ReferenceList) > 0 {
-		for _, s := range m.ReferenceList {
-			l = len(s)
-			n += 1 + l + sovDaemon(uint64(l))
-		}
-	}
-	return n
-}
-
-func (m *RemoveReferenceListRequest) Size() (n int) {
-	var l int
-	_ = l
-	l = len(m.Key)
-	if l > 0 {
-		n += 1 + l + sovDaemon(uint64(l))
-	}
-	if m.Meta != nil {
-		l = m.Meta.Size()
-		n += 1 + l + sovDaemon(uint64(l))
-	}
-	if len(m.ReferenceList) > 0 {
-		for _, s := range m.ReferenceList {
-			l = len(s)
-			n += 1 + l + sovDaemon(uint64(l))
-		}
-	}
-	return n
-}
-
-func (m *AppendReferenceListReply) Size() (n int) {
-	var l int
-	_ = l
-	return n
-}
-
-func (m *RemoveReferenceListReply) Size() (n int) {
+func (m *DeleteResponse) Size() (n int) {
 	var l int
 	_ = l
 	return n
@@ -4882,14 +7617,34 @@ func (m *RemoveReferenceListReply) Size() (n int) {
 func (m *CheckRequest) Size() (n int) {
 	var l int
 	_ = l
-	l = len(m.Key)
-	if l > 0 {
-		n += 1 + l + sovDaemon(uint64(l))
+	if m.Input != nil {
+		n += m.Input.Size()
+	}
+	if m.Fast {
+		n += 2
 	}
 	return n
 }
 
-func (m *CheckReply) Size() (n int) {
+func (m *CheckRequest_Key) Size() (n int) {
+	var l int
+	_ = l
+	if m.Key != nil {
+		l = len(m.Key)
+		n += 1 + l + sovDaemon(uint64(l))
+	}
+	return n
+}
+func (m *CheckRequest_Metadata) Size() (n int) {
+	var l int
+	_ = l
+	if m.Metadata != nil {
+		l = m.Metadata.Size()
+		n += 1 + l + sovDaemon(uint64(l))
+	}
+	return n
+}
+func (m *CheckResponse) Size() (n int) {
 	var l int
 	_ = l
 	if m.Status != 0 {
@@ -4908,9 +7663,272 @@ func (m *RepairRequest) Size() (n int) {
 	return n
 }
 
-func (m *RepairReply) Size() (n int) {
+func (m *RepairResponse) Size() (n int) {
 	var l int
 	_ = l
+	if m.Metadata != nil {
+		l = m.Metadata.Size()
+		n += 1 + l + sovDaemon(uint64(l))
+	}
+	return n
+}
+
+func (m *SetMetadataRequest) Size() (n int) {
+	var l int
+	_ = l
+	if m.Metadata != nil {
+		l = m.Metadata.Size()
+		n += 1 + l + sovDaemon(uint64(l))
+	}
+	return n
+}
+
+func (m *SetMetadataResponse) Size() (n int) {
+	var l int
+	_ = l
+	return n
+}
+
+func (m *GetMetadataRequest) Size() (n int) {
+	var l int
+	_ = l
+	l = len(m.Key)
+	if l > 0 {
+		n += 1 + l + sovDaemon(uint64(l))
+	}
+	return n
+}
+
+func (m *GetMetadataResponse) Size() (n int) {
+	var l int
+	_ = l
+	if m.Metadata != nil {
+		l = m.Metadata.Size()
+		n += 1 + l + sovDaemon(uint64(l))
+	}
+	return n
+}
+
+func (m *DeleteMetadataRequest) Size() (n int) {
+	var l int
+	_ = l
+	l = len(m.Key)
+	if l > 0 {
+		n += 1 + l + sovDaemon(uint64(l))
+	}
+	return n
+}
+
+func (m *DeleteMetadataResponse) Size() (n int) {
+	var l int
+	_ = l
+	return n
+}
+
+func (m *DataWriteRequest) Size() (n int) {
+	var l int
+	_ = l
+	l = len(m.Data)
+	if l > 0 {
+		n += 1 + l + sovDaemon(uint64(l))
+	}
+	return n
+}
+
+func (m *DataWriteResponse) Size() (n int) {
+	var l int
+	_ = l
+	if len(m.Chunks) > 0 {
+		for _, e := range m.Chunks {
+			l = e.Size()
+			n += 1 + l + sovDaemon(uint64(l))
+		}
+	}
+	return n
+}
+
+func (m *DataWriteFileRequest) Size() (n int) {
+	var l int
+	_ = l
+	l = len(m.FilePath)
+	if l > 0 {
+		n += 1 + l + sovDaemon(uint64(l))
+	}
+	return n
+}
+
+func (m *DataWriteFileResponse) Size() (n int) {
+	var l int
+	_ = l
+	if len(m.Chunks) > 0 {
+		for _, e := range m.Chunks {
+			l = e.Size()
+			n += 1 + l + sovDaemon(uint64(l))
+		}
+	}
+	return n
+}
+
+func (m *DataWriteStreamRequest) Size() (n int) {
+	var l int
+	_ = l
+	l = len(m.DataChunk)
+	if l > 0 {
+		n += 1 + l + sovDaemon(uint64(l))
+	}
+	return n
+}
+
+func (m *DataWriteStreamResponse) Size() (n int) {
+	var l int
+	_ = l
+	if len(m.Chunks) > 0 {
+		for _, e := range m.Chunks {
+			l = e.Size()
+			n += 1 + l + sovDaemon(uint64(l))
+		}
+	}
+	return n
+}
+
+func (m *DataReadRequest) Size() (n int) {
+	var l int
+	_ = l
+	if len(m.Chunks) > 0 {
+		for _, e := range m.Chunks {
+			l = e.Size()
+			n += 1 + l + sovDaemon(uint64(l))
+		}
+	}
+	return n
+}
+
+func (m *DataReadResponse) Size() (n int) {
+	var l int
+	_ = l
+	l = len(m.Data)
+	if l > 0 {
+		n += 1 + l + sovDaemon(uint64(l))
+	}
+	return n
+}
+
+func (m *DataReadFileRequest) Size() (n int) {
+	var l int
+	_ = l
+	if len(m.Chunks) > 0 {
+		for _, e := range m.Chunks {
+			l = e.Size()
+			n += 1 + l + sovDaemon(uint64(l))
+		}
+	}
+	l = len(m.FilePath)
+	if l > 0 {
+		n += 1 + l + sovDaemon(uint64(l))
+	}
+	if m.FileMode != 0 {
+		n += 1 + sovDaemon(uint64(m.FileMode))
+	}
+	if m.SynchronousIO {
+		n += 2
+	}
+	return n
+}
+
+func (m *DataReadFileResponse) Size() (n int) {
+	var l int
+	_ = l
+	return n
+}
+
+func (m *DataReadStreamRequest) Size() (n int) {
+	var l int
+	_ = l
+	if len(m.Chunks) > 0 {
+		for _, e := range m.Chunks {
+			l = e.Size()
+			n += 1 + l + sovDaemon(uint64(l))
+		}
+	}
+	if m.ChunkSize != 0 {
+		n += 1 + sovDaemon(uint64(m.ChunkSize))
+	}
+	return n
+}
+
+func (m *DataReadStreamResponse) Size() (n int) {
+	var l int
+	_ = l
+	l = len(m.DataChunk)
+	if l > 0 {
+		n += 1 + l + sovDaemon(uint64(l))
+	}
+	return n
+}
+
+func (m *DataDeleteRequest) Size() (n int) {
+	var l int
+	_ = l
+	if len(m.Chunks) > 0 {
+		for _, e := range m.Chunks {
+			l = e.Size()
+			n += 1 + l + sovDaemon(uint64(l))
+		}
+	}
+	return n
+}
+
+func (m *DataDeleteResponse) Size() (n int) {
+	var l int
+	_ = l
+	return n
+}
+
+func (m *DataCheckRequest) Size() (n int) {
+	var l int
+	_ = l
+	if len(m.Chunks) > 0 {
+		for _, e := range m.Chunks {
+			l = e.Size()
+			n += 1 + l + sovDaemon(uint64(l))
+		}
+	}
+	if m.Fast {
+		n += 2
+	}
+	return n
+}
+
+func (m *DataCheckResponse) Size() (n int) {
+	var l int
+	_ = l
+	if m.Status != 0 {
+		n += 1 + sovDaemon(uint64(m.Status))
+	}
+	return n
+}
+
+func (m *DataRepairRequest) Size() (n int) {
+	var l int
+	_ = l
+	if len(m.Chunks) > 0 {
+		for _, e := range m.Chunks {
+			l = e.Size()
+			n += 1 + l + sovDaemon(uint64(l))
+		}
+	}
+	return n
+}
+
+func (m *DataRepairResponse) Size() (n int) {
+	var l int
+	_ = l
+	if len(m.Chunks) > 0 {
+		for _, e := range m.Chunks {
+			l = e.Size()
+			n += 1 + l + sovDaemon(uint64(l))
+		}
+	}
 	return n
 }
 
@@ -4932,59 +7950,57 @@ func (this *Permission) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&Permission{`,
-		`Write:` + fmt.Sprintf("%v", this.Write) + `,`,
 		`Read:` + fmt.Sprintf("%v", this.Read) + `,`,
+		`Write:` + fmt.Sprintf("%v", this.Write) + `,`,
 		`Delete:` + fmt.Sprintf("%v", this.Delete) + `,`,
 		`Admin:` + fmt.Sprintf("%v", this.Admin) + `,`,
 		`}`,
 	}, "")
 	return s
 }
-func (this *CreateJWTRequest) String() string {
+func (this *CreateNamespaceRequest) String() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings.Join([]string{`&CreateJWTRequest{`,
-		`Namespace:` + fmt.Sprintf("%v", this.Namespace) + `,`,
-		`Permission:` + strings.Replace(fmt.Sprintf("%v", this.Permission), "Permission", "Permission", 1) + `,`,
-		`}`,
-	}, "")
-	return s
-}
-func (this *CreateJWTReply) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&CreateJWTReply{`,
-		`Token:` + fmt.Sprintf("%v", this.Token) + `,`,
-		`}`,
-	}, "")
-	return s
-}
-func (this *NamespaceRequest) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&NamespaceRequest{`,
+	s := strings.Join([]string{`&CreateNamespaceRequest{`,
 		`Namespace:` + fmt.Sprintf("%v", this.Namespace) + `,`,
 		`}`,
 	}, "")
 	return s
 }
-func (this *NamespaceReply) String() string {
+func (this *CreateNamespaceResponse) String() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings.Join([]string{`&NamespaceReply{`,
+	s := strings.Join([]string{`&CreateNamespaceResponse{`,
 		`}`,
 	}, "")
 	return s
 }
-func (this *EditPermissionRequest) String() string {
+func (this *DeleteNamespaceRequest) String() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings.Join([]string{`&EditPermissionRequest{`,
+	s := strings.Join([]string{`&DeleteNamespaceRequest{`,
+		`Namespace:` + fmt.Sprintf("%v", this.Namespace) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *DeleteNamespaceResponse) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&DeleteNamespaceResponse{`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *SetPermissionRequest) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&SetPermissionRequest{`,
 		`Namespace:` + fmt.Sprintf("%v", this.Namespace) + `,`,
 		`UserID:` + fmt.Sprintf("%v", this.UserID) + `,`,
 		`Permission:` + strings.Replace(fmt.Sprintf("%v", this.Permission), "Permission", "Permission", 1) + `,`,
@@ -4992,11 +8008,11 @@ func (this *EditPermissionRequest) String() string {
 	}, "")
 	return s
 }
-func (this *EditPermissionReply) String() string {
+func (this *SetPermissionResponse) String() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings.Join([]string{`&EditPermissionReply{`,
+	s := strings.Join([]string{`&SetPermissionResponse{`,
 		`}`,
 	}, "")
 	return s
@@ -5012,12 +8028,26 @@ func (this *GetPermissionRequest) String() string {
 	}, "")
 	return s
 }
-func (this *GetPermissionReply) String() string {
+func (this *GetPermissionResponse) String() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings.Join([]string{`&GetPermissionReply{`,
+	s := strings.Join([]string{`&GetPermissionResponse{`,
 		`Permission:` + strings.Replace(fmt.Sprintf("%v", this.Permission), "Permission", "Permission", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *Metadata) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&Metadata{`,
+		`Key:` + fmt.Sprintf("%v", this.Key) + `,`,
+		`SizeInBytes:` + fmt.Sprintf("%v", this.SizeInBytes) + `,`,
+		`CreationEpoch:` + fmt.Sprintf("%v", this.CreationEpoch) + `,`,
+		`LastWriteEpoch:` + fmt.Sprintf("%v", this.LastWriteEpoch) + `,`,
+		`Chunks:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Chunks), "Chunk", "Chunk", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -5027,24 +8057,20 @@ func (this *Chunk) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&Chunk{`,
-		`Size_:` + fmt.Sprintf("%v", this.Size_) + `,`,
-		`Key:` + fmt.Sprintf("%v", this.Key) + `,`,
-		`Shards:` + fmt.Sprintf("%v", this.Shards) + `,`,
+		`SizeInBytes:` + fmt.Sprintf("%v", this.SizeInBytes) + `,`,
+		`Objects:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Objects), "Object", "Object", 1), `&`, ``, 1) + `,`,
+		`Hash:` + fmt.Sprintf("%v", this.Hash) + `,`,
 		`}`,
 	}, "")
 	return s
 }
-func (this *Meta) String() string {
+func (this *Object) String() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings.Join([]string{`&Meta{`,
-		`Epoch:` + fmt.Sprintf("%v", this.Epoch) + `,`,
+	s := strings.Join([]string{`&Object{`,
 		`Key:` + fmt.Sprintf("%v", this.Key) + `,`,
-		`EncrKey:` + fmt.Sprintf("%v", this.EncrKey) + `,`,
-		`Chunks:` + strings.Replace(fmt.Sprintf("%v", this.Chunks), "Chunk", "Chunk", 1) + `,`,
-		`Previous:` + fmt.Sprintf("%v", this.Previous) + `,`,
-		`Next:` + fmt.Sprintf("%v", this.Next) + `,`,
+		`ShardID:` + fmt.Sprintf("%v", this.ShardID) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -5055,21 +8081,17 @@ func (this *WriteRequest) String() string {
 	}
 	s := strings.Join([]string{`&WriteRequest{`,
 		`Key:` + fmt.Sprintf("%v", this.Key) + `,`,
-		`Meta:` + strings.Replace(fmt.Sprintf("%v", this.Meta), "Meta", "Meta", 1) + `,`,
-		`Value:` + fmt.Sprintf("%v", this.Value) + `,`,
-		`ReferenceList:` + fmt.Sprintf("%v", this.ReferenceList) + `,`,
-		`PrevKey:` + fmt.Sprintf("%v", this.PrevKey) + `,`,
-		`PrevMeta:` + strings.Replace(fmt.Sprintf("%v", this.PrevMeta), "Meta", "Meta", 1) + `,`,
+		`Data:` + fmt.Sprintf("%v", this.Data) + `,`,
 		`}`,
 	}, "")
 	return s
 }
-func (this *WriteReply) String() string {
+func (this *WriteResponse) String() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings.Join([]string{`&WriteReply{`,
-		`Meta:` + strings.Replace(fmt.Sprintf("%v", this.Meta), "Meta", "Meta", 1) + `,`,
+	s := strings.Join([]string{`&WriteResponse{`,
+		`Metadata:` + strings.Replace(fmt.Sprintf("%v", this.Metadata), "Metadata", "Metadata", 1) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -5080,21 +8102,17 @@ func (this *WriteFileRequest) String() string {
 	}
 	s := strings.Join([]string{`&WriteFileRequest{`,
 		`Key:` + fmt.Sprintf("%v", this.Key) + `,`,
-		`Meta:` + strings.Replace(fmt.Sprintf("%v", this.Meta), "Meta", "Meta", 1) + `,`,
 		`FilePath:` + fmt.Sprintf("%v", this.FilePath) + `,`,
-		`ReferenceList:` + fmt.Sprintf("%v", this.ReferenceList) + `,`,
-		`PrevKey:` + fmt.Sprintf("%v", this.PrevKey) + `,`,
-		`PrevMeta:` + strings.Replace(fmt.Sprintf("%v", this.PrevMeta), "Meta", "Meta", 1) + `,`,
 		`}`,
 	}, "")
 	return s
 }
-func (this *WriteFileReply) String() string {
+func (this *WriteFileResponse) String() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings.Join([]string{`&WriteFileReply{`,
-		`Meta:` + strings.Replace(fmt.Sprintf("%v", this.Meta), "Meta", "Meta", 1) + `,`,
+	s := strings.Join([]string{`&WriteFileResponse{`,
+		`Metadata:` + strings.Replace(fmt.Sprintf("%v", this.Metadata), "Metadata", "Metadata", 1) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -5104,22 +8122,57 @@ func (this *WriteStreamRequest) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&WriteStreamRequest{`,
-		`Key:` + fmt.Sprintf("%v", this.Key) + `,`,
-		`Meta:` + strings.Replace(fmt.Sprintf("%v", this.Meta), "Meta", "Meta", 1) + `,`,
-		`Value:` + fmt.Sprintf("%v", this.Value) + `,`,
-		`ReferenceList:` + fmt.Sprintf("%v", this.ReferenceList) + `,`,
-		`PrevKey:` + fmt.Sprintf("%v", this.PrevKey) + `,`,
-		`PrevMeta:` + strings.Replace(fmt.Sprintf("%v", this.PrevMeta), "Meta", "Meta", 1) + `,`,
+		`Input:` + fmt.Sprintf("%v", this.Input) + `,`,
 		`}`,
 	}, "")
 	return s
 }
-func (this *WriteStreamReply) String() string {
+func (this *WriteStreamRequest_Metadata_) String() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings.Join([]string{`&WriteStreamReply{`,
-		`Meta:` + strings.Replace(fmt.Sprintf("%v", this.Meta), "Meta", "Meta", 1) + `,`,
+	s := strings.Join([]string{`&WriteStreamRequest_Metadata_{`,
+		`Metadata:` + strings.Replace(fmt.Sprintf("%v", this.Metadata), "WriteStreamRequest_Metadata", "WriteStreamRequest_Metadata", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *WriteStreamRequest_Data_) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&WriteStreamRequest_Data_{`,
+		`Data:` + strings.Replace(fmt.Sprintf("%v", this.Data), "WriteStreamRequest_Data", "WriteStreamRequest_Data", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *WriteStreamRequest_Metadata) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&WriteStreamRequest_Metadata{`,
+		`Key:` + fmt.Sprintf("%v", this.Key) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *WriteStreamRequest_Data) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&WriteStreamRequest_Data{`,
+		`DataChunk:` + fmt.Sprintf("%v", this.DataChunk) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *WriteStreamResponse) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&WriteStreamResponse{`,
+		`Metadata:` + strings.Replace(fmt.Sprintf("%v", this.Metadata), "Metadata", "Metadata", 1) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -5129,19 +8182,37 @@ func (this *ReadRequest) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&ReadRequest{`,
-		`Key:` + fmt.Sprintf("%v", this.Key) + `,`,
-		`Meta:` + strings.Replace(fmt.Sprintf("%v", this.Meta), "Meta", "Meta", 1) + `,`,
+		`Input:` + fmt.Sprintf("%v", this.Input) + `,`,
 		`}`,
 	}, "")
 	return s
 }
-func (this *ReadReply) String() string {
+func (this *ReadRequest_Key) String() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings.Join([]string{`&ReadReply{`,
-		`Value:` + fmt.Sprintf("%v", this.Value) + `,`,
-		`ReferenceList:` + fmt.Sprintf("%v", this.ReferenceList) + `,`,
+	s := strings.Join([]string{`&ReadRequest_Key{`,
+		`Key:` + fmt.Sprintf("%v", this.Key) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *ReadRequest_Metadata) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&ReadRequest_Metadata{`,
+		`Metadata:` + strings.Replace(fmt.Sprintf("%v", this.Metadata), "Metadata", "Metadata", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *ReadResponse) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&ReadResponse{`,
+		`Data:` + fmt.Sprintf("%v", this.Data) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -5151,18 +8222,39 @@ func (this *ReadFileRequest) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&ReadFileRequest{`,
-		`Key:` + fmt.Sprintf("%v", this.Key) + `,`,
+		`Input:` + fmt.Sprintf("%v", this.Input) + `,`,
 		`FilePath:` + fmt.Sprintf("%v", this.FilePath) + `,`,
+		`FileMode:` + fmt.Sprintf("%v", this.FileMode) + `,`,
+		`SynchronousIO:` + fmt.Sprintf("%v", this.SynchronousIO) + `,`,
 		`}`,
 	}, "")
 	return s
 }
-func (this *ReadFileReply) String() string {
+func (this *ReadFileRequest_Key) String() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings.Join([]string{`&ReadFileReply{`,
-		`ReferenceList:` + fmt.Sprintf("%v", this.ReferenceList) + `,`,
+	s := strings.Join([]string{`&ReadFileRequest_Key{`,
+		`Key:` + fmt.Sprintf("%v", this.Key) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *ReadFileRequest_Metadata) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&ReadFileRequest_Metadata{`,
+		`Metadata:` + strings.Replace(fmt.Sprintf("%v", this.Metadata), "Metadata", "Metadata", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *ReadFileResponse) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&ReadFileResponse{`,
 		`}`,
 	}, "")
 	return s
@@ -5172,18 +8264,38 @@ func (this *ReadStreamRequest) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&ReadStreamRequest{`,
+		`Input:` + fmt.Sprintf("%v", this.Input) + `,`,
+		`ChunkSize:` + fmt.Sprintf("%v", this.ChunkSize) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *ReadStreamRequest_Key) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&ReadStreamRequest_Key{`,
 		`Key:` + fmt.Sprintf("%v", this.Key) + `,`,
 		`}`,
 	}, "")
 	return s
 }
-func (this *ReadStreamReply) String() string {
+func (this *ReadStreamRequest_Metadata) String() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings.Join([]string{`&ReadStreamReply{`,
-		`Value:` + fmt.Sprintf("%v", this.Value) + `,`,
-		`ReferenceList:` + fmt.Sprintf("%v", this.ReferenceList) + `,`,
+	s := strings.Join([]string{`&ReadStreamRequest_Metadata{`,
+		`Metadata:` + strings.Replace(fmt.Sprintf("%v", this.Metadata), "Metadata", "Metadata", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *ReadStreamResponse) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&ReadStreamResponse{`,
+		`DataChunk:` + fmt.Sprintf("%v", this.DataChunk) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -5193,84 +8305,36 @@ func (this *DeleteRequest) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&DeleteRequest{`,
+		`Input:` + fmt.Sprintf("%v", this.Input) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *DeleteRequest_Key) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&DeleteRequest_Key{`,
 		`Key:` + fmt.Sprintf("%v", this.Key) + `,`,
-		`Meta:` + strings.Replace(fmt.Sprintf("%v", this.Meta), "Meta", "Meta", 1) + `,`,
 		`}`,
 	}, "")
 	return s
 }
-func (this *DeleteReply) String() string {
+func (this *DeleteRequest_Metadata) String() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings.Join([]string{`&DeleteReply{`,
+	s := strings.Join([]string{`&DeleteRequest_Metadata{`,
+		`Metadata:` + strings.Replace(fmt.Sprintf("%v", this.Metadata), "Metadata", "Metadata", 1) + `,`,
 		`}`,
 	}, "")
 	return s
 }
-func (this *WalkRequest) String() string {
+func (this *DeleteResponse) String() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings.Join([]string{`&WalkRequest{`,
-		`StartKey:` + fmt.Sprintf("%v", this.StartKey) + `,`,
-		`FromEpoch:` + fmt.Sprintf("%v", this.FromEpoch) + `,`,
-		`ToEpoch:` + fmt.Sprintf("%v", this.ToEpoch) + `,`,
-		`}`,
-	}, "")
-	return s
-}
-func (this *WalkReply) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&WalkReply{`,
-		`Key:` + fmt.Sprintf("%v", this.Key) + `,`,
-		`Meta:` + strings.Replace(fmt.Sprintf("%v", this.Meta), "Meta", "Meta", 1) + `,`,
-		`Value:` + fmt.Sprintf("%v", this.Value) + `,`,
-		`ReferenceList:` + fmt.Sprintf("%v", this.ReferenceList) + `,`,
-		`}`,
-	}, "")
-	return s
-}
-func (this *AppendReferenceListRequest) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&AppendReferenceListRequest{`,
-		`Key:` + fmt.Sprintf("%v", this.Key) + `,`,
-		`Meta:` + strings.Replace(fmt.Sprintf("%v", this.Meta), "Meta", "Meta", 1) + `,`,
-		`ReferenceList:` + fmt.Sprintf("%v", this.ReferenceList) + `,`,
-		`}`,
-	}, "")
-	return s
-}
-func (this *RemoveReferenceListRequest) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&RemoveReferenceListRequest{`,
-		`Key:` + fmt.Sprintf("%v", this.Key) + `,`,
-		`Meta:` + strings.Replace(fmt.Sprintf("%v", this.Meta), "Meta", "Meta", 1) + `,`,
-		`ReferenceList:` + fmt.Sprintf("%v", this.ReferenceList) + `,`,
-		`}`,
-	}, "")
-	return s
-}
-func (this *AppendReferenceListReply) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&AppendReferenceListReply{`,
-		`}`,
-	}, "")
-	return s
-}
-func (this *RemoveReferenceListReply) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&RemoveReferenceListReply{`,
+	s := strings.Join([]string{`&DeleteResponse{`,
 		`}`,
 	}, "")
 	return s
@@ -5280,16 +8344,37 @@ func (this *CheckRequest) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&CheckRequest{`,
+		`Input:` + fmt.Sprintf("%v", this.Input) + `,`,
+		`Fast:` + fmt.Sprintf("%v", this.Fast) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *CheckRequest_Key) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&CheckRequest_Key{`,
 		`Key:` + fmt.Sprintf("%v", this.Key) + `,`,
 		`}`,
 	}, "")
 	return s
 }
-func (this *CheckReply) String() string {
+func (this *CheckRequest_Metadata) String() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings.Join([]string{`&CheckReply{`,
+	s := strings.Join([]string{`&CheckRequest_Metadata{`,
+		`Metadata:` + strings.Replace(fmt.Sprintf("%v", this.Metadata), "Metadata", "Metadata", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *CheckResponse) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&CheckResponse{`,
 		`Status:` + fmt.Sprintf("%v", this.Status) + `,`,
 		`}`,
 	}, "")
@@ -5305,11 +8390,253 @@ func (this *RepairRequest) String() string {
 	}, "")
 	return s
 }
-func (this *RepairReply) String() string {
+func (this *RepairResponse) String() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings.Join([]string{`&RepairReply{`,
+	s := strings.Join([]string{`&RepairResponse{`,
+		`Metadata:` + strings.Replace(fmt.Sprintf("%v", this.Metadata), "Metadata", "Metadata", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *SetMetadataRequest) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&SetMetadataRequest{`,
+		`Metadata:` + strings.Replace(fmt.Sprintf("%v", this.Metadata), "Metadata", "Metadata", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *SetMetadataResponse) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&SetMetadataResponse{`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *GetMetadataRequest) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&GetMetadataRequest{`,
+		`Key:` + fmt.Sprintf("%v", this.Key) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *GetMetadataResponse) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&GetMetadataResponse{`,
+		`Metadata:` + strings.Replace(fmt.Sprintf("%v", this.Metadata), "Metadata", "Metadata", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *DeleteMetadataRequest) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&DeleteMetadataRequest{`,
+		`Key:` + fmt.Sprintf("%v", this.Key) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *DeleteMetadataResponse) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&DeleteMetadataResponse{`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *DataWriteRequest) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&DataWriteRequest{`,
+		`Data:` + fmt.Sprintf("%v", this.Data) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *DataWriteResponse) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&DataWriteResponse{`,
+		`Chunks:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Chunks), "Chunk", "Chunk", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *DataWriteFileRequest) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&DataWriteFileRequest{`,
+		`FilePath:` + fmt.Sprintf("%v", this.FilePath) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *DataWriteFileResponse) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&DataWriteFileResponse{`,
+		`Chunks:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Chunks), "Chunk", "Chunk", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *DataWriteStreamRequest) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&DataWriteStreamRequest{`,
+		`DataChunk:` + fmt.Sprintf("%v", this.DataChunk) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *DataWriteStreamResponse) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&DataWriteStreamResponse{`,
+		`Chunks:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Chunks), "Chunk", "Chunk", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *DataReadRequest) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&DataReadRequest{`,
+		`Chunks:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Chunks), "Chunk", "Chunk", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *DataReadResponse) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&DataReadResponse{`,
+		`Data:` + fmt.Sprintf("%v", this.Data) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *DataReadFileRequest) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&DataReadFileRequest{`,
+		`Chunks:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Chunks), "Chunk", "Chunk", 1), `&`, ``, 1) + `,`,
+		`FilePath:` + fmt.Sprintf("%v", this.FilePath) + `,`,
+		`FileMode:` + fmt.Sprintf("%v", this.FileMode) + `,`,
+		`SynchronousIO:` + fmt.Sprintf("%v", this.SynchronousIO) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *DataReadFileResponse) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&DataReadFileResponse{`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *DataReadStreamRequest) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&DataReadStreamRequest{`,
+		`Chunks:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Chunks), "Chunk", "Chunk", 1), `&`, ``, 1) + `,`,
+		`ChunkSize:` + fmt.Sprintf("%v", this.ChunkSize) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *DataReadStreamResponse) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&DataReadStreamResponse{`,
+		`DataChunk:` + fmt.Sprintf("%v", this.DataChunk) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *DataDeleteRequest) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&DataDeleteRequest{`,
+		`Chunks:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Chunks), "Chunk", "Chunk", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *DataDeleteResponse) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&DataDeleteResponse{`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *DataCheckRequest) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&DataCheckRequest{`,
+		`Chunks:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Chunks), "Chunk", "Chunk", 1), `&`, ``, 1) + `,`,
+		`Fast:` + fmt.Sprintf("%v", this.Fast) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *DataCheckResponse) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&DataCheckResponse{`,
+		`Status:` + fmt.Sprintf("%v", this.Status) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *DataRepairRequest) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&DataRepairRequest{`,
+		`Chunks:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Chunks), "Chunk", "Chunk", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *DataRepairResponse) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&DataRepairResponse{`,
+		`Chunks:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Chunks), "Chunk", "Chunk", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -5353,26 +8680,6 @@ func (m *Permission) Unmarshal(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Write", wireType)
-			}
-			var v int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				v |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.Write = bool(v != 0)
-		case 2:
-			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Read", wireType)
 			}
 			var v int
@@ -5391,6 +8698,26 @@ func (m *Permission) Unmarshal(dAtA []byte) error {
 				}
 			}
 			m.Read = bool(v != 0)
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Write", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Write = bool(v != 0)
 		case 3:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Delete", wireType)
@@ -5452,7 +8779,7 @@ func (m *Permission) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *CreateJWTRequest) Unmarshal(dAtA []byte) error {
+func (m *CreateNamespaceRequest) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -5475,201 +8802,10 @@ func (m *CreateJWTRequest) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: CreateJWTRequest: wiretype end group for non-group")
+			return fmt.Errorf("proto: CreateNamespaceRequest: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: CreateJWTRequest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Namespace", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Namespace = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Permission", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			postIndex := iNdEx + msglen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.Permission == nil {
-				m.Permission = &Permission{}
-			}
-			if err := m.Permission.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipDaemon(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *CreateJWTReply) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowDaemon
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: CreateJWTReply: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: CreateJWTReply: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Token", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Token = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipDaemon(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *NamespaceRequest) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowDaemon
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: NamespaceRequest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: NamespaceRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: CreateNamespaceRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -5722,7 +8858,7 @@ func (m *NamespaceRequest) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *NamespaceReply) Unmarshal(dAtA []byte) error {
+func (m *CreateNamespaceResponse) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -5745,10 +8881,10 @@ func (m *NamespaceReply) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: NamespaceReply: wiretype end group for non-group")
+			return fmt.Errorf("proto: CreateNamespaceResponse: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: NamespaceReply: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: CreateNamespaceResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		default:
@@ -5772,7 +8908,7 @@ func (m *NamespaceReply) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *EditPermissionRequest) Unmarshal(dAtA []byte) error {
+func (m *DeleteNamespaceRequest) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -5795,10 +8931,139 @@ func (m *EditPermissionRequest) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: EditPermissionRequest: wiretype end group for non-group")
+			return fmt.Errorf("proto: DeleteNamespaceRequest: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: EditPermissionRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: DeleteNamespaceRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Namespace", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Namespace = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipDaemon(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *DeleteNamespaceResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowDaemon
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DeleteNamespaceResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DeleteNamespaceResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := skipDaemon(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *SetPermissionRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowDaemon
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SetPermissionRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SetPermissionRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -5913,7 +9178,7 @@ func (m *EditPermissionRequest) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *EditPermissionReply) Unmarshal(dAtA []byte) error {
+func (m *SetPermissionResponse) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -5936,10 +9201,10 @@ func (m *EditPermissionReply) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: EditPermissionReply: wiretype end group for non-group")
+			return fmt.Errorf("proto: SetPermissionResponse: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: EditPermissionReply: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: SetPermissionResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		default:
@@ -6071,7 +9336,7 @@ func (m *GetPermissionRequest) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *GetPermissionReply) Unmarshal(dAtA []byte) error {
+func (m *GetPermissionResponse) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -6094,10 +9359,10 @@ func (m *GetPermissionReply) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: GetPermissionReply: wiretype end group for non-group")
+			return fmt.Errorf("proto: GetPermissionResponse: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: GetPermissionReply: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: GetPermissionResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -6154,6 +9419,175 @@ func (m *GetPermissionReply) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
+func (m *Metadata) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowDaemon
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Metadata: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Metadata: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Key = append(m.Key[:0], dAtA[iNdEx:postIndex]...)
+			if m.Key == nil {
+				m.Key = []byte{}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SizeInBytes", wireType)
+			}
+			m.SizeInBytes = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.SizeInBytes |= (int64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CreationEpoch", wireType)
+			}
+			m.CreationEpoch = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.CreationEpoch |= (int64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LastWriteEpoch", wireType)
+			}
+			m.LastWriteEpoch = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.LastWriteEpoch |= (int64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Chunks", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Chunks = append(m.Chunks, Chunk{})
+			if err := m.Chunks[len(m.Chunks)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipDaemon(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
 func (m *Chunk) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -6185,9 +9619,9 @@ func (m *Chunk) Unmarshal(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Size_", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field SizeInBytes", wireType)
 			}
-			m.Size_ = 0
+			m.SizeInBytes = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowDaemon
@@ -6197,12 +9631,124 @@ func (m *Chunk) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.Size_ |= (int64(b) & 0x7F) << shift
+				m.SizeInBytes |= (int64(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
 		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Objects", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Objects = append(m.Objects, Object{})
+			if err := m.Objects[len(m.Objects)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Hash", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Hash = append(m.Hash[:0], dAtA[iNdEx:postIndex]...)
+			if m.Hash == nil {
+				m.Hash = []byte{}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipDaemon(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *Object) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowDaemon
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Object: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Object: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
 			}
@@ -6233,9 +9779,9 @@ func (m *Chunk) Unmarshal(dAtA []byte) error {
 				m.Key = []byte{}
 			}
 			iNdEx = postIndex
-		case 3:
+		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Shards", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field ShardID", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -6260,231 +9806,7 @@ func (m *Chunk) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Shards = append(m.Shards, string(dAtA[iNdEx:postIndex]))
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipDaemon(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *Meta) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowDaemon
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: Meta: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Meta: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Epoch", wireType)
-			}
-			m.Epoch = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Epoch |= (int64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Key = append(m.Key[:0], dAtA[iNdEx:postIndex]...)
-			if m.Key == nil {
-				m.Key = []byte{}
-			}
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field EncrKey", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.EncrKey = append(m.EncrKey[:0], dAtA[iNdEx:postIndex]...)
-			if m.EncrKey == nil {
-				m.EncrKey = []byte{}
-			}
-			iNdEx = postIndex
-		case 4:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Chunks", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			postIndex := iNdEx + msglen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Chunks = append(m.Chunks, &Chunk{})
-			if err := m.Chunks[len(m.Chunks)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 5:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Previous", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Previous = append(m.Previous[:0], dAtA[iNdEx:postIndex]...)
-			if m.Previous == nil {
-				m.Previous = []byte{}
-			}
-			iNdEx = postIndex
-		case 6:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Next", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Next = append(m.Next[:0], dAtA[iNdEx:postIndex]...)
-			if m.Next == nil {
-				m.Next = []byte{}
-			}
+			m.ShardID = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -6569,40 +9891,7 @@ func (m *WriteRequest) Unmarshal(dAtA []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Meta", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			postIndex := iNdEx + msglen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.Meta == nil {
-				m.Meta = &Meta{}
-			}
-			if err := m.Meta.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Value", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Data", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {
@@ -6626,100 +9915,9 @@ func (m *WriteRequest) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Value = append(m.Value[:0], dAtA[iNdEx:postIndex]...)
-			if m.Value == nil {
-				m.Value = []byte{}
-			}
-			iNdEx = postIndex
-		case 4:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ReferenceList", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.ReferenceList = append(m.ReferenceList, string(dAtA[iNdEx:postIndex]))
-			iNdEx = postIndex
-		case 5:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PrevKey", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.PrevKey = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 6:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PrevMeta", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			postIndex := iNdEx + msglen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.PrevMeta == nil {
-				m.PrevMeta = &Meta{}
-			}
-			if err := m.PrevMeta.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
+			m.Data = append(m.Data[:0], dAtA[iNdEx:postIndex]...)
+			if m.Data == nil {
+				m.Data = []byte{}
 			}
 			iNdEx = postIndex
 		default:
@@ -6743,7 +9941,7 @@ func (m *WriteRequest) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *WriteReply) Unmarshal(dAtA []byte) error {
+func (m *WriteResponse) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -6766,15 +9964,15 @@ func (m *WriteReply) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: WriteReply: wiretype end group for non-group")
+			return fmt.Errorf("proto: WriteResponse: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: WriteReply: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: WriteResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Meta", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Metadata", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -6798,10 +9996,10 @@ func (m *WriteReply) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.Meta == nil {
-				m.Meta = &Meta{}
+			if m.Metadata == nil {
+				m.Metadata = &Metadata{}
 			}
-			if err := m.Meta.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+			if err := m.Metadata.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -6888,39 +10086,6 @@ func (m *WriteFileRequest) Unmarshal(dAtA []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Meta", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			postIndex := iNdEx + msglen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.Meta == nil {
-				m.Meta = &Meta{}
-			}
-			if err := m.Meta.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field FilePath", wireType)
 			}
 			var stringLen uint64
@@ -6948,97 +10113,6 @@ func (m *WriteFileRequest) Unmarshal(dAtA []byte) error {
 			}
 			m.FilePath = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 4:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ReferenceList", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.ReferenceList = append(m.ReferenceList, string(dAtA[iNdEx:postIndex]))
-			iNdEx = postIndex
-		case 5:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PrevKey", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.PrevKey = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 6:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PrevMeta", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			postIndex := iNdEx + msglen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.PrevMeta == nil {
-				m.PrevMeta = &Meta{}
-			}
-			if err := m.PrevMeta.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipDaemon(dAtA[iNdEx:])
@@ -7060,7 +10134,7 @@ func (m *WriteFileRequest) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *WriteFileReply) Unmarshal(dAtA []byte) error {
+func (m *WriteFileResponse) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -7083,15 +10157,15 @@ func (m *WriteFileReply) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: WriteFileReply: wiretype end group for non-group")
+			return fmt.Errorf("proto: WriteFileResponse: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: WriteFileReply: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: WriteFileResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Meta", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Metadata", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -7115,10 +10189,10 @@ func (m *WriteFileReply) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.Meta == nil {
-				m.Meta = &Meta{}
+			if m.Metadata == nil {
+				m.Metadata = &Metadata{}
 			}
-			if err := m.Meta.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+			if err := m.Metadata.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -7174,6 +10248,120 @@ func (m *WriteStreamRequest) Unmarshal(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Metadata", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			v := &WriteStreamRequest_Metadata{}
+			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			m.Input = &WriteStreamRequest_Metadata_{v}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Data", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			v := &WriteStreamRequest_Data{}
+			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			m.Input = &WriteStreamRequest_Data_{v}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipDaemon(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *WriteStreamRequest_Metadata) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowDaemon
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Metadata: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Metadata: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
 			}
 			var byteLen int
@@ -7203,42 +10391,59 @@ func (m *WriteStreamRequest) Unmarshal(dAtA []byte) error {
 				m.Key = []byte{}
 			}
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipDaemon(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *WriteStreamRequest_Data) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowDaemon
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Data: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Data: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Meta", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			postIndex := iNdEx + msglen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.Meta == nil {
-				m.Meta = &Meta{}
-			}
-			if err := m.Meta.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Value", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field DataChunk", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {
@@ -7262,102 +10467,9 @@ func (m *WriteStreamRequest) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Value = append(m.Value[:0], dAtA[iNdEx:postIndex]...)
-			if m.Value == nil {
-				m.Value = []byte{}
-			}
-			iNdEx = postIndex
-		case 4:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ReferenceList", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.ReferenceList = append(m.ReferenceList, string(dAtA[iNdEx:postIndex]))
-			iNdEx = postIndex
-		case 5:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PrevKey", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.PrevKey = append(m.PrevKey[:0], dAtA[iNdEx:postIndex]...)
-			if m.PrevKey == nil {
-				m.PrevKey = []byte{}
-			}
-			iNdEx = postIndex
-		case 6:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PrevMeta", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			postIndex := iNdEx + msglen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.PrevMeta == nil {
-				m.PrevMeta = &Meta{}
-			}
-			if err := m.PrevMeta.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
+			m.DataChunk = append(m.DataChunk[:0], dAtA[iNdEx:postIndex]...)
+			if m.DataChunk == nil {
+				m.DataChunk = []byte{}
 			}
 			iNdEx = postIndex
 		default:
@@ -7381,7 +10493,7 @@ func (m *WriteStreamRequest) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *WriteStreamReply) Unmarshal(dAtA []byte) error {
+func (m *WriteStreamResponse) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -7404,15 +10516,15 @@ func (m *WriteStreamReply) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: WriteStreamReply: wiretype end group for non-group")
+			return fmt.Errorf("proto: WriteStreamResponse: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: WriteStreamReply: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: WriteStreamResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Meta", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Metadata", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -7436,10 +10548,10 @@ func (m *WriteStreamReply) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.Meta == nil {
-				m.Meta = &Meta{}
+			if m.Metadata == nil {
+				m.Metadata = &Metadata{}
 			}
-			if err := m.Meta.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+			if err := m.Metadata.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -7519,14 +10631,13 @@ func (m *ReadRequest) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Key = append(m.Key[:0], dAtA[iNdEx:postIndex]...)
-			if m.Key == nil {
-				m.Key = []byte{}
-			}
+			v := make([]byte, postIndex-iNdEx)
+			copy(v, dAtA[iNdEx:postIndex])
+			m.Input = &ReadRequest_Key{v}
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Meta", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Metadata", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -7550,12 +10661,11 @@ func (m *ReadRequest) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.Meta == nil {
-				m.Meta = &Meta{}
-			}
-			if err := m.Meta.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+			v := &Metadata{}
+			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
+			m.Input = &ReadRequest_Metadata{v}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -7578,7 +10688,7 @@ func (m *ReadRequest) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *ReadReply) Unmarshal(dAtA []byte) error {
+func (m *ReadResponse) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -7601,15 +10711,15 @@ func (m *ReadReply) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: ReadReply: wiretype end group for non-group")
+			return fmt.Errorf("proto: ReadResponse: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: ReadReply: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: ReadResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Value", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Data", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {
@@ -7633,39 +10743,10 @@ func (m *ReadReply) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Value = append(m.Value[:0], dAtA[iNdEx:postIndex]...)
-			if m.Value == nil {
-				m.Value = []byte{}
+			m.Data = append(m.Data[:0], dAtA[iNdEx:postIndex]...)
+			if m.Data == nil {
+				m.Data = []byte{}
 			}
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ReferenceList", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.ReferenceList = append(m.ReferenceList, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -7743,10 +10824,41 @@ func (m *ReadFileRequest) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Key = append(m.Key[:0], dAtA[iNdEx:postIndex]...)
-			if m.Key == nil {
-				m.Key = []byte{}
+			v := make([]byte, postIndex-iNdEx)
+			copy(v, dAtA[iNdEx:postIndex])
+			m.Input = &ReadFileRequest_Key{v}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Metadata", wireType)
 			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			v := &Metadata{}
+			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			m.Input = &ReadFileRequest_Metadata{v}
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
@@ -7777,6 +10889,45 @@ func (m *ReadFileRequest) Unmarshal(dAtA []byte) error {
 			}
 			m.FilePath = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FileMode", wireType)
+			}
+			m.FileMode = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.FileMode |= (FileMode(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SynchronousIO", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.SynchronousIO = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := skipDaemon(dAtA[iNdEx:])
@@ -7798,7 +10949,7 @@ func (m *ReadFileRequest) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *ReadFileReply) Unmarshal(dAtA []byte) error {
+func (m *ReadFileResponse) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -7821,41 +10972,12 @@ func (m *ReadFileReply) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: ReadFileReply: wiretype end group for non-group")
+			return fmt.Errorf("proto: ReadFileResponse: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: ReadFileReply: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: ReadFileResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ReferenceList", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.ReferenceList = append(m.ReferenceList, string(dAtA[iNdEx:postIndex]))
-			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipDaemon(dAtA[iNdEx:])
@@ -7932,11 +11054,61 @@ func (m *ReadStreamRequest) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Key = append(m.Key[:0], dAtA[iNdEx:postIndex]...)
-			if m.Key == nil {
-				m.Key = []byte{}
-			}
+			v := make([]byte, postIndex-iNdEx)
+			copy(v, dAtA[iNdEx:postIndex])
+			m.Input = &ReadStreamRequest_Key{v}
 			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Metadata", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			v := &Metadata{}
+			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			m.Input = &ReadStreamRequest_Metadata{v}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ChunkSize", wireType)
+			}
+			m.ChunkSize = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.ChunkSize |= (int64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := skipDaemon(dAtA[iNdEx:])
@@ -7958,7 +11130,7 @@ func (m *ReadStreamRequest) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *ReadStreamReply) Unmarshal(dAtA []byte) error {
+func (m *ReadStreamResponse) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -7981,15 +11153,15 @@ func (m *ReadStreamReply) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: ReadStreamReply: wiretype end group for non-group")
+			return fmt.Errorf("proto: ReadStreamResponse: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: ReadStreamReply: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: ReadStreamResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Value", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field DataChunk", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {
@@ -8013,39 +11185,10 @@ func (m *ReadStreamReply) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Value = append(m.Value[:0], dAtA[iNdEx:postIndex]...)
-			if m.Value == nil {
-				m.Value = []byte{}
+			m.DataChunk = append(m.DataChunk[:0], dAtA[iNdEx:postIndex]...)
+			if m.DataChunk == nil {
+				m.DataChunk = []byte{}
 			}
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ReferenceList", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.ReferenceList = append(m.ReferenceList, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -8123,14 +11266,13 @@ func (m *DeleteRequest) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Key = append(m.Key[:0], dAtA[iNdEx:postIndex]...)
-			if m.Key == nil {
-				m.Key = []byte{}
-			}
+			v := make([]byte, postIndex-iNdEx)
+			copy(v, dAtA[iNdEx:postIndex])
+			m.Input = &DeleteRequest_Key{v}
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Meta", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Metadata", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -8154,12 +11296,11 @@ func (m *DeleteRequest) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.Meta == nil {
-				m.Meta = &Meta{}
-			}
-			if err := m.Meta.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+			v := &Metadata{}
+			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
+			m.Input = &DeleteRequest_Metadata{v}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -8182,7 +11323,7 @@ func (m *DeleteRequest) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *DeleteReply) Unmarshal(dAtA []byte) error {
+func (m *DeleteResponse) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -8205,689 +11346,10 @@ func (m *DeleteReply) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: DeleteReply: wiretype end group for non-group")
+			return fmt.Errorf("proto: DeleteResponse: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: DeleteReply: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		default:
-			iNdEx = preIndex
-			skippy, err := skipDaemon(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *WalkRequest) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowDaemon
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: WalkRequest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: WalkRequest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field StartKey", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.StartKey = append(m.StartKey[:0], dAtA[iNdEx:postIndex]...)
-			if m.StartKey == nil {
-				m.StartKey = []byte{}
-			}
-			iNdEx = postIndex
-		case 2:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field FromEpoch", wireType)
-			}
-			m.FromEpoch = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.FromEpoch |= (int64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 3:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ToEpoch", wireType)
-			}
-			m.ToEpoch = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.ToEpoch |= (int64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		default:
-			iNdEx = preIndex
-			skippy, err := skipDaemon(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *WalkReply) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowDaemon
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: WalkReply: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: WalkReply: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Key = append(m.Key[:0], dAtA[iNdEx:postIndex]...)
-			if m.Key == nil {
-				m.Key = []byte{}
-			}
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Meta", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			postIndex := iNdEx + msglen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.Meta == nil {
-				m.Meta = &Meta{}
-			}
-			if err := m.Meta.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Value", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Value = append(m.Value[:0], dAtA[iNdEx:postIndex]...)
-			if m.Value == nil {
-				m.Value = []byte{}
-			}
-			iNdEx = postIndex
-		case 4:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ReferenceList", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.ReferenceList = append(m.ReferenceList, string(dAtA[iNdEx:postIndex]))
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipDaemon(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *AppendReferenceListRequest) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowDaemon
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: AppendReferenceListRequest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: AppendReferenceListRequest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Key = append(m.Key[:0], dAtA[iNdEx:postIndex]...)
-			if m.Key == nil {
-				m.Key = []byte{}
-			}
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Meta", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			postIndex := iNdEx + msglen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.Meta == nil {
-				m.Meta = &Meta{}
-			}
-			if err := m.Meta.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ReferenceList", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.ReferenceList = append(m.ReferenceList, string(dAtA[iNdEx:postIndex]))
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipDaemon(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *RemoveReferenceListRequest) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowDaemon
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: RemoveReferenceListRequest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: RemoveReferenceListRequest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Key = append(m.Key[:0], dAtA[iNdEx:postIndex]...)
-			if m.Key == nil {
-				m.Key = []byte{}
-			}
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Meta", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			postIndex := iNdEx + msglen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.Meta == nil {
-				m.Meta = &Meta{}
-			}
-			if err := m.Meta.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ReferenceList", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.ReferenceList = append(m.ReferenceList, string(dAtA[iNdEx:postIndex]))
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipDaemon(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *AppendReferenceListReply) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowDaemon
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: AppendReferenceListReply: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: AppendReferenceListReply: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		default:
-			iNdEx = preIndex
-			skippy, err := skipDaemon(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *RemoveReferenceListReply) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowDaemon
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: RemoveReferenceListReply: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: RemoveReferenceListReply: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: DeleteResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		default:
@@ -8966,11 +11428,62 @@ func (m *CheckRequest) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Key = append(m.Key[:0], dAtA[iNdEx:postIndex]...)
-			if m.Key == nil {
-				m.Key = []byte{}
-			}
+			v := make([]byte, postIndex-iNdEx)
+			copy(v, dAtA[iNdEx:postIndex])
+			m.Input = &CheckRequest_Key{v}
 			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Metadata", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			v := &Metadata{}
+			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			m.Input = &CheckRequest_Metadata{v}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Fast", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Fast = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := skipDaemon(dAtA[iNdEx:])
@@ -8992,7 +11505,7 @@ func (m *CheckRequest) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *CheckReply) Unmarshal(dAtA []byte) error {
+func (m *CheckResponse) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -9015,10 +11528,10 @@ func (m *CheckReply) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: CheckReply: wiretype end group for non-group")
+			return fmt.Errorf("proto: CheckResponse: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: CheckReply: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: CheckResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -9035,7 +11548,7 @@ func (m *CheckReply) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.Status |= (CheckReply_Status(b) & 0x7F) << shift
+				m.Status |= (CheckStatus(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -9142,7 +11655,7 @@ func (m *RepairRequest) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *RepairReply) Unmarshal(dAtA []byte) error {
+func (m *RepairResponse) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -9165,12 +11678,1962 @@ func (m *RepairReply) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: RepairReply: wiretype end group for non-group")
+			return fmt.Errorf("proto: RepairResponse: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: RepairReply: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: RepairResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Metadata", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Metadata == nil {
+				m.Metadata = &Metadata{}
+			}
+			if err := m.Metadata.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipDaemon(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *SetMetadataRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowDaemon
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SetMetadataRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SetMetadataRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Metadata", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Metadata == nil {
+				m.Metadata = &Metadata{}
+			}
+			if err := m.Metadata.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipDaemon(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *SetMetadataResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowDaemon
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SetMetadataResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SetMetadataResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := skipDaemon(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *GetMetadataRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowDaemon
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GetMetadataRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GetMetadataRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Key = append(m.Key[:0], dAtA[iNdEx:postIndex]...)
+			if m.Key == nil {
+				m.Key = []byte{}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipDaemon(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *GetMetadataResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowDaemon
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GetMetadataResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GetMetadataResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Metadata", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Metadata == nil {
+				m.Metadata = &Metadata{}
+			}
+			if err := m.Metadata.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipDaemon(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *DeleteMetadataRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowDaemon
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DeleteMetadataRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DeleteMetadataRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Key = append(m.Key[:0], dAtA[iNdEx:postIndex]...)
+			if m.Key == nil {
+				m.Key = []byte{}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipDaemon(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *DeleteMetadataResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowDaemon
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DeleteMetadataResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DeleteMetadataResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := skipDaemon(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *DataWriteRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowDaemon
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DataWriteRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DataWriteRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Data", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Data = append(m.Data[:0], dAtA[iNdEx:postIndex]...)
+			if m.Data == nil {
+				m.Data = []byte{}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipDaemon(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *DataWriteResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowDaemon
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DataWriteResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DataWriteResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Chunks", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Chunks = append(m.Chunks, Chunk{})
+			if err := m.Chunks[len(m.Chunks)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipDaemon(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *DataWriteFileRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowDaemon
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DataWriteFileRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DataWriteFileRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FilePath", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.FilePath = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipDaemon(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *DataWriteFileResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowDaemon
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DataWriteFileResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DataWriteFileResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Chunks", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Chunks = append(m.Chunks, Chunk{})
+			if err := m.Chunks[len(m.Chunks)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipDaemon(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *DataWriteStreamRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowDaemon
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DataWriteStreamRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DataWriteStreamRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DataChunk", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.DataChunk = append(m.DataChunk[:0], dAtA[iNdEx:postIndex]...)
+			if m.DataChunk == nil {
+				m.DataChunk = []byte{}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipDaemon(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *DataWriteStreamResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowDaemon
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DataWriteStreamResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DataWriteStreamResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Chunks", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Chunks = append(m.Chunks, Chunk{})
+			if err := m.Chunks[len(m.Chunks)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipDaemon(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *DataReadRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowDaemon
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DataReadRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DataReadRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Chunks", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Chunks = append(m.Chunks, Chunk{})
+			if err := m.Chunks[len(m.Chunks)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipDaemon(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *DataReadResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowDaemon
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DataReadResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DataReadResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Data", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Data = append(m.Data[:0], dAtA[iNdEx:postIndex]...)
+			if m.Data == nil {
+				m.Data = []byte{}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipDaemon(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *DataReadFileRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowDaemon
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DataReadFileRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DataReadFileRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Chunks", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Chunks = append(m.Chunks, Chunk{})
+			if err := m.Chunks[len(m.Chunks)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FilePath", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.FilePath = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FileMode", wireType)
+			}
+			m.FileMode = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.FileMode |= (FileMode(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SynchronousIO", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.SynchronousIO = bool(v != 0)
+		default:
+			iNdEx = preIndex
+			skippy, err := skipDaemon(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *DataReadFileResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowDaemon
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DataReadFileResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DataReadFileResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := skipDaemon(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *DataReadStreamRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowDaemon
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DataReadStreamRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DataReadStreamRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Chunks", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Chunks = append(m.Chunks, Chunk{})
+			if err := m.Chunks[len(m.Chunks)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ChunkSize", wireType)
+			}
+			m.ChunkSize = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.ChunkSize |= (int64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipDaemon(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *DataReadStreamResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowDaemon
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DataReadStreamResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DataReadStreamResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DataChunk", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.DataChunk = append(m.DataChunk[:0], dAtA[iNdEx:postIndex]...)
+			if m.DataChunk == nil {
+				m.DataChunk = []byte{}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipDaemon(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *DataDeleteRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowDaemon
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DataDeleteRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DataDeleteRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Chunks", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Chunks = append(m.Chunks, Chunk{})
+			if err := m.Chunks[len(m.Chunks)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipDaemon(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *DataDeleteResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowDaemon
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DataDeleteResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DataDeleteResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := skipDaemon(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *DataCheckRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowDaemon
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DataCheckRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DataCheckRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Chunks", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Chunks = append(m.Chunks, Chunk{})
+			if err := m.Chunks[len(m.Chunks)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Fast", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Fast = bool(v != 0)
+		default:
+			iNdEx = preIndex
+			skippy, err := skipDaemon(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *DataCheckResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowDaemon
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DataCheckResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DataCheckResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
+			}
+			m.Status = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Status |= (CheckStatus(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipDaemon(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *DataRepairRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowDaemon
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DataRepairRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DataRepairRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Chunks", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Chunks = append(m.Chunks, Chunk{})
+			if err := m.Chunks[len(m.Chunks)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipDaemon(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *DataRepairResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowDaemon
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DataRepairResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DataRepairResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Chunks", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Chunks = append(m.Chunks, Chunk{})
+			if err := m.Chunks[len(m.Chunks)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipDaemon(dAtA[iNdEx:])
@@ -9300,83 +13763,108 @@ var (
 func init() { proto.RegisterFile("schema/daemon.proto", fileDescriptorDaemon) }
 
 var fileDescriptorDaemon = []byte{
-	// 1246 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xcc, 0x58, 0x49, 0x6f, 0xdb, 0xc6,
-	0x17, 0xd7, 0x58, 0x8b, 0xad, 0x27, 0xc9, 0x91, 0xc7, 0x1b, 0xcd, 0x04, 0x8c, 0x42, 0xf8, 0xff,
-	0xaf, 0x0f, 0x8d, 0xbc, 0xa4, 0xbd, 0x14, 0x08, 0xda, 0x7a, 0xa9, 0xe1, 0xc6, 0x59, 0x40, 0x17,
-	0xf5, 0x21, 0x27, 0x9a, 0x1c, 0x5b, 0xac, 0xc5, 0xa5, 0x24, 0xa5, 0x46, 0x39, 0x05, 0xed, 0x2d,
-	0xa7, 0x7e, 0x81, 0xf4, 0xdc, 0x8f, 0x51, 0xa0, 0x45, 0x51, 0xf4, 0x94, 0x63, 0x8f, 0xb5, 0x7a,
-	0xe9, 0x31, 0x1f, 0xa1, 0x98, 0x85, 0x14, 0x45, 0x53, 0xae, 0x10, 0x05, 0x46, 0x6f, 0x7a, 0xcb,
-	0xfc, 0xde, 0xef, 0x37, 0x33, 0x7c, 0x6f, 0x6c, 0x98, 0x0f, 0x8c, 0x16, 0xb1, 0xf5, 0x75, 0x53,
-	0x27, 0xb6, 0xeb, 0x34, 0x3d, 0xdf, 0x0d, 0x5d, 0x5c, 0xf4, 0x7c, 0xf7, 0x59, 0x4f, 0xbe, 0x7b,
-	0x66, 0x85, 0xad, 0xce, 0x49, 0xd3, 0x70, 0xed, 0xf5, 0x33, 0xf7, 0xcc, 0x5d, 0x67, 0xd1, 0x93,
-	0xce, 0x29, 0xb3, 0x98, 0xc1, 0x7e, 0xf1, 0x55, 0xaa, 0x09, 0xf0, 0x84, 0xf8, 0xb6, 0x15, 0x04,
-	0x96, 0xeb, 0xe0, 0x05, 0x28, 0x7e, 0xe3, 0x5b, 0x21, 0x91, 0x50, 0x03, 0xad, 0xcd, 0x68, 0xdc,
-	0xc0, 0x18, 0x0a, 0x3e, 0xd1, 0x4d, 0x69, 0x8a, 0x39, 0xd9, 0x6f, 0xbc, 0x04, 0x25, 0x93, 0xb4,
-	0x49, 0x48, 0xa4, 0x3c, 0xf3, 0x0a, 0x8b, 0x22, 0xe8, 0xa6, 0x6d, 0x39, 0x52, 0x81, 0x23, 0x30,
-	0x43, 0x35, 0xa0, 0xbe, 0xe3, 0x13, 0x3d, 0x24, 0x9f, 0x1f, 0x7f, 0xa1, 0x91, 0xaf, 0x3b, 0x24,
-	0x08, 0xf1, 0x2d, 0x28, 0x3b, 0xba, 0x4d, 0x02, 0x4f, 0x37, 0x78, 0xbd, 0xb2, 0x36, 0x70, 0xe0,
-	0x4d, 0x00, 0x2f, 0xe6, 0xc5, 0x2a, 0x57, 0xb6, 0xe6, 0x9a, 0x4c, 0x62, 0x73, 0x40, 0x58, 0x4b,
-	0x24, 0xa9, 0xff, 0x87, 0xd9, 0x44, 0x11, 0xaf, 0xdd, 0xa3, 0x64, 0x42, 0xf7, 0x9c, 0x38, 0x02,
-	0x9e, 0x1b, 0xea, 0x06, 0xd4, 0x1f, 0x45, 0x75, 0xc6, 0x22, 0xa3, 0xd6, 0x61, 0x36, 0xb1, 0xc2,
-	0x6b, 0xf7, 0xd4, 0x17, 0x08, 0x16, 0xf7, 0x4c, 0x2b, 0x4c, 0x50, 0x19, 0x4b, 0xd6, 0x12, 0x94,
-	0x3a, 0x01, 0xf1, 0x0f, 0x76, 0x99, 0xa4, 0xb2, 0x26, 0xac, 0x94, 0xdc, 0xfc, 0x38, 0x72, 0x17,
-	0x61, 0x3e, 0xcd, 0x80, 0x32, 0x3b, 0x84, 0x85, 0x7d, 0xf2, 0xae, 0x78, 0xa9, 0xfb, 0x80, 0x53,
-	0x68, 0x74, 0x5f, 0x87, 0xd9, 0xa2, 0x71, 0xd8, 0xee, 0x41, 0x71, 0xa7, 0xd5, 0x71, 0xce, 0xe9,
-	0x65, 0x0a, 0xac, 0xe7, 0x9c, 0x42, 0x5e, 0x63, 0xbf, 0x71, 0x1d, 0xf2, 0xe7, 0xa4, 0xc7, 0x4a,
-	0x57, 0x35, 0xfa, 0x93, 0xf2, 0x09, 0x5a, 0xba, 0x6f, 0x06, 0x52, 0xbe, 0x91, 0xa7, 0x7c, 0xb8,
-	0xa5, 0xfe, 0x80, 0xa0, 0xf0, 0x90, 0x84, 0x3a, 0x3d, 0x5a, 0xe2, 0xb9, 0x46, 0x4b, 0xe0, 0x70,
-	0x23, 0x03, 0x48, 0x82, 0x69, 0xe2, 0x18, 0xfe, 0x03, 0xd2, 0x63, 0xbb, 0x5a, 0xd5, 0x22, 0x13,
-	0xaf, 0x42, 0xc9, 0xa0, 0x8c, 0x02, 0xa9, 0xd0, 0xc8, 0xaf, 0x55, 0xb6, 0xaa, 0x42, 0x00, 0xa3,
-	0xa9, 0x89, 0x18, 0x96, 0x61, 0xc6, 0xf3, 0x49, 0xd7, 0x72, 0x3b, 0x81, 0x54, 0x64, 0x00, 0xb1,
-	0x4d, 0xa5, 0x38, 0xe4, 0x59, 0x28, 0x95, 0x98, 0x9f, 0xfd, 0x56, 0x7f, 0x42, 0x50, 0x3d, 0xa6,
-	0x5f, 0x4d, 0xb4, 0xef, 0x82, 0x12, 0x1a, 0x50, 0xba, 0x0d, 0x05, 0x9b, 0x84, 0xba, 0xb8, 0xd4,
-	0x15, 0x51, 0x96, 0xaa, 0xd2, 0x58, 0x80, 0x6a, 0xeb, 0xea, 0xed, 0x0e, 0x11, 0x8c, 0xb9, 0x81,
-	0x57, 0xa1, 0xe6, 0x93, 0x53, 0xe2, 0x13, 0xc7, 0x20, 0x87, 0x56, 0x10, 0x32, 0xda, 0x65, 0x6d,
-	0xd8, 0x49, 0xf5, 0x52, 0x7e, 0x54, 0x6f, 0x91, 0x9d, 0x64, 0x64, 0xe2, 0xf7, 0xb8, 0x12, 0x5a,
-	0x87, 0x31, 0x4e, 0x95, 0x8e, 0x83, 0xea, 0x5d, 0x00, 0xa1, 0x80, 0x9e, 0x75, 0xc4, 0x16, 0x8d,
-	0x60, 0xab, 0xfe, 0x8e, 0xa0, 0xce, 0xf2, 0x3f, 0xb3, 0xda, 0x93, 0xa8, 0x96, 0x61, 0xe6, 0xd4,
-	0x6a, 0x93, 0x27, 0x7a, 0xd8, 0x62, 0xc2, 0xcb, 0x5a, 0x6c, 0x5f, 0x9f, 0xf6, 0x4d, 0x98, 0x4d,
-	0x68, 0x19, 0x4b, 0xff, 0xaf, 0x08, 0x30, 0x5b, 0x73, 0x14, 0xfa, 0x44, 0xb7, 0xff, 0x1b, 0xe7,
-	0x5e, 0x7d, 0x0b, 0xed, 0xf7, 0xc4, 0x39, 0x46, 0x3a, 0xc6, 0x52, 0xff, 0x09, 0x54, 0x34, 0xa2,
-	0x9b, 0x6f, 0xaf, 0x5a, 0xdd, 0x87, 0x32, 0x47, 0x10, 0x1d, 0x9b, 0x6f, 0x01, 0xba, 0x72, 0x0b,
-	0xa6, 0x32, 0xb6, 0x40, 0xfd, 0x18, 0x6e, 0x50, 0xa0, 0xab, 0xaf, 0xe1, 0x15, 0xb7, 0x4c, 0xfd,
-	0x10, 0x6a, 0x03, 0x00, 0xca, 0xe6, 0x52, 0x5d, 0x94, 0x55, 0xf7, 0x7f, 0x30, 0x47, 0x97, 0xfd,
-	0xcb, 0xf1, 0xab, 0x0f, 0x39, 0xbd, 0xe4, 0xee, 0x4e, 0xa2, 0x76, 0x1b, 0x6a, 0xbb, 0x6c, 0xe4,
-	0x4e, 0xb0, 0xf5, 0x35, 0xa8, 0x44, 0x18, 0x74, 0x74, 0xe8, 0x50, 0x39, 0xd6, 0xdb, 0xe7, 0x11,
-	0xa0, 0x0c, 0x33, 0x41, 0xa8, 0xfb, 0xe1, 0x83, 0x18, 0x35, 0xb6, 0xe9, 0x34, 0x39, 0xf5, 0x5d,
-	0x7b, 0x8f, 0xb5, 0xe0, 0x29, 0xd6, 0x82, 0x07, 0x0e, 0x7a, 0x19, 0x43, 0x97, 0xc7, 0xf2, 0x2c,
-	0x16, 0x99, 0xea, 0x73, 0x28, 0xf3, 0x12, 0x54, 0xfe, 0xf5, 0x7e, 0x22, 0x6a, 0x07, 0xe4, 0x4f,
-	0x3d, 0x8f, 0x38, 0xa6, 0x96, 0x74, 0x4f, 0xf0, 0xbd, 0x5e, 0x2a, 0x9b, 0x1f, 0x51, 0x56, 0x23,
-	0xb6, 0xdb, 0x25, 0xd7, 0x5b, 0x56, 0x06, 0x29, 0x53, 0x2d, 0x3d, 0x68, 0x19, 0xa4, 0x4c, 0x4a,
-	0x34, 0xd6, 0x80, 0xea, 0x4e, 0x8b, 0x18, 0xe7, 0xa3, 0x2f, 0xf2, 0xcf, 0x08, 0x40, 0xa4, 0xd0,
-	0x53, 0xdc, 0x80, 0x52, 0x10, 0xea, 0x61, 0x27, 0x60, 0x39, 0xb3, 0x5b, 0x52, 0x3c, 0x47, 0xa3,
-	0x94, 0xe6, 0x11, 0x8b, 0x6b, 0x22, 0x4f, 0xfd, 0x16, 0x41, 0x89, 0xbb, 0xf0, 0x1a, 0x4c, 0x5b,
-	0x4e, 0x57, 0x6f, 0x5b, 0x66, 0x3d, 0x27, 0xdf, 0x7c, 0xf9, 0xaa, 0xb1, 0x3c, 0x58, 0xc6, 0x53,
-	0x0e, 0x78, 0x18, 0xaf, 0xb2, 0x93, 0xb7, 0xcc, 0x3a, 0x92, 0x57, 0x5e, 0xbe, 0x6a, 0x2c, 0xa6,
-	0xf3, 0xbe, 0x64, 0x59, 0x6b, 0x30, 0xed, 0x7a, 0xa1, 0x65, 0xeb, 0xed, 0xfa, 0x54, 0x36, 0xde,
-	0x63, 0x1e, 0x56, 0xef, 0xd0, 0x8f, 0xdd, 0xd3, 0x2d, 0x7f, 0xb4, 0xd0, 0x1a, 0xed, 0x6d, 0x3c,
-	0xc5, 0x6b, 0xf7, 0xb6, 0x7e, 0xc9, 0x27, 0x1e, 0x8e, 0x47, 0xc4, 0xef, 0x5a, 0x06, 0xc1, 0xf7,
-	0xa1, 0x1c, 0x3f, 0x3a, 0xf1, 0x72, 0x24, 0x3d, 0xf5, 0xd6, 0x95, 0x17, 0x2f, 0x07, 0xe8, 0x5e,
-	0xe7, 0xf0, 0x0e, 0xdc, 0xe0, 0xbe, 0x18, 0x38, 0x06, 0x49, 0xbf, 0x51, 0x63, 0x90, 0xd4, 0x53,
-	0x94, 0x81, 0xf0, 0xcf, 0x78, 0x12, 0x90, 0x43, 0x98, 0xdd, 0xb7, 0xba, 0x24, 0xf1, 0xc7, 0xc0,
-	0x2d, 0x91, 0x9a, 0xf9, 0xce, 0x95, 0xe5, 0x11, 0x51, 0x8e, 0xf6, 0x08, 0xea, 0xfc, 0x86, 0xbd,
-	0x23, 0xbc, 0x03, 0xa8, 0x0d, 0xbd, 0x43, 0xf1, 0x4d, 0x91, 0x9e, 0xf5, 0xd6, 0x95, 0x57, 0xb2,
-	0x83, 0x0c, 0x6a, 0xeb, 0xbb, 0x12, 0xd4, 0x1e, 0x9f, 0x7c, 0x45, 0x8c, 0x30, 0x3a, 0xc3, 0x4d,
-	0x28, 0xb2, 0xc1, 0x87, 0xe7, 0xc5, 0xba, 0xe4, 0x03, 0x4e, 0x9e, 0x1b, 0x76, 0x72, 0x3e, 0xf7,
-	0xa1, 0x1c, 0xbf, 0x13, 0xe2, 0xcd, 0x4e, 0xbf, 0x82, 0xe2, 0xcd, 0x1e, 0x7e, 0x52, 0xa8, 0x39,
-	0xbc, 0x07, 0x95, 0xc4, 0xa8, 0xc5, 0x2b, 0xc9, 0xbc, 0xa1, 0x39, 0x22, 0x2f, 0x67, 0x85, 0x18,
-	0xc8, 0x1a, 0xc2, 0x4d, 0x28, 0xd0, 0x91, 0x82, 0xb1, 0x48, 0x4a, 0x4c, 0x62, 0xb9, 0x3e, 0xe4,
-	0xe3, 0x65, 0x3f, 0x82, 0x99, 0x68, 0xc0, 0xe1, 0xa5, 0x44, 0x3c, 0xc9, 0x79, 0xe1, 0x92, 0x9f,
-	0xaf, 0xdd, 0x06, 0x18, 0x8c, 0x2f, 0x2c, 0x25, 0xb2, 0x86, 0x09, 0x2f, 0x65, 0x44, 0x18, 0xc2,
-	0x06, 0xc2, 0x1f, 0x40, 0x69, 0x57, 0xfc, 0x99, 0x28, 0xb2, 0x86, 0x46, 0x98, 0x8c, 0x53, 0x5e,
-	0x5e, 0x79, 0x03, 0x0a, 0x74, 0x66, 0xc4, 0x2a, 0x13, 0x33, 0x2a, 0x56, 0x19, 0x0f, 0x15, 0x56,
-	0xe7, 0x29, 0xcc, 0x67, 0xf4, 0x3e, 0x7c, 0x47, 0x24, 0x8f, 0x9e, 0x02, 0xf2, 0xed, 0xab, 0x52,
-	0x38, 0x9d, 0xa7, 0x30, 0x9f, 0xd1, 0x3c, 0x63, 0xf0, 0xd1, 0xbd, 0x3e, 0x06, 0x1f, 0xd9, 0x7b,
-	0x73, 0xf4, 0x2a, 0xb2, 0x86, 0x15, 0x5f, 0xc5, 0x64, 0x2f, 0x8e, 0xaf, 0xe2, 0xa0, 0xa7, 0xa9,
-	0x39, 0xba, 0xa9, 0xbc, 0x4b, 0xe1, 0xc1, 0xd1, 0x25, 0xfa, 0x9a, 0x8c, 0x53, 0x5e, 0xb6, 0x6a,
-	0xfb, 0xfd, 0xd7, 0x17, 0x4a, 0xee, 0x8f, 0x0b, 0x25, 0xf7, 0xe6, 0x42, 0x41, 0x2f, 0xfa, 0x0a,
-	0xfa, 0xb1, 0xaf, 0xa0, 0xdf, 0xfa, 0x0a, 0x7a, 0xdd, 0x57, 0xd0, 0x9f, 0x7d, 0x05, 0xfd, 0xdd,
-	0x57, 0x72, 0x6f, 0xfa, 0x0a, 0xfa, 0xfe, 0x2f, 0x25, 0x77, 0x52, 0x62, 0xff, 0x2c, 0xb8, 0xf7,
-	0x4f, 0x00, 0x00, 0x00, 0xff, 0xff, 0xb6, 0x0f, 0xaf, 0x76, 0x79, 0x10, 0x00, 0x00,
+	// 1634 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x58, 0xcf, 0x6f, 0xdb, 0x46,
+	0x16, 0x26, 0x65, 0x49, 0xb6, 0x9f, 0x2c, 0x59, 0x1e, 0x4b, 0xb6, 0xcc, 0xd8, 0xb4, 0x97, 0x0e,
+	0x82, 0x6c, 0x92, 0x75, 0x16, 0x4a, 0x36, 0xc0, 0xa2, 0xad, 0x1b, 0xcb, 0x4e, 0x14, 0xb7, 0x4d,
+	0x9c, 0x52, 0x41, 0x0b, 0x14, 0xbd, 0xd0, 0xd2, 0x24, 0x62, 0x2d, 0x91, 0xaa, 0x48, 0xa5, 0x49,
+	0x0e, 0x45, 0xce, 0x3e, 0xf5, 0x1f, 0xf0, 0xbd, 0xe7, 0x9e, 0x7b, 0xea, 0x29, 0xa7, 0x22, 0xc7,
+	0x02, 0x05, 0x82, 0x46, 0xbd, 0xf4, 0x98, 0x63, 0x8f, 0x05, 0x87, 0x33, 0xe4, 0x0c, 0x49, 0x29,
+	0x91, 0xeb, 0xde, 0xc4, 0xf7, 0xde, 0x7c, 0xf3, 0x7e, 0x7e, 0x33, 0x23, 0x58, 0x74, 0x9a, 0x6d,
+	0xdc, 0x35, 0xae, 0xb6, 0x0c, 0xdc, 0xb5, 0xad, 0xad, 0x5e, 0xdf, 0x76, 0x6d, 0x94, 0xf5, 0x85,
+	0xca, 0x7f, 0x1e, 0x99, 0x6e, 0x7b, 0x70, 0xb8, 0xd5, 0xb4, 0xbb, 0x57, 0x1f, 0xd9, 0x8f, 0xec,
+	0xab, 0x44, 0x7d, 0x38, 0x78, 0x48, 0xbe, 0xc8, 0x07, 0xf9, 0xe5, 0x2f, 0xd3, 0x5a, 0x00, 0xf7,
+	0x71, 0xbf, 0x6b, 0x3a, 0x8e, 0x69, 0x5b, 0x08, 0x41, 0xba, 0x8f, 0x8d, 0x56, 0x45, 0xde, 0x90,
+	0x2f, 0xce, 0xe8, 0xe4, 0x37, 0x2a, 0x41, 0xe6, 0x9b, 0xbe, 0xe9, 0xe2, 0x4a, 0x8a, 0x08, 0xfd,
+	0x0f, 0xb4, 0x04, 0xd9, 0x16, 0xee, 0x60, 0x17, 0x57, 0xa6, 0x88, 0x98, 0x7e, 0x79, 0xd6, 0x46,
+	0xab, 0x6b, 0x5a, 0x95, 0xb4, 0x6f, 0x4d, 0x3e, 0xb4, 0x1b, 0xb0, 0xb4, 0xdb, 0xc7, 0x86, 0x8b,
+	0xef, 0x19, 0x5d, 0xec, 0xf4, 0x8c, 0x26, 0xd6, 0xf1, 0xd7, 0x03, 0xec, 0xb8, 0x68, 0x15, 0x66,
+	0x2d, 0x26, 0x23, 0xdb, 0xce, 0xea, 0xa1, 0x40, 0x5b, 0x81, 0xe5, 0xd8, 0x3a, 0xa7, 0x67, 0x5b,
+	0x0e, 0xf6, 0x20, 0xf7, 0xc8, 0x96, 0x93, 0x43, 0xc6, 0xd6, 0x51, 0xc8, 0xe7, 0x32, 0x94, 0x1a,
+	0xd8, 0x0d, 0xf3, 0xf1, 0x4e, 0x88, 0x5e, 0x2a, 0x06, 0x0e, 0xee, 0xef, 0xef, 0x91, 0x0c, 0xcd,
+	0xea, 0xf4, 0x0b, 0x55, 0x01, 0x7a, 0x01, 0x14, 0x49, 0x53, 0xae, 0x8a, 0xb6, 0xfc, 0x32, 0x6d,
+	0x71, 0x9b, 0x70, 0x56, 0xda, 0x32, 0x94, 0x23, 0x1e, 0x50, 0xdf, 0x3e, 0x81, 0x52, 0xfd, 0xcc,
+	0x5c, 0xd3, 0x3e, 0x86, 0x72, 0x3d, 0x69, 0x9b, 0x88, 0xcf, 0xf2, 0x3b, 0xf9, 0xfc, 0xa3, 0x0c,
+	0x33, 0x77, 0xb1, 0x6b, 0xb4, 0x0c, 0xd7, 0x40, 0x45, 0x98, 0x3a, 0xc2, 0x4f, 0xc9, 0xca, 0x39,
+	0xdd, 0xfb, 0x89, 0x36, 0x21, 0xed, 0x98, 0xcf, 0xfc, 0xf6, 0x99, 0xaa, 0xcd, 0x0f, 0x5f, 0xad,
+	0xe7, 0x1a, 0xe6, 0x33, 0xbc, 0x6f, 0xd5, 0x9e, 0xba, 0xd8, 0xd1, 0x89, 0x12, 0x9d, 0x87, 0x7c,
+	0xd3, 0x2b, 0xb4, 0x69, 0x5b, 0xb7, 0x7a, 0x76, 0xb3, 0x4d, 0xd2, 0x35, 0xa5, 0x8b, 0x42, 0x74,
+	0x01, 0x0a, 0x1d, 0xc3, 0x71, 0x3f, 0xf7, 0x3a, 0xd0, 0x37, 0x4b, 0x13, 0xb3, 0x88, 0x14, 0x5d,
+	0x86, 0x6c, 0xb3, 0x3d, 0xb0, 0x8e, 0x9c, 0x4a, 0x66, 0x63, 0xea, 0x62, 0xae, 0x9a, 0x67, 0x11,
+	0xec, 0x7a, 0xd2, 0x5a, 0xfa, 0xc5, 0xab, 0x75, 0x49, 0xa7, 0x26, 0x5a, 0x0f, 0x32, 0x44, 0x1c,
+	0x38, 0x2a, 0x8f, 0x73, 0x74, 0x0b, 0xa6, 0xed, 0xc3, 0xaf, 0x70, 0xd3, 0x75, 0x2a, 0x29, 0x82,
+	0x5d, 0x60, 0xd8, 0x07, 0x44, 0x4c, 0xc1, 0x99, 0x91, 0x37, 0x51, 0x6d, 0xc3, 0xf1, 0xe3, 0x99,
+	0xd3, 0xc9, 0x6f, 0xed, 0x3a, 0x64, 0x7d, 0xe3, 0x84, 0x6c, 0x55, 0x60, 0xda, 0x69, 0x1b, 0xfd,
+	0x56, 0x50, 0x32, 0xf6, 0xa9, 0x5d, 0x87, 0x39, 0x12, 0x22, 0xab, 0x7c, 0x7c, 0x2d, 0x82, 0xb4,
+	0x57, 0x03, 0xb2, 0x70, 0x4e, 0x27, 0xbf, 0xb5, 0x0f, 0x20, 0x4f, 0x57, 0xd1, 0x0a, 0x5f, 0x81,
+	0x99, 0x2e, 0x2d, 0x16, 0xad, 0x6f, 0x91, 0x45, 0xc0, 0x8a, 0xa8, 0x07, 0x16, 0xda, 0x4d, 0x28,
+	0x92, 0xe5, 0xb7, 0xcd, 0xce, 0x98, 0x8d, 0x15, 0x98, 0x79, 0x68, 0x76, 0xf0, 0x7d, 0xc3, 0x6d,
+	0x53, 0xaf, 0x83, 0x6f, 0x6d, 0x07, 0x16, 0x38, 0x84, 0x53, 0x39, 0xf1, 0xab, 0x0c, 0x88, 0x60,
+	0x34, 0xdc, 0x3e, 0x36, 0xba, 0xcc, 0x8f, 0x9d, 0x18, 0xc8, 0x26, 0x03, 0x89, 0x5b, 0x07, 0xb8,
+	0x77, 0xa4, 0x10, 0x19, 0xfd, 0x8f, 0xcb, 0x58, 0xae, 0xba, 0x3e, 0x66, 0xf9, 0x9e, 0xbf, 0x94,
+	0x98, 0x2b, 0xab, 0xe3, 0x1a, 0x5e, 0x39, 0x0f, 0x69, 0xcf, 0xda, 0x1b, 0x4d, 0xcf, 0x82, 0x34,
+	0x17, 0xad, 0x49, 0x28, 0xa8, 0x4d, 0x43, 0xc6, 0xb4, 0x7a, 0x03, 0x57, 0xdb, 0x85, 0x45, 0x61,
+	0xbf, 0x53, 0xa5, 0xe8, 0x0b, 0xc8, 0xe9, 0xd8, 0x68, 0xb1, 0xd4, 0x20, 0xce, 0xa9, 0x3b, 0x92,
+	0x5f, 0xa4, 0x2d, 0x0e, 0x30, 0x95, 0x0c, 0xc8, 0xe7, 0x26, 0x74, 0x50, 0x83, 0x39, 0x1f, 0x9b,
+	0x7a, 0xc6, 0xda, 0x4c, 0xe6, 0xda, 0xec, 0x67, 0x19, 0xe6, 0x3d, 0x23, 0xbe, 0x4f, 0xce, 0xc0,
+	0x09, 0xa1, 0xb3, 0xa6, 0xc4, 0xce, 0xf2, 0x32, 0xe4, 0xfd, 0xbe, 0x6b, 0xb7, 0x30, 0xe1, 0x81,
+	0x42, 0x88, 0x75, 0x9b, 0xca, 0xf5, 0xc0, 0xc2, 0x63, 0x18, 0xe7, 0xa9, 0xd5, 0x6c, 0xf7, 0x6d,
+	0xcb, 0x1e, 0x38, 0xfb, 0x07, 0x95, 0x0c, 0x39, 0xa0, 0x44, 0x61, 0x18, 0x34, 0x82, 0x62, 0x18,
+	0x0f, 0xe5, 0xe0, 0x6f, 0x61, 0xc1, 0x93, 0x89, 0x5d, 0x78, 0x16, 0x51, 0xae, 0xc2, 0x2c, 0x21,
+	0x23, 0x8f, 0x6e, 0x28, 0xf3, 0x85, 0x82, 0xd0, 0xa7, 0x2a, 0x20, 0x7e, 0x7f, 0x5a, 0x0e, 0xa1,
+	0xcd, 0xe4, 0x48, 0x9b, 0x69, 0x5f, 0x42, 0xde, 0x3f, 0xee, 0xfe, 0x91, 0xd6, 0x28, 0x42, 0x81,
+	0xa1, 0xd3, 0x1c, 0xd9, 0x30, 0xb7, 0xdb, 0xc6, 0xcd, 0xa3, 0xb3, 0x4c, 0x0f, 0x82, 0xf4, 0x43,
+	0xc3, 0x71, 0xe9, 0x4d, 0x83, 0xfc, 0x0e, 0x5d, 0x78, 0x1f, 0xf2, 0x74, 0x43, 0x9a, 0x8f, 0xcb,
+	0x90, 0x75, 0x5c, 0xc3, 0x1d, 0x38, 0x64, 0xd3, 0x42, 0x75, 0x31, 0x24, 0x7f, 0xdc, 0x3c, 0x6a,
+	0x10, 0x95, 0x4e, 0x4d, 0xb4, 0x7f, 0x41, 0x5e, 0xc7, 0x3d, 0xc3, 0xec, 0x8f, 0x24, 0x37, 0x6d,
+	0x1b, 0x0a, 0xcc, 0xe4, 0x54, 0xa3, 0x59, 0x03, 0xd4, 0xc0, 0x6e, 0xa0, 0xa0, 0xfb, 0x4c, 0x86,
+	0x51, 0x86, 0x45, 0x01, 0x83, 0x26, 0xfb, 0x02, 0xa0, 0x7a, 0x1c, 0x3a, 0x1e, 0xc2, 0x2e, 0x2c,
+	0xd6, 0xe3, 0xcb, 0x27, 0xf4, 0xe1, 0xdf, 0x50, 0xf6, 0x6b, 0xfd, 0xf6, 0xfd, 0x2a, 0xec, 0x6e,
+	0x96, 0xe0, 0x71, 0xd1, 0xe3, 0x46, 0xe1, 0x20, 0x4b, 0xe2, 0x93, 0x9b, 0xb0, 0xc0, 0xd9, 0x85,
+	0x95, 0xa5, 0xc7, 0xba, 0xfc, 0xf6, 0x63, 0xbd, 0x0a, 0xa5, 0x00, 0x81, 0x67, 0x25, 0x9e, 0x51,
+	0xe4, 0xc8, 0x59, 0xb5, 0x07, 0xe5, 0xc8, 0x9a, 0xd3, 0xec, 0xec, 0xdd, 0x4c, 0x19, 0x8a, 0xc8,
+	0x15, 0xe3, 0x47, 0xf5, 0x36, 0x2c, 0xc7, 0xd6, 0x9d, 0x66, 0xff, 0x6d, 0x98, 0xdf, 0x23, 0x39,
+	0x0f, 0xcf, 0x83, 0x89, 0xd6, 0xd3, 0x1a, 0xbd, 0x95, 0xf3, 0x7f, 0x90, 0x61, 0x91, 0x19, 0xf2,
+	0x19, 0x9e, 0x64, 0xb3, 0x71, 0x57, 0x07, 0x81, 0xe0, 0xa7, 0x26, 0x27, 0xf8, 0x74, 0x02, 0xc1,
+	0x6b, 0x4b, 0x7e, 0x5b, 0xc4, 0xb8, 0xfd, 0xd0, 0x2f, 0x7d, 0x9c, 0xdf, 0x27, 0x8a, 0x46, 0x20,
+	0xf2, 0x54, 0x84, 0xc8, 0x59, 0x63, 0x4c, 0xcc, 0xe1, 0x74, 0x18, 0x44, 0x1e, 0x9f, 0xa8, 0xa4,
+	0x25, 0x40, 0x3c, 0x02, 0x8d, 0xb9, 0xe1, 0x17, 0x5a, 0xe0, 0xeb, 0x89, 0xc2, 0x65, 0xc4, 0x9c,
+	0x0a, 0x89, 0x99, 0x39, 0xfb, 0x37, 0x38, 0x99, 0x22, 0x88, 0xbc, 0x3c, 0x51, 0xb8, 0x3b, 0x7e,
+	0xb8, 0x11, 0xda, 0x9e, 0x04, 0xe2, 0xd2, 0x13, 0xc8, 0x71, 0xbe, 0xa1, 0x4d, 0x98, 0x36, 0xad,
+	0xc7, 0x46, 0xc7, 0x6c, 0x15, 0x25, 0x65, 0xe9, 0xf8, 0x64, 0x03, 0x71, 0xda, 0x7d, 0x5f, 0x83,
+	0xd6, 0x21, 0xe3, 0x9b, 0xc8, 0x4a, 0xe9, 0xf8, 0x64, 0xa3, 0xc8, 0x99, 0x7c, 0x46, 0x0c, 0x36,
+	0x61, 0xda, 0xee, 0xb9, 0x66, 0xd7, 0xe8, 0x14, 0x53, 0x31, 0x94, 0x03, 0x5f, 0x73, 0xc9, 0x85,
+	0x19, 0xd6, 0xdd, 0x48, 0x83, 0x19, 0xb7, 0x3f, 0xb0, 0x9a, 0x86, 0x8b, 0x8b, 0x92, 0x0f, 0xca,
+	0x74, 0x0f, 0xa8, 0x1c, 0xa9, 0x90, 0x35, 0x7a, 0x3d, 0x6c, 0x79, 0xdb, 0xa2, 0xe3, 0x93, 0x8d,
+	0x02, 0xb3, 0xd8, 0x21, 0x52, 0x74, 0x1e, 0x66, 0xf1, 0x93, 0x66, 0x67, 0xe0, 0x98, 0x8f, 0x71,
+	0x31, 0xa5, 0x94, 0x8f, 0x4f, 0x36, 0x16, 0x98, 0xc9, 0x2d, 0xa6, 0xa8, 0xbe, 0x4a, 0x41, 0x31,
+	0x78, 0x11, 0x37, 0x70, 0xff, 0xb1, 0xd9, 0xc4, 0xe8, 0x01, 0xcc, 0x47, 0x9e, 0xdf, 0x48, 0x0d,
+	0x92, 0x96, 0xf8, 0x9e, 0x57, 0xd6, 0x47, 0xea, 0x69, 0xd3, 0x49, 0x1e, 0x6a, 0xe4, 0x05, 0x1e,
+	0xa2, 0x26, 0x3f, 0xe9, 0x43, 0xd4, 0x51, 0x4f, 0x77, 0x09, 0xdd, 0x83, 0xbc, 0xf0, 0x72, 0x46,
+	0xab, 0x6c, 0x4d, 0xd2, 0x93, 0x5e, 0x59, 0x1b, 0xa1, 0xe5, 0xf1, 0xea, 0xc9, 0x78, 0xf5, 0xb1,
+	0x78, 0xf5, 0x64, 0xbc, 0xea, 0x4f, 0x69, 0xc8, 0x79, 0x69, 0x67, 0xb9, 0xbd, 0x01, 0x19, 0xc2,
+	0xf4, 0xa8, 0x24, 0xbc, 0x3a, 0x18, 0x5e, 0x39, 0x22, 0x0d, 0xfc, 0xaa, 0xc1, 0x6c, 0x70, 0x3e,
+	0xa1, 0x8a, 0x60, 0xc5, 0x91, 0xb0, 0xb2, 0x92, 0xa0, 0x09, 0x30, 0x3e, 0x82, 0x1c, 0x77, 0xca,
+	0x20, 0x65, 0xf4, 0xbb, 0x47, 0x39, 0x97, 0xa8, 0x63, 0x48, 0x17, 0x65, 0x74, 0x0d, 0xd2, 0x1e,
+	0xa1, 0xa1, 0x60, 0xa4, 0xb9, 0x73, 0x47, 0x29, 0x89, 0xc2, 0xc0, 0x81, 0x0f, 0x61, 0x86, 0x31,
+	0x30, 0x5a, 0xe6, 0x6d, 0xf8, 0x10, 0x2a, 0x71, 0x45, 0x00, 0x50, 0x07, 0x08, 0x69, 0x14, 0xad,
+	0xf0, 0x96, 0xa2, 0xff, 0x4a, 0x92, 0x8a, 0xc1, 0xfc, 0x57, 0x46, 0xff, 0x87, 0xac, 0xdf, 0x53,
+	0xa8, 0x2c, 0xf6, 0x18, 0x03, 0x58, 0x8a, 0x8a, 0x03, 0x1f, 0x6e, 0x40, 0x86, 0x8c, 0x6f, 0x58,
+	0x41, 0x9e, 0x49, 0xc3, 0x0a, 0x0a, 0x54, 0xa8, 0x49, 0xde, 0x96, 0x3e, 0x33, 0x85, 0x5b, 0x0a,
+	0x5c, 0x17, 0x6e, 0x29, 0x12, 0x98, 0x26, 0x55, 0xff, 0x94, 0x61, 0x9e, 0xdd, 0xa9, 0x58, 0x23,
+	0xdd, 0x81, 0x1c, 0x77, 0x37, 0x0c, 0x8b, 0x19, 0xbf, 0x74, 0x86, 0xc5, 0x4c, 0xba, 0x4c, 0x4a,
+	0x1e, 0x52, 0x3d, 0x09, 0xa9, 0x3e, 0x06, 0xa9, 0x9e, 0x88, 0xf4, 0x29, 0x7b, 0x17, 0x04, 0x60,
+	0x6b, 0x62, 0x1a, 0xa3, 0x78, 0xea, 0x28, 0x75, 0x10, 0xfa, 0x71, 0x06, 0x72, 0x7b, 0x5c, 0xd8,
+	0xdb, 0x6c, 0x7e, 0x82, 0x36, 0x89, 0x5e, 0x2c, 0xc3, 0x19, 0x88, 0x5d, 0x25, 0xc9, 0x0c, 0x70,
+	0x73, 0xb4, 0x1a, 0xb3, 0xe4, 0x1b, 0x71, 0x6d, 0x84, 0x36, 0xc0, 0xd2, 0xc5, 0x79, 0x52, 0x63,
+	0xf6, 0x62, 0x4f, 0xae, 0x8f, 0xd4, 0x73, 0x73, 0xf5, 0x1e, 0x9d, 0xab, 0x65, 0xde, 0x98, 0x9f,
+	0xad, 0x4a, 0x5c, 0xc1, 0x8d, 0x47, 0x38, 0x5f, 0xe7, 0xa2, 0x76, 0x7c, 0x68, 0xab, 0xc9, 0xca,
+	0x00, 0xe8, 0x40, 0x98, 0xb3, 0xb5, 0xa8, 0xb5, 0x18, 0x97, 0x3a, 0x4a, 0xcd, 0xcd, 0xdb, 0x4e,
+	0x30, 0x6f, 0x42, 0x75, 0xc4, 0x99, 0x53, 0x92, 0x54, 0x81, 0x4f, 0xdb, 0x6c, 0xee, 0x84, 0x0c,
+	0x08, 0xb3, 0xb7, 0x92, 0xa0, 0x09, 0xd6, 0xef, 0x04, 0xf3, 0xb7, 0x22, 0x3a, 0xcc, 0xcf, 0xa0,
+	0x92, 0xa4, 0x62, 0x10, 0xb5, 0x2b, 0x2f, 0x5f, 0xab, 0xd2, 0x2f, 0xaf, 0x55, 0xe9, 0xcd, 0x6b,
+	0x55, 0x7e, 0x3e, 0x54, 0xe5, 0xef, 0x87, 0xaa, 0xfc, 0x62, 0xa8, 0xca, 0x2f, 0x87, 0xaa, 0xfc,
+	0xdb, 0x50, 0x95, 0xff, 0x18, 0xaa, 0xd2, 0x9b, 0xa1, 0x2a, 0x7f, 0xf7, 0xbb, 0x2a, 0x1d, 0x66,
+	0xc9, 0x5f, 0xed, 0xd7, 0xfe, 0x0a, 0x00, 0x00, 0xff, 0xff, 0x83, 0x6c, 0x0d, 0xb8, 0xb8, 0x17,
+	0x00, 0x00,
 }

@@ -17,18 +17,24 @@
 package commands
 
 import (
+	"net"
 	"os"
+	"os/signal"
+	"syscall"
 
-	"github.com/spf13/cobra"
 	"github.com/zero-os/0-stor/client"
 	"github.com/zero-os/0-stor/cmd"
-	"github.com/zero-os/0-stor/daemon/api/grpc"
+	daemon "github.com/zero-os/0-stor/daemon/api/grpc"
+
+	log "github.com/Sirupsen/logrus"
+	"github.com/spf13/cobra"
 )
 
 // daemonCfg represents the daemon subcommand configuration
 var daemonCfg struct {
-	ListenAddress cmd.ListenAddress
-	MaxMsgSize    int
+	ListenAddress        cmd.ListenAddress
+	MaxMsgSize           int
+	DisableLocalFSAccess bool
 }
 
 // daemonCmd represents the daemon subcommand
@@ -41,34 +47,53 @@ var daemonCmd = &cobra.Command{
 func daemonFunc(*cobra.Command, []string) error {
 	cmd.LogVersion()
 
-	confFile, err := os.Open(rootCfg.ConfigFile)
-	if err != nil {
-		return err
-	}
-	defer confFile.Close()
-
-	policy, err := client.NewPolicyFromReader(confFile)
+	// create a TCP listener for our daemon (server)
+	listener, err := net.Listen("tcp", daemonCfg.ListenAddress.String())
 	if err != nil {
 		return err
 	}
 
-	client, err := client.New(policy)
+	// read the client config and create our daemon
+	cfg, err := client.ReadConfig(rootCfg.ConfigFile)
+	if err != nil {
+		return err
+	}
+	daemon, err := daemon.NewFromClientConfig(
+		*cfg, daemonCfg.MaxMsgSize, rootCfg.JobCount,
+		daemonCfg.DisableLocalFSAccess)
 	if err != nil {
 		return err
 	}
 
-	daem, err := grpc.New(client, daemonCfg.MaxMsgSize)
-	if err != nil {
-		return err
-	}
+	// serve our daemon on a separate channel
+	errChan := make(chan error, 1)
+	go func() {
+		err := daemon.Serve(listener)
+		errChan <- err
+	}()
 
-	return daem.Listen(daemonCfg.ListenAddress.String())
+	log.Infof("Daemon Server interface: grpc")
+	log.Infof("Daemon Server listening on %s", listener.Addr().String())
+
+	// wait until the daemon has to be gracefully closed,
+	// or until a fatal error occurs
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT)
+	select {
+	case err := <-errChan:
+		return err
+	case <-sigChan:
+		return daemon.Close()
+	}
 }
 
 func init() {
 	daemonCmd.Flags().VarP(
-		&daemonCfg.ListenAddress, "listen", "L", "Bind the proxy to the given host and port. Format has to be host:port, with host optional (default :8080)")
+		&daemonCfg.ListenAddress, "listen", "L", daemonCfg.ListenAddress.Description())
 	daemonCmd.Flags().IntVar(
-		&daemonCfg.MaxMsgSize, "max-msg-size", 32, "Configure the maximum size of the message this daemon can receive, in MiB")
-
+		&daemonCfg.MaxMsgSize, "max-msg-size", daemon.DefaultMaxSizeMsg,
+		"Configure the maximum size of the message this daemon can receive and send, in MiB")
+	daemonCmd.Flags().BoolVar(
+		&daemonCfg.DisableLocalFSAccess, "no-local-fs", false,
+		"disable any local file system access for r/w purposes")
 }

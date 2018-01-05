@@ -1,125 +1,45 @@
+/*
+ * Copyright (C) 2017-2018 GIG Technology NV and Contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package grpc
 
 import (
-	"crypto/rand"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-	"golang.org/x/net/context"
-	"google.golang.org/grpc"
+	metastor "github.com/zero-os/0-stor/client/metastor/badger"
+	"github.com/zero-os/0-stor/client/pipeline"
 
-	pb "github.com/zero-os/0-stor/daemon/api/grpc/schema"
+	"github.com/stretchr/testify/require"
 )
 
-func TestDaemonNilClient(t *testing.T) {
-	_, err := New(nil, 1)
-	require.Equal(t, ErrNilClient, err)
-}
-func TestDaemonMsgSize(t *testing.T) {
-	const (
-		maxMsgSize = 2
-	)
-	client := &clientStub{
-		objClientStub:       newObjClientStub(),
-		namespaceClientStub: &namespaceClientStub{},
-	}
+func TestConfig_ValidateAndSanitize(t *testing.T) {
+	var cfg Config
 
-	d := newDaemon(client, maxMsgSize)
-	go d.Listen("127.0.0.1:0")
-	<-d.listeningCh
-	defer d.Close()
-
-	// create conn
-	conn, err := grpc.Dial(d.listener.Addr().String(), grpc.WithInsecure())
-	require.NoError(t, err, "can't connect to daemon")
-
-	// create obj client
-	cl := pb.NewObjectServiceClient(conn)
-
-	// test write with data  less than maxMsgSize
-	less := make([]byte, mibToBytes(maxMsgSize)-100)
-	rand.Read(less)
-	_, err = cl.Write(context.Background(), &pb.WriteRequest{
-		Key:   []byte("less"),
-		Value: less,
-	})
-	require.NoError(t, err)
-
-	// test write with data  > maxMsgSize
-	more := make([]byte, mibToBytes(maxMsgSize)+1)
-	rand.Read(more)
-	_, err = cl.Write(context.Background(), &pb.WriteRequest{
-		Key:   []byte("less"),
-		Value: more,
-	})
+	err := cfg.validateAndSanitize()
 	require.Error(t, err)
 
-}
+	cfg.Pipeline = new(pipeline.SingleObjectPipeline)
+	err = cfg.validateAndSanitize()
+	require.Error(t, err)
 
-// test that the daemon has properly set the object service
-func TestDaemonObject(t *testing.T) {
-	const (
-		maxMsgSize = 1
-	)
-	client := &clientStub{
-		objClientStub:       newObjClientStub(),
-		namespaceClientStub: &namespaceClientStub{},
-	}
+	require.Zero(t, cfg.MaxMsgSize)
 
-	d := newDaemon(client, maxMsgSize)
-	go d.Listen("127.0.0.1:0")
-	<-d.listeningCh
-	defer d.Close()
-
-	// create conn
-	conn, err := grpc.Dial(d.listener.Addr().String(), grpc.WithInsecure())
-	require.NoError(t, err, "can't connect to daemon")
-
-	// create obj client
-	cl := pb.NewObjectServiceClient(conn)
-
-	// test read
-	_, err = cl.Write(context.Background(), &pb.WriteRequest{
-		Key:   []byte("myKey"),
-		Value: []byte("myValue"),
-	})
+	cfg.MetaClient = new(metastor.Client)
+	err = cfg.validateAndSanitize()
 	require.NoError(t, err)
-}
 
-// test that the daemon has properly set the namespace service
-func TestDaemonNamespace(t *testing.T) {
-	const (
-		maxMsgSize = 1
-	)
-	client := &clientStub{
-		objClientStub:       newObjClientStub(),
-		namespaceClientStub: &namespaceClientStub{},
-	}
-
-	d := newDaemon(client, maxMsgSize)
-	go d.Listen("127.0.0.1:0")
-	<-d.listeningCh
-	defer d.Close()
-
-	// create conn
-	conn, err := grpc.Dial(d.listener.Addr().String(), grpc.WithInsecure())
-	require.NoError(t, err, "can't connect to daemon")
-
-	// create obj client
-	cl := pb.NewNamespaceServiceClient(conn)
-
-	// test read
-	_, err = cl.CreateNamespace(context.Background(), &pb.NamespaceRequest{
-		Namespace: "ns",
-	})
-	require.NoError(t, err)
-}
-
-type clientStub struct {
-	*objClientStub
-	*namespaceClientStub
-}
-
-func (cs *clientStub) Close() error {
-	return nil
+	require.Equal(t, DefaultMaxSizeMsg, cfg.MaxMsgSize)
 }

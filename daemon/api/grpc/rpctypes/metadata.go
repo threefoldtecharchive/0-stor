@@ -14,6 +14,11 @@
  * limitations under the License.
  */
 
-package grpc
+package rpctypes
 
-//go:generate protoc -I=. -I=../../../vendor -I=../../../vendor/github.com/gogo/protobuf/protobuf --gogoslick_out=plugins=grpc:. schema/daemon.proto
+// GRPC metadata keys used for 0-stor
+const (
+	// MetaKeyTag represents the tag
+	// used to identify/store the key as part of the metadata.
+	MetaKeyTag = "dataKey"
+)

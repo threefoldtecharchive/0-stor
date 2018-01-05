@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+// Package grpc provides a daemon implementation,
+// which provides gRPC interface to the 0-stor client.
+// The gRPC interface specification can be found at `./schema/daemon.proto`.
+//
+// It can be started by using `ztor daemon` command.
 package grpc
-
-//go:generate protoc -I=. -I=../../../vendor -I=../../../vendor/github.com/gogo/protobuf/protobuf --gogoslick_out=plugins=grpc:. schema/daemon.proto
