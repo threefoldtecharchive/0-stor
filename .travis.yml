@@ -63,6 +63,13 @@ matrix:
       sudo: true
       dist: trusty
       go: 1.9.x
+      install: skip
+      script: make testdaemonrace
+
+    - language: go
+      sudo: true
+      dist: trusty
+      go: 1.9.x
       install:
         - ./utils/scripts/install_protoc_unix.sh
       script: make testcodegen

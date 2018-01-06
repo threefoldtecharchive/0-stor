@@ -56,7 +56,7 @@ The config used in this example will also do the following data processing when 
 - Erasure code the blocks over the `data_shards` (into 3 data shards and 1 parity shard).
 
 ## Commands
-The CLI expose two group of commands, file and namespace. Each group contains sub commands.
+The CLI expose three group of commands, file, namespace, daemon. Each group except the daemon contains sub commands.
 
 - file
   - `upload`: Upload a file to the 0-stor(s)
@@ -69,6 +69,17 @@ The CLI expose two group of commands, file and namespace. Each group contains su
   - `delete`: Delete a namespace by deleting the sub-organizations.
   - `permission get`: Print the permission of a user for a namespace
   - `permission set`: Set the permission on a namespace for a user
+
+
+### Start client daemon
+
+```
+zstor --config conf_file.yaml daemon --listen 127.0.0.1:8000
+```
+
+Start the daemon with  `127.0.0.1:8000`  as listen address
+
+More information about the daemon can be found at the daemon [README](/daemon/api/grpc/README.md)
 
 ### Upload a file
 

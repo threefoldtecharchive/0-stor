@@ -15,6 +15,7 @@ for d in $(go list "$1"); do
 done
 }
 
-test_package_coverage "./client/..."
 test_package_coverage "./server/..."
+test_package_coverage "./client/..."
+test_package_coverage "./daemon/..."
 test_package_coverage "./cmd"

@@ -17,16 +17,83 @@
 package commands
 
 import (
-	"errors"
+	"net"
+	"os"
+	"os/signal"
+	"syscall"
 
+	"github.com/zero-os/0-stor/client"
+	"github.com/zero-os/0-stor/cmd"
+	daemon "github.com/zero-os/0-stor/daemon/api/grpc"
+
+	log "github.com/Sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
+
+// daemonCfg represents the daemon subcommand configuration
+var daemonCfg struct {
+	ListenAddress        cmd.ListenAddress
+	MaxMsgSize           int
+	DisableLocalFSAccess bool
+}
 
 // daemonCmd represents the daemon subcommand
 var daemonCmd = &cobra.Command{
 	Use:   "daemon",
 	Short: "Run the client API as a network-connected GRPC client.",
-	RunE: func(*cobra.Command, []string) error {
-		return errors.New("the daemon is not yet supported")
-	},
+	RunE:  daemonFunc,
+}
+
+func daemonFunc(*cobra.Command, []string) error {
+	cmd.LogVersion()
+
+	// create a TCP listener for our daemon (server)
+	listener, err := net.Listen("tcp", daemonCfg.ListenAddress.String())
+	if err != nil {
+		return err
+	}
+
+	// read the client config and create our daemon
+	cfg, err := client.ReadConfig(rootCfg.ConfigFile)
+	if err != nil {
+		return err
+	}
+	daemon, err := daemon.NewFromClientConfig(
+		*cfg, daemonCfg.MaxMsgSize, rootCfg.JobCount,
+		daemonCfg.DisableLocalFSAccess)
+	if err != nil {
+		return err
+	}
+
+	// serve our daemon on a separate channel
+	errChan := make(chan error, 1)
+	go func() {
+		err := daemon.Serve(listener)
+		errChan <- err
+	}()
+
+	log.Infof("Daemon Server interface: grpc")
+	log.Infof("Daemon Server listening on %s", listener.Addr().String())
+
+	// wait until the daemon has to be gracefully closed,
+	// or until a fatal error occurs
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT)
+	select {
+	case err := <-errChan:
+		return err
+	case <-sigChan:
+		return daemon.Close()
+	}
+}
+
+func init() {
+	daemonCmd.Flags().VarP(
+		&daemonCfg.ListenAddress, "listen", "L", daemonCfg.ListenAddress.Description())
+	daemonCmd.Flags().IntVar(
+		&daemonCfg.MaxMsgSize, "max-msg-size", daemon.DefaultMaxSizeMsg,
+		"Configure the maximum size of the message this daemon can receive and send, in MiB")
+	daemonCmd.Flags().BoolVar(
+		&daemonCfg.DisableLocalFSAccess, "no-local-fs", false,
+		"disable any local file system access for r/w purposes")
 }

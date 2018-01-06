@@ -11,6 +11,10 @@ coverage:
         paths: "client/**"
         target: 75%
         threshold: 5%
+      daemon:
+        paths: "daemon/**"
+        target: 75%
+        threshold: 5%
       other:
         paths: "cmd/**"
         target: 65%
@@ -20,7 +24,10 @@ coverage:
   precision: 0
   ignore:
     # ignore all generated files, as we do not control those
+    - server/api/grpc/generate.go
     - server/api/grpc/schema/zstor.pb.go
-    - server/api/grp/generate.go
     - client/metastor/encoding/proto/generate.go
     - client/metastor/encoding/proto/metadata.pb.go
+    - daemon/api/grpc/generate.go
+    - daemon/api/grpc/schema/daemon.pb.go
+

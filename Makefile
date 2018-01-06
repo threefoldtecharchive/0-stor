@@ -11,6 +11,7 @@ BUILD_DATE = $(shell date +%FT%T%z)
 
 SERVER_PACKAGES = $(shell go list ./server/...)
 CLIENT_PACKAGES = $(shell go list ./client/...)
+DAEMON_PACKAGES = $(shell go list ./daemon/...)
 CMD_PACKAGES = $(shell go list ./cmd/...)
 
 ldflags = -extldflags "-static"
@@ -40,18 +41,21 @@ install: all
 	cp $(OUTPUT)/zstor $(GOPATH)/bin/zstor
 	cp $(OUTPUT)/zstordb $(GOPATH)/bin/zstordb
 
-test: testserver testclient testcmd
+test: testserver testclient testdaemon testcmd
 
 testcov:
 	utils/scripts/coverage_test.sh
 
-testrace: testserverrace testclientrace
+testrace: testserverrace testclientrace testdaemonrace
 
 testserver:
 	go test -v -timeout $(TIMEOUT) $(SERVER_PACKAGES)
 
 testclient:
 	go test -v -timeout $(TIMEOUT) $(CLIENT_PACKAGES)
+
+testdaemon:
+	go test -v -timeout $(TIMEOUT) $(DAEMON_PACKAGES)
 
 testcmd:
 	go test -v -timeout $(TIMEOUT) $(CMD_PACKAGES)
@@ -61,6 +65,9 @@ testserverrace:
 
 testclientrace:
 	go test -race -timeout $(RACE_TIMEOUT) $(CLIENT_PACKAGES)
+
+testdaemonrace:
+	go test -v -race $(DAEMON_PACKAGES)
 
 testcodegen:
 	./utils/scripts/test_codegeneration.sh
@@ -90,4 +97,4 @@ prune_deps:
 $(OUTPUT):
 	mkdir -p $(OUTPUT)
 
-.PHONY: $(OUTPUT) client server install test testcov testrace testserver testclient testcmd testserverrace testclientrace testcodegen ensure_deps add_dep update_dep update_deps prune_deps
+.PHONY: $(OUTPUT) client server install test testcov testrace testserver testclient testdaemon testcmd testserverrace testclientrace testdaemonrace testcodegen ensure_deps add_dep update_dep update_deps prune_deps

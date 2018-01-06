@@ -1,0 +1,366 @@
+/*
+ * Copyright (C) 2017-2018 GIG Technology NV and Contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+// Use `go generate ./daemon/api/grpc`
+// to generate the corresponding `.pb.go` file.
+syntax = "proto3";
+
+package schema;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+// NamespaceService is the service to be used to manage namespaces
+// and the permissions of users linked to those namespaces.
+service NamespaceService {
+	rpc CreateNamespace(CreateNamespaceRequest) returns(CreateNamespaceResponse){}
+	rpc DeleteNamespace(DeleteNamespaceRequest) returns(DeleteNamespaceResponse){}
+	rpc SetPermission(SetPermissionRequest) returns(SetPermissionResponse){}
+	rpc GetPermission(GetPermissionRequest) returns(GetPermissionResponse){}
+}
+
+message Permission {
+	bool read = 1;
+	bool write = 2;
+	bool delete = 3;
+	bool admin = 4;
+}
+
+message CreateNamespaceRequest {
+	string namespace = 1;
+}
+message CreateNamespaceResponse {
+}
+
+message DeleteNamespaceRequest {
+	string namespace = 1;
+}
+message DeleteNamespaceResponse {
+}
+
+message SetPermissionRequest {
+	string namespace = 1;
+	string userID = 2;
+	Permission permission = 3;
+}
+message SetPermissionResponse {
+}
+
+message GetPermissionRequest {
+	string namespace = 1;
+	string userID = 2;
+}
+message GetPermissionResponse {
+	Permission permission = 1;
+}
+
+// FileService is the service to be used to write, read, delete, check and repair files.
+// The fileService follows the principle of everything is a file.
+// All files are written as raw binary data, but also have
+// metadata bound to them, which identify where and how they are stored.
+// This metadata is returned, when creating or altering the metadata,
+// however if not needed for anything it can be ignored, as it is stored by the daemon (server),
+// already, using the underlying metastor client.
+service FileService {
+	rpc Write(WriteRequest) returns (WriteResponse) {}
+	rpc WriteFile(WriteFileRequest) returns (WriteFileResponse) {}
+	rpc WriteStream(stream WriteStreamRequest) returns (WriteStreamResponse) {}
+
+	rpc Read(ReadRequest) returns (ReadResponse) {}
+	rpc ReadFile(ReadFileRequest) returns (ReadFileResponse) {}
+	rpc ReadStream(ReadStreamRequest) returns (stream ReadStreamResponse) {}
+
+	rpc Delete(DeleteRequest) returns (DeleteResponse) {}
+
+	rpc Check(CheckRequest) returns (CheckResponse) {}
+	rpc Repair(RepairRequest) returns (RepairResponse) {}
+}
+
+message Metadata {
+    // key defines the key of the data,
+    // and is chosen by the owner of this data.
+    bytes key = 1;
+
+    // size in bytes represents the total size of all chunks,
+    // that make up the stored data, combined.
+    int64 size = 2 [(gogoproto.customname) = "SizeInBytes"];
+
+    // creationEpoch defines the time this data was initially created,
+    // in the Unix epoch format, in nano seconds.
+    int64 creationEpoch = 3;
+    // lastWriteEpoch defines the time this data
+    // was last modified (e.g. repaired),
+    // in the Unix epoch format, in nano seconds.
+    int64 lastWriteEpoch = 4;
+
+    // chunks is the metadata list of all chunks
+    // that make up the data, when combined.
+    repeated Chunk chunks = 5 [(gogoproto.nullable) = false];
+}
+message Chunk {
+    // size of the chunk in bytes
+    int64 size = 1 [(gogoproto.customname) = "SizeInBytes"];
+
+    // objects defines the metadata of the objects
+    // that make up this chunk.
+    repeated Object objects = 2 [(gogoproto.nullable) = false];
+
+    // hash contains the checksum/signature of the chunk (data),
+    // meaning the data of all objects (of this chunk) combined.
+    bytes hash = 3;
+}
+message Object {
+    // key of the Object
+    bytes key = 1;
+
+    // shardID defines the ID of the shard the object is stored on
+    string shardID = 2;
+}
+
+enum CheckStatus {
+	invalid = 0 [(gogoproto.enumvalue_customname) = "CheckStatusInvalid"];
+	valid = 1 [(gogoproto.enumvalue_customname) = "CheckStatusValid"];
+	optimal = 2 [(gogoproto.enumvalue_customname) = "CheckStatusOptimal"];
+}
+
+enum FileMode {
+	// if the file already exists, truncate it to 0 bytes prior to writing
+	truncate = 0 [(gogoproto.enumvalue_customname) = "FileModeTruncate"];
+	// append to the file should it already exists, otherwise create it
+	append = 1 [(gogoproto.enumvalue_customname) = "FileModeAppend"];
+	// create a non-existing file and write to it
+	exclusive = 2 [(gogoproto.enumvalue_customname) = "FileModeExclusive"];
+}
+
+message WriteRequest {
+	bytes key = 1;
+	bytes data = 2;
+}
+message WriteResponse {
+	Metadata metadata = 1;
+}
+
+message WriteFileRequest {
+	bytes key = 1;
+	string filePath = 2;
+}
+message WriteFileResponse {
+	Metadata metadata = 1;
+}
+
+// key is send as part of header
+message WriteStreamRequest {
+	oneof input {
+		Metadata metadata = 1; // first message should be the metadata
+		Data data = 2; // all other messages (at least one) should be data itself
+	}
+
+	message Metadata {
+		bytes key = 1;
+	}
+	message Data {
+		bytes dataChunk = 2;
+	}
+}
+message WriteStreamResponse {
+	Metadata metadata = 1;
+}
+
+message ReadRequest {
+	oneof input {
+		bytes key = 1;
+		Metadata metadata = 2;
+	}
+}
+message ReadResponse {
+	bytes data = 1;
+}
+
+message ReadFileRequest {
+	oneof input {
+		bytes key = 1;
+		Metadata metadata = 2;
+	}
+
+	// destination file and its configuration
+	string filePath = 3;
+	FileMode fileMode = 4;
+	bool synchronousIO = 5; // open file for synchronous I/O
+
+}
+message ReadFileResponse {
+}
+
+message ReadStreamRequest {
+	oneof input {
+		bytes key = 1;
+		Metadata metadata = 2;
+	}
+	int64 chunkSize = 3;
+}
+message ReadStreamResponse {
+	bytes dataChunk = 1;
+}
+
+message DeleteRequest {
+	oneof input {
+		bytes key = 1;
+		Metadata metadata = 2;
+	}
+}
+message DeleteResponse {
+}
+
+message CheckRequest {
+	oneof input {
+		bytes key = 1;
+		Metadata metadata = 2;
+	}
+	bool fast = 3;
+}
+message CheckResponse {
+	CheckStatus status = 1;
+}
+
+message RepairRequest {
+	bytes key = 1;
+}
+message RepairResponse {
+	Metadata metadata = 1;
+}
+
+// MetadataService is used to set, get and delete metadata directly
+// using the underlying metadata storage client.
+service MetadataService {
+	rpc SetMetadata(SetMetadataRequest) returns (SetMetadataResponse) {}
+	rpc GetMetadata(GetMetadataRequest) returns (GetMetadataResponse) {}
+	rpc DeleteMetadata(DeleteMetadataRequest) returns (DeleteMetadataResponse) {}
+
+	// TODO:
+	// figure out a way to support UpdateMetadata,
+	// as this would be a feature required,
+	// should you want to (partially) update existing
+	// metadata
+}
+
+message SetMetadataRequest {
+	Metadata metadata = 1;
+}
+message SetMetadataResponse {
+}
+
+message GetMetadataRequest {
+	bytes key = 1;
+}
+message GetMetadataResponse {
+	Metadata metadata = 1;
+}
+
+message DeleteMetadataRequest {
+	bytes key = 1;
+}
+message DeleteMetadataResponse {
+}
+
+// DataService is used write, read, delete, check and repair (processed) data.
+// as data can be written to multiple servers and/or be split over multiple chunks,
+// some metadata is returned which the user is expected to store somewhere,
+// as that metadata is required to read and manage the data, later on.
+//
+// Should you not want to have to deal with this metadata yourself,
+// you should use the FileService instead, which is one level higher,
+// and takes care of managing and storing the metadata for you,
+// as well as generating extra metadata, such as the creation epoch time.
+service DataService {
+	rpc Write(DataWriteRequest) returns (DataWriteResponse) {}
+	rpc WriteFile(DataWriteFileRequest) returns (DataWriteFileResponse) {}
+	rpc WriteStream(stream DataWriteStreamRequest) returns (DataWriteStreamResponse) {}
+
+	rpc Read(DataReadRequest) returns (DataReadResponse) {}
+	rpc ReadFile(DataReadFileRequest) returns (DataReadFileResponse) {}
+	rpc ReadStream(DataReadStreamRequest) returns (stream DataReadStreamResponse) {}
+
+	rpc Delete(DataDeleteRequest) returns (DataDeleteResponse) {}
+
+	rpc Check(DataCheckRequest) returns (DataCheckResponse) {}
+	rpc Repair(DataRepairRequest) returns (DataRepairResponse) {}
+}
+
+message DataWriteRequest {
+	bytes data = 1;
+}
+message DataWriteResponse {
+	repeated Chunk chunks = 1 [(gogoproto.nullable) = false];
+}
+
+message DataWriteFileRequest {
+	string filePath = 1;
+}
+message DataWriteFileResponse {
+	repeated Chunk chunks = 1 [(gogoproto.nullable) = false];
+}
+
+message DataWriteStreamRequest {
+	bytes dataChunk = 1;
+}
+message DataWriteStreamResponse {
+	repeated Chunk chunks = 1 [(gogoproto.nullable) = false];
+}
+
+message DataReadRequest {
+	repeated Chunk chunks = 1 [(gogoproto.nullable) = false];
+}
+message DataReadResponse {
+	bytes data = 1;
+}
+
+message DataReadFileRequest {
+	repeated Chunk chunks = 1 [(gogoproto.nullable) = false];
+	// destination file and its configuration
+	string filePath = 2;
+	FileMode fileMode = 3;
+	bool synchronousIO = 4; // open file for synchronous I/O
+}
+message DataReadFileResponse {
+}
+
+message DataReadStreamRequest {
+	repeated Chunk chunks = 1 [(gogoproto.nullable) = false];
+	int64 chunkSize = 2;
+}
+message DataReadStreamResponse {
+	bytes dataChunk = 1;
+}
+
+message DataDeleteRequest {
+	repeated Chunk chunks = 1 [(gogoproto.nullable) = false];
+}
+message DataDeleteResponse {
+}
+
+message DataCheckRequest {
+	repeated Chunk chunks = 1 [(gogoproto.nullable) = false];
+	bool fast = 2;
+}
+message DataCheckResponse {
+	CheckStatus status = 1;
+}
+
+message DataRepairRequest {
+	repeated Chunk chunks = 1 [(gogoproto.nullable) = false];
+}
+message DataRepairResponse {
+	repeated Chunk chunks = 1 [(gogoproto.nullable) = false];
+}
