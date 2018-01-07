@@ -27,7 +27,7 @@ import (
 	"github.com/zero-os/0-stor/client/datastor/pipeline"
 	"github.com/zero-os/0-stor/client/itsyouonline"
 	"github.com/zero-os/0-stor/client/metastor"
-	"github.com/zero-os/0-stor/client/metastor/etcd"
+	"github.com/zero-os/0-stor/client/metastor/db/etcd"
 	"github.com/zero-os/0-stor/daemon/api"
 	pb "github.com/zero-os/0-stor/daemon/api/grpc/schema"
 
@@ -48,7 +48,7 @@ type Daemon struct {
 type Config struct {
 	// required parameters
 	Pipeline   pipeline.Pipeline
-	MetaClient metastor.Client
+	MetaClient *metastor.Client
 
 	// optional parameters
 	IYOClient            *itsyouonline.Client
@@ -107,9 +107,12 @@ func NewFromClientConfig(cfg client.Config, maxMsgSize, jobCount int, disableLoc
 		return nil, errors.New("no metadata storage given")
 	}
 
-	// create metastor client first,
-	// and than create our master 0-stor client with all features.
-	metastorClient, err := etcd.NewClient(cfg.MetaStor.Shards, nil)
+	// create ETCD-backed metastor database (client)
+	db, err := etcd.New(cfg.MetaStor.Shards)
+	if err != nil {
+		return nil, err
+	}
+	metastorClient, err := metastor.NewClient(metastor.Config{Database: db})
 	if err != nil {
 		return nil, err
 	}

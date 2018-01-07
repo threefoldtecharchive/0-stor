@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	"github.com/zero-os/0-stor/client/datastor/pipeline/storage"
-	"github.com/zero-os/0-stor/client/metastor"
+	"github.com/zero-os/0-stor/client/metastor/metatypes"
 	"github.com/zero-os/0-stor/daemon/api/grpc/rpctypes"
 	pb "github.com/zero-os/0-stor/daemon/api/grpc/schema"
 
@@ -197,20 +197,20 @@ func TestDataService_RepairError(t *testing.T) {
 
 type dataClientStub struct{}
 
-func (stub dataClientStub) Write(r io.Reader) ([]metastor.Chunk, error) {
+func (stub dataClientStub) Write(r io.Reader) ([]metatypes.Chunk, error) {
 	return nil, nil
 }
-func (stub dataClientStub) Read(chunks []metastor.Chunk, w io.Writer) error {
+func (stub dataClientStub) Read(chunks []metatypes.Chunk, w io.Writer) error {
 	_, err := w.Write([]byte("hello"))
 	return err
 }
-func (stub dataClientStub) Delete(chunks []metastor.Chunk) error {
+func (stub dataClientStub) Delete(chunks []metatypes.Chunk) error {
 	return nil
 }
-func (stub dataClientStub) Check(chunks []metastor.Chunk, fast bool) (storage.CheckStatus, error) {
+func (stub dataClientStub) Check(chunks []metatypes.Chunk, fast bool) (storage.CheckStatus, error) {
 	return 0, nil
 }
-func (stub dataClientStub) Repair(chunks []metastor.Chunk) ([]metastor.Chunk, error) {
+func (stub dataClientStub) Repair(chunks []metatypes.Chunk) ([]metatypes.Chunk, error) {
 	return nil, nil
 }
 
@@ -218,19 +218,19 @@ var errFooDataClient = errors.New("dataErrorClient: foo")
 
 type dataErrorClient struct{}
 
-func (stub dataErrorClient) Write(r io.Reader) ([]metastor.Chunk, error) {
+func (stub dataErrorClient) Write(r io.Reader) ([]metatypes.Chunk, error) {
 	return nil, errFooDataClient
 }
-func (stub dataErrorClient) Read(chunks []metastor.Chunk, w io.Writer) error {
+func (stub dataErrorClient) Read(chunks []metatypes.Chunk, w io.Writer) error {
 	return errFooDataClient
 }
-func (stub dataErrorClient) Delete(chunks []metastor.Chunk) error {
+func (stub dataErrorClient) Delete(chunks []metatypes.Chunk) error {
 	return errFooDataClient
 }
-func (stub dataErrorClient) Check(chunks []metastor.Chunk, fast bool) (storage.CheckStatus, error) {
+func (stub dataErrorClient) Check(chunks []metatypes.Chunk, fast bool) (storage.CheckStatus, error) {
 	return 0, errFooDataClient
 }
-func (stub dataErrorClient) Repair(chunks []metastor.Chunk) ([]metastor.Chunk, error) {
+func (stub dataErrorClient) Repair(chunks []metatypes.Chunk) ([]metatypes.Chunk, error) {
 	return nil, errFooDataClient
 }
 

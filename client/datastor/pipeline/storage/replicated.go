@@ -22,7 +22,7 @@ import (
 	"sync"
 
 	"github.com/zero-os/0-stor/client/datastor"
-	"github.com/zero-os/0-stor/client/metastor"
+	"github.com/zero-os/0-stor/client/metastor/metatypes"
 
 	log "github.com/Sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
@@ -180,7 +180,7 @@ func (rs *ReplicatedChunkStorage) CheckChunk(cfg ChunkConfig, fast bool) (CheckS
 				err    error
 				status datastor.ObjectStatus
 				index  int
-				object metastor.Object
+				object metatypes.Object
 				shard  datastor.Shard
 			)
 
@@ -365,7 +365,7 @@ func (rs *ReplicatedChunkStorage) RepairChunk(cfg ChunkConfig) (*ChunkConfig, er
 
 // splitObjects is a private utility method,
 // to help us split the given objects into valid and invalid ones.
-func (rs *ReplicatedChunkStorage) splitObjects(allObjects []metastor.Object) (validObjects []metastor.Object, invalidObjects []metastor.Object) {
+func (rs *ReplicatedChunkStorage) splitObjects(allObjects []metatypes.Object) (validObjects []metatypes.Object, invalidObjects []metatypes.Object) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -413,7 +413,7 @@ func (rs *ReplicatedChunkStorage) splitObjects(allObjects []metastor.Object) (va
 				err    error
 				status datastor.ObjectStatus
 				index  int
-				object metastor.Object
+				object metatypes.Object
 				shard  datastor.Shard
 			)
 
@@ -496,7 +496,7 @@ func (rs *ReplicatedChunkStorage) write(exceptShards []string, dataShardCount in
 	// write to dataShardCount amount of shards,
 	// and return their identifiers over the resultCh,
 	// collection all the successful shards' identifiers for the final output
-	resultCh := make(chan metastor.Object, jobCount)
+	resultCh := make(chan metatypes.Object, jobCount)
 	// create all the actual workers
 	for i := 0; i < jobCount; i++ {
 		group.Go(func() error {
@@ -504,7 +504,7 @@ func (rs *ReplicatedChunkStorage) write(exceptShards []string, dataShardCount in
 				open   bool
 				err    error
 				shard  datastor.Shard
-				object metastor.Object
+				object metatypes.Object
 			)
 			for {
 				// wait for a request
@@ -571,7 +571,7 @@ func (rs *ReplicatedChunkStorage) write(exceptShards []string, dataShardCount in
 
 	cfg := &ChunkConfig{Size: int64(len(data))}
 	// collect the identifiers of all shards, we could write our object to
-	cfg.Objects = make([]metastor.Object, 0, rs.dataShardCount)
+	cfg.Objects = make([]metatypes.Object, 0, rs.dataShardCount)
 	// fetch all results
 	for object := range resultCh {
 		cfg.Objects = append(cfg.Objects, object)
@@ -631,7 +631,7 @@ func (rs *ReplicatedChunkStorage) DeleteChunk(cfg ChunkConfig) error {
 		group.Go(func() error {
 			var (
 				err   error
-				obj   *metastor.Object
+				obj   *metatypes.Object
 				shard datastor.Shard
 			)
 			for index := range indexCh {

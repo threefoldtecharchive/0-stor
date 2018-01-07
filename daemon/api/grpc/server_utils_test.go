@@ -29,7 +29,8 @@ import (
 	clientGRPC "github.com/zero-os/0-stor/client/datastor/grpc"
 	"github.com/zero-os/0-stor/client/datastor/pipeline"
 	"github.com/zero-os/0-stor/client/datastor/pipeline/storage"
-	metastor "github.com/zero-os/0-stor/client/metastor/badger"
+	"github.com/zero-os/0-stor/client/metastor"
+	"github.com/zero-os/0-stor/client/metastor/db/badger"
 	"github.com/zero-os/0-stor/server/api/grpc"
 	"github.com/zero-os/0-stor/server/db/memory"
 )
@@ -52,7 +53,12 @@ func newTestDaemon(t *testing.T) *Daemon {
 	require.NoError(t, err)
 	dataDir := path.Join(tmpDir, "data")
 	metaDir := path.Join(tmpDir, "meta")
-	metaClient, err := metastor.NewClient(dataDir, metaDir, nil)
+	db, err := badger.New(dataDir, metaDir)
+	if err != nil {
+		cleanup()
+		t.Fatal(err)
+	}
+	metaClient, err := metastor.NewClient(metastor.Config{Database: db})
 	if err != nil {
 		cleanup()
 		t.Fatal(err)

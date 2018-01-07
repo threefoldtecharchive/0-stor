@@ -20,18 +20,18 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/zero-os/0-stor/client/metastor"
 	"github.com/zero-os/0-stor/client/metastor/encoding/proto"
+	"github.com/zero-os/0-stor/client/metastor/metatypes"
 )
 
 // MarshalMetadata returns the encoding of the metadata parameter.
 // It is important to use this function with a matching `UnmarshalMetadata` function.
-type MarshalMetadata func(md metastor.Metadata) ([]byte, error)
+type MarshalMetadata func(md metatypes.Metadata) ([]byte, error)
 
 // UnmarshalMetadata parses the encoded metadata
 // and stores the result in the value pointed to by the data parameter.
 // It is important to use this function with a matching `MashalMetadata` function.
-type UnmarshalMetadata func(b []byte, md *metastor.Metadata) error
+type UnmarshalMetadata func(b []byte, md *metatypes.Metadata) error
 
 // NewMarshalFuncPair returns a registered MarshalFuncPair,
 // for a given MarshalType.

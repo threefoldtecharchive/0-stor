@@ -25,7 +25,7 @@ import (
 	"github.com/zero-os/0-stor/client"
 	"github.com/zero-os/0-stor/client/itsyouonline"
 	"github.com/zero-os/0-stor/client/metastor"
-	"github.com/zero-os/0-stor/client/metastor/etcd"
+	"github.com/zero-os/0-stor/client/metastor/db/etcd"
 	"github.com/zero-os/0-stor/cmd"
 
 	log "github.com/Sirupsen/logrus"
@@ -72,7 +72,7 @@ func getClient() (*client.Client, error) {
 	return cl, nil
 }
 
-func getMetaClient() (metastor.Client, error) {
+func getMetaClient() (*metastor.Client, error) {
 	cfg, err := client.ReadConfig(rootCfg.ConfigFile)
 	if err != nil {
 		return nil, err
@@ -80,7 +80,14 @@ func getMetaClient() (metastor.Client, error) {
 	if len(cfg.MetaStor.Shards) == 0 {
 		return nil, errors.New("failed to create metastor client: no metastor shards defined")
 	}
-	return etcd.NewClient(cfg.MetaStor.Shards, nil)
+
+	// create ETCD database (client)
+	db, err := etcd.New(cfg.MetaStor.Shards)
+	if err != nil {
+		return nil, err
+	}
+	// create metastor client
+	return metastor.NewClient(metastor.Config{Database: db})
 }
 
 func getNamespaceManager() (*itsyouonline.Client, error) {

@@ -20,7 +20,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/zero-os/0-stor/client/metastor"
+	"github.com/zero-os/0-stor/client/metastor/metatypes"
 	"github.com/zero-os/0-stor/daemon/api/grpc/rpctypes"
 	pb "github.com/zero-os/0-stor/daemon/api/grpc/schema"
 
@@ -96,11 +96,11 @@ func TestDeleteMetadataError(t *testing.T) {
 
 type metadataClientStub struct{}
 
-func (stub metadataClientStub) SetMetadata(metadata metastor.Metadata) error {
+func (stub metadataClientStub) SetMetadata(metadata metatypes.Metadata) error {
 	return nil
 }
-func (stub metadataClientStub) GetMetadata(key []byte) (*metastor.Metadata, error) {
-	return &metastor.Metadata{}, nil
+func (stub metadataClientStub) GetMetadata(key []byte) (*metatypes.Metadata, error) {
+	return &metatypes.Metadata{}, nil
 }
 func (stub metadataClientStub) DeleteMetadata(key []byte) error {
 	return nil
@@ -110,10 +110,10 @@ var errFooMetadataClient = errors.New("metadataErrorClient: foo")
 
 type metadataErrorClient struct{}
 
-func (stub metadataErrorClient) SetMetadata(metadata metastor.Metadata) error {
+func (stub metadataErrorClient) SetMetadata(metadata metatypes.Metadata) error {
 	return errFooMetadataClient
 }
-func (stub metadataErrorClient) GetMetadata(key []byte) (*metastor.Metadata, error) {
+func (stub metadataErrorClient) GetMetadata(key []byte) (*metatypes.Metadata, error) {
 	return nil, errFooMetadataClient
 }
 func (stub metadataErrorClient) DeleteMetadata(key []byte) error {

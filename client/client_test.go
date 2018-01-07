@@ -24,9 +24,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/zero-os/0-stor/client/metastor"
+
 	"github.com/zero-os/0-stor/client/datastor/pipeline"
 	"github.com/zero-os/0-stor/client/datastor/pipeline/storage"
-	"github.com/zero-os/0-stor/client/metastor/test"
 	"github.com/zero-os/0-stor/client/processing"
 
 	"github.com/stretchr/testify/assert"
@@ -65,7 +66,7 @@ func TestNewClientPanics(t *testing.T) {
 		NewClient(nil, new(pipeline.SingleObjectPipeline))
 	}, "no metastor client given")
 	require.Panics(func() {
-		NewClient(test.NewClient(), nil)
+		NewClient(new(metastor.Client), nil)
 	}, "no data pipeline given")
 }
 

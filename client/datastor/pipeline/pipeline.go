@@ -21,7 +21,7 @@ import (
 
 	"github.com/zero-os/0-stor/client/datastor/pipeline/crypto"
 	"github.com/zero-os/0-stor/client/datastor/pipeline/storage"
-	"github.com/zero-os/0-stor/client/metastor"
+	"github.com/zero-os/0-stor/client/metastor/metatypes"
 	"github.com/zero-os/0-stor/client/processing"
 )
 
@@ -41,21 +41,21 @@ import (
 type Pipeline interface {
 	// Write content to a zstordb cluster,
 	// the details depend upon the specific implementation.
-	Write(r io.Reader) ([]metastor.Chunk, error)
+	Write(r io.Reader) ([]metatypes.Chunk, error)
 	// Read content from a zstordb cluster,
 	// the details depend upon the specific implementation.
-	Read(chunks []metastor.Chunk, w io.Writer) error
+	Read(chunks []metatypes.Chunk, w io.Writer) error
 
 	// Check if content stored on a zstordb cluster is (still) valid,
 	// the details depend upon the specific implementation.
-	Check(chunks []metastor.Chunk, fast bool) (storage.CheckStatus, error)
+	Check(chunks []metatypes.Chunk, fast bool) (storage.CheckStatus, error)
 	// Repair content stored on a zstordb cluster,
 	// the details depend upon the specific implementation.
-	Repair(chunks []metastor.Chunk) ([]metastor.Chunk, error)
+	Repair(chunks []metatypes.Chunk) ([]metatypes.Chunk, error)
 
 	// Delete content stored on a zstordb cluster,
 	// the details depend upon the specific implementation.
-	Delete(chunks []metastor.Chunk) error
+	Delete(chunks []metatypes.Chunk) error
 
 	// Close any open resources.
 	Close() error

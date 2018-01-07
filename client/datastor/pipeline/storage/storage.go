@@ -20,7 +20,7 @@ import (
 	"errors"
 	"runtime"
 
-	"github.com/zero-os/0-stor/client/metastor"
+	"github.com/zero-os/0-stor/client/metastor/metatypes"
 )
 
 var (
@@ -83,7 +83,7 @@ type ChunkStorage interface {
 // The callee can use this config at a later time in order to read the chunk once again.
 type ChunkConfig struct {
 	Size    int64
-	Objects []metastor.Object
+	Objects []metatypes.Object
 }
 
 // CheckStatus is the status returned when checking the

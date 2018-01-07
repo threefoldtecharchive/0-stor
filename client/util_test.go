@@ -25,8 +25,10 @@ import (
 
 	"github.com/zero-os/0-stor/client/datastor"
 	"github.com/zero-os/0-stor/client/datastor/pipeline"
-	"github.com/zero-os/0-stor/client/metastor/etcd"
-	"github.com/zero-os/0-stor/client/metastor/test"
+	"github.com/zero-os/0-stor/client/metastor"
+	dbp "github.com/zero-os/0-stor/client/metastor/db"
+	"github.com/zero-os/0-stor/client/metastor/db/etcd"
+	"github.com/zero-os/0-stor/client/metastor/db/test"
 	"github.com/zero-os/0-stor/server/api"
 	"github.com/zero-os/0-stor/server/api/grpc"
 	"github.com/zero-os/0-stor/server/db/badger"
@@ -103,14 +105,20 @@ func getTestClient(cfg Config) (*Client, datastor.Cluster, error) {
 		return nil, nil, err
 	}
 
-	// if no metadata shards are given, we'll use a memory client
-	if len(cfg.MetaStor.Shards) == 0 {
-		return NewClient(test.NewClient(), dataPipeline), datastorCluster, nil
+	// create ETCD or in-memory db
+	var db dbp.DB
+	if len(cfg.MetaStor.Shards) != 0 {
+		db, err = etcd.New(cfg.MetaStor.Shards)
+		if err != nil {
+			return nil, nil, err
+		}
+	} else {
+		db = test.New()
 	}
 
 	// create metastor client first,
 	// and than create our master 0-stor client with all features.
-	metastorClient, err := etcd.NewClient(cfg.MetaStor.Shards, nil)
+	metastorClient, err := metastor.NewClient(metastor.Config{Database: db})
 	if err != nil {
 		return nil, nil, err
 	}

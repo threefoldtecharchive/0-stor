@@ -23,7 +23,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/zero-os/0-stor/client/datastor/pipeline/storage"
-	"github.com/zero-os/0-stor/client/metastor"
+	"github.com/zero-os/0-stor/client/metastor/metatypes"
 	"github.com/zero-os/0-stor/daemon/api/grpc/rpctypes"
 	pb "github.com/zero-os/0-stor/daemon/api/grpc/schema"
 
@@ -262,49 +262,49 @@ func TestFileService_RepairError(t *testing.T) {
 
 type fileClientStub struct{}
 
-func (stub fileClientStub) Write(key []byte, r io.Reader) (*metastor.Metadata, error) {
-	return &metastor.Metadata{}, nil
+func (stub fileClientStub) Write(key []byte, r io.Reader) (*metatypes.Metadata, error) {
+	return &metatypes.Metadata{}, nil
 }
 func (stub fileClientStub) Read(key []byte, w io.Writer) error {
 	_, err := w.Write(key)
 	return err
 }
-func (stub fileClientStub) ReadWithMeta(meta metastor.Metadata, w io.Writer) error {
+func (stub fileClientStub) ReadWithMeta(meta metatypes.Metadata, w io.Writer) error {
 	_, err := w.Write(append([]byte("hello"), meta.Key...))
 	return err
 }
 func (stub fileClientStub) Delete(key []byte) error                                  { return nil }
-func (stub fileClientStub) DeleteWithMeta(meta metastor.Metadata) error              { return nil }
+func (stub fileClientStub) DeleteWithMeta(meta metatypes.Metadata) error             { return nil }
 func (stub fileClientStub) Check(key []byte, fast bool) (storage.CheckStatus, error) { return 0, nil }
-func (stub fileClientStub) CheckWithMeta(meta metastor.Metadata, fast bool) (storage.CheckStatus, error) {
+func (stub fileClientStub) CheckWithMeta(meta metatypes.Metadata, fast bool) (storage.CheckStatus, error) {
 	return 0, nil
 }
-func (stub fileClientStub) Repair(key []byte) (*metastor.Metadata, error) {
-	return &metastor.Metadata{}, nil
+func (stub fileClientStub) Repair(key []byte) (*metatypes.Metadata, error) {
+	return &metatypes.Metadata{}, nil
 }
 
 var errFooFileClient = errors.New("fileErrorClient: foo")
 
 type fileErrorClient struct{}
 
-func (c fileErrorClient) Write(key []byte, r io.Reader) (*metastor.Metadata, error) {
+func (c fileErrorClient) Write(key []byte, r io.Reader) (*metatypes.Metadata, error) {
 	return nil, errFooFileClient
 }
 func (c fileErrorClient) Read(key []byte, w io.Writer) error {
 	return errFooFileClient
 }
-func (c fileErrorClient) ReadWithMeta(meta metastor.Metadata, w io.Writer) error {
+func (c fileErrorClient) ReadWithMeta(meta metatypes.Metadata, w io.Writer) error {
 	return errFooFileClient
 }
-func (c fileErrorClient) Delete(key []byte) error                     { return errFooFileClient }
-func (c fileErrorClient) DeleteWithMeta(meta metastor.Metadata) error { return errFooFileClient }
+func (c fileErrorClient) Delete(key []byte) error                      { return errFooFileClient }
+func (c fileErrorClient) DeleteWithMeta(meta metatypes.Metadata) error { return errFooFileClient }
 func (c fileErrorClient) Check(key []byte, fast bool) (storage.CheckStatus, error) {
 	return 0, errFooFileClient
 }
-func (c fileErrorClient) CheckWithMeta(meta metastor.Metadata, fast bool) (storage.CheckStatus, error) {
+func (c fileErrorClient) CheckWithMeta(meta metatypes.Metadata, fast bool) (storage.CheckStatus, error) {
 	return 0, errFooFileClient
 }
-func (c fileErrorClient) Repair(key []byte) (*metastor.Metadata, error) {
+func (c fileErrorClient) Repair(key []byte) (*metatypes.Metadata, error) {
 	return nil, errFooFileClient
 }
 

@@ -27,28 +27,27 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/zero-os/0-stor/client/metastor"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/zero-os/0-stor/client/datastor/pipeline/storage"
+	"github.com/zero-os/0-stor/client/metastor/metatypes"
 	"github.com/zero-os/0-stor/daemon/api/grpc/rpctypes"
 	pb "github.com/zero-os/0-stor/daemon/api/grpc/schema"
 )
 
 func TestConvertMetaChunkSlice(t *testing.T) {
-	testCases := [][]metastor.Chunk{
+	testCases := [][]metatypes.Chunk{
 		nil,
-		{metastor.Chunk{Size: 0, Objects: nil, Hash: nil}},
-		{metastor.Chunk{Size: 42, Objects: nil, Hash: []byte("foo")}},
-		{metastor.Chunk{Size: 42, Objects: []metastor.Object{metastor.Object{}}, Hash: []byte("foo")}},
-		{metastor.Chunk{Size: 42,
-			Objects: []metastor.Object{metastor.Object{Key: []byte("bar")}}, Hash: []byte("foo")}},
+		{metatypes.Chunk{Size: 0, Objects: nil, Hash: nil}},
+		{metatypes.Chunk{Size: 42, Objects: nil, Hash: []byte("foo")}},
+		{metatypes.Chunk{Size: 42, Objects: []metatypes.Object{metatypes.Object{}}, Hash: []byte("foo")}},
+		{metatypes.Chunk{Size: 42,
+			Objects: []metatypes.Object{metatypes.Object{Key: []byte("bar")}}, Hash: []byte("foo")}},
 		{
-			metastor.Chunk{Size: 42,
-				Objects: []metastor.Object{metastor.Object{Key: []byte("bar")}}, Hash: []byte("foo")},
-			metastor.Chunk{Size: 13,
-				Objects: []metastor.Object{metastor.Object{Key: []byte("foo")}}, Hash: []byte("faz")},
+			metatypes.Chunk{Size: 42,
+				Objects: []metatypes.Object{metatypes.Object{Key: []byte("bar")}}, Hash: []byte("foo")},
+			metatypes.Chunk{Size: 13,
+				Objects: []metatypes.Object{metatypes.Object{Key: []byte("foo")}}, Hash: []byte("faz")},
 		},
 	}
 	for _, testCase := range testCases {
@@ -59,17 +58,17 @@ func TestConvertMetaChunkSlice(t *testing.T) {
 }
 
 func TestConvertMetadata(t *testing.T) {
-	testCases := []metastor.Metadata{
+	testCases := []metatypes.Metadata{
 		{},
 		{Key: []byte("foo"), Size: 1, CreationEpoch: 2, LastWriteEpoch: 3},
-		{Chunks: []metastor.Chunk{metastor.Chunk{Size: 42, Objects: nil, Hash: []byte("foo")}}},
+		{Chunks: []metatypes.Chunk{metatypes.Chunk{Size: 42, Objects: nil, Hash: []byte("foo")}}},
 		{Key: []byte("foo"), Size: 1, CreationEpoch: 2, LastWriteEpoch: 3,
-			Chunks: []metastor.Chunk{metastor.Chunk{Size: 42, Objects: nil, Hash: []byte("foo")}}},
+			Chunks: []metatypes.Chunk{metatypes.Chunk{Size: 42, Objects: nil, Hash: []byte("foo")}}},
 		{Key: []byte("foo"), Size: 3, CreationEpoch: 2, LastWriteEpoch: 1,
-			Chunks: []metastor.Chunk{
-				metastor.Chunk{Size: 123, Objects: nil, Hash: []byte("foo")},
-				metastor.Chunk{Size: 321, Objects: []metastor.Object{
-					metastor.Object{Key: []byte("foo")},
+			Chunks: []metatypes.Chunk{
+				metatypes.Chunk{Size: 123, Objects: nil, Hash: []byte("foo")},
+				metatypes.Chunk{Size: 321, Objects: []metatypes.Object{
+					metatypes.Object{Key: []byte("foo")},
 				}, Hash: []byte("bar")},
 			}},
 	}

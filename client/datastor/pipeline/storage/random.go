@@ -20,7 +20,7 @@ import (
 	"errors"
 
 	"github.com/zero-os/0-stor/client/datastor"
-	"github.com/zero-os/0-stor/client/metastor"
+	"github.com/zero-os/0-stor/client/metastor/metatypes"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -62,7 +62,7 @@ func (rs *RandomChunkStorage) WriteChunk(data []byte) (*ChunkConfig, error) {
 		if err == nil {
 			return &ChunkConfig{
 				Size: int64(len(data)),
-				Objects: []metastor.Object{
+				Objects: []metatypes.Object{
 					{
 						Key:     key,
 						ShardID: shard.Identifier(),

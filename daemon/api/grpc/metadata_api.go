@@ -18,6 +18,7 @@ package grpc
 
 import (
 	"github.com/zero-os/0-stor/client/metastor"
+	"github.com/zero-os/0-stor/client/metastor/metatypes"
 	"github.com/zero-os/0-stor/daemon/api/grpc/rpctypes"
 	pb "github.com/zero-os/0-stor/daemon/api/grpc/schema"
 
@@ -41,7 +42,7 @@ func (service *metadataService) SetMetadata(ctx context.Context, req *pb.SetMeta
 		return nil, rpctypes.ErrGRPCNilMetadata
 	}
 
-	// convert pb.Metadata into a metastor.Metadata structure
+	// convert pb.Metadata into a metatypes.Metadata structure
 	input := convertProtoToInMemoryMetadata(metadata)
 
 	err := service.client.SetMetadata(input)
@@ -63,7 +64,7 @@ func (service *metadataService) GetMetadata(ctx context.Context, req *pb.GetMeta
 		return nil, mapMetaStorError(err)
 	}
 
-	// convert metastor.Metadata into a pb.Metadata structure
+	// convert metatypes.Metadata into a pb.Metadata structure
 	output := convertInMemoryToProtoMetadata(*metadata)
 	return &pb.GetMetadataResponse{Metadata: output}, nil
 }
@@ -85,12 +86,12 @@ func (service *metadataService) DeleteMetadata(ctx context.Context, req *pb.Dele
 // metadataClient is used by the metadataService,
 // to run the actual business logic of the service.
 type metadataClient interface {
-	SetMetadata(metadata metastor.Metadata) error
-	GetMetadata(key []byte) (*metastor.Metadata, error)
+	SetMetadata(metadata metatypes.Metadata) error
+	GetMetadata(key []byte) (*metatypes.Metadata, error)
 	DeleteMetadata(key []byte) error
 }
 
 var (
 	_ pb.MetadataServiceServer = (*metadataService)(nil)
-	_ metadataClient           = (metastor.Client)(nil)
+	_ metadataClient           = (*metastor.Client)(nil)
 )

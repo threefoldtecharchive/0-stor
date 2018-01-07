@@ -25,7 +25,8 @@ import (
 	"github.com/zero-os/0-stor/client"
 	datastor "github.com/zero-os/0-stor/client/datastor/grpc"
 	"github.com/zero-os/0-stor/client/datastor/pipeline"
-	"github.com/zero-os/0-stor/client/metastor/badger"
+	"github.com/zero-os/0-stor/client/metastor"
+	"github.com/zero-os/0-stor/client/metastor/db/badger"
 	"github.com/zero-os/0-stor/client/processing"
 )
 
@@ -61,7 +62,7 @@ var (
 			Mode: processing.CompressionModeDefault,
 		},
 		Encryption: pipeline.EncryptionConfig{
-			PrivateKey: "abcdefghijklmnopqrstuvwxyzabcdef",
+			PrivateKey: mySuperSecretPrivateKey,
 		},
 	}
 )
@@ -70,14 +71,27 @@ const (
 	// All data is stored under a namespace,
 	// for this example we assume this namespace will be named test.
 	namespace = "test"
+
+	// private key used for the encryption of our data and metadata
+	mySuperSecretPrivateKey = "abcdefghijklmnopqrstuvwxyzabcdef"
 )
 
 func main() {
-	// create our badger-backed meta client
-	metaClient, err := badger.NewClient(dataDir, metaDir, nil)
+	// create our badger-backed metastor database
+	metaDB, err := badger.New(dataDir, metaDir)
 	if err != nil {
 		log.Fatal(err)
 	}
+	// create the metastor client,
+	// with encryption enabled and our created badger DB backend
+	metaClient, err := metastor.NewClient(metastor.Config{
+		Database: metaDB,
+		ProcessorConstructor: func() (processing.Processor, error) {
+			return processing.NewAESEncrypterDecrypter([]byte(mySuperSecretPrivateKey))
+		},
+		// you can also customize the (un)marshal logic,
+		// to use something different other than the default gogo-protobuf marshaler
+	})
 
 	// create a datastor cluster, using our predefined addresses and namespace,
 	// which will be used to store the actual data

@@ -22,6 +22,7 @@ import (
 	"os"
 
 	"github.com/zero-os/0-stor/client/datastor"
+	"github.com/zero-os/0-stor/client/metastor/metatypes"
 
 	"github.com/zero-os/0-stor/client/datastor/pipeline/storage"
 	"github.com/zero-os/0-stor/client/metastor"
@@ -29,12 +30,12 @@ import (
 	pb "github.com/zero-os/0-stor/daemon/api/grpc/schema"
 )
 
-func convertProtoToInMemoryChunkSlice(chunks []pb.Chunk) []metastor.Chunk {
+func convertProtoToInMemoryChunkSlice(chunks []pb.Chunk) []metatypes.Chunk {
 	n := len(chunks)
 	if n == 0 {
 		return nil
 	}
-	imChunks := make([]metastor.Chunk, n)
+	imChunks := make([]metatypes.Chunk, n)
 	for i, c := range chunks {
 		chunk := &imChunks[i]
 		chunk.Size = c.GetSizeInBytes()
@@ -44,7 +45,7 @@ func convertProtoToInMemoryChunkSlice(chunks []pb.Chunk) []metastor.Chunk {
 		if n == 0 {
 			continue
 		}
-		chunk.Objects = make([]metastor.Object, n)
+		chunk.Objects = make([]metatypes.Object, n)
 		for i, o := range objects {
 			object := &chunk.Objects[i]
 			object.Key = o.GetKey()
@@ -54,8 +55,8 @@ func convertProtoToInMemoryChunkSlice(chunks []pb.Chunk) []metastor.Chunk {
 	return imChunks
 }
 
-func convertProtoToInMemoryMetadata(metadata *pb.Metadata) metastor.Metadata {
-	return metastor.Metadata{
+func convertProtoToInMemoryMetadata(metadata *pb.Metadata) metatypes.Metadata {
+	return metatypes.Metadata{
 		Key:            metadata.GetKey(),
 		Size:           metadata.GetSizeInBytes(),
 		CreationEpoch:  metadata.GetCreationEpoch(),
@@ -64,7 +65,7 @@ func convertProtoToInMemoryMetadata(metadata *pb.Metadata) metastor.Metadata {
 	}
 }
 
-func convertInMemoryToProtoChunkSlice(chunks []metastor.Chunk) []pb.Chunk {
+func convertInMemoryToProtoChunkSlice(chunks []metatypes.Chunk) []pb.Chunk {
 	n := len(chunks)
 	if n == 0 {
 		return nil
@@ -89,7 +90,7 @@ func convertInMemoryToProtoChunkSlice(chunks []metastor.Chunk) []pb.Chunk {
 	return protoChunks
 }
 
-func convertInMemoryToProtoMetadata(metadata metastor.Metadata) *pb.Metadata {
+func convertInMemoryToProtoMetadata(metadata metatypes.Metadata) *pb.Metadata {
 	return &pb.Metadata{
 		Key:            metadata.Key,
 		SizeInBytes:    metadata.Size,

@@ -23,7 +23,7 @@ import (
 	"io/ioutil"
 
 	"github.com/zero-os/0-stor/client/datastor/pipeline/storage"
-	"github.com/zero-os/0-stor/client/metastor"
+	"github.com/zero-os/0-stor/client/metastor/metatypes"
 )
 
 // NewSingleObjectPipeline creates single-threaded pipeline
@@ -85,7 +85,7 @@ type SingleObjectPipeline struct {
 //
 // When an error is returned by a sub-call, at any point,
 // the function will return immediately with that error.
-func (sop *SingleObjectPipeline) Write(r io.Reader) ([]metastor.Chunk, error) {
+func (sop *SingleObjectPipeline) Write(r io.Reader) ([]metatypes.Chunk, error) {
 	if r == nil {
 		return nil, errors.New("no reader given to read from")
 	}
@@ -116,7 +116,7 @@ func (sop *SingleObjectPipeline) Write(r io.Reader) ([]metastor.Chunk, error) {
 		return nil, err
 	}
 
-	return []metastor.Chunk{
+	return []metatypes.Chunk{
 		{
 			Size:    cfg.Size,
 			Objects: cfg.Objects,
@@ -131,7 +131,7 @@ func (sop *SingleObjectPipeline) Write(r io.Reader) ([]metastor.Chunk, error) {
 //
 //    +-------------------------------------------------------------+
 //    |                                    +----------------------+ |
-//    | metastor.Chunk +-> storage.Read +--> Processor.Read +     | |
+//    | metatypes.Chunk +-> storage.Read +--> Processor.Read +     | |
 //    |                                    | Hash/Data Validation | |
 //    |                                    +-----------+----------+ |
 //    |                                                |            |
@@ -143,7 +143,7 @@ func (sop *SingleObjectPipeline) Write(r io.Reader) ([]metastor.Chunk, error) {
 //
 // When an error is returned by a sub-call, at any point,
 // the function will return immediately with that error.
-func (sop *SingleObjectPipeline) Read(chunks []metastor.Chunk, w io.Writer) error {
+func (sop *SingleObjectPipeline) Read(chunks []metatypes.Chunk, w io.Writer) error {
 	if len(chunks) != 1 {
 		return errUnexpectedChunkCount
 	}
@@ -182,7 +182,7 @@ func (sop *SingleObjectPipeline) Read(chunks []metastor.Chunk, w io.Writer) erro
 }
 
 // Check implements Pipeline.Check
-func (sop *SingleObjectPipeline) Check(chunks []metastor.Chunk, fast bool) (storage.CheckStatus, error) {
+func (sop *SingleObjectPipeline) Check(chunks []metatypes.Chunk, fast bool) (storage.CheckStatus, error) {
 	if len(chunks) != 1 {
 		return storage.CheckStatus(0), errUnexpectedChunkCount
 	}
@@ -193,7 +193,7 @@ func (sop *SingleObjectPipeline) Check(chunks []metastor.Chunk, fast bool) (stor
 }
 
 // Repair implements Pipeline.Repair
-func (sop *SingleObjectPipeline) Repair(chunks []metastor.Chunk) ([]metastor.Chunk, error) {
+func (sop *SingleObjectPipeline) Repair(chunks []metatypes.Chunk) ([]metatypes.Chunk, error) {
 	if len(chunks) != 1 {
 		return nil, errUnexpectedChunkCount
 	}
@@ -204,7 +204,7 @@ func (sop *SingleObjectPipeline) Repair(chunks []metastor.Chunk) ([]metastor.Chu
 	if err != nil {
 		return nil, err
 	}
-	return []metastor.Chunk{{
+	return []metatypes.Chunk{{
 		Size:    cfg.Size,
 		Objects: cfg.Objects,
 		Hash:    chunks[0].Hash,
@@ -212,7 +212,7 @@ func (sop *SingleObjectPipeline) Repair(chunks []metastor.Chunk) ([]metastor.Chu
 }
 
 // Delete implements Pipeline.Delete
-func (sop *SingleObjectPipeline) Delete(chunks []metastor.Chunk) error {
+func (sop *SingleObjectPipeline) Delete(chunks []metatypes.Chunk) error {
 	if len(chunks) != 1 {
 		return errUnexpectedChunkCount
 	}

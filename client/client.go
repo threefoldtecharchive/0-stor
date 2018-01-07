@@ -27,7 +27,8 @@ import (
 	"github.com/zero-os/0-stor/client/datastor/pipeline/storage"
 	"github.com/zero-os/0-stor/client/itsyouonline"
 	"github.com/zero-os/0-stor/client/metastor"
-	"github.com/zero-os/0-stor/client/metastor/etcd"
+	"github.com/zero-os/0-stor/client/metastor/db/etcd"
+	"github.com/zero-os/0-stor/client/metastor/metatypes"
 )
 
 var (
@@ -43,7 +44,7 @@ var (
 // Client defines 0-stor client
 type Client struct {
 	dataPipeline   pipeline.Pipeline
-	metastorClient metastor.Client
+	metastorClient *metastor.Client
 }
 
 // NewClientFromConfig creates new 0-stor client using the given config,
@@ -89,9 +90,14 @@ func newClientFromConfig(cfg *Config, jobCount int, enableCaching bool) (*Client
 		return nil, errors.New("no metadata storage given")
 	}
 
-	// create metastor client first,
+	// create metastor database first,
+	// so that then we can create the default Metastor client
+	db, err := etcd.New(cfg.MetaStor.Shards)
+	if err != nil {
+		return nil, err
+	}
 	// and than create our master 0-stor client with all features.
-	metastorClient, err := etcd.NewClient(cfg.MetaStor.Shards, nil)
+	metastorClient, err := metastor.NewClient(metastor.Config{Database: db})
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +141,7 @@ func createDataClusterFromConfig(cfg *Config, enableCaching bool) (datastor.Clus
 // with the data (zstordb) cluster already created,
 // used to read/write object data, as well as the metastor client,
 // which is used to read/write the metadata of the objects.
-func NewClient(metaClient metastor.Client, dataPipeline pipeline.Pipeline) *Client {
+func NewClient(metaClient *metastor.Client, dataPipeline pipeline.Pipeline) *Client {
 	if metaClient == nil {
 		panic("0-stor Client: no metastor client given")
 	}
@@ -150,7 +156,7 @@ func NewClient(metaClient metastor.Client, dataPipeline pipeline.Pipeline) *Clie
 
 // Write writes the data to a 0-stor cluster,
 // storing the metadata using the internal metastor client.
-func (c *Client) Write(key []byte, r io.Reader) (*metastor.Metadata, error) {
+func (c *Client) Write(key []byte, r io.Reader) (*metatypes.Metadata, error) {
 	if len(key) == 0 {
 		return nil, ErrNilKey // ensure a key is given
 	}
@@ -163,7 +169,7 @@ func (c *Client) Write(key []byte, r io.Reader) (*metastor.Metadata, error) {
 
 	// create new metadata, as we'll overwrite either way
 	now := EpochNow()
-	md := metastor.Metadata{
+	md := metatypes.Metadata{
 		Key:            key,
 		CreationEpoch:  now,
 		LastWriteEpoch: now,
@@ -196,7 +202,7 @@ func (c *Client) Read(key []byte, w io.Writer) error {
 
 // ReadWithMeta reads the data, from the 0-stor cluster,
 // using the reference information fetched from the given metadata.
-func (c *Client) ReadWithMeta(meta metastor.Metadata, w io.Writer) error {
+func (c *Client) ReadWithMeta(meta metatypes.Metadata, w io.Writer) error {
 	return c.dataPipeline.Read(meta.Chunks, w)
 }
 
@@ -216,7 +222,7 @@ func (c *Client) Delete(key []byte) error {
 // DeleteWithMeta deletes the data, from the 0-stor cluster,
 // using the reference information fetched from the given metadata
 // (which is linked to the given key).
-func (c *Client) DeleteWithMeta(meta metastor.Metadata) error {
+func (c *Client) DeleteWithMeta(meta metatypes.Metadata) error {
 	// delete data
 	err := c.dataPipeline.Delete(meta.Chunks)
 	if err != nil {
@@ -247,7 +253,7 @@ func (c *Client) Check(key []byte, fast bool) (storage.CheckStatus, error) {
 // If the metadata cannot be fetched or the status of a/the data chunk(s) cannot be retrieved,
 // an error will be returned. Otherwise CheckStatusInvalid indicates the data is invalid and non-repairable,
 // Any other value indicates the data is readable, but if it's not optimal, it could use a repair.
-func (c *Client) CheckWithMeta(meta metastor.Metadata, fast bool) (storage.CheckStatus, error) {
+func (c *Client) CheckWithMeta(meta metatypes.Metadata, fast bool) (storage.CheckStatus, error) {
 	return c.dataPipeline.Check(meta.Chunks, fast)
 }
 
@@ -261,7 +267,7 @@ func (c *Client) CheckWithMeta(meta metastor.Metadata, fast bool) (storage.Check
 //
 // if the data has not been distributed or replicated, we can't repair it,
 // or if not enough shards are available we cannot repair it either.
-func (c *Client) Repair(key []byte) (*metastor.Metadata, error) {
+func (c *Client) Repair(key []byte) (*metatypes.Metadata, error) {
 	if len(key) == 0 {
 		return nil, ErrNilKey // ensure a key is given
 	}
@@ -269,12 +275,12 @@ func (c *Client) Repair(key []byte) (*metastor.Metadata, error) {
 	// because of conflicts, the callback might be called multiple times,
 	// hence why we want to only do the actual repairing once
 	var (
-		repairedChunks       []metastor.Chunk
+		repairedChunks       []metatypes.Chunk
 		totalSizeAfterRepair int64
 		repairEpoch          int64
 	)
 	return c.metastorClient.UpdateMetadata(key,
-		func(meta metastor.Metadata) (*metastor.Metadata, error) {
+		func(meta metatypes.Metadata) (*metatypes.Metadata, error) {
 			// repair if not yet repaired
 			if repairEpoch == 0 {
 				var err error

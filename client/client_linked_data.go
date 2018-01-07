@@ -22,6 +22,7 @@ import (
 
 	"github.com/zero-os/0-stor/client/datastor/pipeline"
 	"github.com/zero-os/0-stor/client/metastor"
+	"github.com/zero-os/0-stor/client/metastor/metatypes"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -66,7 +67,7 @@ type TraverseIterator interface {
 	//
 	// An error is returned in case no metadata is available,
 	// due to the iterator being in an invalid state.
-	GetMetadata() (*metastor.Metadata, error)
+	GetMetadata() (*metatypes.Metadata, error)
 
 	// ReadData reads the data available for the current metadata,
 	// and writes it to the specified writer.
@@ -84,7 +85,7 @@ type TraverseIterator interface {
 // This method is to be considered EXPERIMENTAL,
 // and might be moved or changed in a future milestone.
 // See https://github.com/zero-os/0-stor/issues/424 for more information.
-func (c *Client) WriteLinked(key, prevKey []byte, r io.Reader) (meta, prevMeta *metastor.Metadata, err error) {
+func (c *Client) WriteLinked(key, prevKey []byte, r io.Reader) (meta, prevMeta *metatypes.Metadata, err error) {
 	if len(key) == 0 {
 		return nil, nil, ErrNilKey // ensure a key is given
 	}
@@ -98,7 +99,7 @@ func (c *Client) WriteLinked(key, prevKey []byte, r io.Reader) (meta, prevMeta *
 	// ensure the prevmetadata exists, and lock it until we've updated it,
 	// however we want to make sure that we only create+store the current metadata once
 	prevMeta, err = c.metastorClient.UpdateMetadata(prevKey,
-		func(prevMetadata metastor.Metadata) (*metastor.Metadata, error) {
+		func(prevMetadata metatypes.Metadata) (*metatypes.Metadata, error) {
 			// create the current metadata, should it not be created yet
 			if meta == nil {
 				// process and write the data
@@ -109,7 +110,7 @@ func (c *Client) WriteLinked(key, prevKey []byte, r io.Reader) (meta, prevMeta *
 
 				// create new metadata, as we'll overwrite either way
 				now := EpochNow()
-				meta = &metastor.Metadata{
+				meta = &metatypes.Metadata{
 					Key:            key,
 					CreationEpoch:  now,
 					LastWriteEpoch: now,
@@ -239,13 +240,13 @@ func (c *Client) TraversePostOrder(startKey []byte, fromEpoch, toEpoch int64) (T
 // If this metadata is nil, the iterator is to be considered invalid
 // (e.g. Next was never called (successfully)).
 type traverseIteratorState struct {
-	md *metastor.Metadata
+	md *metatypes.Metadata
 
 	dataPipeline pipeline.Pipeline
 }
 
 // Getmetadata implements TraverseIterator.GetMetadata
-func (state *traverseIteratorState) GetMetadata() (*metastor.Metadata, error) {
+func (state *traverseIteratorState) GetMetadata() (*metatypes.Metadata, error) {
 	if state.md == nil {
 		return nil, ErrInvalidTraverseIterator
 	}
@@ -270,7 +271,7 @@ type forwardTraverseIterator struct {
 
 	nextKey            []byte
 	fromEpoch, toEpoch int64
-	metaClient         metastor.Client
+	metaClient         *metastor.Client
 }
 
 // Next implements TraverseIterator.Next
@@ -316,7 +317,7 @@ type backwardTraverseIterator struct {
 
 	previousKey        []byte
 	fromEpoch, toEpoch int64
-	metaClient         metastor.Client
+	metaClient         *metastor.Client
 }
 
 // Next implements TraverseIterator.Next

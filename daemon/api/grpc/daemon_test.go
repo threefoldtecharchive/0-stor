@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	"github.com/zero-os/0-stor/client/datastor/pipeline"
-	metastor "github.com/zero-os/0-stor/client/metastor/badger"
+	"github.com/zero-os/0-stor/client/metastor"
 
 	"github.com/stretchr/testify/require"
 )

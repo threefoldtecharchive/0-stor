@@ -24,7 +24,7 @@ import (
 	"io"
 
 	"github.com/zero-os/0-stor/client/datastor/pipeline/storage"
-	"github.com/zero-os/0-stor/client/metastor"
+	"github.com/zero-os/0-stor/client/metastor/metatypes"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -112,7 +112,7 @@ type AsyncSplitterPipeline struct {
 //    |                 |   (ChunkMeta)   |      (ChunkMeta)     |        |
 //    |                 |                 |                      |        |
 //    |         +-------v-----------------v----------------------v-----+  |
-//    |         |              ordered   [] metastor.Chunk             |  |
+//    |         |              ordered   [] metatypes.Chunk             |  |
 //    |         +------------------------------------------------------+  |
 //    +-------------------------------------------------------------------+
 //
@@ -124,7 +124,7 @@ type AsyncSplitterPipeline struct {
 //
 // As soon as an error happens within any stage, at any point,
 // the entire pipeline will be cancelled and that error is returned to the callee of this method.
-func (asp *AsyncSplitterPipeline) Write(r io.Reader) ([]metastor.Chunk, error) {
+func (asp *AsyncSplitterPipeline) Write(r io.Reader) ([]metatypes.Chunk, error) {
 	if r == nil {
 		return nil, errors.New("no reader given to read from")
 	}
@@ -193,7 +193,7 @@ func (asp *AsyncSplitterPipeline) Write(r io.Reader) ([]metastor.Chunk, error) {
 	// which will generate and send all the metadata as part of their job
 	type indexedChunk struct {
 		Index int
-		Chunk metastor.Chunk
+		Chunk metatypes.Chunk
 	}
 	chunkCh := make(chan indexedChunk, asp.storageJobCount)
 	storageGroup, _ := errgroup.WithContext(ctx)
@@ -204,7 +204,7 @@ func (asp *AsyncSplitterPipeline) Write(r io.Reader) ([]metastor.Chunk, error) {
 				if err != nil {
 					return err
 				}
-				chunk := metastor.Chunk{
+				chunk := metatypes.Chunk{
 					Size:    cfg.Size,
 					Objects: cfg.Objects,
 					Hash:    data.Hash,
@@ -226,7 +226,7 @@ func (asp *AsyncSplitterPipeline) Write(r io.Reader) ([]metastor.Chunk, error) {
 
 	// collect all chunks, in the correct order
 	var (
-		chunks    []metastor.Chunk
+		chunks    []metatypes.Chunk
 		chunkSize int
 	)
 	group.Go(func() error {
@@ -234,14 +234,14 @@ func (asp *AsyncSplitterPipeline) Write(r io.Reader) ([]metastor.Chunk, error) {
 			receivedChunkCount int
 			bufferSize         = asp.storageJobCount
 		)
-		chunks = make([]metastor.Chunk, asp.storageJobCount)
+		chunks = make([]metatypes.Chunk, asp.storageJobCount)
 
 		// receive all chunks that are send by our storage goroutines
 		for chunk := range chunkCh {
 			// grow the buffer if needed
 			if chunk.Index >= bufferSize {
 				bufferSize = chunk.Index + (bufferSize * 2)
-				buf := make([]metastor.Chunk, bufferSize)
+				buf := make([]metatypes.Chunk, bufferSize)
 				copy(buf, chunks)
 				chunks = buf
 			}
@@ -314,7 +314,7 @@ func (asp *AsyncSplitterPipeline) Write(r io.Reader) ([]metastor.Chunk, error) {
 // to read the data using the Read method of that pipeline,
 // as to now spawn an entire async pipeline, when only one chunk is to be read.
 // See (*SingleObjectPipeline).Read for more information about the logic for this scenario.
-func (asp *AsyncSplitterPipeline) Read(chunks []metastor.Chunk, w io.Writer) error {
+func (asp *AsyncSplitterPipeline) Read(chunks []metatypes.Chunk, w io.Writer) error {
 	chunkLength := len(chunks)
 	if chunkLength == 0 {
 		return errors.New("no chunks given to read")
@@ -351,7 +351,7 @@ func (asp *AsyncSplitterPipeline) Read(chunks []metastor.Chunk, w io.Writer) err
 	// until all chunks have been send, or until the context is cancelled
 	type indexedChunk struct {
 		Index int
-		Chunk metastor.Chunk
+		Chunk metatypes.Chunk
 	}
 	chunkCh := make(chan indexedChunk, storageJobCount)
 	go func() {
@@ -503,7 +503,7 @@ func (asp *AsyncSplitterPipeline) Read(chunks []metastor.Chunk, w io.Writer) err
 }
 
 // Check implements Pipeline.Check
-func (asp *AsyncSplitterPipeline) Check(chunks []metastor.Chunk, fast bool) (storage.CheckStatus, error) {
+func (asp *AsyncSplitterPipeline) Check(chunks []metatypes.Chunk, fast bool) (storage.CheckStatus, error) {
 	chunkLength := len(chunks)
 	if chunkLength == 0 {
 		return storage.CheckStatus(0), errors.New("no chunks given to check")
@@ -555,7 +555,7 @@ func (asp *AsyncSplitterPipeline) Check(chunks []metastor.Chunk, fast bool) (sto
 		storageGroup.Go(func() error {
 			var (
 				err    error
-				chunk  *metastor.Chunk
+				chunk  *metatypes.Chunk
 				status storage.CheckStatus
 			)
 			for index := range indexCh {
@@ -620,7 +620,7 @@ var (
 )
 
 // Repair implements Pipeline.Repair
-func (asp *AsyncSplitterPipeline) Repair(chunks []metastor.Chunk) ([]metastor.Chunk, error) {
+func (asp *AsyncSplitterPipeline) Repair(chunks []metatypes.Chunk) ([]metatypes.Chunk, error) {
 	chunkLength := len(chunks)
 	if chunkLength == 0 {
 		return nil, errors.New("no chunks given to repair")
@@ -673,7 +673,7 @@ func (asp *AsyncSplitterPipeline) Repair(chunks []metastor.Chunk) ([]metastor.Ch
 		storageGroup.Go(func() error {
 			var (
 				err   error
-				chunk *metastor.Chunk
+				chunk *metatypes.Chunk
 				cfg   *storage.ChunkConfig
 			)
 			for index := range indexCh {
@@ -703,10 +703,10 @@ func (asp *AsyncSplitterPipeline) Repair(chunks []metastor.Chunk) ([]metastor.Ch
 	})
 
 	// spawn our result fetcher
-	outputChunks := make([]metastor.Chunk, len(chunks))
+	outputChunks := make([]metatypes.Chunk, len(chunks))
 	group.Go(func() error {
 		for result := range resultCh {
-			outputChunks[result.Index] = metastor.Chunk{
+			outputChunks[result.Index] = metatypes.Chunk{
 				Size:    result.Config.Size,
 				Objects: result.Config.Objects,
 				Hash:    chunks[result.Index].Hash,
@@ -722,7 +722,7 @@ func (asp *AsyncSplitterPipeline) Repair(chunks []metastor.Chunk) ([]metastor.Ch
 }
 
 // Delete implements Pipeline.Delete
-func (asp *AsyncSplitterPipeline) Delete(chunks []metastor.Chunk) error {
+func (asp *AsyncSplitterPipeline) Delete(chunks []metatypes.Chunk) error {
 	chunkLength := len(chunks)
 	if chunkLength == 0 {
 		return errors.New("no chunks given to delete")
@@ -767,7 +767,7 @@ func (asp *AsyncSplitterPipeline) Delete(chunks []metastor.Chunk) error {
 		group.Go(func() error {
 			var (
 				err   error
-				chunk *metastor.Chunk
+				chunk *metatypes.Chunk
 			)
 			for index := range indexCh {
 				chunk = &chunks[index]

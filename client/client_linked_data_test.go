@@ -24,7 +24,7 @@ import (
 	"testing"
 
 	"github.com/zero-os/0-stor/client/datastor/pipeline"
-	"github.com/zero-os/0-stor/client/metastor"
+	"github.com/zero-os/0-stor/client/metastor/metatypes"
 
 	"github.com/stretchr/testify/require"
 )
@@ -225,7 +225,7 @@ func testTraverse(t *testing.T, forward bool) {
 
 		var (
 			i                int
-			lastMetadataRead metastor.Metadata
+			lastMetadataRead metatypes.Metadata
 			lastDataRead     []byte
 		)
 		for it.Next() {

@@ -22,7 +22,7 @@ import (
 
 	"github.com/zero-os/0-stor/client"
 	"github.com/zero-os/0-stor/client/datastor/pipeline/storage"
-	"github.com/zero-os/0-stor/client/metastor"
+	"github.com/zero-os/0-stor/client/metastor/metatypes"
 	"github.com/zero-os/0-stor/daemon/api/grpc/rpctypes"
 	pb "github.com/zero-os/0-stor/daemon/api/grpc/schema"
 
@@ -131,7 +131,7 @@ func (service *fileService) WriteStream(stream pb.FileService_WriteStreamServer)
 	group, ctx := errgroup.WithContext(ctx)
 
 	// start the writer
-	var metadata *metastor.Metadata
+	var metadata *metatypes.Metadata
 	group.Go(func() error {
 		var err error
 		metadata, err = service.client.Write(key, reader)
@@ -429,14 +429,14 @@ func (service *fileService) Repair(ctx context.Context, req *pb.RepairRequest) (
 }
 
 type fileClient interface {
-	Write(key []byte, r io.Reader) (*metastor.Metadata, error)
+	Write(key []byte, r io.Reader) (*metatypes.Metadata, error)
 	Read(key []byte, w io.Writer) error
-	ReadWithMeta(meta metastor.Metadata, w io.Writer) error
+	ReadWithMeta(meta metatypes.Metadata, w io.Writer) error
 	Delete(key []byte) error
-	DeleteWithMeta(meta metastor.Metadata) error
+	DeleteWithMeta(meta metatypes.Metadata) error
 	Check(key []byte, fast bool) (storage.CheckStatus, error)
-	CheckWithMeta(meta metastor.Metadata, fast bool) (storage.CheckStatus, error)
-	Repair(key []byte) (*metastor.Metadata, error)
+	CheckWithMeta(meta metatypes.Metadata, fast bool) (storage.CheckStatus, error)
+	Repair(key []byte) (*metatypes.Metadata, error)
 }
 
 var (

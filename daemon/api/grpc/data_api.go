@@ -22,7 +22,7 @@ import (
 
 	"github.com/zero-os/0-stor/client/datastor/pipeline"
 	"github.com/zero-os/0-stor/client/datastor/pipeline/storage"
-	"github.com/zero-os/0-stor/client/metastor"
+	"github.com/zero-os/0-stor/client/metastor/metatypes"
 	"github.com/zero-os/0-stor/daemon/api/grpc/rpctypes"
 	pb "github.com/zero-os/0-stor/daemon/api/grpc/schema"
 
@@ -111,7 +111,7 @@ func (service *dataService) WriteStream(stream pb.DataService_WriteStreamServer)
 	group, ctx := errgroup.WithContext(ctx)
 
 	// start the writer
-	var chunks []metastor.Chunk
+	var chunks []metatypes.Chunk
 	group.Go(func() error {
 		var err error
 		chunks, err = service.client.Write(reader)
@@ -340,11 +340,11 @@ func (service *dataService) Repair(ctx context.Context, req *pb.DataRepairReques
 }
 
 type dataClient interface {
-	Write(r io.Reader) ([]metastor.Chunk, error)
-	Read(chunks []metastor.Chunk, w io.Writer) error
-	Delete(chunks []metastor.Chunk) error
-	Check(chunks []metastor.Chunk, fast bool) (storage.CheckStatus, error)
-	Repair(chunks []metastor.Chunk) ([]metastor.Chunk, error)
+	Write(r io.Reader) ([]metatypes.Chunk, error)
+	Read(chunks []metatypes.Chunk, w io.Writer) error
+	Delete(chunks []metatypes.Chunk) error
+	Check(chunks []metatypes.Chunk, fast bool) (storage.CheckStatus, error)
+	Repair(chunks []metatypes.Chunk) ([]metatypes.Chunk, error)
 }
 
 var (
