@@ -108,10 +108,10 @@ func TestNewHasher(t *testing.T) {
 		pair, err := NewMarshalFuncPair(tc.Type)
 		if tc.Expected.Marshal == nil {
 			require.Error(err)
-			require.Nil(pair.Marshal)
-			require.Nil(pair.Unmarshal)
+			require.Nil(pair)
 		} else {
 			require.NoError(err)
+			require.NotNil(pair)
 			require.NotNil(pair.Marshal)
 			require.NotNil(pair.Unmarshal)
 		}

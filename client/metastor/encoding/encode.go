@@ -38,12 +38,12 @@ type UnmarshalMetadata func(b []byte, md *metatypes.Metadata) error
 //
 // An error is returned in case, and only if,
 // there was no MarshalFuncPair registered for the given MarshalType.
-func NewMarshalFuncPair(mt MarshalType) (MarshalFuncPair, error) {
+func NewMarshalFuncPair(mt MarshalType) (*MarshalFuncPair, error) {
 	pair, ok := _MarshalTypeValueToFuncPairMapping[mt]
 	if !ok {
-		return MarshalFuncPair{}, fmt.Errorf("%d is not a valid MarshalType value", mt)
+		return nil, fmt.Errorf("%d is not a valid MarshalType value", mt)
 	}
-	return pair, nil
+	return &pair, nil
 }
 
 // MarshalFuncPair composes a pair of MarshalMetadata and UnmarshalMetadata

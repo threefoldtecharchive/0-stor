@@ -21,6 +21,8 @@ import (
 
 	"github.com/zero-os/0-stor/client/datastor/pipeline"
 	"github.com/zero-os/0-stor/client/itsyouonline"
+	"github.com/zero-os/0-stor/client/metastor/encoding"
+	"github.com/zero-os/0-stor/client/processing"
 
 	yaml "gopkg.in/yaml.v2"
 )
@@ -64,6 +66,11 @@ type Config struct {
 	// MetaStor defines the configuration for the metadata shards (servers).
 	// For now only an ETCD cluster is supported using this config.
 	MetaStor MetaStorConfig `yaml:"metastor" json:"metastor"`
+}
+
+// DataStorConfig is used to configure a zstordb cluster.
+type DataStorConfig struct {
+	Shards []string `yaml:"shards" json:"shards"` // required
 
 	// Pipeline defines the object read/write pipeline configuration
 	// for this 0-stor client. It defines how to structure,
@@ -72,13 +79,44 @@ type Config struct {
 	Pipeline pipeline.Config `yaml:"pipeline" json:"pipeline"`
 }
 
-// DataStorConfig is used to configure a zstordb cluster.
-type DataStorConfig struct {
-	Shards []string `yaml:"shards" json:"shards"`
-}
-
 // MetaStorConfig is used to configure the metastor client.
 // TODO: remove this fixed/non-dynamic struct
 type MetaStorConfig struct {
-	Shards []string `yaml:"shards" json:"shards"`
+	Database   MetaStorETCDConfig       `yaml:"db" json:"db"`                 // required
+	Encryption MetaStorEncryptionConfig `yaml:"encryption" json:"encryption"` // optional (disabled by default)
+	Encoding   encoding.MarshalType     `yaml:"encoding" json:"encoding"`     // optional (proto by default)
+}
+
+// MetaStorEncryptionConfig defines the configuration used to create an
+// encrypter-decrypter Processor, used to encrypt the metadata prior to storage,
+// and decrypting it right after fetching it back from the database.
+type MetaStorEncryptionConfig struct {
+	// Private key, the specific required length
+	// is defined by the type of Encryption used.
+	//
+	// This key will also used by the crypto-hashing algorithm given,
+	// if you did not define a separate key within the hashing configuration.
+	PrivateKey string `yaml:"private_key" json:"private_key"`
+
+	// The type of encryption algorithm to use,
+	// defining both the encrypting and decrypting logic.
+	// The string value (representing the encryption algorithm type), is case-insensitive.
+	//
+	// By default no type is used, disabling encryption,
+	// encryption gets enabled as soon as a private key gets defined.
+	// All standard types available are: AES
+	//
+	// Valid Key sizes for AES are: 16, 24 and 32 bytes
+	// The recommended private key size is 32 bytes, this will select/use AES_256.
+	//
+	// In case you've registered a custom encryption algorithm,
+	// or have overridden a standard encryption algorithm, using `processing.RegisterEncrypterDecrypter`
+	// you'll be able to use that encrypter-decrypting, by providing its (stringified) type here.
+	Type processing.EncryptionType `yaml:"type" json:"type"`
+}
+
+// MetaStorETCDConfig is used to configure/create an ETCD-cluster client,
+// and use it as the database backend for the metastor client.
+type MetaStorETCDConfig struct {
+	Endpoints []string `yaml:"endpoints" json:"endpoints"` // required
 }

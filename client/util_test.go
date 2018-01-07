@@ -25,7 +25,6 @@ import (
 
 	"github.com/zero-os/0-stor/client/datastor"
 	"github.com/zero-os/0-stor/client/datastor/pipeline"
-	"github.com/zero-os/0-stor/client/metastor"
 	dbp "github.com/zero-os/0-stor/client/metastor/db"
 	"github.com/zero-os/0-stor/client/metastor/db/etcd"
 	"github.com/zero-os/0-stor/client/metastor/db/test"
@@ -100,15 +99,15 @@ func getTestClient(cfg Config) (*Client, datastor.Cluster, error) {
 	}
 
 	// create data pipeline, using our datastor cluster
-	dataPipeline, err := pipeline.NewPipeline(cfg.Pipeline, datastorCluster, -1)
+	dataPipeline, err := pipeline.NewPipeline(cfg.DataStor.Pipeline, datastorCluster, -1)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	// create ETCD or in-memory db
 	var db dbp.DB
-	if len(cfg.MetaStor.Shards) != 0 {
-		db, err = etcd.New(cfg.MetaStor.Shards)
+	if len(cfg.MetaStor.Database.Endpoints) != 0 {
+		db, err = etcd.New(cfg.MetaStor.Database.Endpoints)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -118,7 +117,7 @@ func getTestClient(cfg Config) (*Client, datastor.Cluster, error) {
 
 	// create metastor client first,
 	// and than create our master 0-stor client with all features.
-	metastorClient, err := metastor.NewClient(metastor.Config{Database: db})
+	metastorClient, err := createMetastorClientFromConfigAndDatabase(&cfg.MetaStor, db)
 	if err != nil {
 		return nil, nil, err
 	}

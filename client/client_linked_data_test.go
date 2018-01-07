@@ -35,7 +35,7 @@ func TestClient_WriteLinkedErrors(t *testing.T) {
 
 	dataShards := []string{servers[0].Address()}
 	config := newDefaultConfig(dataShards, 0)
-	config.Pipeline.Distribution = pipeline.ObjectDistributionConfig{}
+	config.DataStor.Pipeline.Distribution = pipeline.ObjectDistributionConfig{}
 
 	cli, _, err := getTestClient(config)
 
@@ -60,7 +60,7 @@ func TestClient_WriteLinked(t *testing.T) {
 
 	dataShards := []string{servers[0].Address()}
 	config := newDefaultConfig(dataShards, 0)
-	config.Pipeline.Distribution = pipeline.ObjectDistributionConfig{}
+	config.DataStor.Pipeline.Distribution = pipeline.ObjectDistributionConfig{}
 
 	cli, _, err := getTestClient(config)
 	require := require.New(t)
@@ -105,7 +105,7 @@ func TestClient_TraverseErrors(t *testing.T) {
 
 	dataShards := []string{servers[0].Address()}
 	config := newDefaultConfig(dataShards, 0)
-	config.Pipeline.Distribution = pipeline.ObjectDistributionConfig{}
+	config.DataStor.Pipeline.Distribution = pipeline.ObjectDistributionConfig{}
 
 	cli, _, err := getTestClient(config)
 
@@ -130,7 +130,7 @@ func TestClient_TraversePostOrderErrors(t *testing.T) {
 
 	dataShards := []string{servers[0].Address()}
 	config := newDefaultConfig(dataShards, 0)
-	config.Pipeline.Distribution = pipeline.ObjectDistributionConfig{}
+	config.DataStor.Pipeline.Distribution = pipeline.ObjectDistributionConfig{}
 
 	cli, _, err := getTestClient(config)
 

@@ -171,15 +171,15 @@ func TestRoundTripGRPC(t *testing.T) {
 	for _, tc := range tt {
 
 		t.Run(tc.name, func(t *testing.T) {
-			config.Pipeline.BlockSize = tc.BlockSize
+			config.DataStor.Pipeline.BlockSize = tc.BlockSize
 			if tc.Compress {
-				config.Pipeline.Compression.Mode = processing.CompressionModeDefault
+				config.DataStor.Pipeline.Compression.Mode = processing.CompressionModeDefault
 			} else {
-				config.Pipeline.Compression.Mode = processing.CompressionModeDisabled
+				config.DataStor.Pipeline.Compression.Mode = processing.CompressionModeDisabled
 			}
-			config.Pipeline.Encryption.PrivateKey = tc.EncryptKey
-			config.Pipeline.Distribution.DataShardCount = tc.DataShards
-			config.Pipeline.Distribution.ParityShardCount = tc.ParityShards
+			config.DataStor.Pipeline.Encryption.PrivateKey = tc.EncryptKey
+			config.DataStor.Pipeline.Distribution.DataShardCount = tc.DataShards
+			config.DataStor.Pipeline.Distribution.ParityShardCount = tc.ParityShards
 
 			c, _, err := getTestClient(config)
 			require.NoError(t, err, "fail to create client")
@@ -240,7 +240,7 @@ func TestBlocksizes(t *testing.T) {
 		}
 
 		t.Run(fmt.Sprint(blockSize), func(t *testing.T) {
-			config.Pipeline.BlockSize = blockSize
+			config.DataStor.Pipeline.BlockSize = blockSize
 			c, _, err := getTestClient(config)
 			require.NoError(t, err, "fail to create client")
 
@@ -445,18 +445,18 @@ func newDefaultConfig(dataShards []string, blockSize int) Config {
 		Namespace: "namespace1",
 		DataStor: DataStorConfig{
 			Shards: dataShards,
-		},
-		Pipeline: pipeline.Config{
-			BlockSize: blockSize,
-			Compression: pipeline.CompressionConfig{
-				Mode: processing.CompressionModeDefault,
-			},
-			Encryption: pipeline.EncryptionConfig{
-				PrivateKey: "cF0BFpIsljOS8UmaP8YRHRX0nBPVRVPw",
-			},
-			Distribution: pipeline.ObjectDistributionConfig{
-				DataShardCount:   2,
-				ParityShardCount: 1,
+			Pipeline: pipeline.Config{
+				BlockSize: blockSize,
+				Compression: pipeline.CompressionConfig{
+					Mode: processing.CompressionModeDefault,
+				},
+				Encryption: pipeline.EncryptionConfig{
+					PrivateKey: "cF0BFpIsljOS8UmaP8YRHRX0nBPVRVPw",
+				},
+				Distribution: pipeline.ObjectDistributionConfig{
+					DataShardCount:   2,
+					ParityShardCount: 1,
+				},
 			},
 		},
 	}
@@ -552,8 +552,8 @@ func TestClientRepair(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			config.Pipeline.Distribution.DataShardCount = tc.DataShardCount
-			config.Pipeline.Distribution.ParityShardCount = tc.ParityShardCount
+			config.DataStor.Pipeline.Distribution.DataShardCount = tc.DataShardCount
+			config.DataStor.Pipeline.Distribution.ParityShardCount = tc.ParityShardCount
 			testRepair(t, config, tc.repairErr)
 		})
 	}
@@ -629,7 +629,7 @@ func TestClient_ExplicitErrors(t *testing.T) {
 
 	dataShards := []string{servers[0].Address()}
 	config := newDefaultConfig(dataShards, 0)
-	config.Pipeline.Distribution = pipeline.ObjectDistributionConfig{}
+	config.DataStor.Pipeline.Distribution = pipeline.ObjectDistributionConfig{}
 
 	cli, _, err := getTestClient(config)
 	require.NoError(err)
