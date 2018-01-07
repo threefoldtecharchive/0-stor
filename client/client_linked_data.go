@@ -20,8 +20,8 @@ import (
 	"errors"
 	"io"
 
+	"github.com/zero-os/0-stor/client/datastor/pipeline"
 	"github.com/zero-os/0-stor/client/metastor"
-	"github.com/zero-os/0-stor/client/pipeline"
 
 	log "github.com/Sirupsen/logrus"
 )

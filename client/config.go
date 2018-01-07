@@ -19,8 +19,8 @@ package client
 import (
 	"io/ioutil"
 
+	"github.com/zero-os/0-stor/client/datastor/pipeline"
 	"github.com/zero-os/0-stor/client/itsyouonline"
-	"github.com/zero-os/0-stor/client/pipeline"
 
 	yaml "gopkg.in/yaml.v2"
 )

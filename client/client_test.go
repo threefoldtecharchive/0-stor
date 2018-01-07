@@ -24,10 +24,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/zero-os/0-stor/client/datastor/pipeline"
+	"github.com/zero-os/0-stor/client/datastor/pipeline/storage"
 	"github.com/zero-os/0-stor/client/metastor/test"
-	"github.com/zero-os/0-stor/client/pipeline"
-	"github.com/zero-os/0-stor/client/pipeline/processing"
-	"github.com/zero-os/0-stor/client/pipeline/storage"
+	"github.com/zero-os/0-stor/client/processing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

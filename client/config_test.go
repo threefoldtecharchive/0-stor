@@ -19,9 +19,9 @@ package client
 import (
 	"testing"
 
+	"github.com/zero-os/0-stor/client/datastor/pipeline"
 	"github.com/zero-os/0-stor/client/itsyouonline"
-	"github.com/zero-os/0-stor/client/pipeline"
-	"github.com/zero-os/0-stor/client/pipeline/processing"
+	"github.com/zero-os/0-stor/client/processing"
 
 	"github.com/stretchr/testify/require"
 )

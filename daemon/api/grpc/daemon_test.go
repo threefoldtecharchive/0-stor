@@ -19,8 +19,8 @@ package grpc
 import (
 	"testing"
 
+	"github.com/zero-os/0-stor/client/datastor/pipeline"
 	metastor "github.com/zero-os/0-stor/client/metastor/badger"
-	"github.com/zero-os/0-stor/client/pipeline"
 
 	"github.com/stretchr/testify/require"
 )

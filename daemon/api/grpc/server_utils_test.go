@@ -27,9 +27,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 	clientGRPC "github.com/zero-os/0-stor/client/datastor/grpc"
+	"github.com/zero-os/0-stor/client/datastor/pipeline"
+	"github.com/zero-os/0-stor/client/datastor/pipeline/storage"
 	metastor "github.com/zero-os/0-stor/client/metastor/badger"
-	"github.com/zero-os/0-stor/client/pipeline"
-	"github.com/zero-os/0-stor/client/pipeline/storage"
 	"github.com/zero-os/0-stor/server/api/grpc"
 	"github.com/zero-os/0-stor/server/db/memory"
 )

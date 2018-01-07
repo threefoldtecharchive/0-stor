@@ -24,10 +24,10 @@ import (
 	"github.com/zero-os/0-stor/client"
 	"github.com/zero-os/0-stor/client/datastor"
 	storgrpc "github.com/zero-os/0-stor/client/datastor/grpc"
+	"github.com/zero-os/0-stor/client/datastor/pipeline"
 	"github.com/zero-os/0-stor/client/itsyouonline"
 	"github.com/zero-os/0-stor/client/metastor"
 	"github.com/zero-os/0-stor/client/metastor/etcd"
-	"github.com/zero-os/0-stor/client/pipeline"
 	"github.com/zero-os/0-stor/daemon/api"
 	pb "github.com/zero-os/0-stor/daemon/api/grpc/schema"
 

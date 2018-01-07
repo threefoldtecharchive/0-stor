@@ -24,9 +24,9 @@ import (
 
 	"github.com/zero-os/0-stor/client"
 	datastor "github.com/zero-os/0-stor/client/datastor/grpc"
+	"github.com/zero-os/0-stor/client/datastor/pipeline"
 	"github.com/zero-os/0-stor/client/metastor/badger"
-	"github.com/zero-os/0-stor/client/pipeline"
-	"github.com/zero-os/0-stor/client/pipeline/processing"
+	"github.com/zero-os/0-stor/client/processing"
 )
 
 var (
@@ -51,7 +51,7 @@ var (
 		"127.0.0.1:12345",
 	}
 
-	// See https://godoc.org/github.com/zero-os/0-stor/client/pipeline#Config
+	// See https://godoc.org/github.com/zero-os/0-stor/pipeline#Config
 	// for more information and all options available.
 	// Note that you can also create a pipeline manually using the
 	// constructors of the pipeline implementations.

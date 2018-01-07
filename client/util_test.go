@@ -24,9 +24,9 @@ import (
 	"testing"
 
 	"github.com/zero-os/0-stor/client/datastor"
+	"github.com/zero-os/0-stor/client/datastor/pipeline"
 	"github.com/zero-os/0-stor/client/metastor/etcd"
 	"github.com/zero-os/0-stor/client/metastor/test"
-	"github.com/zero-os/0-stor/client/pipeline"
 	"github.com/zero-os/0-stor/server/api"
 	"github.com/zero-os/0-stor/server/api/grpc"
 	"github.com/zero-os/0-stor/server/db/badger"

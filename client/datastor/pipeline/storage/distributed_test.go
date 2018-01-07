@@ -376,7 +376,7 @@ func testReedSolomonEncoderDecoderIssue225Cycle(t *testing.T, k, m int) {
 	require.NoError(t, err)
 	require.NotNil(t, ed)
 
-	input, err := ioutil.ReadFile("../../../fixtures/client/issue_225.txt")
+	input, err := ioutil.ReadFile("../../../../fixtures/client/issue_225.txt")
 	require.NoError(t, err)
 
 	parts, err := ed.Encode(input)

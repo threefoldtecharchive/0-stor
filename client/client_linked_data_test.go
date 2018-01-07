@@ -23,8 +23,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/zero-os/0-stor/client/datastor/pipeline"
 	"github.com/zero-os/0-stor/client/metastor"
-	"github.com/zero-os/0-stor/client/pipeline"
 
 	"github.com/stretchr/testify/require"
 )
