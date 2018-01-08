@@ -83,7 +83,7 @@ func TestDataService_Read(t *testing.T) {
 	dSrv := newDataService(&dataClientStub{}, false)
 
 	_, err := dSrv.Read(context.Background(),
-		&pb.DataReadRequest{Chunks: []pb.Chunk{pb.Chunk{}}})
+		&pb.DataReadRequest{Chunks: []*pb.Chunk{nil}})
 	require.NoError(t, err)
 }
 
@@ -97,7 +97,7 @@ func TestDataService_ReadError(t *testing.T) {
 	// client errors should propagate, iff those code paths hit
 	dSrv = newDataService(dataErrorClient{}, false)
 	_, err = dSrv.Read(context.Background(),
-		&pb.DataReadRequest{Chunks: []pb.Chunk{pb.Chunk{}}})
+		&pb.DataReadRequest{Chunks: []*pb.Chunk{nil}})
 	require.Equal(t, errFooDataClient, err)
 }
 
@@ -105,7 +105,7 @@ func TestDataService_ReadFile(t *testing.T) {
 	dSrv := newDataService(&dataClientStub{}, false)
 
 	_, err := dSrv.ReadFile(context.Background(),
-		&pb.DataReadFileRequest{Chunks: []pb.Chunk{pb.Chunk{}}, FilePath: "foo"})
+		&pb.DataReadFileRequest{Chunks: []*pb.Chunk{nil}, FilePath: "foo"})
 	require.NoError(t, err)
 }
 
@@ -116,19 +116,19 @@ func TestDataService_ReadFileError(t *testing.T) {
 		&pb.DataReadFileRequest{Chunks: nil, FilePath: "foo"})
 	require.Equal(t, rpctypes.ErrGRPCNilChunks, err)
 	_, err = dSrv.ReadFile(context.Background(),
-		&pb.DataReadFileRequest{Chunks: []pb.Chunk{pb.Chunk{}}, FilePath: ""})
+		&pb.DataReadFileRequest{Chunks: []*pb.Chunk{nil}, FilePath: ""})
 	require.Equal(t, rpctypes.ErrGRPCNilFilePath, err)
 
 	dSrv.disableLocalFSAccess = true
 
 	_, err = dSrv.ReadFile(context.Background(),
-		&pb.DataReadFileRequest{Chunks: []pb.Chunk{pb.Chunk{}}, FilePath: "foo"})
+		&pb.DataReadFileRequest{Chunks: []*pb.Chunk{nil}, FilePath: "foo"})
 	require.Equal(t, rpctypes.ErrGRPCNoLocalFS, err)
 
 	// client errors should propagate, iff those code paths hit
 	dSrv = newDataService(dataErrorClient{}, false)
 	_, err = dSrv.ReadFile(context.Background(),
-		&pb.DataReadFileRequest{Chunks: []pb.Chunk{pb.Chunk{}}, FilePath: "foo"})
+		&pb.DataReadFileRequest{Chunks: []*pb.Chunk{nil}, FilePath: "foo"})
 	require.Equal(t, errFooDataClient, err)
 }
 
@@ -136,7 +136,7 @@ func TestDataService_Delete(t *testing.T) {
 	dSrv := newDataService(&dataClientStub{}, false)
 
 	_, err := dSrv.Delete(context.Background(),
-		&pb.DataDeleteRequest{Chunks: []pb.Chunk{pb.Chunk{}}})
+		&pb.DataDeleteRequest{Chunks: []*pb.Chunk{nil}})
 	require.NoError(t, err)
 }
 
@@ -150,7 +150,7 @@ func TestDataService_DeleteError(t *testing.T) {
 	// client errors should propagate, iff those code paths hit
 	dSrv = newDataService(dataErrorClient{}, false)
 	_, err = dSrv.Delete(context.Background(),
-		&pb.DataDeleteRequest{Chunks: []pb.Chunk{pb.Chunk{}}})
+		&pb.DataDeleteRequest{Chunks: []*pb.Chunk{nil}})
 	require.Equal(t, errFooDataClient, err)
 }
 
@@ -158,7 +158,7 @@ func TestDataService_Check(t *testing.T) {
 	dSrv := newDataService(&dataClientStub{}, false)
 
 	_, err := dSrv.Check(context.Background(),
-		&pb.DataCheckRequest{Chunks: []pb.Chunk{pb.Chunk{}}})
+		&pb.DataCheckRequest{Chunks: []*pb.Chunk{nil}})
 	require.NoError(t, err)
 }
 
@@ -172,14 +172,14 @@ func TestDataService_CheckError(t *testing.T) {
 	// client errors should propagate, iff those code paths hit
 	dSrv = newDataService(dataErrorClient{}, false)
 	_, err = dSrv.Check(context.Background(),
-		&pb.DataCheckRequest{Chunks: []pb.Chunk{pb.Chunk{}}})
+		&pb.DataCheckRequest{Chunks: []*pb.Chunk{nil}})
 	require.Equal(t, errFooDataClient, err)
 }
 
 func TestDataService_Repair(t *testing.T) {
 	dSrv := newDataService(&dataClientStub{}, false)
 
-	_, err := dSrv.Repair(context.Background(), &pb.DataRepairRequest{Chunks: []pb.Chunk{pb.Chunk{}}})
+	_, err := dSrv.Repair(context.Background(), &pb.DataRepairRequest{Chunks: []*pb.Chunk{nil}})
 	require.NoError(t, err)
 }
 
@@ -191,7 +191,7 @@ func TestDataService_RepairError(t *testing.T) {
 
 	// client errors should propagate, iff those code paths hit
 	dSrv = newDataService(dataErrorClient{}, false)
-	_, err = dSrv.Repair(context.Background(), &pb.DataRepairRequest{Chunks: []pb.Chunk{pb.Chunk{}}})
+	_, err = dSrv.Repair(context.Background(), &pb.DataRepairRequest{Chunks: []*pb.Chunk{nil}})
 	require.Equal(t, errFooDataClient, err)
 }
 

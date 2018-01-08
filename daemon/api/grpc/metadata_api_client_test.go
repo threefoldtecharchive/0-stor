@@ -61,7 +61,7 @@ func TestMetadataAPI_Client_SetGetDelete(t *testing.T) {
 
 	_, err = client.SetMetadata(ctx, &pb.SetMetadataRequest{Metadata: &pb.Metadata{
 		Key:            []byte("foo"),
-		SizeInBytes:    1,
+		TotalSize:      1,
 		CreationEpoch:  2,
 		LastWriteEpoch: 4,
 	}})
@@ -73,7 +73,7 @@ func TestMetadataAPI_Client_SetGetDelete(t *testing.T) {
 	metadata := getResp.GetMetadata()
 	require.NotNil(metadata)
 	require.Equal(metadata.GetKey(), []byte("foo"))
-	require.Equal(int64(1), metadata.GetSizeInBytes())
+	require.Equal(int64(1), metadata.GetTotalSize())
 	require.Equal(int64(2), metadata.GetCreationEpoch())
 	require.Equal(int64(4), metadata.GetLastWriteEpoch())
 

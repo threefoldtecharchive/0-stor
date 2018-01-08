@@ -30,7 +30,7 @@ import (
 	pb "github.com/zero-os/0-stor/daemon/api/grpc/schema"
 )
 
-func convertProtoToInMemoryChunkSlice(chunks []pb.Chunk) []metatypes.Chunk {
+func convertProtoToInMemoryChunkSlice(chunks []*pb.Chunk) []metatypes.Chunk {
 	n := len(chunks)
 	if n == 0 {
 		return nil
@@ -38,7 +38,7 @@ func convertProtoToInMemoryChunkSlice(chunks []pb.Chunk) []metatypes.Chunk {
 	imChunks := make([]metatypes.Chunk, n)
 	for i, c := range chunks {
 		chunk := &imChunks[i]
-		chunk.Size = c.GetSizeInBytes()
+		chunk.Size = c.GetChunkSize()
 		chunk.Hash = c.GetHash()
 		objects := c.GetObjects()
 		n = len(objects)
@@ -58,33 +58,36 @@ func convertProtoToInMemoryChunkSlice(chunks []pb.Chunk) []metatypes.Chunk {
 func convertProtoToInMemoryMetadata(metadata *pb.Metadata) metatypes.Metadata {
 	return metatypes.Metadata{
 		Key:            metadata.GetKey(),
-		Size:           metadata.GetSizeInBytes(),
+		Size:           metadata.GetTotalSize(),
 		CreationEpoch:  metadata.GetCreationEpoch(),
 		LastWriteEpoch: metadata.GetLastWriteEpoch(),
 		Chunks:         convertProtoToInMemoryChunkSlice(metadata.GetChunks()),
 	}
 }
 
-func convertInMemoryToProtoChunkSlice(chunks []metatypes.Chunk) []pb.Chunk {
+func convertInMemoryToProtoChunkSlice(chunks []metatypes.Chunk) []*pb.Chunk {
 	n := len(chunks)
 	if n == 0 {
 		return nil
 	}
 
-	protoChunks := make([]pb.Chunk, n)
+	protoChunks := make([]*pb.Chunk, n)
 	for i, c := range chunks {
-		chunk := &protoChunks[i]
-		chunk.SizeInBytes = c.Size
-		chunk.Hash = c.Hash
+		protoChunks[i] = &pb.Chunk{
+			ChunkSize: c.Size,
+			Hash:      c.Hash,
+		}
+		chunk := protoChunks[i]
 		n = len(c.Objects)
 		if n == 0 {
 			continue
 		}
-		chunk.Objects = make([]pb.Object, n)
+		chunk.Objects = make([]*pb.Object, n)
 		for i, o := range c.Objects {
-			object := &chunk.Objects[i]
-			object.Key = o.Key
-			object.ShardID = o.ShardID
+			chunk.Objects[i] = &pb.Object{
+				Key:     o.Key,
+				ShardID: o.ShardID,
+			}
 		}
 	}
 	return protoChunks
@@ -93,7 +96,7 @@ func convertInMemoryToProtoChunkSlice(chunks []metatypes.Chunk) []pb.Chunk {
 func convertInMemoryToProtoMetadata(metadata metatypes.Metadata) *pb.Metadata {
 	return &pb.Metadata{
 		Key:            metadata.Key,
-		SizeInBytes:    metadata.Size,
+		TotalSize:      metadata.Size,
 		CreationEpoch:  metadata.CreationEpoch,
 		LastWriteEpoch: metadata.LastWriteEpoch,
 		Chunks:         convertInMemoryToProtoChunkSlice(metadata.Chunks),
