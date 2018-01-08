@@ -17,12 +17,12 @@
 package proto
 
 import (
-	"github.com/zero-os/0-stor/client/metastor"
+	"github.com/zero-os/0-stor/client/metastor/metatypes"
 )
 
 // MarshalMetadata returns the gogo-proto encoding of the metadata parameter.
 // It is important to use this function with the `UnmarshalMetadata` function of this package.
-func MarshalMetadata(md metastor.Metadata) ([]byte, error) {
+func MarshalMetadata(md metatypes.Metadata) ([]byte, error) {
 	s := Metadata{
 		Key:            md.Key,
 		SizeInBytes:    md.Size,
@@ -55,7 +55,7 @@ func MarshalMetadata(md metastor.Metadata) ([]byte, error) {
 // UnmarshalMetadata parses the gogo-proto encoded metadata
 // and stores the result in the value pointed to by the metadata parameter.
 // It is important to use this function with a the `MashalMetadata` function of this package.
-func UnmarshalMetadata(b []byte, md *metastor.Metadata) error {
+func UnmarshalMetadata(b []byte, md *metatypes.Metadata) error {
 	if b == nil {
 		panic("no bytes given to unmarshal to metadata")
 	}
@@ -77,13 +77,13 @@ func UnmarshalMetadata(b []byte, md *metastor.Metadata) error {
 	md.PreviousKey = s.PreviousKey
 
 	if length := len(s.Chunks); length > 0 {
-		md.Chunks = make([]metastor.Chunk, length)
+		md.Chunks = make([]metatypes.Chunk, length)
 		for index, input := range s.Chunks {
 			chunk := &md.Chunks[index]
 			chunk.Size = input.SizeInBytes
 			chunk.Hash = input.Hash
 			if length := len(input.Objects); length > 0 {
-				chunk.Objects = make([]metastor.Object, length)
+				chunk.Objects = make([]metatypes.Object, length)
 				for index, input := range input.Objects {
 					object := &chunk.Objects[index]
 					object.Key = input.Key

@@ -16,40 +16,22 @@
 
 package test
 
-import (
-	"testing"
+import "testing"
 
-	"github.com/stretchr/testify/require"
-)
-
-func TestRoundTrip(t *testing.T) {
-	c := NewClient()
-	require.NotNil(t, c)
-	defer c.Close()
-
-	RoundTrip(t, c)
+func TestInMemoryDB_RoundTrip(t *testing.T) {
+	db := New()
+	defer db.Close()
+	RoundTrip(t, db)
 }
 
-func TestClientNilKeys(t *testing.T) {
-	c := NewClient()
-	require.NotNil(t, c)
-	defer c.Close()
-
-	ClientNilKeys(t, c)
+func TestInMemoryDB_SyncUpdate(t *testing.T) {
+	db := New()
+	defer db.Close()
+	SyncUpdate(t, db)
 }
 
-func TestClientUpdate(t *testing.T) {
-	c := NewClient()
-	require.NotNil(t, c)
-	defer c.Close()
-
-	ClientUpdate(t, c)
-}
-
-func TestClientUpdateAsync(t *testing.T) {
-	c := NewClient()
-	require.NotNil(t, c)
-	defer c.Close()
-
-	ClientUpdateAsync(t, c)
+func TestInMemoryDB_AsyncUpdate(t *testing.T) {
+	db := New()
+	defer db.Close()
+	AsyncUpdate(t, db)
 }

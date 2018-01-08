@@ -22,9 +22,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/zero-os/0-stor/client/pipeline/crypto"
-	"github.com/zero-os/0-stor/client/pipeline/processing"
-	"github.com/zero-os/0-stor/client/pipeline/storage"
+	"github.com/zero-os/0-stor/client/datastor/pipeline/crypto"
+	"github.com/zero-os/0-stor/client/datastor/pipeline/storage"
+	"github.com/zero-os/0-stor/client/processing"
 
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"

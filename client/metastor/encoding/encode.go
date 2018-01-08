@@ -20,30 +20,30 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/zero-os/0-stor/client/metastor"
 	"github.com/zero-os/0-stor/client/metastor/encoding/proto"
+	"github.com/zero-os/0-stor/client/metastor/metatypes"
 )
 
 // MarshalMetadata returns the encoding of the metadata parameter.
 // It is important to use this function with a matching `UnmarshalMetadata` function.
-type MarshalMetadata func(md metastor.Metadata) ([]byte, error)
+type MarshalMetadata func(md metatypes.Metadata) ([]byte, error)
 
 // UnmarshalMetadata parses the encoded metadata
 // and stores the result in the value pointed to by the data parameter.
 // It is important to use this function with a matching `MashalMetadata` function.
-type UnmarshalMetadata func(b []byte, md *metastor.Metadata) error
+type UnmarshalMetadata func(b []byte, md *metatypes.Metadata) error
 
 // NewMarshalFuncPair returns a registered MarshalFuncPair,
 // for a given MarshalType.
 //
 // An error is returned in case, and only if,
 // there was no MarshalFuncPair registered for the given MarshalType.
-func NewMarshalFuncPair(mt MarshalType) (MarshalFuncPair, error) {
+func NewMarshalFuncPair(mt MarshalType) (*MarshalFuncPair, error) {
 	pair, ok := _MarshalTypeValueToFuncPairMapping[mt]
 	if !ok {
-		return MarshalFuncPair{}, fmt.Errorf("%d is not a valid MarshalType value", mt)
+		return nil, fmt.Errorf("%d is not a valid MarshalType value", mt)
 	}
-	return pair, nil
+	return &pair, nil
 }
 
 // MarshalFuncPair composes a pair of MarshalMetadata and UnmarshalMetadata

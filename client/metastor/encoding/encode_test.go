@@ -21,8 +21,8 @@ import (
 	"math"
 	"testing"
 
-	"github.com/zero-os/0-stor/client/metastor"
 	"github.com/zero-os/0-stor/client/metastor/encoding/proto"
+	"github.com/zero-os/0-stor/client/metastor/metatypes"
 
 	"github.com/stretchr/testify/require"
 )
@@ -108,10 +108,10 @@ func TestNewHasher(t *testing.T) {
 		pair, err := NewMarshalFuncPair(tc.Type)
 		if tc.Expected.Marshal == nil {
 			require.Error(err)
-			require.Nil(pair.Marshal)
-			require.Nil(pair.Unmarshal)
+			require.Nil(pair)
 		} else {
 			require.NoError(err)
+			require.NotNil(pair)
 			require.NotNil(pair.Marshal)
 			require.NotNil(pair.Unmarshal)
 		}
@@ -127,7 +127,7 @@ func TestMyCustomMarshalFuncPair(t *testing.T) {
 	pair, err := NewMarshalFuncPair(myCustomMarshalType)
 	require.NoError(err)
 	require.NotNil(pair.Marshal)
-	_, err = pair.Marshal(metastor.Metadata{})
+	_, err = pair.Marshal(metatypes.Metadata{})
 	require.Equal(errMyMarshal, err)
 	require.NotNil(pair.Unmarshal)
 	err = pair.Unmarshal(nil, nil)
@@ -170,11 +170,11 @@ const (
 
 var errMyMarshal = errors.New("my marshal error")
 
-func myErrorMarsalFunc(metastor.Metadata) ([]byte, error) {
+func myErrorMarsalFunc(metatypes.Metadata) ([]byte, error) {
 	return nil, errMyMarshal
 }
 
-func myErrorUnmarshalFunc([]byte, *metastor.Metadata) error {
+func myErrorUnmarshalFunc([]byte, *metatypes.Metadata) error {
 	return errMyMarshal
 }
 

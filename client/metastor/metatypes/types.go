@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package metastor
+package metatypes
 
 // TODO:
 // Investigate if we can move Previous/Next key to custom/extra

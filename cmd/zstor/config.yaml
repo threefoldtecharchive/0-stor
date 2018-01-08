@@ -2,28 +2,33 @@ iyo:
   organization: myorg  # itsyou.online organization name
   app_id: appID
   app_secret: secret
-namespace: namespace1  # itsyou.online namespace
-datastor:
-  # the address(es) of a zstordb cluster
-  shards:
+namespace: namespace1  # (itsyou.online) data namespace (required)
+datastor: # required
+  # the address(es) of a zstordb cluster (required0)
+  shards: # required
     - 127.0.0.1:12345
     - 127.0.0.1:12346
     - 127.0.0.1:12347
     - 127.0.0.1:12348
-metastor:
-  # the address(es) of an etcd server cluster
-  shards:
-    - 127.0.0.1:2379
-    - 127.0.0.1:22379
-    - 127.0.0.1:32379
-pipeline:
-  block_size: 4096
-  compression:
-    type: snappy # snappy is the default, other options: lz4, gzip
-    mode: default # default is the default, other options: best_speed, best_compression
+  pipeline:
+    block_size: 4096
+    compression: # optional, snappy by default
+      type: snappy # snappy is the default, other options: lz4, gzip
+      mode: default # default is the default, other options: best_speed, best_compression
+    encryption: # optional, disabled by default
+      type: aes # aes is the default and only standard option
+      private_key: ab345678901234567890123456789012
+    distribution: # optional, disabled by default
+      data_shards: 3
+      parity_shards: 1
+metastor: # required
+  db: # required
+    # the address(es) of an etcd server cluster
+    endpoints:
+      - 127.0.0.1:2379
+      - 127.0.0.1:22379
+      - 127.0.0.1:32379
+  encoding: protobuf # protobuf is the default and only standard option
   encryption:
     type: aes # aes is the default and only standard option
     private_key: ab345678901234567890123456789012
-  distribution:
-    data_shards: 3
-    parity_shards: 1

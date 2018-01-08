@@ -24,10 +24,12 @@ import (
 	"github.com/zero-os/0-stor/client"
 	"github.com/zero-os/0-stor/client/datastor"
 	storgrpc "github.com/zero-os/0-stor/client/datastor/grpc"
+	"github.com/zero-os/0-stor/client/datastor/pipeline"
 	"github.com/zero-os/0-stor/client/itsyouonline"
 	"github.com/zero-os/0-stor/client/metastor"
-	"github.com/zero-os/0-stor/client/metastor/etcd"
-	"github.com/zero-os/0-stor/client/pipeline"
+	"github.com/zero-os/0-stor/client/metastor/db/etcd"
+	"github.com/zero-os/0-stor/client/metastor/encoding"
+	"github.com/zero-os/0-stor/client/processing"
 	"github.com/zero-os/0-stor/daemon/api"
 	pb "github.com/zero-os/0-stor/daemon/api/grpc/schema"
 
@@ -48,7 +50,7 @@ type Daemon struct {
 type Config struct {
 	// required parameters
 	Pipeline   pipeline.Pipeline
-	MetaClient metastor.Client
+	MetaClient *metastor.Client
 
 	// optional parameters
 	IYOClient            *itsyouonline.Client
@@ -93,23 +95,13 @@ func NewFromClientConfig(cfg client.Config, maxMsgSize, jobCount int, disableLoc
 		return nil, err
 	}
 	// create data pipeline, used for processing of the data
-	pipeline, err := pipeline.NewPipeline(cfg.Pipeline, cluster, jobCount)
+	pipeline, err := pipeline.NewPipeline(cfg.DataStor.Pipeline, cluster, jobCount)
 	if err != nil {
 		return nil, err
 	}
 
-	// if no metadata shards are given, return an error,
-	// as we require a metastor client
-	// TODO: allow a more flexible kind of metastor client configuration,
-	// so we can also allow other types of metastor clients,
-	// as we do really need one.
-	if len(cfg.MetaStor.Shards) == 0 {
-		return nil, errors.New("no metadata storage given")
-	}
-
-	// create metastor client first,
-	// and than create our master 0-stor client with all features.
-	metastorClient, err := etcd.NewClient(cfg.MetaStor.Shards, nil)
+	// create metastor client
+	metastorClient, err := createMetastorClientFromConfig(&cfg.MetaStor)
 	if err != nil {
 		return nil, err
 	}
@@ -122,6 +114,53 @@ func NewFromClientConfig(cfg client.Config, maxMsgSize, jobCount int, disableLoc
 		MaxMsgSize:           maxMsgSize,
 		DisableLocalFSAccess: disableLocalFSAccess,
 	})
+}
+
+func createMetastorClientFromConfig(cfg *client.MetaStorConfig) (*metastor.Client, error) {
+	if len(cfg.Database.Endpoints) == 0 {
+		return nil, errors.New("no metadata storage ETCD endpoints given")
+	}
+
+	var (
+		err    error
+		config metastor.Config
+	)
+
+	// create metastor database first,
+	// so that then we can create the Metastor client itself
+	// TODO: support other types of databases (e.g. badger)
+	config.Database, err = etcd.New(cfg.Database.Endpoints)
+	if err != nil {
+		return nil, err
+	}
+
+	// create the metadata encoding func pair
+	config.MarshalFuncPair, err = encoding.NewMarshalFuncPair(cfg.Encoding)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(cfg.Encryption.PrivateKey) == 0 {
+		// create potentially insecure metastor storage
+		return metastor.NewClient(config)
+	}
+
+	// create the constructor which will create our encrypter-decrypter when needed
+	config.ProcessorConstructor = func() (processing.Processor, error) {
+		return processing.NewEncrypterDecrypter(
+			cfg.Encryption.Type, []byte(cfg.Encryption.PrivateKey))
+	}
+	// ensure the constructor is valid,
+	// as most errors (if not all) are static, and will only fail due to the given input,
+	// meaning that if it can be created it now, it should be fine later on as well
+	_, err = config.ProcessorConstructor()
+	if err != nil {
+		return nil, err
+	}
+
+	// create our full-configured metastor client,
+	// including encryption support for our metadata in binary form
+	return metastor.NewClient(config)
 }
 
 func createDataClusterFromConfig(cfg *client.Config, iyoClient *itsyouonline.Client) (datastor.Cluster, error) {

@@ -21,7 +21,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/zero-os/0-stor/client/metastor"
+	"github.com/zero-os/0-stor/client/metastor/metatypes"
 
 	"github.com/stretchr/testify/require"
 )
@@ -29,7 +29,7 @@ import (
 func TestMarshalUnmarshal(t *testing.T) {
 	require := require.New(t)
 
-	metadataSlice := []metastor.Metadata{
+	metadataSlice := []metatypes.Metadata{
 		{
 			Key: []byte("foo"),
 		},
@@ -53,7 +53,7 @@ func TestMarshalUnmarshal(t *testing.T) {
 			Key:            []byte("two"),
 			CreationEpoch:  123456789,
 			LastWriteEpoch: 123456789,
-			Chunks: []metastor.Chunk{
+			Chunks: []metatypes.Chunk{
 				{
 					Size:    math.MaxInt64,
 					Objects: nil,
@@ -61,7 +61,7 @@ func TestMarshalUnmarshal(t *testing.T) {
 				},
 				{
 					Size: 1234,
-					Objects: []metastor.Object{
+					Objects: []metatypes.Object{
 						{
 							Key:     []byte("foo"),
 							ShardID: "bar",
@@ -71,7 +71,7 @@ func TestMarshalUnmarshal(t *testing.T) {
 				},
 				{
 					Size: 2,
-					Objects: []metastor.Object{
+					Objects: []metatypes.Object{
 						{
 							Key:     []byte("bar"),
 							ShardID: "foo",
@@ -94,7 +94,7 @@ func TestMarshalUnmarshal(t *testing.T) {
 		require.NoError(err)
 		require.NotNil(bytes)
 
-		var output metastor.Metadata
+		var output metatypes.Metadata
 		err = UnmarshalMetadata(bytes, &output)
 		require.NoError(err)
 		require.Equal(input, output)
@@ -105,15 +105,15 @@ func TestUnmarshalExplicitPanics(t *testing.T) {
 	require := require.New(t)
 
 	require.Panics(func() {
-		UnmarshalMetadata(nil, &metastor.Metadata{})
+		UnmarshalMetadata(nil, &metatypes.Metadata{})
 	}, "no data given to unmarshal")
 	require.Panics(func() {
 		UnmarshalMetadata([]byte("foo"), nil)
-	}, "no metastor.Metadata pointer given to unmarshal to")
+	}, "no metatypes.Metadata pointer given to unmarshal to")
 }
 
 func TestUnmarshalExplicitErrors(t *testing.T) {
-	var data metastor.Metadata
+	var data metatypes.Metadata
 	require.Error(t, UnmarshalMetadata([]byte("foo"), &data))
 }
 
@@ -128,7 +128,7 @@ func TestMetaSize(t *testing.T) {
 
 	t.Logf("size proto: %d\n", len(bytes))
 
-	var output metastor.Metadata
+	var output metatypes.Metadata
 	err = UnmarshalMetadata(bytes, &output)
 	require.NoError(err)
 	require.Equal(input, output)
@@ -146,23 +146,23 @@ func BenchmarkMarshalMetadata(b *testing.B) {
 	}
 }
 
-func createMeta(t testing.TB) metastor.Metadata {
-	chunks := make([]metastor.Chunk, 256)
+func createMeta(t testing.TB) metatypes.Metadata {
+	chunks := make([]metatypes.Chunk, 256)
 	for i := range chunks {
-		chunks[i] = metastor.Chunk{
+		chunks[i] = metatypes.Chunk{
 			Hash: []byte(fmt.Sprintf("chunk%d", i)),
 			Size: 1024,
 		}
-		chunks[i].Objects = make([]metastor.Object, 5)
+		chunks[i].Objects = make([]metatypes.Object, 5)
 		for y := range chunks[i].Objects {
-			chunks[i].Objects[y] = metastor.Object{
+			chunks[i].Objects[y] = metatypes.Object{
 				Key:     []byte(fmt.Sprintf("chunk%d", i)),
 				ShardID: fmt.Sprintf("http://127.0.0.1:12345/stor-%d", i),
 			}
 		}
 	}
 
-	return metastor.Metadata{
+	return metatypes.Metadata{
 		Key:         []byte("testkey"),
 		PreviousKey: []byte("previous"),
 		NextKey:     []byte("next"),

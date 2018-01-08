@@ -26,8 +26,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/zero-os/0-stor/client/pipeline/crypto"
-	"github.com/zero-os/0-stor/client/pipeline/processing"
+	"github.com/zero-os/0-stor/client/datastor/pipeline/crypto"
+	"github.com/zero-os/0-stor/client/processing"
 
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
@@ -389,15 +389,15 @@ func testPipelineWriteReadDeleteCycle(t *testing.T, pipeline Pipeline, inputData
 }
 
 func TestPipelineReadWrite_Readme(t *testing.T) {
-	testPipelineReadWriteFile(t, "../../README.md")
+	testPipelineReadWriteFile(t, "../../../README.md")
 }
 
 func TestPipelineReadWrite_Changelog(t *testing.T) {
-	testPipelineReadWriteFile(t, "../../CHANGELOG.md")
+	testPipelineReadWriteFile(t, "../../../CHANGELOG.md")
 }
 
 func TestPipelineReadWrite_Issue225(t *testing.T) {
-	testPipelineReadWriteFile(t, "../../fixtures/client/issue_225.txt")
+	testPipelineReadWriteFile(t, "../../../fixtures/client/issue_225.txt")
 }
 
 func testPipelineReadWriteFile(t *testing.T, path string) {

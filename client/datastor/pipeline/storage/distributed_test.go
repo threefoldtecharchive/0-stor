@@ -27,7 +27,7 @@ import (
 	"testing"
 
 	"github.com/zero-os/0-stor/client/datastor"
-	"github.com/zero-os/0-stor/client/metastor"
+	"github.com/zero-os/0-stor/client/metastor/metatypes"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -274,7 +274,7 @@ func testDistributedStorageCheckRepair(t *testing.T, dataShardCount, parityShard
 	}
 }
 
-func invalidateObjects(t *testing.T, objects []metastor.Object, n int, cluster datastor.Cluster) {
+func invalidateObjects(t *testing.T, objects []metatypes.Object, n int, cluster datastor.Cluster) {
 	// compute invalid indices
 	var (
 		validIndices []int
@@ -376,7 +376,7 @@ func testReedSolomonEncoderDecoderIssue225Cycle(t *testing.T, k, m int) {
 	require.NoError(t, err)
 	require.NotNil(t, ed)
 
-	input, err := ioutil.ReadFile("../../../fixtures/client/issue_225.txt")
+	input, err := ioutil.ReadFile("../../../../fixtures/client/issue_225.txt")
 	require.NoError(t, err)
 
 	parts, err := ed.Encode(input)

@@ -4,7 +4,7 @@ import (
 	"log"
 
 	datastor "github.com/zero-os/0-stor/client/datastor/grpc"
-	"github.com/zero-os/0-stor/client/pipeline/processing"
+	"github.com/zero-os/0-stor/client/processing"
 )
 
 // This example shows how you can process data prior to storage,

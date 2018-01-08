@@ -22,7 +22,7 @@ import (
 	"fmt"
 
 	"github.com/zero-os/0-stor/client/datastor"
-	"github.com/zero-os/0-stor/client/metastor"
+	"github.com/zero-os/0-stor/client/metastor/metatypes"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/templexxx/reedsolomon"
@@ -133,7 +133,7 @@ func (ds *DistributedChunkStorage) WriteChunk(data []byte) (*ChunkConfig, error)
 	// which will be used to collect all the successful shards' identifiers for the final output
 	type indexedObject struct {
 		Index  int
-		Object metastor.Object
+		Object metatypes.Object
 	}
 	resultCh := make(chan indexedObject, jobCount)
 	// create all the actual workers
@@ -180,7 +180,7 @@ func (ds *DistributedChunkStorage) WriteChunk(data []byte) (*ChunkConfig, error)
 					// do the actual storage
 					key, err = shard.CreateObject(part.Data)
 					if err == nil {
-						object := metastor.Object{Key: key, ShardID: shard.Identifier()}
+						object := metatypes.Object{Key: key, ShardID: shard.Identifier()}
 						select {
 						case resultCh <- indexedObject{part.Index, object}:
 							break writeLoop
@@ -213,7 +213,7 @@ func (ds *DistributedChunkStorage) WriteChunk(data []byte) (*ChunkConfig, error)
 	// and store+send them in the same order as how we received the parts
 	var (
 		resultCount int
-		objects     = make([]metastor.Object, partsCount)
+		objects     = make([]metatypes.Object, partsCount)
 	)
 	// fetch all results
 	for result := range resultCh {
@@ -282,7 +282,7 @@ func (ds *DistributedChunkStorage) ReadChunk(cfg ChunkConfig) ([]byte, error) {
 				err         error
 				shard       datastor.Shard
 				index       int
-				inputObject metastor.Object
+				inputObject metatypes.Object
 			)
 			for {
 				// fetch a random shard
@@ -443,7 +443,7 @@ func (ds *DistributedChunkStorage) CheckChunk(cfg ChunkConfig, fast bool) (Check
 				status datastor.ObjectStatus
 				shard  datastor.Shard
 				index  int
-				object metastor.Object
+				object metatypes.Object
 			)
 			for {
 				// wait for a request
@@ -589,7 +589,7 @@ func (ds *DistributedChunkStorage) DeleteChunk(cfg ChunkConfig) error {
 		group.Go(func() error {
 			var (
 				err   error
-				obj   *metastor.Object
+				obj   *metatypes.Object
 				shard datastor.Shard
 			)
 			for index := range indexCh {

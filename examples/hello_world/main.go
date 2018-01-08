@@ -21,8 +21,8 @@ import (
 	"log"
 
 	"github.com/zero-os/0-stor/client"
-	"github.com/zero-os/0-stor/client/pipeline"
-	"github.com/zero-os/0-stor/client/pipeline/processing"
+	"github.com/zero-os/0-stor/client/datastor/pipeline"
+	"github.com/zero-os/0-stor/client/processing"
 )
 
 func main() {
@@ -32,21 +32,26 @@ func main() {
 		Namespace: "thedisk",
 		DataStor: client.DataStorConfig{
 			Shards: []string{"127.0.0.1:12345", "127.0.0.1:12346", "127.0.0.1:12347"},
+			Pipeline: pipeline.Config{
+				BlockSize: 4096,
+				Compression: pipeline.CompressionConfig{
+					Mode: processing.CompressionModeDefault,
+				},
+				Encryption: pipeline.EncryptionConfig{
+					PrivateKey: "ab345678901234567890123456789012",
+				},
+				Distribution: pipeline.ObjectDistributionConfig{
+					DataShardCount:   2,
+					ParityShardCount: 1,
+				},
+			},
 		},
 		MetaStor: client.MetaStorConfig{
-			Shards: []string{"127.0.0.1:2379"},
-		},
-		Pipeline: pipeline.Config{
-			BlockSize: 4096,
-			Compression: pipeline.CompressionConfig{
-				Mode: processing.CompressionModeDefault,
+			Database: client.MetaStorETCDConfig{
+				Endpoints: []string{"127.0.0.1:2379"},
 			},
-			Encryption: pipeline.EncryptionConfig{
+			Encryption: client.MetaStorEncryptionConfig{
 				PrivateKey: "ab345678901234567890123456789012",
-			},
-			Distribution: pipeline.ObjectDistributionConfig{
-				DataShardCount:   2,
-				ParityShardCount: 1,
 			},
 		},
 	}

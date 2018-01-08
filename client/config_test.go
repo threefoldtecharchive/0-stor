@@ -19,9 +19,10 @@ package client
 import (
 	"testing"
 
+	"github.com/zero-os/0-stor/client/datastor/pipeline"
 	"github.com/zero-os/0-stor/client/itsyouonline"
-	"github.com/zero-os/0-stor/client/pipeline"
-	"github.com/zero-os/0-stor/client/pipeline/processing"
+	"github.com/zero-os/0-stor/client/metastor/encoding"
+	"github.com/zero-os/0-stor/client/processing"
 
 	"github.com/stretchr/testify/require"
 )
@@ -45,28 +46,35 @@ func TestDecodeZstorExampleConfig(t *testing.T) {
 				"127.0.0.1:12347",
 				"127.0.0.1:12348",
 			},
+			Pipeline: pipeline.Config{
+				BlockSize: 4096,
+				Compression: pipeline.CompressionConfig{
+					Type: processing.CompressionTypeSnappy,
+					Mode: processing.CompressionModeDefault,
+				},
+				Encryption: pipeline.EncryptionConfig{
+					Type:       processing.EncryptionTypeAES,
+					PrivateKey: "ab345678901234567890123456789012",
+				},
+				Distribution: pipeline.ObjectDistributionConfig{
+					DataShardCount:   3,
+					ParityShardCount: 1,
+				},
+			},
 		},
 		MetaStor: MetaStorConfig{
-			Shards: []string{
-				"127.0.0.1:2379",
-				"127.0.0.1:22379",
-				"127.0.0.1:32379",
+			Database: MetaStorETCDConfig{
+				Endpoints: []string{
+					"127.0.0.1:2379",
+					"127.0.0.1:22379",
+					"127.0.0.1:32379",
+				},
 			},
-		},
-		Pipeline: pipeline.Config{
-			BlockSize: 4096,
-			Compression: pipeline.CompressionConfig{
-				Type: processing.CompressionTypeSnappy,
-				Mode: processing.CompressionModeDefault,
-			},
-			Encryption: pipeline.EncryptionConfig{
+			Encryption: MetaStorEncryptionConfig{
 				Type:       processing.EncryptionTypeAES,
 				PrivateKey: "ab345678901234567890123456789012",
 			},
-			Distribution: pipeline.ObjectDistributionConfig{
-				DataShardCount:   3,
-				ParityShardCount: 1,
-			},
+			Encoding: encoding.MarshalTypeProtobuf,
 		},
 	}
 
