@@ -82,9 +82,34 @@ type DataStorConfig struct {
 // MetaStorConfig is used to configure the metastor client.
 // TODO: remove this fixed/non-dynamic struct
 type MetaStorConfig struct {
-	Database   MetaStorETCDConfig       `yaml:"db" json:"db"`                 // required
-	Encryption MetaStorEncryptionConfig `yaml:"encryption" json:"encryption"` // optional (disabled by default)
-	Encoding   encoding.MarshalType     `yaml:"encoding" json:"encoding"`     // optional (proto by default)
+	// Database defines the configuration of the database backend,
+	// used to set, get and delete metadata into valid KV database.
+	///
+	// This is the only configuration which is required,
+	// currently only an ETCD-backed database is supported,
+	// when using this Config. Should you desire another backend,
+	// such as badger, you'll need to create the client manually,
+	// for now.
+	Database MetaStorETCDConfig `yaml:"db" json:"db"`
+
+	// Encryption defines the encryption processor used to
+	// encrypt and decrypt the metadata prior to storage and decoding.
+	//
+	// This configuration is optional,
+	// and when not given, no encryption is used.
+	// Even though encryption is disabled by default,
+	// it is recommended to use it if you can.
+	Encryption MetaStorEncryptionConfig `yaml:"encryption" json:"encryption"`
+
+	// Encoding defines the encoding type,
+	// used to marshal the metadata to binary from, and vice versa.
+	//
+	// This property is optional, and by default protobuf is used.
+	// Protobuf is also the only standard option available,
+	// however using encoding.RegisterMarshalFuncPair,
+	// you'll be able to register (or overwrite an existing) MarshalFuncPair,
+	// and thus support any encoder you wish to use.
+	Encoding encoding.MarshalType `yaml:"encoding" json:"encoding"` // optional (proto by default)
 }
 
 // MetaStorEncryptionConfig defines the configuration used to create an

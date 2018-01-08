@@ -131,7 +131,7 @@ func (sop *SingleObjectPipeline) Write(r io.Reader) ([]metatypes.Chunk, error) {
 //
 //    +-------------------------------------------------------------+
 //    |                                    +----------------------+ |
-//    | metatypes.Chunk +-> storage.Read +--> Processor.Read +     | |
+//    | metatypes.Chunk +-> storage.Read +--> Processor.Read +    | |
 //    |                                    | Hash/Data Validation | |
 //    |                                    +-----------+----------+ |
 //    |                                                |            |

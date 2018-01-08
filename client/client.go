@@ -21,8 +21,6 @@ import (
 	"io"
 	"time"
 
-	"github.com/zero-os/0-stor/client/processing"
-
 	"github.com/zero-os/0-stor/client/datastor"
 	storgrpc "github.com/zero-os/0-stor/client/datastor/grpc"
 	"github.com/zero-os/0-stor/client/datastor/pipeline"
@@ -33,6 +31,7 @@ import (
 	"github.com/zero-os/0-stor/client/metastor/db/etcd"
 	"github.com/zero-os/0-stor/client/metastor/encoding"
 	"github.com/zero-os/0-stor/client/metastor/metatypes"
+	"github.com/zero-os/0-stor/client/processing"
 )
 
 var (
