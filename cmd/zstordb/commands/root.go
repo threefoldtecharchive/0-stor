@@ -25,7 +25,6 @@ import (
 	"syscall"
 
 	"github.com/zero-os/0-stor/cmd"
-	"github.com/zero-os/0-stor/server/api"
 	"github.com/zero-os/0-stor/server/api/grpc"
 	"github.com/zero-os/0-stor/server/db/badger"
 	"github.com/zero-os/0-stor/server/jwt"
@@ -56,7 +55,7 @@ var rootCmd = &cobra.Command{
 			log.Debug("Debug logging enabled")
 		}
 		if rootCfg.AuthDisabled {
-			log.Warning("!! Authentication disabled, don't use this mode for production!!!")
+			log.Warning("!!! Authentication disabled, don't use this mode for production !!!")
 		}
 	},
 }
@@ -75,12 +74,14 @@ func rootFunc(*cobra.Command, []string) error {
 		return err
 	}
 
-	var storServer api.Server
-	if rootCfg.AuthDisabled {
-		storServer, err = grpc.New(db, nil, rootCfg.MaxMsgSize, rootCfg.JobCount)
-	} else {
-		storServer, err = grpc.New(db, jwt.DefaultVerifier(), rootCfg.MaxMsgSize, rootCfg.JobCount)
+	serverConfig := grpc.ServerConfig{
+		MaxMsgSize: rootCfg.MaxMsgSize,
+		JobCount:   rootCfg.JobCount,
 	}
+	if !rootCfg.AuthDisabled {
+		serverConfig.Verifier = jwt.DefaultVerifier()
+	}
+	storServer, err := grpc.New(db, serverConfig)
 	if err != nil {
 		log.Errorf("error while creating database layer: %v", err)
 		return err

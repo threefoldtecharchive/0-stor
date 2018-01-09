@@ -37,6 +37,27 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
+func TestServerConfigSanitize(t *testing.T) {
+	require := require.New(t)
+
+	var cfg ServerConfig
+	require.Zero(cfg.JobCount)
+	require.Zero(cfg.MaxMsgSize)
+	require.Nil(cfg.Verifier)
+
+	cfg.sanitize()
+	require.True(cfg.JobCount > 0)
+	require.True(cfg.MaxMsgSize > 0)
+	require.Nil(cfg.Verifier)
+
+	cfg.JobCount = 1
+	cfg.MaxMsgSize = 1
+	cfg.sanitize()
+	require.Equal(1, cfg.JobCount)
+	require.Equal(1024*1024, cfg.MaxMsgSize)
+	require.Nil(cfg.Verifier)
+}
+
 func TestServerMsgSize(t *testing.T) {
 	mib := 1024 * 1024
 
@@ -47,8 +68,8 @@ func TestServerMsgSize(t *testing.T) {
 			listener, err := net.Listen("tcp", "localhost:0")
 			require.NoError(err)
 
-			maxSize := i
-			srv, err := New(memory.New(), nil, maxSize, 0)
+			maxMsgSize := i
+			srv, err := New(memory.New(), ServerConfig{MaxMsgSize: maxMsgSize})
 			require.NoError(err, "server should have been created")
 			defer srv.Close()
 
@@ -62,11 +83,11 @@ func TestServerMsgSize(t *testing.T) {
 			cl, err := storgrpc.NewClient(listener.Addr().String(), "testnamespace", nil)
 			require.NoError(err, "client should have been created")
 
-			bigData := make([]byte, (maxSize*mib)+10)
+			bigData := make([]byte, (maxMsgSize*mib)+10)
 			_, err = rand.Read(bigData)
 			require.NoError(err, "should have read random data")
 
-			smallData := make([]byte, (maxSize/2)*mib)
+			smallData := make([]byte, (maxMsgSize/2)*mib)
 			_, err = rand.Read(smallData)
 			require.NoError(err, "should have read random data")
 

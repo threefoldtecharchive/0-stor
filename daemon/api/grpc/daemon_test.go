@@ -41,5 +41,5 @@ func TestConfig_ValidateAndSanitize(t *testing.T) {
 	err = cfg.validateAndSanitize()
 	require.NoError(t, err)
 
-	require.Equal(t, DefaultMaxSizeMsg, cfg.MaxMsgSize)
+	require.Equal(t, DefaultMaxMsgSize, cfg.MaxMsgSize)
 }

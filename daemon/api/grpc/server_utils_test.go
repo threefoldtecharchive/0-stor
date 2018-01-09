@@ -141,7 +141,7 @@ func newServer() (string, func(), error) {
 		return "", nil, err
 	}
 
-	server, err := grpc.New(memory.New(), nil, 0, 0)
+	server, err := grpc.New(memory.New(), grpc.ServerConfig{})
 	if err != nil {
 		return "", nil, err
 	}

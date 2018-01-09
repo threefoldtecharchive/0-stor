@@ -112,7 +112,7 @@
 [[projects]]
   branch = "better_docs"
   name = "github.com/grpc-ecosystem/go-grpc-middleware"
-  packages = ["."]
+  packages = [".","logging","logging/logrus","tags"]
   revision = "63e69ea2fcaa6764e67826381756e528db9203ab"
 
 [[projects]]
@@ -326,6 +326,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "73ba7b93d572d0cd8899702911555b7985aac249030a2dbe21d112992b3e13d7"
+  inputs-digest = "43f0cd7e9c4d417c84e87e2d3ee5dec16fd86b32c02d9904a0ca077f04ac0d14"
   solver-name = "gps-cdcl"
   solver-version = 1
