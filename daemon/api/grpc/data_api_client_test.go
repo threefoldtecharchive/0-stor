@@ -29,7 +29,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
 )
 
 func TestDataAPI_Client_ReadWriteDeleteCheck(t *testing.T) {
@@ -225,9 +224,7 @@ func TestDataAPI_Client_WriteStreamRead(t *testing.T) {
 
 	ctx := context.Background()
 
-	md := metadata.Pairs(rpctypes.MetaKeyTag, "foo")
-	writeCtx := metadata.NewOutgoingContext(ctx, md)
-	stream, err := client.WriteStream(writeCtx)
+	stream, err := client.WriteStream(ctx)
 	require.NoError(err)
 	require.NotNil(stream)
 
