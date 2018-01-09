@@ -1,7 +1,7 @@
 # What is 0-stor
 
-- 0-stor is a simple object storage where you can write files to and reas files from in an efficient manner.
-- It's designed to leverage the power of [Badger][badger], a key value store that works very fast on SSD hard disks. You can read more about Badger [here][badger_post].
+- 0-stor is a simple object storage where you can write files to and read files from in an efficient manner.
+- It's designed to leverage the power of [Badger][badger], a key value store that works very fast on the local FS. You can read more about Badger [here][badger_post].
 - 0-stor use [GRPC][grpc] as the communication protocol between server and client.
 - 0-stor depends on [IYO][iyo] for:
     - Authentication & Authorization.
@@ -11,7 +11,6 @@
         - That says you **MUST** have `{organization_name}.0stor.{namespace}` sub organization on [IYO][iyo].
         - In most cases it's the responsibility of the client you are using to create proper [IYO][iyo] sub organizations for you
         provided that you have a valid organization
-
 
 - [IYO][iyo] and how it's used for Authorization:
     - Assume we have an [IYO][iyo] organization called `myth`.
@@ -28,9 +27,23 @@
         - if a user is member of `myth.0stor.namespace2.write` then user has only write access to `myth.0stor.namespace2` and cannot read or delete;
         - if a user is member of `myth.0stor.namespace2.delete` then user has only delete access to `myth.0stor.namespace2` and cannot read or write;
 
+## Table of contents
+
+**Intro**
+
+* [Introduction](intro.md)
+* [Code organization](code_organization.md)
+* [Getting Started](gettingstarted.md)
+
+**Server**
+
+* [Server (zstordb)](server/server.md)
+* [zstordb design](server/design.md)
+
 [iyo]: https://itsyou.online/
 [jwt]: https://jwt.io/
 [iyo_example]: assets/intro_iyo_namespace_example.png
 [badger]: https://github.com/dgraph-io/badger
 [badger_post]: https://open.dgraph.io/post/badger/
 [grpc]: https://grpc.io/
+[server_intro]: /docs/server/server.md

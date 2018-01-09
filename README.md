@@ -8,11 +8,17 @@ A Single device object store.
 
 ## Components
 
+For a quick introduction checkout the [intro docs](/docs/intro.md).
+
+For a full overview check out the [code organization docs](/docs/code_organization.md).
+
 ## Server
 
 The 0-stor server is a generic object store that provide simple storage primitives, read, write, list, delete.
 
 0-stor uses [badger](https://github.com/dgraph-io/badger) as the backend key value store. Badger allows storing the keys and the value onto separate devices. Because of this separation, the LSM (Log-Structured Merge) tree of keys can most of the time stay in memory. Typically the keys could be kept in memory and depending on the use case, the values could be served from an SSD or HDD.
+
+See [the server docs][/docs/server/server.md] for more information.
 
 ### Installation
 
@@ -29,15 +35,18 @@ go get -u github.com/zero-os/0-stor/cmd/zstordb
 Here are the options of the server:
 
 ```
-      --async-write           Enable asynchronous writes in BadgerDB.
-      --data-dir string       Directory path used to store the data. (default ".db/data")
-  -D, --debug                 Enable debug logging.
-  -h, --help                  help for zstordb
-      --max-msg-size int      Configure the maximum size of the message GRPC server can receive, in MiB (default 32)
-      --meta-dir string       Directory path used to store the meta data. (default ".db/meta")
-      --no-auth               Disable JWT authentication.
-  -L, --listen string         Bind the server to the given host and port. Format has to be host:port, with host optional (default ":8080")
-      --profile-addr string   Enables profiling of this server as an http service.
+      --async-write                Enable asynchronous writes in BadgerDB.
+      --data-dir string            Directory path used to store the data. (default ".db/data")
+  -D, --debug                      Enable debug logging.
+  -h, --help                       help for zstordb
+  -j, --jobs int                   amount of async jobs to run for heavy GRPC server commands (default $NUM_OF_CPUS_TIMES_TWO)
+  -L, --listen listenAddress       Bind the server to the given host and port. Format has to be host:port, with host optional (default :8080)
+      --max-msg-size int           Configure the maximum size of the message GRPC server can receive, in MiB (default 32)
+      --meta-dir string            Directory path used to store the meta data. (default ".db/meta")
+      --no-auth                    Disable JWT authentication.
+      --profile-addr string        Enables profiling of this server as an http service.
+      --profile-mode profileMode   Enable profiling mode, one of [cpu, mem, block, trace]
+      --profile-output string      Path of the directory where profiling files are written (default ".")
 ```
 
 Start the server with listening on all interfaces and port 12345
@@ -54,8 +63,7 @@ The client provides some basic storage primitives to process your data before se
 - chunking
 - compression
 - encryption
-- replication
-- distribution/erasure coding
+- replication or distribution/erasure coding
 
 All of these primitives are configurable and you can decide how your data will be processed before being sent to the 0-stor.
 
@@ -65,6 +73,8 @@ Other then a 0-stor server cluster, 0-stor clients also needs an [etcd](https://
 
 To install and run an etcd cluster, check out the [etcd documentation](https://github.com/coreos/etcd#getting-etcd).
 
+> NOTE: it is possible to avoid the usage of etcd, and use a badger-backed metastor client instead. See http://godoc.org/github.com/zero-os/0-stor/client/metastor/db/badger for more information.
+
 ### Client API
 
 Client API documentation can be found in the godocs:
@@ -73,17 +83,9 @@ Client API documentation can be found in the godocs:
 
 ### Client CLI
 
-You can find a CLI for the client in `cmd/zerostorcli`.
+You can find [a CLI for the client in `cmd/zstor`](cmd/zstor/README.md).
 
 To install
 ```
-go get -u github.com/zero-os/0-stor/cmd/zerostorcli
+go get -u github.com/zero-os/0-stor/cmd/zstor
 ```
-
-### More documentation
-
-You can find more information about the different components in the `/docs` folder of this repository:
-
-* [Server docs](docs/README.md)
-* [Client docs](client/README.md)
-* [CLI docs](cmd/zerostorcli/README.md)
