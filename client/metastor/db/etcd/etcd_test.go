@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/zero-os/0-stor/client/metastor/db"
 	"github.com/zero-os/0-stor/client/metastor/db/test"
 
 	"github.com/stretchr/testify/require"
@@ -69,7 +70,9 @@ func TestDB_NonExistingServer(t *testing.T) {
 	_, err := New([]string{"http://foo:42"})
 	require.Error(t, err)
 	// make sure it is network error
-	_, ok := err.(net.Error)
+	internalError, ok := err.(*db.InternalError)
+	require.True(t, ok)
+	_, ok = internalError.Err.(net.Error)
 	require.True(t, ok)
 }
 

@@ -24,8 +24,11 @@ import (
 
 	dbp "github.com/zero-os/0-stor/client/metastor/db"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/clientv3/concurrency"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // New creates new metastor database client, using an ETCD cluster as storage medium.
@@ -39,7 +42,7 @@ func New(endpoints []string) (*DB, error) {
 		DialTimeout: metaOpTimeout,
 	})
 	if err != nil {
-		return nil, err
+		return nil, mapETCDError(err)
 	}
 	return &DB{
 		etcdClient: cli,
@@ -61,7 +64,10 @@ func (db *DB) Set(key, metadata []byte) error {
 	defer cancel()
 
 	_, err := db.etcdClient.Put(ctx, string(key), string(metadata))
-	return err
+	if err != nil {
+		return mapETCDError(err)
+	}
+	return nil
 }
 
 // Get implements db.Get
@@ -71,7 +77,7 @@ func (db *DB) Get(key []byte) ([]byte, error) {
 
 	resp, err := db.etcdClient.Get(ctx, string(key))
 	if err != nil {
-		return nil, err
+		return nil, mapETCDError(err)
 	}
 	if len(resp.Kvs) < 1 {
 		return nil, dbp.ErrNotFound
@@ -85,7 +91,10 @@ func (db *DB) Delete(key []byte) error {
 	defer cancel()
 
 	_, err := db.etcdClient.Delete(ctx, string(key))
-	return err
+	if err != nil {
+		return mapETCDError(err)
+	}
+	return nil
 }
 
 // Update implements db.Update
@@ -93,17 +102,22 @@ func (db *DB) Update(key []byte, cb dbp.UpdateCallback) error {
 	ctx, cancel := context.WithTimeout(db.ctx, metaOpTimeout)
 	defer cancel()
 
-	keyStr := string(key)
+	var (
+		preserveError bool
+		keyStr        = string(key)
+	)
 	resp, err := concurrency.NewSTM(db.etcdClient, func(stm concurrency.STM) error {
 		// get the metadata
 		metadataIn := stm.Get(keyStr)
 		if len(metadataIn) == 0 {
+			preserveError = true
 			return dbp.ErrNotFound
 		}
 
 		// update the metadata
 		metadataOut, err := cb([]byte(metadataIn))
 		if err != nil {
+			preserveError = true
 			return err
 		}
 		// store the metadata
@@ -111,7 +125,10 @@ func (db *DB) Update(key []byte, cb dbp.UpdateCallback) error {
 		return nil
 	}, concurrency.WithPrefetch(keyStr), concurrency.WithAbortContext(ctx))
 	if err != nil {
-		return err
+		if preserveError {
+			return err
+		}
+		return mapETCDError(err)
 	}
 	if !resp.Succeeded {
 		return fmt.Errorf("metadata update of '%s' didn't succeed", key)
@@ -121,8 +138,58 @@ func (db *DB) Update(key []byte, cb dbp.UpdateCallback) error {
 
 // Close implements db.Close
 func (db *DB) Close() error {
-	return db.etcdClient.Close()
+	err := db.etcdClient.Close()
+	if err != nil {
+		return mapETCDError(err)
+	}
+	return nil
 }
+
+func init() {
+	// ensure all our ETCD clients are using the logrus standard logger
+	entry := log.NewEntry(log.StandardLogger()).WithField("metastor_db", databaseType)
+	clientv3.SetLogger(&etcdLogger{entry})
+}
+
+// mapETCDError is used to map an ETCD error
+func mapETCDError(err error) error {
+	if status, ok := status.FromError(err); ok {
+		switch status.Code() {
+		case codes.Unavailable:
+			return dbp.ErrUnavailable
+		case codes.DeadlineExceeded:
+			return dbp.ErrTimeout
+		}
+	}
+	return &dbp.InternalError{Type: databaseType, Err: err}
+}
+
+// etcdLogger is a wrapper type,
+// as to be able to use the logrus standard logger for ETCD logging
+type etcdLogger struct {
+	*log.Entry
+}
+
+// demote the info logs to debug logs,
+// as the ETCD log package's info calls are really just debug logs
+func (l *etcdLogger) Info(args ...interface{}) {
+	l.Entry.Debug(args...)
+}
+func (l *etcdLogger) Infoln(args ...interface{}) {
+	l.Entry.Debugln(args...)
+}
+func (l *etcdLogger) Infof(format string, args ...interface{}) {
+	l.Entry.Debugf(format, args...)
+}
+
+const (
+	databaseType = "ETCD"
+)
+
+// not required, and too messy to support,
+// instead the internal logger will simply ignore log calls
+// which aren't required
+func (l *etcdLogger) V(int) bool { return true }
 
 const (
 	metaOpTimeout = 30 * time.Second

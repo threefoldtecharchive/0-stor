@@ -16,13 +16,39 @@
 
 package db
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 var (
-	// ErrNotFound is the error returned by metadata KV database,
+	// ErrNotFound is the error returned by a metastor KV database,
 	// in case metadata requested couldn't be found.
-	ErrNotFound = errors.New("key couldn't be found")
+	ErrNotFound = errors.New("metastor: key couldn't be found")
+
+	// ErrTimeout is the error returned by a metastor KV database,
+	// in case the database timed out.
+	ErrTimeout = errors.New("metastor: database timed out")
+
+	// ErrUnavailable is the error returned by a metastor KV database,
+	// in case the database is unavailable.
+	ErrUnavailable = errors.New("metastor: database is unavailable")
 )
+
+// InternalError can be returned by a database as a generic internal error,
+// retaining the actual internal error as part of the returned error.
+type InternalError struct {
+	Type string
+	Err  error
+}
+
+// Error implements error.Error
+func (ie *InternalError) Error() string {
+	if ie.Err == nil {
+		return fmt.Sprintf("metastor: internal %s database error", ie.Type)
+	}
+	return fmt.Sprintf("metastor: internal %s database error: %s", ie.Type, ie.Err.Error())
+}
 
 // DB interface is the interface defining how to interact with a key value store,
 // as ued for metadata storage. ALl DB implements are assumed to be threadsafe.

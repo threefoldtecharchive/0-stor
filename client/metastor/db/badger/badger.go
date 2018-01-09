@@ -146,27 +146,28 @@ func (db *DB) Update(key []byte, cb dbp.UpdateCallback) error {
 			// fetch the original stored and encoded metadata
 			item, err := txn.Get(key)
 			if err != nil {
-				return err
+				return mapBadgerError(err)
 			}
 			metadata, err := item.Value()
 			if err != nil {
-				return err
+				return mapBadgerError(err)
 			}
 
 			// user-defined update of the metadata
 			metadata, err = cb(metadata)
 			if err != nil {
-				return err
+				return err // don't map user-specified error
 			}
 
 			// store the updated metadata
-			return txn.Set(key, metadata)
+			err = txn.Set(key, metadata)
+			if err != nil {
+				return mapBadgerError(err)
+			}
+			return nil
 		})
 	}
-	if err != nil {
-		return mapBadgerError(err)
-	}
-	return nil
+	return err
 }
 
 // Close implements metastor.Client.Close
@@ -174,7 +175,11 @@ func (db *DB) Close() error {
 	// cancel (db) context
 	db.cancelFunc()
 	// close db
-	return db.badger.Close()
+	err := db.badger.Close()
+	if err != nil {
+		mapBadgerError(err)
+	}
+	return nil
 }
 
 // collectGarbage runs the garbage collection for Badger backend db
@@ -213,6 +218,10 @@ func mapBadgerError(err error) error {
 	case badgerdb.ErrKeyNotFound:
 		return dbp.ErrNotFound
 	default:
-		return err
+		return &dbp.InternalError{Type: databaseType, Err: err}
 	}
 }
+
+const (
+	databaseType = "Badger"
+)
