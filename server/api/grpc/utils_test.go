@@ -67,17 +67,17 @@ func getTestGRPCServer(t *testing.T, organization string) (*testServer, stubs.IY
 	require.NoError(t, err)
 
 	var client stubs.IYOClient
-	var verifier jwt.TokenVerifier
+	serverConfig := ServerConfig{MaxMsgSize: 4}
 	if organization != "" {
 		client = getIYOClient(t, organization)
 		var err error
-		verifier, err = getTestVerifier(testPubKeyPath)
+		serverConfig.Verifier, err = getTestVerifier(testPubKeyPath)
 		require.NoError(t, err)
 	} else {
-		verifier = jwt.NopVerifier{}
+		serverConfig.Verifier = jwt.NopVerifier{}
 	}
 
-	server, err := New(memory.New(), verifier, 4, 0)
+	server, err := New(memory.New(), serverConfig)
 	require.NoError(t, err)
 
 	go func() {

@@ -63,7 +63,7 @@ func testGRPCServer(t testing.TB, n int) ([]*testServer, func()) {
 		db, err := badger.New(path.Join(tmpDir, "data"), path.Join(tmpDir, "meta"))
 		require.NoError(err)
 
-		server, err := grpc.New(db, nil, 4, 0)
+		server, err := grpc.New(db, grpc.ServerConfig{MaxMsgSize: 4})
 		require.NoError(err)
 
 		listener, err := net.Listen("tcp", "localhost:0")

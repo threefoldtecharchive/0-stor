@@ -91,7 +91,7 @@ func init() {
 	daemonCmd.Flags().VarP(
 		&daemonCfg.ListenAddress, "listen", "L", daemonCfg.ListenAddress.Description())
 	daemonCmd.Flags().IntVar(
-		&daemonCfg.MaxMsgSize, "max-msg-size", daemon.DefaultMaxSizeMsg,
+		&daemonCfg.MaxMsgSize, "max-msg-size", daemon.DefaultMaxMsgSize,
 		"Configure the maximum size of the message this daemon can receive and send, in MiB")
 	daemonCmd.Flags().BoolVar(
 		&daemonCfg.DisableLocalFSAccess, "no-local-fs", false,

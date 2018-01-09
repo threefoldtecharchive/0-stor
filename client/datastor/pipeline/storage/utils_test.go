@@ -67,7 +67,7 @@ func newGRPCServerClient() (*clientGRPC.Client, string, func(), error) {
 		return nil, "", nil, err
 	}
 
-	server, err := serverGRPC.New(memory.New(), nil, 0, 0)
+	server, err := serverGRPC.New(memory.New(), serverGRPC.ServerConfig{})
 	if err != nil {
 		return nil, "", nil, err
 	}

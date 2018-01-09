@@ -27,6 +27,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/grpc-ecosystem/go-grpc-middleware"
+	"github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
 	"google.golang.org/grpc"
 )
 
@@ -37,8 +38,8 @@ var (
 )
 
 const (
-	// DefaultMaxSizeMsg is the default size msg of a server
-	DefaultMaxSizeMsg = 32
+	// DefaultMaxMsgsize is the default send/recv msg size of a server
+	DefaultMaxMsgsize = 32
 )
 
 // Server represents a 0-stor server GRPC Server API.
@@ -47,51 +48,74 @@ type Server struct {
 	grpcServer *grpc.Server
 }
 
+// ServerConfig represents all the optional properties,
+// that can be configured for a 0-stor server.
+// A nil ServerConfig is valid, and will result
+// in a server creation using only default options.s
+type ServerConfig struct {
+	MaxMsgSize int
+	JobCount   int
+	Verifier   jwt.TokenVerifier
+}
+
+// sanitize ensures that all config options
+// are in the expected unit. If a property is nil,
+// and it has a default value, the default value will be set as well.
+func (cfg *ServerConfig) sanitize() {
+	if cfg.MaxMsgSize <= 0 {
+		cfg.MaxMsgSize = DefaultMaxMsgsize
+	}
+	cfg.MaxMsgSize *= 1024 * 1024 //Mib to Bytes
+
+	if cfg.JobCount <= 0 {
+		cfg.JobCount = DefaultJobCount
+	}
+}
+
 // New creates a GRPC (server) API, using a given Database,
 // and optional also custom server options (e.g. authentication middleware)
 // Default maxSizeMsg is equal to DefaultMaxSizeMsg.
 // Default jobs is equal to DefaultJobCount.
-func New(db db.DB, verifier jwt.TokenVerifier, maxSizeMsg, jobs int) (*Server, error) {
+func New(db db.DB, cfg ServerConfig) (*Server, error) {
 	if db == nil {
 		panic("no database given")
 	}
-
-	if maxSizeMsg <= 0 {
-		maxSizeMsg = DefaultMaxSizeMsg
-	}
-	maxSizeMsg = maxSizeMsg * 1024 * 1024 //Mib to Bytes
-
-	if jobs <= 0 {
-		jobs = DefaultJobCount
-	}
+	cfg.sanitize()
 
 	s := &Server{db: db}
 
-	// create our grpc server
-	if verifier != nil {
-		s.grpcServer = grpc.NewServer(
-			grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(
-				streamJWTAuthInterceptor(verifier),
-				streamStatsInterceptor(),
-			)),
-			grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
-				unaryJWTAuthInterceptor(verifier),
-				unaryStatsInterceptor(),
-			)),
-			grpc.MaxRecvMsgSize(maxSizeMsg),
-			grpc.MaxSendMsgSize(maxSizeMsg),
-		)
-	} else {
-		s.grpcServer = grpc.NewServer(
-			grpc.StreamInterceptor(streamStatsInterceptor()),
-			grpc.UnaryInterceptor(unaryStatsInterceptor()),
-			grpc.MaxRecvMsgSize(maxSizeMsg),
-			grpc.MaxSendMsgSize(maxSizeMsg),
-		)
+	logrusEntry := log.NewEntry(log.StandardLogger())
+	levelOpt := grpc_logrus.WithLevels(CodeToLogrusLevel)
+
+	streamInterceptors := []grpc.StreamServerInterceptor{
+		streamStatsInterceptor(),
+		grpc_logrus.StreamServerInterceptor(logrusEntry, levelOpt),
+	}
+	unaryInterceptors := []grpc.UnaryServerInterceptor{
+		unaryStatsInterceptor(),
+		grpc_logrus.UnaryServerInterceptor(logrusEntry, levelOpt),
 	}
 
+	// add our auth interceptor to the front, should a verifier be given
+	if cfg.Verifier != nil {
+		streamInterceptors = append([]grpc.StreamServerInterceptor{
+			streamJWTAuthInterceptor(cfg.Verifier),
+		}, streamInterceptors...)
+		unaryInterceptors = append([]grpc.UnaryServerInterceptor{
+			unaryJWTAuthInterceptor(cfg.Verifier),
+		}, unaryInterceptors...)
+	}
+
+	// create our grpc server
+	s.grpcServer = grpc.NewServer(
+		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(streamInterceptors...)),
+		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(unaryInterceptors...)),
+		grpc.MaxRecvMsgSize(cfg.MaxMsgSize),
+		grpc.MaxSendMsgSize(cfg.MaxMsgSize),
+	)
+
 	// register our different managers
-	pb.RegisterObjectManagerServer(s.grpcServer, NewObjectAPI(db, jobs))
+	pb.RegisterObjectManagerServer(s.grpcServer, NewObjectAPI(db, cfg.JobCount))
 	pb.RegisterNamespaceManagerServer(s.grpcServer, NewNamespaceAPI(db))
 
 	// return the API server, ready for usage

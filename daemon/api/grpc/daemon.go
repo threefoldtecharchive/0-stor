@@ -32,8 +32,10 @@ import (
 	"github.com/zero-os/0-stor/client/processing"
 	"github.com/zero-os/0-stor/daemon/api"
 	pb "github.com/zero-os/0-stor/daemon/api/grpc/schema"
+	serverGRPC "github.com/zero-os/0-stor/server/api/grpc"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
 	"google.golang.org/grpc"
 )
 
@@ -54,7 +56,7 @@ type Config struct {
 
 	// optional parameters
 	IYOClient            *itsyouonline.Client
-	MaxMsgSize           int
+	MaxMsgSize           int // size in MiB
 	DisableLocalFSAccess bool
 }
 
@@ -67,14 +69,14 @@ func (cfg *Config) validateAndSanitize() error {
 	}
 
 	if cfg.MaxMsgSize <= 0 {
-		cfg.MaxMsgSize = DefaultMaxSizeMsg
+		cfg.MaxMsgSize = DefaultMaxMsgSize
 	}
 	return nil
 }
 
 const (
-	// DefaultMaxSizeMsg is the default size msg of a server
-	DefaultMaxSizeMsg = 32
+	// DefaultMaxMsgSize is the default size msg of a server in MiB
+	DefaultMaxMsgSize = 32
 )
 
 // NewFromClientConfig creates new daemon with given (client) Config.
@@ -195,9 +197,14 @@ func New(cfg Config) (*Daemon, error) {
 		return nil, err
 	}
 
+	logrusEntry := log.NewEntry(log.StandardLogger())
+	levelOpt := grpc_logrus.WithLevels(serverGRPC.CodeToLogrusLevel)
+
 	// create our GRPC server
 	maxMsgSize := cfg.MaxMsgSize * 1024 * 1024 // MiB to bytes
 	grpcServer := grpc.NewServer(
+		grpc.StreamInterceptor(grpc_logrus.StreamServerInterceptor(logrusEntry, levelOpt)),
+		grpc.UnaryInterceptor(grpc_logrus.UnaryServerInterceptor(logrusEntry, levelOpt)),
 		grpc.MaxRecvMsgSize(maxMsgSize),
 		grpc.MaxSendMsgSize(maxMsgSize),
 	)
