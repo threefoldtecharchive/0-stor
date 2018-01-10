@@ -134,8 +134,10 @@ func rootFunc(*cobra.Command, []string) error {
 		}
 	}
 
-	// create a TCP listener for our server
-	listener, err := net.Listen("tcp", rootCfg.ListenAddress.String())
+	// create a UNIX/TCP listener for our server
+	listener, err := net.Listen(
+		rootCfg.ListenAddress.NetworkProtocol(),
+		rootCfg.ListenAddress.String())
 	if err != nil {
 		return err
 	}
@@ -151,7 +153,9 @@ func rootFunc(*cobra.Command, []string) error {
 	}()
 
 	log.Infof("Server interface: grpc")
-	log.Infof("Server listening on %s", listener.Addr().String())
+	log.Infof("Server listening on %s (net protocol: %s)",
+		listener.Addr().String(),
+		rootCfg.ListenAddress.NetworkProtocol())
 
 	select {
 	case err := <-errChan:

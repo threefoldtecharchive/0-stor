@@ -64,6 +64,7 @@ func NewClient(addr, namespace string, jwtTokenGetter datastor.JWTTokenGetter) (
 	// ensure that we have a valid connection
 	conn, err := grpc.Dial(addr,
 		grpc.WithInsecure(),
+		grpc.WithDialer(Dial),
 		grpc.WithDefaultCallOptions(
 			grpc.MaxCallRecvMsgSize(math.MaxInt32),
 			grpc.MaxCallSendMsgSize(math.MaxInt32),
