@@ -1,10 +1,16 @@
 # 0-stor
 
-[![Build Status](https://travis-ci.org/zero-os/0-stor.png?branch=master)](https://travis-ci.org/zero-os/0-stor) [![GoDoc](https://godoc.org/github.com/zero-os/0-stor?status.svg)](https://godoc.org/github.com/zero-os/0-stor) [![codecov](https://codecov.io/gh/zero-os/0-stor/branch/master/graph/badge.svg)](https://codecov.io/gh/zero-os/0-stor) [![Go Report Card](https://goreportcard.com/badge/github.com/zero-os/0-stor)](https://goreportcard.com/report/github.com/zero-os/0-stor)
+[![Build Status](https://travis-ci.org/zero-os/0-stor.png?branch=master)](https://travis-ci.org/zero-os/0-stor) [![GoDoc](https://godoc.org/github.com/zero-os/0-stor?status.svg)](https://godoc.org/github.com/zero-os/0-stor) [![codecov](https://codecov.io/gh/zero-os/0-stor/branch/master/graph/badge.svg)](https://codecov.io/gh/zero-os/0-stor) [![Go Report Card](https://goreportcard.com/badge/github.com/zero-os/0-stor)](https://goreportcard.com/report/github.com/zero-os/0-stor) [![license](https://img.shields.io/github/license/zero-os/0-stor.svg)](https://github.com/zero-os/0-stor/blob/master/LICENSE)
 
 A Single device object store.
 
 [link to group on telegram](https://t.me/joinchat/BrOCOUGHeT035il_qrwQ2A)
+
+## Minimum requirements
+
+Requirement|Notes
+---|---
+Go version | Go1.8 or higher
 
 ## Components
 
