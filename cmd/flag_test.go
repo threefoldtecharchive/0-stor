@@ -138,6 +138,7 @@ func TestProfileModeFlag(t *testing.T) {
 				require.Error(t, err)
 				return
 			}
+			require.NoError(t, err)
 			require.Equal(t, tc.value, p.String())
 		})
 	}

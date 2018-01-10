@@ -143,6 +143,7 @@ func (p *ProfileMode) Set(str string) error {
 	for index, modeStr := range _ProfileModeStrings {
 		if modeStr == str {
 			*p = ProfileMode(index)
+			return nil
 		}
 	}
 	return fmt.Errorf("profile mode %s not recognized or supported", str)
