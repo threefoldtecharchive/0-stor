@@ -8,9 +8,24 @@ A Single device object store.
 
 ## Minimum requirements
 
-Requirement|Notes
----|---
-Go version | Go1.8 or higher
+Development requirements | Notes
+--- | ---
+Go version | [**Go 1.8**][min-release-go] or any higher **stable** release (it is recommended to always use the latest Golang release)
+ETCD Version | [**etcd 3.2.4**][min-release-etcd] or any higher **stable** release (only required when requiring a metastor client with ETCD as its underlying database)
+protoc version | [**protoc 3.4.0** (protoc-3.4.0)][min-release-protoc] (only required when needing to regenerate any proto3 schemas)
+
+Production requirements | Notes
+--- | ---
+ETCD Version | [**etcd 3.2.4**][min-release-etcd] or any higher **stable** release
+
+Developed on Linux and MacOS, [CI Tested on Linux][ci-tested-travis]. Ready for usage in production on both Linux and MacOS.
+
+While 0-stor probably works on Windows and FreeBSD, this is not officially supported nor tested. Should it not work out of the box and you require it to work for whatever reason, feel free to open [a pull request](https://github.com/zero-os/0-stor/pulls) for it.
+
+[min-release-go]: (https://github.com/golang/go/releases/tag/go1.8)
+[min-release-etcd]: (https://github.com/coreos/etcd/releases/tag/v3.2.4)
+[min-release-protoc]: (https://github.com/google/protobuf/releases/tag/v3.4.0)
+[ci-tested-travis]: https://travis-ci.org/zero-os/0-stor
 
 ## Components
 
