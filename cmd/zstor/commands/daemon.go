@@ -47,8 +47,10 @@ var daemonCmd = &cobra.Command{
 func daemonFunc(*cobra.Command, []string) error {
 	cmd.LogVersion()
 
-	// create a TCP listener for our daemon (server)
-	listener, err := net.Listen("tcp", daemonCfg.ListenAddress.String())
+	// create a UNIX/TCP listener for our daemon (server)
+	listener, err := net.Listen(
+		daemonCfg.ListenAddress.NetworkProtocol(),
+		daemonCfg.ListenAddress.String())
 	if err != nil {
 		return err
 	}
@@ -73,7 +75,9 @@ func daemonFunc(*cobra.Command, []string) error {
 	}()
 
 	log.Infof("Daemon Server interface: grpc")
-	log.Infof("Daemon Server listening on %s", listener.Addr().String())
+	log.Infof("Daemon Server listening on %s (net protocol: %s)",
+		listener.Addr().String(),
+		daemonCfg.ListenAddress.NetworkProtocol())
 
 	// wait until the daemon has to be gracefully closed,
 	// or until a fatal error occurs

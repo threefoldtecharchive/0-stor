@@ -55,22 +55,49 @@ func (s Strings) Type() string {
 	return "strings"
 }
 
-// ListenAddress is a string representing a host and a port
-// which can be used as a flag for a Cobra command.
-type ListenAddress string
+// ListenAddress is a string representing either a TCP addr (a host and a port),
+// or a Unix socket (file path), which can be used as a flag for a Cobra command.
+type ListenAddress struct {
+	addr  string
+	proto netProto
+}
 
-const defaultListenAddress = ":8080"
+const (
+	defaultTCPListenAddress = ":8080"
+)
+
+type netProto uint8
+
+const (
+	netProtoTCP netProto = iota
+	netProtoUnix
+)
 
 // String implements spf13/pflag.Value.String
 func (b *ListenAddress) String() string {
-	if len(*b) == 0 {
-		return defaultListenAddress
+	switch b.proto {
+	case netProtoUnix:
+		return b.addr
+	default:
+		if len(b.addr) == 0 {
+			return defaultTCPListenAddress
+		}
+		return b.addr
 	}
-	return string(*b)
 }
 
 // Set implements spf13/pflag.Value.Set
 func (b *ListenAddress) Set(str string) error {
+	if len(str) == 0 {
+		b.addr, b.proto = defaultTCPListenAddress, netProtoTCP
+		return nil
+	}
+
+	if i := strings.IndexAny(str, "/:"); i == -1 || str[i] == '/' {
+		b.addr, b.proto = str, netProtoUnix
+		return nil
+	}
+
 	host, _, err := net.SplitHostPort(str)
 	if err != nil {
 		return err
@@ -82,19 +109,31 @@ func (b *ListenAddress) Set(str string) error {
 		}
 	}
 
-	*b = ListenAddress(str)
+	b.addr, b.proto = str, netProtoTCP
 	return nil
 }
 
 // Description prints the flag description for this flag
 func (b *ListenAddress) Description() string {
-	return "Bind the server to the given host and port." +
-		" Format has to be host:port, with host optional"
+	return "Bind the server to the given unix socket path or tcp address." +
+		" Format has to be either host:port, with host optional, or a valid unix (socket) path."
 }
 
 // Type implements spf13/pflag.Value.Type
 func (b *ListenAddress) Type() string {
 	return "listenAddress"
+}
+
+// NetworkProtocol returns the network protocol to be used for the set ListenAddress.
+func (b *ListenAddress) NetworkProtocol() string {
+	switch b.proto {
+	case netProtoTCP:
+		return "tcp"
+	case netProtoUnix:
+		return "unix"
+	default:
+		return ""
+	}
 }
 
 //ProfileMode is a string representing a profiling mode

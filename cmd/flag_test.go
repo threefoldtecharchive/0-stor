@@ -50,35 +50,53 @@ func TestStringsFlag(t *testing.T) {
 
 func TestListenAddressFlag(t *testing.T) {
 	tt := []struct {
-		input string
-		err   error
-		value string
+		input   string
+		err     error
+		value   string
+		network string
 	}{
 		{
 			// default value
 			"",
 			nil,
 			":8080",
+			"tcp",
 		},
 		{
 			"8080",
-			errors.New("address 8080: missing port in address"),
-			"",
+			nil,
+			"8080",
+			"unix",
 		},
 		{
 			":8080",
 			nil,
 			":8080",
+			"tcp",
 		},
 		{
 			"127.0.0.1:8080",
 			nil,
 			"127.0.0.1:8080",
+			"tcp",
 		},
 		{
 			"badhost:8080",
 			errors.New("host not valid"),
 			"",
+			"tcp",
+		},
+		{
+			"foo",
+			nil,
+			"foo",
+			"unix",
+		},
+		{
+			"/var/foo",
+			nil,
+			"/var/foo",
+			"unix",
 		},
 	}
 
@@ -95,8 +113,11 @@ func TestListenAddressFlag(t *testing.T) {
 				err = l.Set(tc.input)
 			}
 			if tc.err != nil {
+				require.NotNil(err)
 				require.Equal(tc.err.Error(), err.Error())
 			} else {
+				require.NoError(err)
+				require.Equal(tc.network, l.NetworkProtocol())
 				require.Equal(tc.value, l.String())
 			}
 		})
