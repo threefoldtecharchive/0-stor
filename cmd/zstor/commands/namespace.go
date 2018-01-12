@@ -33,11 +33,47 @@ var namespaceCmd = &cobra.Command{
 	Short: "Manage namespaces and their permissions.",
 }
 
+var namespaceCmdCfg struct {
+	namespace string
+}
+
+func preRunNamespaceCommands(requiredArgs int) func(*cobra.Command, []string) error {
+	return func(_cmd *cobra.Command, args []string) error {
+		n := len(args)
+		if n < requiredArgs {
+			return fmt.Errorf("required at least %d arg(s), received %d", requiredArgs, n)
+		}
+		maxArgs := requiredArgs + 1
+		if n > maxArgs {
+			return fmt.Errorf("accepting maximum %d arg(s), received %d", maxArgs, n)
+		}
+
+		if n == maxArgs {
+			namespace := args[requiredArgs]
+
+			config, err := getClientConfig()
+			if err != nil {
+				return err
+			}
+			log.Infof("overwrote namespace config property to '%s' (was: '%s')",
+				namespace, config.Namespace)
+			// Override namespace settings
+			config.Namespace = namespace
+		}
+
+		return nil
+	}
+}
+
 // namespaceCreateCmd represents the namespace-create command
 var namespaceCreateCmd = &cobra.Command{
-	Use:   "create <name>",
+	Use:   "create [namespace]",
 	Short: "Create a namespace.",
-	Args:  cobra.ExactArgs(1),
+	Long: `Create namespace in IYO within an organization for a given name.
+
+If no namespace is given as positional argument, it is assumed that the namespace
+as defined in the (client) config file, is to be used.`,
+	PreRunE: preRunNamespaceCommands(0),
 	RunE: func(_cmd *cobra.Command, args []string) error {
 		iyoCl, err := getNamespaceManager()
 		if err != nil {
@@ -58,9 +94,13 @@ var namespaceCreateCmd = &cobra.Command{
 
 // namespaceDeleteCmd represents the namespace-delete command
 var namespaceDeleteCmd = &cobra.Command{
-	Use:   "delete <name>",
+	Use:   "delete [namespace]",
 	Short: "Delete a namespace.",
-	Args:  cobra.ExactArgs(1),
+	Long: `Delete namespace in IYO existing within an organization under a given name.
+
+If no namespace is given as positional argument, it is assumed that the namespace
+as defined in the (client) config file, is to be used.`,
+	PreRunE: preRunNamespaceCommands(0),
 	RunE: func(_cmd *cobra.Command, args []string) error {
 		iyoCl, err := getNamespaceManager()
 		if err != nil {
@@ -87,10 +127,13 @@ var namespacePermissionCmd = &cobra.Command{
 
 // namespaceSetPermissionCmd represents the namespace-permission-set command
 var namespaceSetPermissionCmd = &cobra.Command{
-	Use:   "set <userID> <namespace>",
+	Use:   "set <userID> [namespace]",
 	Short: "Set permissions.",
-	Long:  "Set permissions for a given user and namespace.",
-	Args:  cobra.ExactArgs(2),
+	Long: `Set permissions for a given user and namespace.
+
+If no namespace is given as positional argument, it is assumed that the namespace
+as defined in the (client) config file, is to be used.`,
+	PreRunE: preRunNamespaceCommands(1),
 	RunE: func(_cmd *cobra.Command, args []string) error {
 		iyoCl, err := getNamespaceManager()
 		if err != nil {
@@ -145,10 +188,13 @@ var namespaceGetPermissionCfg struct {
 
 // namespaceGetPermissionCmd represents the namespace-permission-get command
 var namespaceGetPermissionCmd = &cobra.Command{
-	Use:   "get <userID> <namespace>",
+	Use:   "get <userID> [namespace]",
 	Short: "Get permissions.",
-	Long:  "Get permissions for a given user and namespace.",
-	Args:  cobra.ExactArgs(2),
+	Long: `Get permissions for a given user and namespace.
+
+If no namespace is given as positional argument, it is assumed that the namespace
+as defined in the (client) config file, is to be used.`,
+	PreRunE: preRunNamespaceCommands(1),
 	RunE: func(_cmd *cobra.Command, args []string) error {
 		iyoCl, err := getNamespaceManager()
 		if err != nil {

@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"sync"
 
 	"github.com/zero-os/0-stor/client"
 	"github.com/zero-os/0-stor/client/itsyouonline"
@@ -61,7 +62,7 @@ var rootCfg struct {
 }
 
 func getClient() (*client.Client, error) {
-	cfg, err := client.ReadConfig(rootCfg.ConfigFile)
+	cfg, err := getClientConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +76,7 @@ func getClient() (*client.Client, error) {
 }
 
 func getMetaClient() (*metastor.Client, error) {
-	clientCfg, err := client.ReadConfig(rootCfg.ConfigFile)
+	clientCfg, err := getClientConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -125,12 +126,25 @@ func getMetaClient() (*metastor.Client, error) {
 }
 
 func getNamespaceManager() (*itsyouonline.Client, error) {
-	cfg, err := client.ReadConfig(rootCfg.ConfigFile)
+	cfg, err := getClientConfig()
 	if err != nil {
 		return nil, err
 	}
 	return itsyouonline.NewClient(cfg.IYO)
 }
+
+func getClientConfig() (*client.Config, error) {
+	_ClientConfigOnce.Do(func() {
+		_ClientConfig, _ClientConfigError = client.ReadConfig(rootCfg.ConfigFile)
+	})
+	return _ClientConfig, _ClientConfigError
+}
+
+var (
+	_ClientConfigOnce  sync.Once
+	_ClientConfig      *client.Config
+	_ClientConfigError error
+)
 
 func init() {
 	rootCmd.AddCommand(
