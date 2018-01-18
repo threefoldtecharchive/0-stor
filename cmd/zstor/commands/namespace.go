@@ -65,6 +65,20 @@ func preRunNamespaceCommands(requiredArgs int) func(*cobra.Command, []string) er
 	}
 }
 
+func getNamespacePosArg(maxArgs int, args []string) string {
+	if len(args) == maxArgs {
+		return args[maxArgs-1]
+	}
+	cfg, err := getClientConfig()
+	if err != nil {
+		// we'll assume in this helper func,
+		// that the cfg has already been fetched earlier,
+		// and thus we can panic if this was not the case
+		panic(err)
+	}
+	return cfg.Namespace
+}
+
 // namespaceCreateCmd represents the namespace-create command
 var namespaceCreateCmd = &cobra.Command{
 	Use:   "create [namespace]",
@@ -79,15 +93,14 @@ as defined in the (client) config file, is to be used.`,
 		if err != nil {
 			return err
 		}
-
-		name := args[0]
-
-		err = iyoCl.CreateNamespace(name)
+		namespace := getNamespacePosArg(1, args)
+		err = iyoCl.CreateNamespace(namespace)
 		if err != nil {
-			return fmt.Errorf("creation of namespace %q failed: %v", name, err)
+			return fmt.Errorf("creation of namespace %q failed: %v",
+				namespace, err)
 		}
 
-		log.Infof("namespace %q created", name)
+		log.Infof("namespace %q created", namespace)
 		return nil
 	},
 }
@@ -106,15 +119,14 @@ as defined in the (client) config file, is to be used.`,
 		if err != nil {
 			return err
 		}
-
-		name := args[0]
-
-		err = iyoCl.DeleteNamespace(name)
+		namespace := getNamespacePosArg(1, args)
+		err = iyoCl.DeleteNamespace(namespace)
 		if err != nil {
-			return fmt.Errorf("deletion of namespace %q failed: %v", name, err)
+			return fmt.Errorf("deletion of namespace %q failed: %v",
+				namespace, err)
 		}
 
-		log.Infof("namespace %q deleted", name)
+		log.Infof("namespace %q deleted", namespace)
 		return nil
 	},
 }
@@ -139,8 +151,8 @@ as defined in the (client) config file, is to be used.`,
 		if err != nil {
 			return err
 		}
-
-		userID, namespace := args[0], args[1]
+		userID := args[0]
+		namespace := getNamespacePosArg(2, args)
 		currentpermissions, err := iyoCl.GetPermission(namespace, userID)
 		if err != nil {
 			return fmt.Errorf("fail to retrieve permission(s) for %s:%s: %v",
@@ -200,8 +212,8 @@ as defined in the (client) config file, is to be used.`,
 		if err != nil {
 			return err
 		}
-
-		userID, namespace := args[0], args[1]
+		userID := args[0]
+		namespace := getNamespacePosArg(2, args)
 		perm, err := iyoCl.GetPermission(namespace, userID)
 		if err != nil {
 			return fmt.Errorf("failed to retrieve permission for %s:%s: %v",
