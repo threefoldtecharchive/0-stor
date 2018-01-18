@@ -4,12 +4,12 @@ import (
 	"gopkg.in/validator.v2"
 )
 
-type UsersUsernameTwofamethodsGetRespBody struct {
+type TwoFAMethods struct {
 	Sms  []Phonenumber `json:"sms" validate:"nonzero"`
 	Totp bool          `json:"totp"`
 }
 
-func (s UsersUsernameTwofamethodsGetRespBody) Validate() error {
+func (s TwoFAMethods) Validate() error {
 
 	return validator.Validate(s)
 }
