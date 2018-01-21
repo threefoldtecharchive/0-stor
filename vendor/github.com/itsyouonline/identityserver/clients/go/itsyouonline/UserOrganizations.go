@@ -4,12 +4,12 @@ import (
 	"gopkg.in/validator.v2"
 )
 
-type UsersUsernameOrganizationsGetRespBody struct {
+type UserOrganizations struct {
 	Member []string `json:"member" validate:"nonzero"`
 	Owner  []string `json:"owner" validate:"nonzero"`
 }
 
-func (s UsersUsernameOrganizationsGetRespBody) Validate() error {
+func (s UserOrganizations) Validate() error {
 
 	return validator.Validate(s)
 }
