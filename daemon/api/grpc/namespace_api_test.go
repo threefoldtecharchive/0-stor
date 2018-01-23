@@ -166,8 +166,8 @@ func (ncs *namespaceClientStub) DeleteNamespace(namespace string) error {
 func (ncs *namespaceClientStub) SetPermission(namespace, userID string, perm itsyouonline.Permission) error {
 	return nil
 }
-func (ncs *namespaceClientStub) GetPermission(namespace, userID string) (itsyouonline.Permission, error) {
-	return itsyouonline.Permission{}, nil
+func (ncs *namespaceClientStub) GetPermission(namespace, userID string) (*itsyouonline.Permission, error) {
+	return new(itsyouonline.Permission), nil
 }
 
 var (
@@ -175,11 +175,11 @@ var (
 )
 
 func TestComputePermissionsToRemove(t *testing.T) {
-	p := func(r, w, d, a int) itsyouonline.Permission {
-		return itsyouonline.Permission{Read: r == 1, Write: w == 1, Delete: d == 1, Admin: a == 1}
+	p := func(r, w, d, a int) *itsyouonline.Permission {
+		return &itsyouonline.Permission{Read: r == 1, Write: w == 1, Delete: d == 1, Admin: a == 1}
 	}
 	testCases := []struct {
-		current, toRemove, expected itsyouonline.Permission
+		current, toRemove, expected *itsyouonline.Permission
 	}{
 		{p(0, 0, 0, 0), p(1, 1, 1, 1), p(0, 0, 0, 0)},
 		{p(0, 0, 0, 0), p(0, 1, 0, 1), p(0, 0, 0, 0)},
@@ -195,11 +195,11 @@ func TestComputePermissionsToRemove(t *testing.T) {
 }
 
 func TestComputePermissionsToGive(t *testing.T) {
-	p := func(r, w, d, a int) itsyouonline.Permission {
-		return itsyouonline.Permission{Read: r == 1, Write: w == 1, Delete: d == 1, Admin: a == 1}
+	p := func(r, w, d, a int) *itsyouonline.Permission {
+		return &itsyouonline.Permission{Read: r == 1, Write: w == 1, Delete: d == 1, Admin: a == 1}
 	}
 	testCases := []struct {
-		current, toGive, expected itsyouonline.Permission
+		current, toGive, expected *itsyouonline.Permission
 	}{
 		{p(0, 0, 0, 0), p(1, 1, 1, 1), p(1, 1, 1, 1)},
 		{p(0, 0, 0, 0), p(0, 1, 0, 1), p(0, 1, 0, 1)},

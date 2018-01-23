@@ -30,7 +30,7 @@ type IYOClient interface {
 	DeleteNamespace(namespace string) error
 	GivePermission(namespace, userID string, perm itsyouonline.Permission) error
 	RemovePermission(namespace, userID string, perm itsyouonline.Permission) error
-	GetPermission(namespace, userID string) (itsyouonline.Permission, error)
+	GetPermission(namespace, userID string) (*itsyouonline.Permission, error)
 }
 
 // StubIYOClient implements the IYOClient interface
@@ -70,8 +70,8 @@ func (m *StubIYOClient) GivePermission(namespace, userID string, perm itsyouonli
 func (m *StubIYOClient) RemovePermission(namespace, userID string, perm itsyouonline.Permission) error {
 	return nil
 }
-func (m *StubIYOClient) GetPermission(namespace, userID string) (itsyouonline.Permission, error) {
-	return itsyouonline.Permission{
+func (m *StubIYOClient) GetPermission(namespace, userID string) (*itsyouonline.Permission, error) {
+	return &itsyouonline.Permission{
 		Admin:  true,
 		Write:  true,
 		Read:   true,

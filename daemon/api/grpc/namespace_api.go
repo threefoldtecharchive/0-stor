@@ -122,7 +122,7 @@ type namespaceClient interface {
 	CreateNamespace(namespace string) error
 	DeleteNamespace(namespace string) error
 	SetPermission(namespace, userID string, perm itsyouonline.Permission) error
-	GetPermission(namespace, userID string) (itsyouonline.Permission, error)
+	GetPermission(namespace, userID string) (*itsyouonline.Permission, error)
 }
 
 // namespaceClientFromIYOClient creates a namespace client,
@@ -148,15 +148,17 @@ func (iyo *iyoClient) SetPermission(namespace, userID string, perm itsyouonline.
 	}
 
 	// remove permission if needed
-	permsToRemove := computePermissionsToRemove(currentPermissions, perm)
-	if err := iyo.Client.RemovePermission(namespace, userID, permsToRemove); err != nil {
+	permsToRemove := computePermissionsToRemove(currentPermissions, &perm)
+	err = iyo.Client.RemovePermission(namespace, userID, *permsToRemove)
+	if err != nil {
 		return fmt.Errorf("failed to remove permission(s) for %s:%s: %v",
 			userID, namespace, err)
 	}
 
 	// add permission if needed
-	permsToGive := computePermissionsToGive(currentPermissions, perm)
-	if err := iyo.Client.GivePermission(namespace, userID, permsToGive); err != nil {
+	permsToGive := computePermissionsToGive(currentPermissions, &perm)
+	err = iyo.Client.GivePermission(namespace, userID, *permsToGive)
+	if err != nil {
 		return fmt.Errorf("fail to give permission(s) for %s:%s: %v",
 			userID, namespace, err)
 	}
@@ -173,12 +175,12 @@ func (iyo nilIYOClient) DeleteNamespace(namespace string) error { return rpctype
 func (iyo nilIYOClient) SetPermission(namespace, userID string, perm itsyouonline.Permission) error {
 	return rpctypes.ErrGRPCNotSupported
 }
-func (iyo nilIYOClient) GetPermission(namespace, userID string) (itsyouonline.Permission, error) {
-	return itsyouonline.Permission{}, rpctypes.ErrGRPCNotSupported
+func (iyo nilIYOClient) GetPermission(namespace, userID string) (*itsyouonline.Permission, error) {
+	return nil, rpctypes.ErrGRPCNotSupported
 }
 
-func computePermissionsToRemove(current, toRemove itsyouonline.Permission) itsyouonline.Permission {
-	return itsyouonline.Permission{
+func computePermissionsToRemove(current, toRemove *itsyouonline.Permission) *itsyouonline.Permission {
+	return &itsyouonline.Permission{
 		Read:   current.Read && !toRemove.Read,
 		Write:  current.Write && !toRemove.Write,
 		Delete: current.Delete && !toRemove.Delete,
@@ -186,8 +188,8 @@ func computePermissionsToRemove(current, toRemove itsyouonline.Permission) itsyo
 	}
 }
 
-func computePermissionsToGive(current, toGive itsyouonline.Permission) itsyouonline.Permission {
-	return itsyouonline.Permission{
+func computePermissionsToGive(current, toGive *itsyouonline.Permission) *itsyouonline.Permission {
+	return &itsyouonline.Permission{
 		Read:   !current.Read && toGive.Read,
 		Write:  !current.Write && toGive.Write,
 		Delete: !current.Delete && toGive.Delete,

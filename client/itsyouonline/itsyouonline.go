@@ -281,63 +281,49 @@ func (c *Client) RemovePermission(namespace, userID string, perm Permission) err
 }
 
 // GetPermission retrieves the permission a user has for a namespace
-// returns true for a right when user is member or invited to the namespace
-func (c *Client) GetPermission(namespace, userID string) (Permission, error) {
+// returns true for a right when user is member of the namespace
+func (c *Client) GetPermission(namespace, userID string) (*Permission, error) {
+	err := c.login()
+	if err != nil {
+		return nil, err
+	}
+
 	var (
 		permission = Permission{}
 		org        string
 	)
 
-	err := c.login()
-	if err != nil {
-		return permission, err
+	allPermissions := []*struct {
+		PropertyReference *bool
+		String            string
+		UseStringAsID     bool
+	}{
+		{&permission.Read, "read", true},
+		{&permission.Write, "write", true},
+		{&permission.Delete, "delete", true},
+		{&permission.Admin, "admin", false},
 	}
 
-	for _, perm := range []string{"read", "write", "delete", "admin"} {
-		if perm == "admin" {
-			org = c.createNamespaceID(namespace)
-		} else {
-			org = c.createNamespaceID(namespace) + "." + perm
-		}
-
-		invitations, resp, err := c.iyoClient.Organizations.GetInvitations(org, nil, nil)
-		if err != nil {
-			return permission, fmt.Errorf("Failed to retrieve user permission : %+v", err)
-		}
-
-		if resp.StatusCode != http.StatusOK {
-			return permission, fmt.Errorf("Failed to retrieve user permission : IYO returned status %+v", resp.Status)
+	for _, perm := range allPermissions {
+		org = c.createNamespaceID(namespace)
+		if perm.UseStringAsID {
+			org += "." + perm.String
 		}
 
 		members, resp, err := c.iyoClient.Organizations.GetOrganizationUsers(org, nil, nil)
 		if err != nil {
-			return permission, fmt.Errorf("Failed to retrieve user permission: %+v", err)
+			return nil, fmt.Errorf("Failed to retrieve user permission: %+v", err)
 		}
-
 		if resp.StatusCode != http.StatusOK {
-			return permission, fmt.Errorf("Failed to retrieve user permission : IYO returned status %+v", resp.Status)
+			return nil, fmt.Errorf("Failed to retrieve user permission : IYO returned status %+v", resp.Status)
 		}
 
-		switch perm {
-		case "read":
-			if hasPermission(userID, members.Users, invitations) {
-				permission.Read = true
-			}
-		case "write":
-			if hasPermission(userID, members.Users, invitations) {
-				permission.Write = true
-			}
-		case "delete":
-			if hasPermission(userID, members.Users, invitations) {
-				permission.Delete = true
-			}
-		case "admin":
-			if hasPermission(userID, members.Users, invitations) {
-				permission.Admin = true
-			}
+		if !isMember(userID, members.Users) {
+			continue
 		}
+		*perm.PropertyReference = true
 	}
-	return permission, nil
+	return &permission, nil
 }
 
 func (c *Client) login() error {
@@ -353,22 +339,9 @@ func (c *Client) createNamespaceID(namespace string) string {
 	return c.cfg.Organization + "." + "0stor" + "." + namespace
 }
 
-func hasPermission(target string, members []itsyouonline.OrganizationUser, invitations []itsyouonline.JoinOrganizationInvitation) bool {
-	return isMember(target, members) || isInvited(target, invitations)
-}
-
 func isMember(target string, list []itsyouonline.OrganizationUser) bool {
 	for _, v := range list {
 		if target == v.Username {
-			return true
-		}
-	}
-	return false
-}
-
-func isInvited(target string, invitations []itsyouonline.JoinOrganizationInvitation) bool {
-	for _, invite := range invitations {
-		if target == invite.User || target == invite.Emailaddress {
 			return true
 		}
 	}
