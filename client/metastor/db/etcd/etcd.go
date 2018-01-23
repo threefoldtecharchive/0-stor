@@ -24,7 +24,6 @@ import (
 
 	dbp "github.com/zero-os/0-stor/client/metastor/db"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/clientv3/concurrency"
 	"google.golang.org/grpc/codes"
@@ -145,12 +144,6 @@ func (db *DB) Close() error {
 	return nil
 }
 
-func init() {
-	// ensure all our ETCD clients are using the logrus standard logger
-	entry := log.NewEntry(log.StandardLogger()).WithField("metastor_db", databaseType)
-	clientv3.SetLogger(&etcdLogger{entry})
-}
-
 // mapETCDError is used to map an ETCD error
 func mapETCDError(err error) error {
 	if status, ok := status.FromError(err); ok {
@@ -164,32 +157,9 @@ func mapETCDError(err error) error {
 	return &dbp.InternalError{Type: databaseType, Err: err}
 }
 
-// etcdLogger is a wrapper type,
-// as to be able to use the logrus standard logger for ETCD logging
-type etcdLogger struct {
-	*log.Entry
-}
-
-// demote the info logs to debug logs,
-// as the ETCD log package's info calls are really just debug logs
-func (l *etcdLogger) Info(args ...interface{}) {
-	l.Entry.Debug(args...)
-}
-func (l *etcdLogger) Infoln(args ...interface{}) {
-	l.Entry.Debugln(args...)
-}
-func (l *etcdLogger) Infof(format string, args ...interface{}) {
-	l.Entry.Debugf(format, args...)
-}
-
 const (
 	databaseType = "ETCD"
 )
-
-// not required, and too messy to support,
-// instead the internal logger will simply ignore log calls
-// which aren't required
-func (l *etcdLogger) V(int) bool { return true }
 
 const (
 	metaOpTimeout = 30 * time.Second
