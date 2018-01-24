@@ -1,28 +1,27 @@
-organization: {CHANME} # itsyou.online organization name
-namespace: {CHANGEME}       # itsyou.online namespace
-protocol: grpc
-iyo_app_id: {CHANGEME}
-iyo_app_secret: {CHANGEME}
-# the address(es) of 0-stor server
-data_shards:
-    - 127.0.0.1:12345
-    - 127.0.0.1:12346
-    - 127.0.0.1:12347
-    - 127.0.0.1:12348
-# the address(es) of etcd server
-meta_shards:
-    - http://localhost:2379
-    - http://localhost:22379
-    - http://localhost:32379
+datastor:
+  shards:
+  - 127.0.0.1:12345
+  - 127.0.0.1:12346
+  - 127.0.0.1:12347
 
-block_size: 4096
+    #iyo:
+#  app_id: <iyo appid>
+# app_secret: <iyo secret>
+#organization: <iyo org>
 
-replication_nr: 4
-replication_max_size: 4096
+metastor:
+  db:
+    endpoints:
+    - 127.0.0.1:2379
+    - 127.0.0.1:22379
+    - 127.0.0.1:32379
 
-distribution_data: 3
-distribution_parity: 1
-
-compress: true
-encrypt: true
-encrypt_key: ab345678901234567890123456789012
+namespace: test
+pipeline:
+  block_size: 4096
+  compression:
+    mode: default
+    type: snappy
+  distribution:
+    data_shards: 1
+    parity_shards: 1
