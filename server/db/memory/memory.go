@@ -18,12 +18,9 @@ package memory
 
 import (
 	"bytes"
-	"context"
 	"sync"
 
 	"github.com/zero-os/0-stor/server/db"
-
-	log "github.com/Sirupsen/logrus"
 )
 
 // DB implements the db.DB interface
@@ -121,71 +118,36 @@ func (mdb *DB) Delete(key []byte) error {
 }
 
 // ListItems implements interface DB.ListItems
-func (mdb *DB) ListItems(ctx context.Context, prefix []byte) (<-chan db.Item, error) {
-	if ctx == nil {
-		panic("(*DB).ListItems expects a non-nil context.Context")
+func (mdb *DB) ListItems(cb func(db.Item) error, prefix []byte) error {
+	if cb == nil {
+		panic("no callback given")
 	}
 
-	// already read-lock, in the main routine,
-	// such that for sure the channel has read-access as soon as it starts,
-	// and this way nobody can be writing after this call returned (unless there are no keys found)
 	mdb.mux.RLock()
+	defer mdb.mux.RUnlock()
 
-	ch := make(chan db.Item, 1)
-	go func() {
-		defer mdb.mux.RUnlock() // unlock (our) read-lock at the end of this goroutine)
+	var (
+		err error
+		key []byte
+	)
 
-		// close channel when we return
-		// (early or because all pairs have been fetched)
-		// this is important so that the channel can be used as a range iterator.
-		defer close(ch)
-
-		// because of the fact that we want to read-lock until we're finished,
-		// we only want to stop a range iteration of a pair,
-		// until the returned item has actually been closed.
-		closeCh := make(chan struct{}, 1)
-
-		// go through all items
-		for k, val := range mdb.m {
-			select {
-			case <-ctx.Done():
-				return
-
-			default:
-				key := []byte(k)
-				if prefix != nil && !bytes.HasPrefix(key, prefix) {
-					continue
-				}
-
-				item := &Item{
-					key:  key,
-					val:  val,
-					done: func() { closeCh <- struct{}{} },
-				}
-
-				// send item,
-				// because `ch` is (unary-)buffered, this line can never be dead-locked
-				ch <- item
-
-				// wait until either the item is closed,
-				// or until the context finished somehow early (due to an error?!)
-				select {
-				case <-closeCh:
-				case <-ctx.Done():
-					// ensure we close item, so it becomes unusable
-					err := item.Close()
-					if err != nil && err != db.ErrClosedItem {
-						log.Warningf("context closed before item is closed, force-closing item (err: %v)", err)
-					} else {
-						log.Warning("context closed before item is closed, force-closing item")
-					}
-					return // return early
-				}
-			}
+	for k, val := range mdb.m {
+		key = []byte(k)
+		if prefix != nil && !bytes.HasPrefix(key, prefix) {
+			continue
 		}
-	}()
 
-	return ch, nil
+		item := &Item{
+			key: key,
+			val: val,
+		}
+		err = cb(item)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // Close implements DB.Close
@@ -196,45 +158,20 @@ func (mdb *DB) Close() error {
 	return nil
 }
 
-// Item contains key and value of a badger item
+// Item contains key and value of a in-memory item
 type Item struct {
-	key  []byte
-	val  []byte
-	done func()
+	key []byte
+	val []byte
 }
 
 // Key implements interface Item.Key
-func (item *Item) Key() []byte {
-	if item.done == nil {
-		return nil
-	}
-	return item.key
+func (item *Item) Key() ([]byte, error) {
+	return item.key, nil
 }
 
 // Value implements interface Item.Value
 func (item *Item) Value() ([]byte, error) {
-	if item.done == nil {
-		return nil, db.ErrClosedItem
-	}
 	return item.val, nil
-}
-
-// Error implements interface Item.Error
-func (item *Item) Error() error { return nil }
-
-// Close implements interface Item.Close
-func (item *Item) Close() error {
-	if item.done == nil {
-		return db.ErrClosedItem
-	}
-
-	// notifies the DB (item owner),
-	// that the item is no longer needed by the user,
-	// and we can move on to the next item or finish the update.
-	item.done()
-	item.done = nil
-
-	return nil
 }
 
 // ensure DB/Item interfaces are implemented

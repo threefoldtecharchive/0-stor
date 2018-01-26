@@ -196,72 +196,40 @@ func (bdb *DB) Delete(key []byte) error {
 }
 
 // ListItems implements interface DB.ListItems
-func (bdb *DB) ListItems(ctx context.Context, prefix []byte) (<-chan db.Item, error) {
-	if ctx == nil {
-		panic("(*DB).ListItems expects a non-nil context.Context")
+func (bdb *DB) ListItems(cb func(db.Item) error, prefix []byte) error {
+	if cb == nil {
+		panic("no callback given")
 	}
+	return bdb.db.View(
+		func(tx *badgerdb.Txn) error {
+			opt := badgerdb.DefaultIteratorOptions
+			opt.PrefetchValues = false
+			it := tx.NewIterator(opt)
+			defer it.Close()
 
-	ch := make(chan db.Item, 1)
+			// define predicate to use for the for loop
+			var pred func() bool
+			if prefix != nil {
+				it.Seek(prefix)
+				pred = func() bool { return it.ValidForPrefix(prefix) }
+			} else {
+				it.Rewind()
+				pred = it.Valid
+			}
 
-	go func() {
-		defer close(ch)
-
-		// used to wait until item is closed
-		closeCh := make(chan struct{}, 1)
-
-		err := bdb.db.View(
-			func(tx *badgerdb.Txn) error {
-				opt := badgerdb.DefaultIteratorOptions
-				opt.PrefetchValues = false
-				it := tx.NewIterator(opt)
-				defer it.Close()
-
-				// define predicate to use for the for loop
-				var pred func() bool
-				if prefix != nil {
-					it.Seek(prefix)
-					pred = func() bool { return it.ValidForPrefix(prefix) }
-				} else {
-					it.Rewind()
-					pred = it.Valid
+			var (
+				err  error
+				item = new(Item)
+			)
+			for ; pred(); it.Next() {
+				item.item = it.Item()
+				err = cb(item)
+				if err != nil {
+					return err
 				}
-
-				for ; pred(); it.Next() {
-					item := &Item{
-						item:  it.Item(),
-						close: func() { closeCh <- struct{}{} },
-					}
-
-					// send item,
-					// because `ch` is (unary-)buffered, this line can never be dead-locked
-					ch <- item
-
-					// wait until either the item is closed,
-					// or until the context finished somehow early (due to an error?!)
-					select {
-					case <-closeCh:
-					case <-ctx.Done():
-						// ensure we close item, so it becomes unusable
-						err := item.Close()
-						if err != nil && err != db.ErrClosedItem {
-							log.Warningf("context closed before item is closed, force-closing item (err: %v)", err)
-						} else {
-							log.Warning("context closed before item is closed, force-closing item")
-						}
-						return nil // return early
-					}
-				}
-
-				return nil
-			},
-		)
-		if err != nil {
-			err = mapBadgerError(err)
-			ch <- &db.ErrorItem{Err: err}
-		}
-	}()
-
-	return ch, nil
+			}
+			return nil
+		})
 }
 
 // Close implements DB.Close
@@ -328,42 +296,17 @@ func mapBadgerError(err error) error {
 
 // Item contains key and value of a badger item
 type Item struct {
-	item  *badgerdb.Item
-	close func()
+	item *badgerdb.Item
 }
 
 // Key implements interface Item.Key
-func (item *Item) Key() []byte {
-	if item.close == nil {
-		return nil
-	}
-
-	return item.item.Key()
+func (item *Item) Key() ([]byte, error) {
+	return item.item.Key(), nil
 }
 
 // Value implements interface Item.Value
 func (item *Item) Value() ([]byte, error) {
-	if item.close == nil {
-		return nil, db.ErrClosedItem
-	}
 	return item.item.Value()
-}
-
-// Error implements interface Item.Error
-func (item *Item) Error() error { return nil }
-
-// Close implements interface Item.Close
-func (item *Item) Close() error {
-	if item.close == nil {
-		return db.ErrClosedItem
-	}
-
-	// notify master iterator it can continue
-	item.close()
-
-	// make item useless
-	item.close = nil
-	return nil
 }
 
 // ensure DB/Item interfaces are implemented

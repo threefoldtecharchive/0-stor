@@ -26,7 +26,6 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"golang.org/x/net/context"
-	"golang.org/x/sync/errgroup"
 )
 
 var _ (pb.ObjectManagerServer) = (*ObjectAPI)(nil)
@@ -174,105 +173,29 @@ func (api *ObjectAPI) ListObjectKeys(req *pb.ListObjectKeysRequest, stream pb.Ob
 		return rpctypes.ErrGRPCNilLabel
 	}
 
-	// we're dealing with multiple objects,
-	// let's handle them asynchronously
-
-	ctx, cancel := context.WithCancel(stream.Context())
-	defer cancel()
-
-	scopeKey := db.DataScopeKey([]byte(label))
-	ch, err := api.db.ListItems(ctx, scopeKey)
-	if err != nil {
-		log.Errorf("Database error for data (%v): %v", label, err)
-		return rpctypes.ErrGRPCDatabase
-	}
-
-	outputCh := make(chan pb.ListObjectKeysResponse, api.jobCount)
-
-	// create an errgroup for all the worker routines,
-	// including the input one
-	group, ctx := errgroup.WithContext(ctx)
-
-	// start the input goroutine,
-	// so it can start fetching keys ASAP
-	group.Go(func() error {
-		// only this goroutine sends to outputCh,
-		// so we can simply close it when we're done
-		defer close(outputCh)
-
-		// local variables reused for each iteration/item
-		var (
-			err  error
-			key  []byte
-			resp pb.ListObjectKeysResponse
-
-			scopeKeyLength = len(scopeKey)
-		)
-		for item := range ch {
-			// copy key to take ownership over it
-			key = item.Key()
-			if n := len(key); n < scopeKeyLength {
-				panic("invalid item key '" + string(key) +
-					"' (filtered key is too short)")
-			} else if n == scopeKeyLength {
-				log.Warningf(
-					"skipping listed key result, '%s', as it equals the given scopeKey",
-					scopeKey)
-				continue
-			}
-			key = key[scopeKeyLength:]
-			resp.Key = make([]byte, len(key))
-			copy(resp.Key, key)
-
-			// close current item
-			err = item.Close()
-			if err != nil {
-				log.Errorf("Database error for data (%v): %v", label, err)
-				return rpctypes.ErrGRPCDatabase
-			}
-
-			// send object over the channel, if possible
-			select {
-			case outputCh <- resp:
-			case <-ctx.Done():
-				return nil
-			}
+	var (
+		key            []byte
+		scopeKey       = db.DataScopeKey([]byte(label))
+		scopeKeyLength = len(scopeKey)
+	)
+	return api.db.ListItems(func(item db.Item) error {
+		// copy key to take ownership over it
+		key, err = item.Key()
+		if n := len(key); n < scopeKeyLength {
+			panic("invalid item key '" + string(key) +
+				"' (filtered key is too short)")
+		} else if n == scopeKeyLength {
+			log.Warningf(
+				"skipping listed key result, '%s', as it equals the given scopeKey",
+				scopeKey)
+			return nil
 		}
 
-		return nil
-	})
-
-	// start the output goroutine,
-	// as we are only allowed to send to the stream on a single goroutine
-	// (sending on multiple goroutines at once is not safe according to docs)
-	group.Go(func() error {
-		// local variables reused for each iteration/item
-		var (
-			resp pb.ListObjectKeysResponse
-			open bool
-		)
-
-		// loop while we can receive responses,
-		// or until the context is done
-		for {
-			select {
-			case <-ctx.Done():
-				return nil // early exist -> context is done
-			case resp, open = <-outputCh:
-				if !open {
-					return nil // we're done!
-				}
-			}
-			err := stream.Send(&resp)
-			if err != nil {
-				// TODO: should we check error?
-				return err
-			}
-		}
-	})
-
-	// wait until all contexts are finished
-	return group.Wait()
+		// send key over stream
+		return stream.Send(&pb.ListObjectKeysResponse{
+			Key: key[scopeKeyLength:],
+		})
+	}, scopeKey)
 }
 
 // convertStatus converts server.ObjectStatus to pb.ObjectStatus
