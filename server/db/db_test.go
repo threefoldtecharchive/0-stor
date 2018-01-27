@@ -17,7 +17,6 @@
 package db_test
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -71,17 +70,4 @@ func TestCountKeys(t *testing.T) {
 	n, err = db.CountKeys(mdb, []byte{'a'})
 	require.NoError(err)
 	require.Equal(1, n)
-}
-
-func TestErrorItem(t *testing.T) {
-	require := require.New(t)
-
-	myError := errors.New("error")
-	item := db.ErrorItem{Err: myError}
-	require.Equal(myError, item.Error())
-	require.Equal(myError, item.Close())
-	require.Nil(item.Key())
-	value, err := item.Value()
-	require.Nil(value)
-	require.Equal(myError, err)
 }

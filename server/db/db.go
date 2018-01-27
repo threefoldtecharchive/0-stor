@@ -17,7 +17,6 @@
 package db
 
 import (
-	"context"
 	"errors"
 )
 
@@ -68,11 +67,10 @@ type DB interface {
 
 	// ListItems lists all available key-value pairs,
 	// which key equals or starts with the given prefix.
-	// The items are returned over the returned channel.
-	// The returned channel remains open until all items are returned,
-	// or until the given context is done.
-	// Each returned Item _has_ to be closed,
-	// the channel won't receive a new Item until the previous returned Item has been Closed!
+	// For each item found, the callback is called, synchronously.
+	// No new call is made untill the call in progress has returned.
+	// The user can return an error from the callback,
+	// in order to abort the ListItems func early with that error as the result.
 	// The prefix is optional, and all items will be returned if no prefix is given.
 	//
 	// NOTE:
@@ -81,79 +79,38 @@ type DB interface {
 	// in-between the time this function is called and the item is returned.
 	// Or if the key was deleted, one key that existed when this function was called,
 	// might not be returned at all.
-	ListItems(ctx context.Context, prefix []byte) (<-chan Item, error)
+	ListItems(cb func(Item) error, prefix []byte) error
 
 	// Close the DB connection and any other resources.
 	Close() error
 }
 
-// Item is returned during iteration. Both the Key() and Value() output
-// is only valid until Close is called.
-// Every returned item has to be closed.
+// Item is returned during iteration.
+// Item is /NOT/ thread-safe.
 type Item interface {
 	// Key returns the key.
 	// Key is only valid as long as item is valid.
 	// If you need to use it outside its validity, please copy it.
-	Key() []byte
+	Key() ([]byte, error)
 
 	// Value retrieves the value of the item.
 	// The returned value is only valid as long as item is valid,
 	// So, if you need to use it outside, please parse or copy it.
 	Value() ([]byte, error)
-
-	// Error retrieves the error,
-	// which occurred while trying to fetch this item.
-	Error() error
-
-	// Close this item, freeing up its resources,
-	// and making it invalid for further use.
-	Close() error
 }
-
-// ErrorItem is an Item implementation,
-// which can be used for returned items,
-// that couldn't be fetched due to an error.
-type ErrorItem struct {
-	Err error
-}
-
-// Key implements Item.Key
-func (item *ErrorItem) Key() []byte { return nil }
-
-// Value implements Item.Value
-func (item *ErrorItem) Value() ([]byte, error) { return nil, item.Err }
-
-// Error implements Item.Error
-func (item *ErrorItem) Error() error { return item.Err }
-
-// Close implements Item.Close
-func (item *ErrorItem) Close() error { return item.Err }
 
 // CountKeys counts the (filtered) keys found for the given Database.
+// CountKeys panics in case no DB is given.
+// Prefix is optional and can be nil in case you want to count all items.
 func CountKeys(db DB, prefix []byte) (int, error) {
 	if db == nil {
 		panic("no database given to count keys on")
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	ch, err := db.ListItems(ctx, prefix)
-	if err != nil {
-		return 0, err
-	}
-
 	var count int
-	for item := range ch {
+	err := db.ListItems(func(Item) error {
 		count++
-		err = item.Close()
-		if err != nil {
-			return 0, err
-		}
-	}
-	return count, nil
+		return nil
+	}, prefix)
+	return count, err
 }
-
-var (
-	_ Item = (*ErrorItem)(nil)
-)
