@@ -6,7 +6,7 @@ PYCRFILE=$(dirname "$0")/copyright.py.header
 
 FAILED_FILES=""
 
-# python license check
+# golang license check
 for f in $(find "$DIR" -name "*.go" | grep -v vendor | grep -v pb.go | grep -v pb_test.go); do
     diff <(sed -n -e '1,15p' "$f") <(sed -n -e '1,15p' "$GOCRFILE")
     if [ $? -ne 0 ]; then
@@ -15,8 +15,12 @@ for f in $(find "$DIR" -name "*.go" | grep -v vendor | grep -v pb.go | grep -v p
 done
 
 # python licence check
-for f in $(find "$DIR" -name "*.py" | grep -v vendor | grep -v generated| grep -v test_suite|grep -v benchmarker); do
-    diff <(sed -n -e '1,13p' "$f") <(sed -n -e '1,15p' "$PYCRFILE")
+for f in $(find "$DIR" -name "*.py" | grep -v vendor | grep -v generated| grep -v test_suite|grep -v utils); do
+    SOURCE_LINES="1,13p"
+    if [ "$(head -n 1 $f)" = "#!/usr/bin/python3" ]; then 
+        SOURCE_LINES="3,15p" 
+    fi;
+    diff <(sed -n -e $SOURCE_LINES "$f") <(sed -n -e '1,13p' "$PYCRFILE")
     if [ $? -ne 0 ]; then
         FAILED_FILES="$FAILED_FILES\n  > $f"
     fi
