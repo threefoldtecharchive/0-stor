@@ -28,12 +28,25 @@ import (
 )
 
 func TestClientWithServer_API(t *testing.T) {
-	require := require.New(t)
-
 	client, _, clean, err := newServerClient()
-	require.NoError(err)
+	require.NoError(t, err)
 	defer clean()
-	require.NotNil(client)
+	require.NotNil(t, client)
+
+	testClientAPI(t, client)
+}
+
+func TestTLSSecureClientWithServer_API(t *testing.T) {
+	client, _, clean, err := newSecureServerClient()
+	require.NoError(t, err)
+	defer clean()
+	require.NotNil(t, client)
+
+	testClientAPI(t, client)
+}
+
+func testClientAPI(t *testing.T, client datastor.Client) {
+	require := require.New(t)
 
 	var (
 		key = []byte("myKey")

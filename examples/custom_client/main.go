@@ -95,7 +95,7 @@ func main() {
 
 	// create a datastor cluster, using our predefined addresses and namespace,
 	// which will be used to store the actual data
-	datastorCluster, err := datastor.NewCluster(zstordbAddresses, namespace, nil)
+	datastorCluster, err := datastor.NewInsecureCluster(zstordbAddresses, namespace, nil)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -17,8 +17,12 @@
 package client
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
+	"fmt"
 	"io"
+	"io/ioutil"
 	"time"
 
 	"github.com/zero-os/0-stor/client/datastor"
@@ -32,6 +36,8 @@ import (
 	"github.com/zero-os/0-stor/client/metastor/encoding"
 	"github.com/zero-os/0-stor/client/metastor/metatypes"
 	"github.com/zero-os/0-stor/client/processing"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 var (
@@ -145,11 +151,17 @@ func createMetastorClientFromConfigAndDatabase(cfg *MetaStorConfig, db metaDB.DB
 }
 
 func createDataClusterFromConfig(cfg *Config, enableCaching bool) (datastor.Cluster, error) {
+	// optionally create the global datastor TLS config
+	tlsConfig, err := createTLSConfigFromDatastorTLSConfig(&cfg.DataStor.TLS)
+	if err != nil {
+		return nil, err
+	}
+
 	if cfg.IYO == (itsyouonline.Config{}) {
 		// create datastor cluster without the use of IYO-backed JWT Tokens,
 		// this will only work if all shards use zstordb servers that
 		// do not require any authentication
-		return storgrpc.NewCluster(cfg.DataStor.Shards, cfg.Namespace, nil)
+		return storgrpc.NewCluster(cfg.DataStor.Shards, cfg.Namespace, nil, tlsConfig)
 	}
 
 	// create IYO client
@@ -174,7 +186,45 @@ func createDataClusterFromConfig(cfg *Config, enableCaching bool) (datastor.Clus
 	}
 
 	// create datastor cluster, with the use of IYO-backed JWT Tokens
-	return storgrpc.NewCluster(cfg.DataStor.Shards, cfg.Namespace, tokenGetter)
+	return storgrpc.NewCluster(cfg.DataStor.Shards, cfg.Namespace, tokenGetter, tlsConfig)
+}
+
+func createTLSConfigFromDatastorTLSConfig(config *DataStorTLSConfig) (*tls.Config, error) {
+	if config == nil || !config.Enabled {
+		return nil, nil
+	}
+	tlsConfig := &tls.Config{
+		MinVersion: config.MinVersion.VersionTLSOrDefault(tls.VersionTLS11),
+		MaxVersion: config.MaxVersion.VersionTLSOrDefault(tls.VersionTLS12),
+	}
+
+	if config.ServerName != "" {
+		tlsConfig.ServerName = config.ServerName
+	} else {
+		log.Warning("TLS is configured to skip verificaitons of certs, " +
+			"making the client susceptible to man-in-the-middle attacks!!!")
+		tlsConfig.InsecureSkipVerify = true
+	}
+
+	if config.RootCA == "" {
+		var err error
+		tlsConfig.RootCAs, err = x509.SystemCertPool()
+		if err != nil {
+			return nil, fmt.Errorf("failed to create datastor TLS config: %v", err)
+		}
+	} else {
+		tlsConfig.RootCAs = x509.NewCertPool()
+		caFile, err := ioutil.ReadFile(config.RootCA)
+		if err != nil {
+			return nil, err
+		}
+		if !tlsConfig.RootCAs.AppendCertsFromPEM(caFile) {
+			return nil, fmt.Errorf("error reading CA file '%s', while creating datastor TLS config: %v",
+				config.RootCA, err)
+		}
+	}
+
+	return tlsConfig, nil
 }
 
 // NewClient creates a 0-stor client,

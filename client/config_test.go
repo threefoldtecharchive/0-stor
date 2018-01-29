@@ -17,6 +17,7 @@
 package client
 
 import (
+	"crypto/tls"
 	"testing"
 
 	"github.com/zero-os/0-stor/client/datastor/pipeline"
@@ -91,6 +92,76 @@ func TestReadConfigErrors(t *testing.T) {
 	cfg, err = ReadConfig(testPrivateKeyPath)
 	require.Error(err, "invalid config")
 	require.Nil(cfg)
+}
+
+func TestTLSVersionOrDefaultConfig(t *testing.T) {
+	var v TLSVersion
+	require.Equal(t, uint16(tls.VersionTLS10), v.VersionTLSOrDefault(tls.VersionTLS10))
+	require.Equal(t, uint16(tls.VersionTLS11), v.VersionTLSOrDefault(tls.VersionTLS11))
+	require.Equal(t, uint16(tls.VersionTLS12), v.VersionTLSOrDefault(tls.VersionTLS12))
+}
+
+func TestTLSVersionConfig(t *testing.T) {
+	tt := []struct {
+		input    string
+		expected uint16
+		value    string
+	}{
+		{
+			"TLS10",
+			tls.VersionTLS10,
+			"TLS10",
+		},
+		{
+			"tls10",
+			tls.VersionTLS10,
+			"TLS10",
+		},
+		{
+			"tLS10",
+			tls.VersionTLS10,
+			"TLS10",
+		},
+		{
+			"TLS11",
+			tls.VersionTLS11,
+			"TLS11",
+		},
+		{
+			"tls11",
+			tls.VersionTLS11,
+			"TLS11",
+		},
+		{
+			"TLS12",
+			tls.VersionTLS12,
+			"TLS12",
+		},
+		{
+			"tls12",
+			tls.VersionTLS12,
+			"TLS12",
+		},
+		{
+			"foo",
+			0,
+			"",
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.input, func(t *testing.T) {
+			var v TLSVersion
+			err := v.UnmarshalText([]byte(tc.input))
+			if tc.value == "" {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tc.expected, v.VersionTLS())
+			require.Equal(t, tc.value, v.String())
+		})
+	}
 }
 
 const testPrivateKeyPath = "../devcert/jwt_key.pem"

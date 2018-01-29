@@ -17,11 +17,17 @@
 package commands
 
 import (
+	"context"
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 
 	"github.com/zero-os/0-stor/cmd"
@@ -134,10 +140,36 @@ func rootFunc(*cobra.Command, []string) error {
 		}
 	}
 
+	var listener net.Listener
 	// create a UNIX/TCP listener for our server
-	listener, err := net.Listen(
-		rootCfg.ListenAddress.NetworkProtocol(),
-		rootCfg.ListenAddress.String())
+	if rootCfg.TLS.CertFile == "" && rootCfg.TLS.KeyFile == "" {
+		listener, err = net.Listen(
+			rootCfg.ListenAddress.NetworkProtocol(),
+			rootCfg.ListenAddress.String())
+	} else {
+		log.Info("Server will be configured to be secured using TLS")
+		cfg := &tls.Config{
+			MinVersion: rootCfg.TLS.MinVersion.VersionTLS(),
+			MaxVersion: rootCfg.TLS.MaxVersion.VersionTLS(),
+		}
+		if rootCfg.TLS.CertLiveReload {
+			getter, err := newTLSCertificateGetter()
+			if err != nil {
+				return err
+			}
+			cfg.GetCertificate = getter.GetCertificate
+		} else {
+			cert, err := parseCertificate()
+			if err != nil {
+				return err
+			}
+			cfg.Certificates = []tls.Certificate{cert}
+		}
+		listener, err = tls.Listen(
+			rootCfg.ListenAddress.NetworkProtocol(),
+			rootCfg.ListenAddress.String(),
+			cfg)
+	}
 	if err != nil {
 		return err
 	}
@@ -165,6 +197,100 @@ func rootFunc(*cobra.Command, []string) error {
 	}
 }
 
+// used to parse a certificate using the configured cert and key files,
+// as well as optionally the given key passphrase, which is required
+// only if the used PEM key file is encrypted
+func parseCertificate() (tls.Certificate, error) {
+	// load key
+	keyFile, err := ioutil.ReadFile(rootCfg.TLS.KeyFile)
+	if err != nil {
+		return tls.Certificate{}, err
+	}
+
+	var certKey []byte
+	if block, _ := pem.Decode(keyFile); block != nil {
+		if x509.IsEncryptedPEMBlock(block) {
+			decryptKey, err := x509.DecryptPEMBlock(block, []byte(rootCfg.TLS.KeyPassphrase))
+			if err != nil {
+				return tls.Certificate{}, err
+			}
+
+			privKey, err := x509.ParsePKCS1PrivateKey(decryptKey)
+			if err != nil {
+				return tls.Certificate{}, err
+			}
+
+			certKey = pem.EncodeToMemory(&pem.Block{
+				Type:  "RSA PRIVATE KEY",
+				Bytes: x509.MarshalPKCS1PrivateKey(privKey),
+			})
+		} else {
+			certKey = pem.EncodeToMemory(block)
+		}
+	} else {
+		return tls.Certificate{}, fmt.Errorf("Invalid Cert Key")
+	}
+
+	// load cert
+	certFile, err := ioutil.ReadFile(rootCfg.TLS.CertFile)
+	if err != nil {
+		return tls.Certificate{}, err
+	}
+
+	// load and return certificate, pair cert/key
+	return tls.X509KeyPair(certFile, certKey)
+}
+
+func newTLSCertificateGetter() (*tlsCertificateGetter, error) {
+	cert, err := parseCertificate()
+	if err != nil {
+		return nil, err
+	}
+
+	getter := &tlsCertificateGetter{cert: cert}
+	go getter.background()
+	return getter, nil
+}
+
+// used to create a TLS certificate getter,
+// which internal certificate can be hot-reloaded (on the same paths as initially configured),
+// by signalling a SIGHUP signal.
+type tlsCertificateGetter struct {
+	mux  sync.RWMutex
+	cert tls.Certificate
+	err  error
+}
+
+func (getter *tlsCertificateGetter) GetCertificate(*tls.ClientHelloInfo) (*tls.Certificate, error) {
+	getter.mux.RLock()
+	cert, err := getter.cert, getter.err
+	getter.mux.RUnlock()
+	if err != nil {
+		return nil, err
+	}
+	return &cert, nil
+}
+
+func (getter *tlsCertificateGetter) background() {
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGHUP)
+
+	var (
+		ctx = context.Background()
+	)
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-sigChan:
+			getter.mux.Lock()
+			getter.cert, getter.err = parseCertificate()
+			getter.mux.Unlock()
+		}
+	}
+}
+
 var rootCfg struct {
 	DebugLog       bool
 	ListenAddress  cmd.ListenAddress
@@ -181,6 +307,18 @@ var rootCfg struct {
 			Meta string
 			Data string
 		}
+	}
+
+	TLS struct {
+		// PEM-encoded files, required
+		CertFile, KeyFile string
+		// Key Passphrase, only required in case the given PEM key file is encrypted
+		KeyPassphrase string
+		// min/max supported/accepted TLS version, optional
+		MinVersion, MaxVersion cmd.TLSVersion
+		// Enable in order to be able to live-reload a cert/key pair on runtime
+		// by signaling a SIGHUP signal, optional
+		CertLiveReload bool
 	}
 }
 
@@ -210,4 +348,23 @@ func init() {
 	rootCmd.Flags().IntVarP(
 		&rootCfg.JobCount, "jobs", "j", grpc.DefaultJobCount,
 		"amount of async jobs to run for heavy GRPC server commands")
+
+	// TLS Flags
+	// Required TLS Flags
+	rootCmd.Flags().StringVar(&rootCfg.TLS.CertFile, "tls-cert", "",
+		"TLS certificate used for this server, paired with the given key")
+	rootCmd.Flags().StringVar(&rootCfg.TLS.KeyFile, "tls-key", "",
+		"TLS private key used for this server, paired with the given cert")
+	// TLS Flags only required if other settings/requirements require it
+	rootCmd.Flags().StringVar(&rootCfg.TLS.KeyPassphrase, "tls-key-pass", "",
+		"Passphrase of the given TLS private key file, only required if that file is encrypted")
+	// Optional TLS Flags
+	rootCfg.TLS.MinVersion = cmd.TLSVersion11
+	rootCmd.Flags().Var(&rootCfg.TLS.MinVersion, "tls-min-version",
+		"Minimum supperted/accepted TLS version")
+	rootCfg.TLS.MaxVersion = cmd.TLSVersion12
+	rootCmd.Flags().Var(&rootCfg.TLS.MaxVersion, "tls-max-version",
+		"Maximum supperted/accepted TLS version")
+	rootCmd.Flags().BoolVar(&rootCfg.TLS.CertLiveReload, "tls-live-reload", false,
+		"Enable in order to support the live reloading of TLS Cert/Key file pairs, when signaling a SIGHUP signal")
 }

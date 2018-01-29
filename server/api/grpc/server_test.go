@@ -80,7 +80,7 @@ func TestServerMsgSize(t *testing.T) {
 				}
 			}()
 
-			cl, err := storgrpc.NewClient(listener.Addr().String(), "testnamespace", nil)
+			cl, err := storgrpc.NewInsecureClient(listener.Addr().String(), "testnamespace", nil)
 			require.NoError(err, "client should have been created")
 
 			bigData := make([]byte, (maxMsgSize*mib)+10)

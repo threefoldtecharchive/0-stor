@@ -53,7 +53,7 @@ func newGRPCServerCluster(count int) (*clientGRPC.Cluster, func(), error) {
 		}
 	}
 
-	cluster, err := clientGRPC.NewCluster(addressSlice, "myLabel", nil)
+	cluster, err := clientGRPC.NewInsecureCluster(addressSlice, "myLabel", nil)
 	if err != nil {
 		cleanup()
 		return nil, nil, err
@@ -78,7 +78,7 @@ func newGRPCServerClient() (*clientGRPC.Client, string, func(), error) {
 		}
 	}()
 
-	client, err := clientGRPC.NewClient(listener.Addr().String(), "myLabel", nil)
+	client, err := clientGRPC.NewInsecureClient(listener.Addr().String(), "myLabel", nil)
 	if err != nil {
 		server.Close()
 		return nil, "", nil, err

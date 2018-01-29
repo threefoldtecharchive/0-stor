@@ -17,7 +17,11 @@
 package grpc
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
+	"fmt"
+	"io/ioutil"
 	"net"
 	"strings"
 
@@ -166,16 +170,22 @@ func createMetastorClientFromConfig(cfg *client.MetaStorConfig) (*metastor.Clien
 }
 
 func createDataClusterFromConfig(cfg *client.Config, iyoClient *itsyouonline.Client) (datastor.Cluster, error) {
+	// optionally create the global datastor TLS config
+	tlsConfig, err := createTLSConfigFromDatastorTLSConfig(&cfg.DataStor.TLS)
+	if err != nil {
+		return nil, err
+	}
+
 	if iyoClient == nil {
 		// create datastor cluster without the use of IYO-backed JWT Tokens,
 		// this will only work if all shards use zstordb servers that
 		// do not require any authentication
-		return storgrpc.NewCluster(cfg.DataStor.Shards, cfg.Namespace, nil)
+		return storgrpc.NewCluster(cfg.DataStor.Shards, cfg.Namespace, nil, tlsConfig)
 	}
 
 	// create JWT Token Getter (Using the earlier created IYO Client)
 	var tokenGetter datastor.JWTTokenGetter
-	tokenGetter, err := datastor.JWTTokenGetterUsingIYOClient(cfg.IYO.Organization, iyoClient)
+	tokenGetter, err = datastor.JWTTokenGetterUsingIYOClient(cfg.IYO.Organization, iyoClient)
 	if err != nil {
 		return nil, err
 	}
@@ -186,7 +196,42 @@ func createDataClusterFromConfig(cfg *client.Config, iyoClient *itsyouonline.Cli
 	}
 
 	// create datastor cluster, with the use of IYO-backed JWT Tokens
-	return storgrpc.NewCluster(cfg.DataStor.Shards, cfg.Namespace, tokenGetter)
+	return storgrpc.NewCluster(cfg.DataStor.Shards, cfg.Namespace, tokenGetter, tlsConfig)
+}
+
+func createTLSConfigFromDatastorTLSConfig(config *client.DataStorTLSConfig) (*tls.Config, error) {
+	if config == nil || !config.Enabled {
+		return nil, nil
+	}
+	tlsConfig := new(tls.Config)
+
+	if config.ServerName != "" {
+		tlsConfig.ServerName = config.ServerName
+	} else {
+		log.Warning("TLS is configured to skip verificaitons of certs, " +
+			"making the client susceptible to man-in-the-middle attacks!!!")
+		tlsConfig.InsecureSkipVerify = true
+	}
+
+	if config.RootCA == "" {
+		var err error
+		tlsConfig.RootCAs, err = x509.SystemCertPool()
+		if err != nil {
+			return nil, fmt.Errorf("failed to create datastor TLS config: %v", err)
+		}
+	} else {
+		tlsConfig.RootCAs = x509.NewCertPool()
+		caFile, err := ioutil.ReadFile(config.RootCA)
+		if err != nil {
+			return nil, err
+		}
+		if !tlsConfig.RootCAs.AppendCertsFromPEM(caFile) {
+			return nil, fmt.Errorf("error reading CA file '%s', while creating datastor TLS config: %v",
+				config.RootCA, err)
+		}
+	}
+
+	return tlsConfig, nil
 }
 
 // New creates new daemon with given Config.

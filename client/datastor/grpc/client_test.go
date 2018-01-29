@@ -33,11 +33,11 @@ import (
 func TestNewClientPanics(t *testing.T) {
 	require := require.New(t)
 
-	client, err := NewClient("", "", nil)
+	client, err := NewInsecureClient("", "", nil)
 	require.Error(err, "no address given")
 	require.Nil(client)
 
-	client, err = NewClient("foo", "", nil)
+	client, err = NewInsecureClient("foo", "", nil)
 	require.Error(err, "no label given")
 	require.Nil(client)
 }

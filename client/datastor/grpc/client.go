@@ -18,6 +18,7 @@ package grpc
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -31,6 +32,7 @@ import (
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
 )
 
@@ -53,7 +55,8 @@ type Client struct {
 // The address to the zstordb server is required,
 // and so is the label, as the latter serves as the identifier of the to be used namespace.
 // The jwtToken is required, only if the connected zstordb server requires this.
-func NewClient(addr, namespace string, jwtTokenGetter datastor.JWTTokenGetter) (*Client, error) {
+// The given TLS Config required, only if the conneced zstordb server required this.
+func NewClient(addr, namespace string, jwtTokenGetter datastor.JWTTokenGetter, tlsConfig *tls.Config) (*Client, error) {
 	if len(addr) == 0 {
 		return nil, errors.New("no/empty zstordb address given")
 	}
@@ -61,14 +64,21 @@ func NewClient(addr, namespace string, jwtTokenGetter datastor.JWTTokenGetter) (
 		return nil, errors.New("no/empty namespace given")
 	}
 
-	// ensure that we have a valid connection
-	conn, err := grpc.Dial(addr,
-		grpc.WithInsecure(),
+	dialOpts := []grpc.DialOption{
 		grpc.WithDialer(Dial),
 		grpc.WithDefaultCallOptions(
 			grpc.MaxCallRecvMsgSize(math.MaxInt32),
 			grpc.MaxCallSendMsgSize(math.MaxInt32),
-		))
+		),
+	}
+	if tlsConfig != nil {
+		dialOpts = append(dialOpts, grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)))
+	} else {
+		dialOpts = append(dialOpts, grpc.WithInsecure())
+	}
+
+	// ensure that we have a valid connection
+	conn, err := grpc.Dial(addr, dialOpts...)
 	if err != nil {
 		return nil, fmt.Errorf(
 			"couldn't connect to zstordb server %s: %v",
@@ -85,6 +95,11 @@ func NewClient(addr, namespace string, jwtTokenGetter datastor.JWTTokenGetter) (
 		client.contextConstructor = defaultContextConstructor(namespace)
 		client.label = namespace
 		return client, nil
+	}
+
+	if tlsConfig == nil {
+		log.Warningf("establishing insecure zstordb connection with server '%s', "+
+			"while IYO-JWT tokens will be transported", addr)
 	}
 
 	label, err := jwtTokenGetter.GetLabel(namespace)
@@ -106,6 +121,14 @@ func NewClient(addr, namespace string, jwtTokenGetter datastor.JWTTokenGetter) (
 	}
 	client.label = label
 	return client, nil
+}
+
+// NewInsecureClient create a new /INSECURE/ data client,
+// meaning a client which established a non-secured connection with a zstordb server,
+// which is only possible if the server allows this.
+// See `NewClient` for more information.
+func NewInsecureClient(addr, namespace string, jwtTokenGetter datastor.JWTTokenGetter) (*Client, error) {
+	return NewClient(addr, namespace, jwtTokenGetter, nil)
 }
 
 // CreateObject implements datastor.Client.CreateObject

@@ -17,6 +17,7 @@
 package grpc
 
 import (
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"net"
@@ -45,7 +46,7 @@ func newServerCluster(count int) (*Cluster, func(), error) {
 		addressSlice = append(addressSlice, addr)
 	}
 
-	cluster, err := NewCluster(addressSlice, "myLabel", nil)
+	cluster, err := NewInsecureCluster(addressSlice, "myLabel", nil)
 	if err != nil {
 		for _, cleanup := range cleanupSlice {
 			cleanup()
@@ -63,7 +64,24 @@ func newServerCluster(count int) (*Cluster, func(), error) {
 }
 
 func newServer() (string, func(), error) {
-	listener, err := net.Listen("tcp", "localhost:0")
+	return newSecureServer(nil)
+}
+
+func newSecureServer(tlsConfig *tls.Config) (string, func(), error) {
+	var (
+		err      error
+		listener net.Listener
+	)
+	const (
+		network = "tcp"
+		address = "localhost:0"
+	)
+
+	if tlsConfig == nil {
+		listener, err = net.Listen(network, address)
+	} else {
+		listener, err = tls.Listen(network, address, tlsConfig)
+	}
 	if err != nil {
 		return "", nil, err
 	}
@@ -94,7 +112,41 @@ func newServerClient() (*Client, string, func(), error) {
 		return nil, "", nil, err
 	}
 
-	client, err := NewClient(addr, "myLabel", nil)
+	client, err := NewInsecureClient(addr, "myLabel", nil)
+	if err != nil {
+		cleanup()
+		return nil, "", nil, err
+	}
+
+	clean := func() {
+		fmt.Sprintln("clean called")
+		client.Close()
+		cleanup()
+	}
+
+	return client, addr, clean, nil
+}
+
+func newSecureServerClient() (*Client, string, func(), error) {
+	keyStr, certStr, err := genTestCertificate()
+	if err != nil {
+		return nil, "", nil, err
+	}
+	cert, err := tls.X509KeyPair([]byte(certStr), []byte(keyStr))
+	if err != nil {
+		return nil, "", nil, err
+	}
+
+	addr, cleanup, err := newSecureServer(&tls.Config{
+		Certificates: []tls.Certificate{cert},
+	})
+	if err != nil {
+		return nil, "", nil, err
+	}
+
+	client, err := NewClient(addr, "myLabel", nil, &tls.Config{
+		InsecureSkipVerify: true,
+	})
 	if err != nil {
 		cleanup()
 		return nil, "", nil, err
