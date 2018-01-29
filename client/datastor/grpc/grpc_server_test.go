@@ -45,7 +45,7 @@ func newServerCluster(count int) (*Cluster, func(), error) {
 		addressSlice = append(addressSlice, addr)
 	}
 
-	cluster, err := NewCluster(addressSlice, "myLabel", nil)
+	cluster, err := NewInsecureCluster(addressSlice, "myLabel", nil)
 	if err != nil {
 		for _, cleanup := range cleanupSlice {
 			cleanup()
@@ -94,7 +94,7 @@ func newServerClient() (*Client, string, func(), error) {
 		return nil, "", nil, err
 	}
 
-	client, err := NewClient(addr, "myLabel", nil)
+	client, err := NewInsecureClient(addr, "myLabel", nil)
 	if err != nil {
 		cleanup()
 		return nil, "", nil, err

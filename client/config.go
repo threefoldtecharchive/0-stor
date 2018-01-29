@@ -17,7 +17,10 @@
 package client
 
 import (
+	"crypto/tls"
+	"fmt"
 	"io/ioutil"
+	"strings"
 
 	"github.com/zero-os/0-stor/client/datastor/pipeline"
 	"github.com/zero-os/0-stor/client/itsyouonline"
@@ -70,6 +73,7 @@ type Config struct {
 
 // DataStorConfig is used to configure a zstordb cluster.
 type DataStorConfig struct {
+	// Shards defines the Listed shards, at least one listed shard is required
 	Shards []string `yaml:"shards" json:"shards"` // required
 
 	// Pipeline defines the object read/write pipeline configuration
@@ -77,6 +81,113 @@ type DataStorConfig struct {
 	// process, identify and store all data to be written,
 	// and that same configuration is required to read the data back.
 	Pipeline pipeline.Config `yaml:"pipeline" json:"pipeline"`
+
+	// TLS defines the optional global TLS config,
+	// which is used for all lised and unlisted datastor shards, in case it is given.
+	TLS DataStorTLSConfig `yaml:"tls" json:"tls"`
+}
+
+// DataStorTLSConfig is used to config the global TLS config used
+// for all listed and unlisted datastor shards.
+type DataStorTLSConfig struct {
+	// has to be true in order to enable this config
+	Enabled bool `yaml:"enabled" json:"enabled"`
+	// when not given the TLS implemenation will skip certification verification,
+	// exposing the client to man-in-the-middle attacks
+	ServerName string `yaml:"server" json:"server"`
+	// when not given, the system CA will be used
+	RootCA string `yaml:"root_ca" json:"root_ca"`
+
+	// optional min/max TLS versions, limiting the
+	// accepted TLS version used by the server
+	MinVersion TLSVersion `yaml:"min_version" json:"min_version"`
+	MaxVersion TLSVersion `yaml:"max_version" json:"max_version"`
+}
+
+// TLSVersion defines a TLS Version,
+// usable to restrict the possible TLS Versions.
+type TLSVersion uint8
+
+const (
+	// UndefinedTLSVersion defines an undefined TLS Version,
+	// which can can be used to signal the desired use of a default TLS Version
+	UndefinedTLSVersion TLSVersion = iota
+	// TLSVersion12 defines TLS version 1.2,
+	// and is also the current default TLS Version.
+	TLSVersion12
+	// TLSVersion11 defines TLS version 1.1
+	TLSVersion11
+	// TLSVersion10 defines TLS version 1.0,
+	// but should not be used, unless you have no other option.
+	TLSVersion10
+
+	_MaxTLSVersion = TLSVersion10
+)
+
+var (
+	// important that this order stays in sync with
+	// the order of constants definitions from above!
+	_TLSVersionStrings = []string{
+		"TLS12",
+		"TLS11",
+		"TLS10",
+	}
+	_TlsVersionValues = []uint16{
+		tls.VersionTLS12,
+		tls.VersionTLS11,
+		tls.VersionTLS10,
+	}
+)
+
+// String implements Stringer.String
+func (v TLSVersion) String() string {
+	if v == UndefinedTLSVersion || v > _MaxTLSVersion {
+		return ""
+	}
+	return _TLSVersionStrings[v-1]
+}
+
+// MarshalText implements encoding.TextMarshaler.MarshalText
+func (v TLSVersion) MarshalText() (text []byte, err error) {
+	if v == UndefinedTLSVersion || v > _MaxTLSVersion {
+		return nil, fmt.Errorf("invalid in-memory TLS version %d", uint8(v))
+	}
+	return []byte(_TLSVersionStrings[v-1]), nil
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.UnmarshalText
+func (v *TLSVersion) UnmarshalText(text []byte) error {
+	str := strings.ToUpper(string(text))
+	for index, verStr := range _TLSVersionStrings {
+		if verStr == str {
+			*v = TLSVersion(index + 1)
+			return nil
+		}
+	}
+	return fmt.Errorf("TLS version %s not recognized or supported", str)
+}
+
+// VersionTLS returns the tls.VersionTLS value,
+// which corresponds to this TLSVersion.
+func (v TLSVersion) VersionTLS() uint16 {
+	if v == UndefinedTLSVersion || v > _MaxTLSVersion {
+		panic(fmt.Sprintf("invalid TLS Version: %d", v))
+	}
+	return _TlsVersionValues[v-1]
+}
+
+// VersionTLSOrDefault returns the tls.VersionTLS value,
+// which corresponds to this TLSVersion.
+// Or it returns the given default TLS Version in case
+// this TLS Version is undefined.
+func (v TLSVersion) VersionTLSOrDefault(def uint16) uint16 {
+	if v > _MaxTLSVersion {
+		panic(fmt.Sprintf("invalid TLS Version: %d", v))
+	}
+	if v == UndefinedTLSVersion {
+		return def
+	}
+	return _TlsVersionValues[v-1]
 }
 
 // MetaStorConfig is used to configure the metastor client.

@@ -17,6 +17,7 @@
 package grpc
 
 import (
+	"crypto/tls"
 	"errors"
 	"sync"
 
@@ -28,7 +29,10 @@ import (
 // NewCluster creates a new cluster,
 // and pre-loading it with a client for each of the listed (and thus known) shards.
 // Unlisted shards's clients are also stored, bu those are loaded on the fly, only when needed.
-func NewCluster(addresses []string, namespace string, jwtTokenGetter datastor.JWTTokenGetter) (*Cluster, error) {
+//
+// The TLS config is only required if any of the to-be connected zstordb servers require it, listed or not.
+// Same goes for the JWTTokenGetter.
+func NewCluster(addresses []string, namespace string, jwtTokenGetter datastor.JWTTokenGetter, tlsConfig *tls.Config) (*Cluster, error) {
 	if len(addresses) == 0 {
 		return nil, errors.New("no listed addresses given")
 	}
@@ -43,7 +47,7 @@ func NewCluster(addresses []string, namespace string, jwtTokenGetter datastor.JW
 	)
 	// create all shards, one by one
 	for _, address := range addresses {
-		client, err := NewClient(address, namespace, jwtTokenGetter)
+		client, err := NewClient(address, namespace, jwtTokenGetter, tlsConfig)
 		if err != nil {
 			// close all shards already opened
 			var closeErr error
@@ -76,6 +80,14 @@ func NewCluster(addresses []string, namespace string, jwtTokenGetter datastor.JW
 	}, nil
 }
 
+// NewInsecureCluster creates a new insecure cluster,
+// meaning it assumes that none of the to be connected zstordb servers require a secure (TLS) connection.
+//
+// See NewCluster for more information about the other parameters and underlying constructor.
+func NewInsecureCluster(addresses []string, namespace string, jwtTokenGetter datastor.JWTTokenGetter) (*Cluster, error) {
+	return NewCluster(addresses, namespace, jwtTokenGetter, nil)
+}
+
 // Cluster implements datastor.Cluster for
 // clients which interface with zstordb using the GRPC interface.
 type Cluster struct {
@@ -88,6 +100,7 @@ type Cluster struct {
 
 	namespace      string
 	jwtTokenGetter datastor.JWTTokenGetter
+	tlsConfig      *tls.Config
 }
 
 // GetShard implements datastor.Cluster.GetShard
@@ -108,7 +121,9 @@ func (cluster *Cluster) GetShard(address string) (datastor.Shard, error) {
 
 	// create and return an unknown unlisted client,
 	// making it known for next time it is needed
-	client, err := NewClient(address, cluster.namespace, cluster.jwtTokenGetter)
+	client, err := NewClient(
+		address, cluster.namespace,
+		cluster.jwtTokenGetter, cluster.tlsConfig)
 	if err != nil {
 		return nil, err
 	}

@@ -32,7 +32,7 @@ import (
 func TestNewClusterImplicitErrors(t *testing.T) {
 	require := require.New(t)
 
-	cluster, err := NewCluster([]string{""}, "foo", nil)
+	cluster, err := NewInsecureCluster([]string{""}, "foo", nil)
 	require.Error(err, "can't connect to first given address")
 	require.Nil(cluster)
 
@@ -40,7 +40,7 @@ func TestNewClusterImplicitErrors(t *testing.T) {
 	require.NoError(err)
 	defer cleanup()
 
-	cluster, err = NewCluster([]string{addr, ""}, "foo", nil)
+	cluster, err = NewInsecureCluster([]string{addr, ""}, "foo", nil)
 	require.Error(err, "can't connect to second given address")
 	require.Nil(cluster)
 }

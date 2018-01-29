@@ -17,6 +17,7 @@
 package cmd
 
 import (
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"net"
@@ -203,4 +204,77 @@ func (p ProfileMode) Description() string {
 	}
 	// print with disabled/invalid default
 	return fmt.Sprintf("Enable profiling mode, one of [%s]", strings.Join(profileModes, ", "))
+}
+
+// TLSVersion defines a TLS Version,
+// usable to restrict the possible TLS Versions.
+type TLSVersion uint8
+
+const (
+	// TLSVersion12 defines TLS version 1.2,
+	// and is also the current default TLS Version.
+	TLSVersion12 TLSVersion = iota
+	// TLSVersion11 defines TLS version 1.1
+	TLSVersion11
+	// TLSVersion10 defines TLS version 1.0,
+	// but should not be used, unless you have no other option.
+	TLSVersion10
+
+	_MaxTLSVersion = TLSVersion10
+)
+
+var (
+	// important that this order stays in sync with
+	// the order of constants definitions from above!
+	_TLSVersionStrings = []string{
+		"TLS12",
+		"TLS11",
+		"TLS10",
+	}
+	_TlsVersionValues = []uint16{
+		tls.VersionTLS12,
+		tls.VersionTLS11,
+		tls.VersionTLS10,
+	}
+)
+
+// String implements spf13/pflag.Value.String
+func (v TLSVersion) String() string {
+	if v > _MaxTLSVersion {
+		return ""
+	}
+	return _TLSVersionStrings[v]
+}
+
+// Set implements spf13/pflag.Value.Set
+func (v *TLSVersion) Set(str string) error {
+	str = strings.ToUpper(str)
+	for index, verStr := range _TLSVersionStrings {
+		if verStr == str {
+			*v = TLSVersion(index)
+			return nil
+		}
+	}
+	return fmt.Errorf("TLS version %s not recognized or supported", str)
+}
+
+// Type implements spf13/pflag.Value.Type
+func (v TLSVersion) Type() string {
+	return "TLSVersion"
+}
+
+// Description prints the flag description for this flag
+func (v TLSVersion) Description(desc string) string {
+	// print with disabled/invalid default
+	return fmt.Sprintf("%s, one of [%s].",
+		desc, strings.Join(_TLSVersionStrings, ", "))
+}
+
+// VersionTLS returns the tls.VersionTLS value,
+// which corresponds to this TLSVersion.
+func (v TLSVersion) VersionTLS() uint16 {
+	if v > _MaxTLSVersion {
+		panic(fmt.Sprintf("invalid TLS Version: %d", v))
+	}
+	return _TlsVersionValues[v]
 }

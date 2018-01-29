@@ -25,15 +25,15 @@ import (
 func TestNewClusterExplicitErrors(t *testing.T) {
 	require := require.New(t)
 
-	cluster, err := NewCluster(nil, "foo", nil)
+	cluster, err := NewInsecureCluster(nil, "foo", nil)
 	require.Error(err, "no addresses given")
 	require.Nil(cluster)
 
-	cluster, err = NewCluster([]string{"foo"}, "", nil)
+	cluster, err = NewInsecureCluster([]string{"foo"}, "", nil)
 	require.Error(err, "no label given")
 	require.Nil(cluster)
 
-	cluster, err = NewCluster(nil, "", nil)
+	cluster, err = NewInsecureCluster(nil, "", nil)
 	require.Error(err, "no addresses given, nor a label given")
 	require.Nil(cluster)
 }

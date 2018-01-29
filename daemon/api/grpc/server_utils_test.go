@@ -118,7 +118,7 @@ func newServerCluster(count int) (*clientGRPC.Cluster, func(), error) {
 		addressSlice = append(addressSlice, addr)
 	}
 
-	cluster, err := clientGRPC.NewCluster(addressSlice, testLabel, nil)
+	cluster, err := clientGRPC.NewInsecureCluster(addressSlice, testLabel, nil)
 	if err != nil {
 		for _, cleanup := range cleanupSlice {
 			cleanup()
@@ -167,7 +167,7 @@ func newServerClient() (*clientGRPC.Client, string, func(), error) {
 		return nil, "", nil, err
 	}
 
-	client, err := clientGRPC.NewClient(addr, testLabel, nil)
+	client, err := clientGRPC.NewInsecureClient(addr, testLabel, nil)
 	if err != nil {
 		cleanup()
 		return nil, "", nil, err

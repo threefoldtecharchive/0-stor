@@ -25,7 +25,7 @@ import (
 func main() {
 	// create a client to connect to a `--no-auth` zstordb server
 	// which is listening on a TCP connection at the local port `:12345`
-	client, err := datastor.NewClient("127.0.0.1:12345", "test", nil)
+	client, err := datastor.NewInsecureClient("127.0.0.1:12345", "test", nil)
 	if err != nil {
 		log.Fatal(err)
 	}

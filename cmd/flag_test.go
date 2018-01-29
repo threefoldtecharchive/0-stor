@@ -17,6 +17,7 @@
 package cmd
 
 import (
+	"crypto/tls"
 	"errors"
 	"testing"
 
@@ -161,6 +162,69 @@ func TestProfileModeFlag(t *testing.T) {
 			}
 			require.NoError(t, err)
 			require.Equal(t, tc.value, p.String())
+		})
+	}
+}
+
+func TestTLSVersionFlag(t *testing.T) {
+	tt := []struct {
+		input    string
+		expected uint16
+		value    string
+	}{
+		{
+			"TLS10",
+			tls.VersionTLS10,
+			"TLS10",
+		},
+		{
+			"tls10",
+			tls.VersionTLS10,
+			"TLS10",
+		},
+		{
+			"tLS10",
+			tls.VersionTLS10,
+			"TLS10",
+		},
+		{
+			"TLS11",
+			tls.VersionTLS11,
+			"TLS11",
+		},
+		{
+			"tls11",
+			tls.VersionTLS11,
+			"TLS11",
+		},
+		{
+			"TLS12",
+			tls.VersionTLS12,
+			"TLS12",
+		},
+		{
+			"tls12",
+			tls.VersionTLS12,
+			"TLS12",
+		},
+		{
+			"foo",
+			0,
+			"",
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.input, func(t *testing.T) {
+			var v TLSVersion
+			err := v.Set(tc.input)
+			if tc.value == "" {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tc.expected, v.VersionTLS())
+			require.Equal(t, tc.value, v.String())
 		})
 	}
 }
