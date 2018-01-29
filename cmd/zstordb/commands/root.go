@@ -64,7 +64,7 @@ func rootFunc(*cobra.Command, []string) error {
 	cmd.LogVersion()
 
 	dbOpts := badgerdb.DefaultOptions
-	dbOpts.SyncWrites = !rootCfg.AsyncWrite
+	dbOpts.SyncWrites = rootCfg.SyncWrite
 	dbOpts.Dir = rootCfg.DB.Dirs.Meta
 	dbOpts.ValueDir = rootCfg.DB.Dirs.Data
 
@@ -173,7 +173,7 @@ var rootCfg struct {
 	ProfileOutput  string
 	AuthDisabled   bool
 	MaxMsgSize     int
-	AsyncWrite     bool
+	SyncWrite      bool
 	JobCount       int
 
 	DB struct {
@@ -206,7 +206,7 @@ func init() {
 	rootCmd.Flags().IntVar(
 		&rootCfg.MaxMsgSize, "max-msg-size", 32, "Configure the maximum size of the message GRPC server can receive, in MiB")
 	rootCmd.Flags().BoolVar(
-		&rootCfg.AsyncWrite, "async-write", false, "Enable asynchronous writes in BadgerDB.")
+		&rootCfg.SyncWrite, "sync-write", false, "Enable synchronous writes in BadgerDB (slows down data load significantly).")
 	rootCmd.Flags().IntVarP(
 		&rootCfg.JobCount, "jobs", "j", grpc.DefaultJobCount,
 		"amount of async jobs to run for heavy GRPC server commands")

@@ -53,7 +53,6 @@ func New(data, meta string) (*DB, error) {
 		panic("no meta directory defined")
 	}
 	opts := badgerdb.DefaultOptions
-	opts.SyncWrites = true
 	opts.Dir, opts.ValueDir = meta, data
 	return NewWithOpts(opts)
 }
