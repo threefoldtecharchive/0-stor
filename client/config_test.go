@@ -101,6 +101,21 @@ func TestTLSVersionOrDefaultConfig(t *testing.T) {
 	require.Equal(t, uint16(tls.VersionTLS12), v.VersionTLSOrDefault(tls.VersionTLS12))
 }
 
+func TestTLSVersionMarshalUnmarshal(t *testing.T) {
+	testCases := []TLSVersion{
+		UndefinedTLSVersion,
+		TLSVersion10, TLSVersion11, TLSVersion12,
+	}
+	for _, testCase := range testCases {
+		text, err := testCase.MarshalText()
+		require.NoError(t, err)
+		var v TLSVersion
+		err = v.UnmarshalText(text)
+		require.NoError(t, err)
+		require.Equal(t, testCase, v)
+	}
+}
+
 func TestTLSVersionConfig(t *testing.T) {
 	tt := []struct {
 		input    string
@@ -158,7 +173,7 @@ func TestTLSVersionConfig(t *testing.T) {
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tc.expected, v.VersionTLS())
+			require.Equal(t, tc.expected, v.VersionTLSOrDefault(0))
 			require.Equal(t, tc.value, v.String())
 		})
 	}

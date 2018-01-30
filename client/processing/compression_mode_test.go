@@ -27,6 +27,7 @@ func TestCompressionModeMarshalUnmarshal(t *testing.T) {
 	require := require.New(t)
 
 	types := []CompressionMode{
+		CompressionModeDisabled,
 		CompressionModeDefault,
 		CompressionModeBestSpeed,
 		CompressionModeBestCompression,
@@ -50,6 +51,7 @@ func TestCompressionModeMarshal(t *testing.T) {
 		Type     CompressionMode
 		Expected string
 	}{
+		{CompressionModeDisabled, ""},
 		{CompressionModeDefault, "default"},
 		{CompressionModeBestSpeed, "best_speed"},
 		{CompressionModeBestCompression, "best_compression"},
@@ -57,13 +59,8 @@ func TestCompressionModeMarshal(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		b, err := tc.Type.MarshalText()
-		if tc.Expected == "" {
-			require.Error(err)
-			require.Nil(b)
-		} else {
-			require.NoError(err)
-			require.Equal(tc.Expected, string(b))
-		}
+		require.NoError(err)
+		require.Equal(tc.Expected, string(b))
 	}
 }
 

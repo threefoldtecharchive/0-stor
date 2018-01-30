@@ -149,8 +149,11 @@ func (v TLSVersion) String() string {
 
 // MarshalText implements encoding.TextMarshaler.MarshalText
 func (v TLSVersion) MarshalText() (text []byte, err error) {
-	if v == UndefinedTLSVersion || v > _MaxTLSVersion {
+	if v > _MaxTLSVersion {
 		return nil, fmt.Errorf("invalid in-memory TLS version %d", uint8(v))
+	}
+	if v == UndefinedTLSVersion {
+		return nil, nil
 	}
 	return []byte(_TLSVersionStrings[v-1]), nil
 }
@@ -158,6 +161,10 @@ func (v TLSVersion) MarshalText() (text []byte, err error) {
 // UnmarshalText implements encoding.TextUnmarshaler.UnmarshalText
 func (v *TLSVersion) UnmarshalText(text []byte) error {
 	str := strings.ToUpper(string(text))
+	if len(str) == 0 {
+		*v = UndefinedTLSVersion
+		return nil
+	}
 	for index, verStr := range _TLSVersionStrings {
 		if verStr == str {
 			*v = TLSVersion(index + 1)
@@ -165,15 +172,6 @@ func (v *TLSVersion) UnmarshalText(text []byte) error {
 		}
 	}
 	return fmt.Errorf("TLS version %s not recognized or supported", str)
-}
-
-// VersionTLS returns the tls.VersionTLS value,
-// which corresponds to this TLSVersion.
-func (v TLSVersion) VersionTLS() uint16 {
-	if v == UndefinedTLSVersion || v > _MaxTLSVersion {
-		panic(fmt.Sprintf("invalid TLS Version: %d", v))
-	}
-	return _TlsVersionValues[v-1]
 }
 
 // VersionTLSOrDefault returns the tls.VersionTLS value,

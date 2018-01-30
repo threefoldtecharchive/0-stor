@@ -80,11 +80,7 @@ const _CompressionModeStrings = "defaultbest_speedbest_compression"
 
 // MarshalText implements encoding.TextMarshaler.MarshalText
 func (cm CompressionMode) MarshalText() ([]byte, error) {
-	str := cm.String()
-	if str == "" {
-		return nil, fmt.Errorf("'%s' is not a valid CompressionMode value", cm)
-	}
-	return []byte(str), nil
+	return []byte(cm.String()), nil
 }
 
 // UnmarshalText implements encoding.TextUnmarshaler.UnmarshalText
