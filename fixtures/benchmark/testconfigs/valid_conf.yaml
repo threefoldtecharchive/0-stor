@@ -1,0 +1,37 @@
+scenarios:
+  bench1:
+    zstor:
+      iyo:  # itsyou.online credentials 
+        organization: my_iyo_org
+        app_id: app_ID
+        app_secret: app_secret
+      namespace: namespace1  # itsyou.online namespace if using iyo credentials
+      datastor:
+        shards:
+          - 127.0.0.1:1200
+          - 127.0.0.1:1201
+          - 127.0.0.1:1202
+        pipeline:
+          block_size: 4096
+          compression:
+            mode: default
+          encryption:
+            private_key: ab345678901234567890123456789012
+          distribution:
+            data_shards: 2
+            parity_shards: 1
+      metastor:
+        db:
+          endpoints:
+            - 127.0.0.1:1300
+            - 127.0.0.1:1301
+        encryption:
+          private_key: ab345678901234567890123456789012
+    benchmark:
+      method: read
+      result_output: per_second
+      duration: 5     # duration of benchmark in seconds
+      operations: 0   # if <= 0 or omitted, the benchmark will be stopped by duration
+      key_size: 48
+      value_size: 128
+      clients: 1
