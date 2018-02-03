@@ -1,0 +1,23 @@
+benchmarks: # (required) list of benchmark scenarios
+- prime_parameter:    # (required) primary parameter of the benchmark *
+    id: value_size    # (required) id of the primary parameter that is being benchmarked
+    range: [1024000, 2048000, 4096000] # (required) values of the primary parameter
+  second_parameter:    # (optional) secondary parameter of the benchmark *
+    id: key_size       # (required)id of the secondary parameter that is being benchmarked
+    range: [48000, 96000]  # (required) values of the primary parameter 
+template: # config for benchmark client (zstorbench)
+  zstor:  # zstor configuration
+    datastor:   # (optional, will use 1 data shard with default values if omitted) datastor config.
+      pipeline:
+        block_size: 4096
+        distribution:
+          data_shards: 2    # amount of data shards the orchestrator needs to setup for benchmarking
+          parity_shards: 1  # amount of parity shards the orchestrator needs to setup for benchmarking
+    metastor:               # (optional, will use 1 meta shard with default values if omitted) metastor config.
+      meta_shards_nr: 2     # amount of metadata servers the orchestrator needs to setup for benchmarking
+  benchmark:        # benchmark configuration
+    method: write   # (optional) other options: read (default)
+    result_output: per_second # (optional, default "") other options: "" (no per interval in result), per_minute, per_hour
+    duration: 10      # (optional if operations specified) max duration of the benchmark
+    key_size: 48000      # (required)
+    value_size: 1024000   # (required)
