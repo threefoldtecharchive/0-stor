@@ -1,0 +1,25 @@
+benchmarks:
+- prime_parameter:
+    id: data_shards
+    range: [1, 2, 4, 6, 8, 10]
+  second_parameter:
+    id: meta_shards_nr
+    range: [1, 2, 4, 10]
+template:
+  zstor_config:  
+    namespace: mynamespace
+    pipeline:
+      block_size: 1048576
+      encryption:
+      compression:
+        type: snappy
+        mode: default
+    metastor:
+      meta_shards_nr: 0
+  bench_config:
+    clients: 1
+    method: read
+    result_output: per_second
+    duration: 30
+    key_size: 64
+    value_size: 1048576

@@ -1,0 +1,29 @@
+benchmarks:
+- prime_parameter:
+    id: clients
+    range: [1, 2, 4, 6]
+  second_parameter:
+    id: method
+    range: [read, write]
+template:
+  zstor_config:
+    namespace: mynamespace
+    pipeline:
+      block_size: 1048576
+      encryption:
+      compression:
+        type: snappy
+        mode: default
+      distribution:
+        data_shards: 2
+        parity_shards: 1
+    metastor:
+      meta_shards_nr: 0
+  bench_config:
+    clients: 1
+    method: write
+    result_output: per_second
+    duration: 30
+    key_size: 64
+    value_size: 1048576
+profile: trace
