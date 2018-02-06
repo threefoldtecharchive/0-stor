@@ -6,7 +6,7 @@ benchmarks:
     id: parity_shards
     range: [1, 2, 4, 10]
 template:
-  zstor_config:  
+  zstor:  
     namespace: mynamespace
     pipeline:
       block_size: 1048576
@@ -19,7 +19,7 @@ template:
         parity_shards: 1
     metastor:
       meta_shards_nr: 0
-  bench_config:
+  benchmark:
     clients: 1
     method: read
     result_output: per_second

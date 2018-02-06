@@ -5,7 +5,7 @@ benchmarks:
     id: method   
     range: [write, write, write ,write, write]
 template:
-  zstor_config:  
+  zstor:  
     namespace: mynamespace
     pipeline:
       block_size: 1048576
@@ -18,7 +18,7 @@ template:
           parity_shards: 1
     metastor:
       meta_shards_nr: 0
-  bench_config:
+  benchmark:
     clients: 1
     method: write
     result_output: per_second

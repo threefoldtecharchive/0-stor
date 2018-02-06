@@ -6,7 +6,7 @@ benchmarks:
     id: meta_shards_nr
     range: [1, 2, 4, 10]
 template:
-  zstor_config:  
+  zstor:  
     namespace: mynamespace
     pipeline:
       block_size: 1048576
@@ -16,7 +16,7 @@ template:
         mode: default
     metastor:
       meta_shards_nr: 0
-  bench_config:
+  benchmark:
     clients: 1
     method: write
     result_output: per_second
