@@ -1,0 +1,13 @@
+# Allow report graph images
+!*.png
+
+# Ignore orchestrator generated files
+scenarios_config.yaml
+benchmark_result.yaml
+
+# Ignore generated reports
+*bench_result/
+
+# Allow profile result files
+!*.pprof
+!*.out

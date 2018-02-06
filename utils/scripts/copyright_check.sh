@@ -17,7 +17,7 @@ done
 # python licence check
 for f in $(find "$DIR" -name "*.py" | grep -v vendor | grep -v generated| grep -v test_suite|grep -v utils); do
     SOURCE_LINES="1,13p"
-    if [ "$(head -n 1 $f)" = "#!/usr/bin/python3" ]; then 
+    if [ "$(head -n 1 $f)" = "#!/usr/local/bin/python3" ]; then 
         SOURCE_LINES="3,15p" 
     fi;
     diff <(sed -n -e $SOURCE_LINES "$f") <(sed -n -e '1,13p' "$PYCRFILE")

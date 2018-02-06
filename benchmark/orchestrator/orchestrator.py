@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/local/bin/python3
 
 # Copyright (C) 2017-2018 GIG Technology NV and Contributors
 #

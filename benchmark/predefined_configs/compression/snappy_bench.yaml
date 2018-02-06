@@ -1,0 +1,33 @@
+# Benchmarks snappy compression types
+benchmarks:
+- prime_parameter:
+    id:
+      compression: mode
+    range: [default] # best_speed, best_compression not supported
+  second_parameter:
+    id: method
+    range: [read, write]
+template:
+  zstor:  
+    namespace: mynamespace
+    pipeline:
+      block_size: 1048576
+      compression:
+        type: snappy
+        mode: default
+      encryption:
+        type: aes
+        private_key: ""
+      distribution:
+        data_shards: 2
+        parity_shards: 1
+    metastor:
+      meta_shards_nr: 0
+  benchmark:
+    clients: 1
+    method: write
+    result_output: per_second
+    duration: 30
+    key_size: 64
+    value_size: 1048576
+profile: trace
