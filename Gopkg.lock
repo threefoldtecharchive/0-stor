@@ -237,13 +237,13 @@
   version = "v1.0"
 
 [[projects]]
-  branch = "1.0.0"
   name = "github.com/itsyouonline/identityserver"
   packages = [
     "clients/go/itsyouonline",
     "clients/go/itsyouonline/goraml"
   ]
-  revision = "8cff176acb7f471d61b51e3fc518ae87e59ca27d"
+  revision = "3556ceabfcb5c25a6f2615f66806465151565c5c"
+  version = "v1.0.1"
 
 [[projects]]
   name = "github.com/jonboulle/clockwork"
@@ -486,6 +486,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "3737ab1902108991ee389cc6a329e6ef1ba00c4291d9e7ee96e033e82b3c84dc"
+  inputs-digest = "d1554f66aa8638c8e257e907ed02b7d158776dbd06a43aaa677d2a78647b3dee"
   solver-name = "gps-cdcl"
   solver-version = 1

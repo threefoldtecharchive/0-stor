@@ -79,6 +79,30 @@ func getNamespacePosArg(maxArgs int, args []string) string {
 	return cfg.Namespace
 }
 
+// namespaceListCmd represents the namespace-list command
+var namespaceListCmd = &cobra.Command{
+	Use:     "list",
+	Short:   "List all namespaces.",
+	PreRunE: preRunNamespaceCommands(0),
+	RunE: func(_cmd *cobra.Command, args []string) error {
+		iyoCl, err := getNamespaceManager()
+		if err != nil {
+			return err
+		}
+
+		namespaces, err := iyoCl.ListNamespaces()
+		if err != nil {
+			return fmt.Errorf("list namespaces failed: %v", err)
+		}
+
+		for _, ns := range namespaces {
+			fmt.Println(ns)
+		}
+
+		return nil
+	},
+}
+
 // namespaceCreateCmd represents the namespace-create command
 var namespaceCreateCmd = &cobra.Command{
 	Use:   "create [namespace]",
@@ -251,6 +275,7 @@ as defined in the (client) config file, is to be used.`,
 
 func init() {
 	namespaceCmd.AddCommand(
+		namespaceListCmd,
 		namespaceCreateCmd,
 		namespaceDeleteCmd,
 		namespacePermissionCmd,

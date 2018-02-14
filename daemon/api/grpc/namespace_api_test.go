@@ -28,6 +28,22 @@ import (
 	"golang.org/x/net/context"
 )
 
+func TestListNamespaces(t *testing.T) {
+	nsSrv := newNamespaceService(&namespaceClientStub{})
+
+	_, err := nsSrv.ListNamespaces(context.Background(), &pb.ListNamespacesRequest{})
+	require.NoError(t, err)
+}
+
+func TestListNamespacesError(t *testing.T) {
+	nsSrv := newNamespaceService(&namespaceClientStub{})
+
+	// not supported (no IYO client defined)
+	nsSrv.client = nilIYOClient{}
+	_, err := nsSrv.ListNamespaces(context.Background(), &pb.ListNamespacesRequest{})
+	require.Equal(t, rpctypes.ErrGRPCNotSupported, err)
+}
+
 func TestCreateNamespace(t *testing.T) {
 	nsSrv := newNamespaceService(&namespaceClientStub{})
 
@@ -156,6 +172,10 @@ func TestGetPermissionError(t *testing.T) {
 }
 
 type namespaceClientStub struct{}
+
+func (ncs *namespaceClientStub) ListNamespaces() ([]string, error) {
+	return nil, nil
+}
 
 func (ncs *namespaceClientStub) CreateNamespace(namespace string) error {
 	return nil

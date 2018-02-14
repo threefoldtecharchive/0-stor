@@ -59,7 +59,7 @@
 
 [[constraint]]
   name = "github.com/itsyouonline/identityserver"
-  branch = "1.0.0"
+  branch = "1.0.1"
 
 [[constraint]]
   name = "github.com/justinas/alice"

@@ -23,6 +23,7 @@ package schema;
 // NamespaceService is the service to be used to manage namespaces
 // and the permissions of users linked to those namespaces.
 service NamespaceService {
+	rpc ListNamespaces(ListNamespacesRequest) returns(ListNamespacesResponse){}
 	rpc CreateNamespace(CreateNamespaceRequest) returns(CreateNamespaceResponse){}
 	rpc DeleteNamespace(DeleteNamespaceRequest) returns(DeleteNamespaceResponse){}
 	rpc SetPermission(SetPermissionRequest) returns(SetPermissionResponse){}
@@ -34,6 +35,13 @@ message Permission {
 	bool write = 2;
 	bool delete = 3;
 	bool admin = 4;
+}
+
+message ListNamespacesRequest {
+}
+
+message ListNamespacesResponse {
+	repeated string namespaces = 1;
 }
 
 message CreateNamespaceRequest {

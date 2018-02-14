@@ -36,6 +36,17 @@ type namespaceService struct {
 	client namespaceClient
 }
 
+// ListNamespaces implements NamespaceServiceServer.ListNamespaces
+func (service *namespaceService) ListNamespaces(ctx context.Context, req *pb.ListNamespacesRequest) (*pb.ListNamespacesResponse, error) {
+	namespaces, err := service.client.ListNamespaces()
+	if err != nil {
+		return nil, err
+	}
+	return &pb.ListNamespacesResponse{
+		Namespaces: namespaces,
+	}, nil
+}
+
 // CreateNamespace implements NamespaceServiceServer.CreateNamespace
 func (service *namespaceService) CreateNamespace(ctx context.Context, req *pb.CreateNamespaceRequest) (*pb.CreateNamespaceResponse, error) {
 	namespace := req.GetNamespace()
@@ -119,6 +130,7 @@ func (service *namespaceService) GetPermission(ctx context.Context, req *pb.GetP
 // namespaceClient is used by the namespaceService,
 // to run the actual business logic of the service.
 type namespaceClient interface {
+	ListNamespaces() (namespaces []string, err error)
 	CreateNamespace(namespace string) error
 	DeleteNamespace(namespace string) error
 	SetPermission(namespace, userID string, perm itsyouonline.Permission) error
@@ -170,6 +182,9 @@ func (iyo *iyoClient) SetPermission(namespace, userID string, perm itsyouonline.
 // which is useful/required in case the IYO client is nil.
 type nilIYOClient struct{}
 
+func (iyo nilIYOClient) ListNamespaces() ([]string, error) {
+	return nil, rpctypes.ErrGRPCNotSupported
+}
 func (iyo nilIYOClient) CreateNamespace(namespace string) error { return rpctypes.ErrGRPCNotSupported }
 func (iyo nilIYOClient) DeleteNamespace(namespace string) error { return rpctypes.ErrGRPCNotSupported }
 func (iyo nilIYOClient) SetPermission(namespace, userID string, perm itsyouonline.Permission) error {

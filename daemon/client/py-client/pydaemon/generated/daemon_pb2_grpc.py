@@ -15,6 +15,11 @@ class NamespaceServiceStub(object):
     Args:
       channel: A grpc.Channel.
     """
+    self.ListNamespaces = channel.unary_unary(
+        '/schema.NamespaceService/ListNamespaces',
+        request_serializer=daemon__pb2.ListNamespacesRequest.SerializeToString,
+        response_deserializer=daemon__pb2.ListNamespacesResponse.FromString,
+        )
     self.CreateNamespace = channel.unary_unary(
         '/schema.NamespaceService/CreateNamespace',
         request_serializer=daemon__pb2.CreateNamespaceRequest.SerializeToString,
@@ -41,6 +46,13 @@ class NamespaceServiceServicer(object):
   """NamespaceService is the service to be used to manage namespaces
   and the permissions of users linked to those namespaces.
   """
+
+  def ListNamespaces(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
 
   def CreateNamespace(self, request, context):
     # missing associated documentation comment in .proto file
@@ -73,6 +85,11 @@ class NamespaceServiceServicer(object):
 
 def add_NamespaceServiceServicer_to_server(servicer, server):
   rpc_method_handlers = {
+      'ListNamespaces': grpc.unary_unary_rpc_method_handler(
+          servicer.ListNamespaces,
+          request_deserializer=daemon__pb2.ListNamespacesRequest.FromString,
+          response_serializer=daemon__pb2.ListNamespacesResponse.SerializeToString,
+      ),
       'CreateNamespace': grpc.unary_unary_rpc_method_handler(
           servicer.CreateNamespace,
           request_deserializer=daemon__pb2.CreateNamespaceRequest.FromString,

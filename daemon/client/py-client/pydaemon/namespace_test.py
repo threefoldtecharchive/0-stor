@@ -31,6 +31,13 @@ class TestNamespaceClient(unittest.TestCase):
         self.assertIsNotNone(self.client)
         self.assertIsInstance(self.client._stub, mock.MagicMock)
 
+    def test_list(self):
+        self.client.list()
+
+        self.client._stub.ListNamespaces.assert_called_once_with(
+            model.ListNamespacesRequest()
+        )
+
     def test_create(self):
         namespace = 'namespace'
 

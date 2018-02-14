@@ -146,6 +146,38 @@ var (
 	_ error = (*statusError)(nil)
 )
 
+// ListNamespaces returns all 0-stor namespaces
+func (c *Client) ListNamespaces() ([]string, error) {
+	err := c.login()
+	if err != nil {
+		return nil, err
+	}
+
+	orgName := c.cfg.Organization + ".0stor"
+	org, resp, err := c.iyoClient.Organizations.GetOrganizationTree(orgName, nil, nil)
+	if err != nil {
+		if resp.StatusCode == http.StatusForbidden {
+			return nil, ErrForbidden
+		}
+		return nil, err
+	}
+
+	var namespaces []string
+	for _, child := range org.Children {
+		if child.Globalid != orgName {
+			continue
+		}
+		for _, grandChild := range child.Children {
+			elems := strings.Split(grandChild.Globalid, ".")
+			if len(elems) == 3 && elems[0] == c.cfg.Organization && elems[1] == "0stor" {
+				namespaces = append(namespaces, elems[2])
+			}
+		}
+	}
+
+	return namespaces, nil
+}
+
 // CreateNamespace creates namespace as itsyouonline organization
 // Verifies the full namespace path exists, and creates it if don't
 // It also creates....

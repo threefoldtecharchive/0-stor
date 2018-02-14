@@ -20,6 +20,11 @@ class Namespace:
     def __init__(self, channel):
         self._stub = stubs.NamespaceServiceStub(channel)
 
+    def list(self):
+        return self._stub.ListNamespaces(
+            model.ListNamespacesRequest()
+        )
+
     def create(self, namespace):
         return self._stub.CreateNamespace(
             model.CreateNamespaceRequest(namespace=namespace)
