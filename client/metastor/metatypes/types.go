@@ -32,9 +32,12 @@ type (
 		// and is chosen by the owner of this data.
 		Key []byte
 
-		// Size in bytes represents the total size of all chunks,
-		// that make up the stored data, combined.
+		// Size represent the total size of the data before any processing
 		Size int64
+
+		// StorageSize in bytes represents the total size of all chunks,
+		// that make up the stored data, combined.
+		StorageSize int64
 
 		// CreationEpoch defines the time this data was initially created,
 		// in the Unix epoch format, in nano seconds.

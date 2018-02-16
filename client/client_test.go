@@ -190,8 +190,9 @@ func TestRoundTripGRPC(t *testing.T) {
 
 			// write data to the store
 			key := []byte("testkey")
-			_, err = c.Write(key, bytes.NewReader(data))
+			md, err := c.Write(key, bytes.NewReader(data))
 			require.NoError(t, err, "fail to write data to the store")
+			require.EqualValues(t, len(data), md.Size, "metadata.Size should be egals to the total size of the written file")
 
 			// b, err := json.Marshal(meta)
 			// require.NoError(t, err)
@@ -327,8 +328,9 @@ func TestConcurrentWriteRead(t *testing.T) {
 		require.NoError(t, err, "fail to read random data")
 		key := []byte(fmt.Sprintf("testkey-%d", i))
 
-		_, err = c.Write(key, bytes.NewReader(data))
+		md, err := c.Write(key, bytes.NewReader(data))
 		require.NoError(t, err, "fail write data")
+		require.EqualValues(t, len(data), md.Size, "metadata.Size should be egals to total size of the written file")
 
 		buf := bytes.NewBuffer(nil)
 		err = c.Read(key, buf)
@@ -577,8 +579,11 @@ func testRepair(t *testing.T, config Config, repairErr error) {
 
 	meta, err := c.metastorClient.GetMetadata(key)
 	require.NoError(t, err)
+	require.EqualValues(t, len(data), meta.Size, "metadata.Size should be egals to the total size of the written file")
 	// store last-write epoch, so we can compare it later after repair
 	lastWriteEpoch := meta.LastWriteEpoch
+	// store data size, so we can compare it later after repair
+	size := meta.Size
 
 	// Check status is ok after a write
 	status, err := c.Check(meta.Key, false)
@@ -611,6 +616,7 @@ func testRepair(t *testing.T, config Config, repairErr error) {
 	require.NoError(t, err)
 	require.NotNil(t, repairMeta)
 	require.True(t, repairMeta.LastWriteEpoch != 0 && repairMeta.LastWriteEpoch != lastWriteEpoch)
+	require.EqualValues(t, size, repairMeta.Size)
 	require.Equal(t, meta.Key, repairMeta.Key)
 
 	// make sure we can read the data again

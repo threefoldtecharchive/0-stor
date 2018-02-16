@@ -251,8 +251,15 @@ func (c *Client) Write(key []byte, r io.Reader) (*metatypes.Metadata, error) {
 		return nil, ErrNilKey // ensure a key is given
 	}
 
+	if r == nil {
+		return nil, errors.New("no reader given to read from")
+	}
+
+	// used to count the total size of bytes read from r
+	rc := &readCounter{r: r}
+
 	// process and write the data
-	chunks, err := c.dataPipeline.Write(r)
+	chunks, err := c.dataPipeline.Write(rc)
 	if err != nil {
 		return nil, err
 	}
@@ -261,6 +268,7 @@ func (c *Client) Write(key []byte, r io.Reader) (*metatypes.Metadata, error) {
 	now := EpochNow()
 	md := metatypes.Metadata{
 		Key:            key,
+		Size:           rc.Size(),
 		CreationEpoch:  now,
 		LastWriteEpoch: now,
 	}
@@ -268,7 +276,7 @@ func (c *Client) Write(key []byte, r io.Reader) (*metatypes.Metadata, error) {
 	// set/update chunks and size in metadata
 	md.Chunks = chunks
 	for _, chunk := range chunks {
-		md.Size += chunk.Size
+		md.StorageSize += chunk.Size
 	}
 
 	// store metadata
@@ -396,7 +404,7 @@ func (c *Client) Repair(key []byte) (*metatypes.Metadata, error) {
 			// update chunks
 			meta.Chunks = repairedChunks
 			// update total size
-			meta.Size = totalSizeAfterRepair
+			meta.StorageSize = totalSizeAfterRepair
 			// update last write epoch, as we have written while repairing
 			meta.LastWriteEpoch = repairEpoch
 
@@ -437,4 +445,23 @@ func (ce closeErrors) Error() string {
 		str += e.Error() + ";"
 	}
 	return str
+}
+
+// readCounter is a io.Reader wrapper that counts the
+// total of bytes read by the underlying reader
+type readCounter struct {
+	r    io.Reader
+	size int64
+}
+
+// Read implement the io.Reader interface
+func (rc *readCounter) Read(p []byte) (n int, err error) {
+	n, err = rc.r.Read(p)
+	rc.size += int64(n)
+	return n, err
+}
+
+// Size return the total of bytes read by the underlying reader
+func (rc *readCounter) Size() int64 {
+	return rc.size
 }
