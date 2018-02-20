@@ -809,6 +809,16 @@ func newAsyncDataSplitter(ctx context.Context, r io.Reader, chunkSize, bufferSiz
 		buf := make([]byte, chunkSize)
 		for {
 			n, err := r.Read(buf)
+			if n > 0 {
+				data := make([]byte, n)
+				copy(data, buf)
+				select {
+				case inputCh <- indexedDataChunk{index, data}:
+					index++
+				case <-ctx.Done():
+					return nil
+				}
+			}
 			if err != nil {
 				if err == io.EOF {
 					// we'll consider an EOF
@@ -817,14 +827,7 @@ func newAsyncDataSplitter(ctx context.Context, r io.Reader, chunkSize, bufferSiz
 				}
 				return err
 			}
-			data := make([]byte, n)
-			copy(data, buf)
-			select {
-			case inputCh <- indexedDataChunk{index, data}:
-				index++
-			case <-ctx.Done():
-				return nil
-			}
+
 		}
 	}
 }

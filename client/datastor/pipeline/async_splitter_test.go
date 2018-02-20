@@ -20,12 +20,14 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"testing"
 
 	"github.com/zero-os/0-stor/client/datastor/pipeline/crypto"
 	"github.com/zero-os/0-stor/client/datastor/pipeline/storage"
 	"github.com/zero-os/0-stor/client/processing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
 )
@@ -244,4 +246,63 @@ func testAsyncDataSplitterCycle(t *testing.T, input []byte, output [][]byte, blo
 	err := group.Wait()
 	require.NoError(t, err)
 	require.Equal(t, output, out)
+}
+
+// TestAsyncDataSplitterEOF ensures that known errors get ignored,
+// and that read content gets returned prior to error checking.
+// Added as part of the fix for https://github.com/zero-os/0-stor/pull/513
+func TestAsyncDataSplitterEOF(t *testing.T) {
+	// test that we do not return io.EOF
+	r := &eofReader{bytes.NewReader(nil)}
+	inputCh, splitter := newAsyncDataSplitter(
+		context.Background(), r, 1, 1)
+	go func() {
+		err := splitter()
+		if err != nil {
+			panic(err)
+		}
+	}()
+	input, ok := <-inputCh
+	if !assert.False(t, ok) {
+		t.Fatalf("unexpected input: %v", input)
+	}
+
+	// test that we return also partial content,
+	// even when receiving EOF at the end
+	r = &eofReader{bytes.NewReader([]byte{1, 2, 3})}
+	inputCh, splitter = newAsyncDataSplitter(
+		context.Background(), r, 2, 1)
+	go func() {
+		err := splitter()
+		if err != nil {
+			panic(err)
+		}
+	}()
+	input, ok = <-inputCh
+	require.True(t, ok)
+	require.EqualValues(t, 0, input.Index)
+	require.Equal(t, []byte{1, 2}, input.Data)
+	input, ok = <-inputCh
+	require.True(t, ok)
+	require.EqualValues(t, 1, input.Index)
+	require.Equal(t, []byte{3}, input.Data)
+	input, ok = <-inputCh
+	if !assert.False(t, ok) {
+		t.Fatalf("unexpected input: %v", input)
+	}
+}
+
+type eofReader struct {
+	io.Reader
+}
+
+func (r *eofReader) Read(p []byte) (n int, err error) {
+	n, err = r.Reader.Read(p)
+	if err != nil {
+		return
+	}
+	if n != len(p) {
+		err = io.EOF
+	}
+	return
 }
