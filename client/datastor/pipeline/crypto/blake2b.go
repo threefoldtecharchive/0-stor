@@ -19,7 +19,7 @@ package crypto
 import (
 	"hash"
 
-	"github.com/minio/blake2b-simd"
+	"golang.org/x/crypto/blake2b"
 )
 
 // SumBlake2b256 creates and returns a hash,
@@ -33,11 +33,7 @@ func SumBlake2b256(data []byte) []byte {
 // NewBlake2b256Hasher creates a new hasher,
 // using the Blake2b (32 bytes output) algorithm.
 func NewBlake2b256Hasher(key []byte) (*Blake2b256Hasher, error) {
-	hash, err := blake2b.New(
-		&blake2b.Config{
-			Size: 32,
-			Key:  key,
-		})
+	hash, err := blake2b.New(32, key)
 	if err != nil {
 		return nil, err
 	}
@@ -71,11 +67,7 @@ func SumBlake2b512(data []byte) []byte {
 // NewBlake2b512Hasher creates a new hasher,
 // using the Blake2b (64 bytes output) algorithm.
 func NewBlake2b512Hasher(key []byte) (*Blake2b512Hasher, error) {
-	hash, err := blake2b.New(
-		&blake2b.Config{
-			Size: 64,
-			Key:  key,
-		})
+	hash, err := blake2b.New(64, key)
 	if err != nil {
 		return nil, err
 	}

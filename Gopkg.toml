@@ -66,10 +66,6 @@
   version = "1.0.0"
 
 [[constraint]]
-  branch = "master"
-  name = "github.com/minio/blake2b-simd"
-
-[[constraint]]
   name = "github.com/paulbellamy/ratecounter"
   version = "0.2.0"
 
