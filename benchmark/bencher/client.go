@@ -55,7 +55,7 @@ func newClientFromConfig(cfg *client.Config, jobCount int, enableCaching bool) (
 	// if no metadata shards are given, return an error,
 	// as we require a metastor client
 	// create metastor client
-	metastorClient, err := createMetastorClientFromConfig(&cfg.MetaStor)
+	metastorClient, err := createMetastorClientFromConfig(cfg.Namespace, &cfg.MetaStor)
 	if err != nil {
 		return nil, err
 	}
@@ -102,11 +102,11 @@ func createDataClusterFromConfig(cfg *client.Config, enableCaching bool) (datast
 	return storgrpc.NewCluster(cfg.DataStor.Shards, cfg.Namespace, tokenGetter, tlsConfig)
 }
 
-func createMetastorClientFromConfig(cfg *client.MetaStorConfig) (*metastor.Client, error) {
+func createMetastorClientFromConfig(namespace string, cfg *client.MetaStorConfig) (*metastor.Client, error) {
 	if len(cfg.Database.Endpoints) == 0 {
 		// if no endpoints, return a test metadata server (in-memory)
 		log.Debug("Using in-memory metadata server")
-		return createMetastorClientFromConfigAndDatabase(cfg, test.New())
+		return createMetastorClientFromConfigAndDatabase(namespace, cfg, test.New())
 	}
 	log.Debug("Using etcd metadata server")
 
@@ -116,10 +116,10 @@ func createMetastorClientFromConfig(cfg *client.MetaStorConfig) (*metastor.Clien
 	}
 
 	// create the metastor client and the rest of its components
-	return createMetastorClientFromConfigAndDatabase(cfg, db)
+	return createMetastorClientFromConfigAndDatabase(namespace, cfg, db)
 }
 
-func createMetastorClientFromConfigAndDatabase(cfg *client.MetaStorConfig, db metaDB.DB) (*metastor.Client, error) {
+func createMetastorClientFromConfigAndDatabase(namespace string, cfg *client.MetaStorConfig, db metaDB.DB) (*metastor.Client, error) {
 	var (
 		err    error
 		config = metastor.Config{Database: db}
@@ -133,7 +133,7 @@ func createMetastorClientFromConfigAndDatabase(cfg *client.MetaStorConfig, db me
 
 	if len(cfg.Encryption.PrivateKey) == 0 {
 		// create potentially insecure metastor storage
-		return metastor.NewClient(config)
+		return metastor.NewClient([]byte(namespace), config)
 	}
 
 	// create the constructor which will create our encrypter-decrypter when needed
@@ -151,7 +151,7 @@ func createMetastorClientFromConfigAndDatabase(cfg *client.MetaStorConfig, db me
 
 	// create our full-configured metastor client,
 	// including encryption support for our metadata in binary form
-	return metastor.NewClient(config)
+	return metastor.NewClient([]byte(namespace), config)
 }
 
 func createTLSConfigFromDatastorTLSConfig(config *client.DataStorTLSConfig) (*tls.Config, error) {

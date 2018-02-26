@@ -18,6 +18,7 @@ package grpc
 
 import (
 	"github.com/zero-os/0-stor/client/metastor"
+	"github.com/zero-os/0-stor/client/metastor/db"
 	"github.com/zero-os/0-stor/client/metastor/metatypes"
 	"github.com/zero-os/0-stor/daemon/api/grpc/rpctypes"
 	pb "github.com/zero-os/0-stor/daemon/api/grpc/schema"
@@ -83,12 +84,20 @@ func (service *metadataService) DeleteMetadata(ctx context.Context, req *pb.Dele
 	return &pb.DeleteMetadataResponse{}, nil
 }
 
+// ListKeys implements MetadataServiceServer.ListKeys
+func (service *metadataService) ListKeys(req *pb.ListMetadataKeysRequest, stream pb.MetadataService_ListKeysServer) error {
+	return service.client.ListKeys(func(key []byte) error {
+		return stream.Send(&pb.ListMetadataKeysResponse{Key: key})
+	})
+}
+
 // metadataClient is used by the metadataService,
 // to run the actual business logic of the service.
 type metadataClient interface {
 	SetMetadata(metadata metatypes.Metadata) error
 	GetMetadata(key []byte) (*metatypes.Metadata, error)
 	DeleteMetadata(key []byte) error
+	ListKeys(cb db.ListCallback) error
 }
 
 var (

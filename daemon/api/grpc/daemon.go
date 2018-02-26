@@ -107,7 +107,7 @@ func NewFromClientConfig(cfg client.Config, maxMsgSize, jobCount int, disableLoc
 	}
 
 	// create metastor client
-	metastorClient, err := createMetastorClientFromConfig(&cfg.MetaStor)
+	metastorClient, err := createMetastorClientFromConfig(cfg.Namespace, &cfg.MetaStor)
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +122,7 @@ func NewFromClientConfig(cfg client.Config, maxMsgSize, jobCount int, disableLoc
 	})
 }
 
-func createMetastorClientFromConfig(cfg *client.MetaStorConfig) (*metastor.Client, error) {
+func createMetastorClientFromConfig(namespace string, cfg *client.MetaStorConfig) (*metastor.Client, error) {
 	if len(cfg.Database.Endpoints) == 0 {
 		return nil, errors.New("no metadata storage ETCD endpoints given")
 	}
@@ -148,7 +148,7 @@ func createMetastorClientFromConfig(cfg *client.MetaStorConfig) (*metastor.Clien
 
 	if len(cfg.Encryption.PrivateKey) == 0 {
 		// create potentially insecure metastor storage
-		return metastor.NewClient(config)
+		return metastor.NewClient([]byte(namespace), config)
 	}
 
 	// create the constructor which will create our encrypter-decrypter when needed
@@ -166,7 +166,7 @@ func createMetastorClientFromConfig(cfg *client.MetaStorConfig) (*metastor.Clien
 
 	// create our full-configured metastor client,
 	// including encryption support for our metadata in binary form
-	return metastor.NewClient(config)
+	return metastor.NewClient([]byte(namespace), config)
 }
 
 func createDataClusterFromConfig(cfg *client.Config, iyoClient *itsyouonline.Client) (datastor.Cluster, error) {

@@ -54,16 +54,20 @@ func (ie *InternalError) Error() string {
 // as ued for metadata storage. ALl DB implements are assumed to be threadsafe.
 type DB interface {
 	// Set given key in the database equal to the processed metadata.
-	Set(key, metadata []byte) error
+	Set(namespace, key, metadata []byte) error
 	// Get the stored metadata from the database using the given key.
-	Get(key []byte) (metadata []byte, err error)
+	Get(namespace, key []byte) (metadata []byte, err error)
 	// Delete the metadata which is stored as the given key.
-	Delete(key []byte) error
+	Delete(namespace, key []byte) error
 	// Update metadata stored as the given key,
 	// as an in-memory-transaction, providing protection against data races.
 	// When wishing to update metadata always use this method,
 	// rather than a combination of Set+Get.
-	Update(key []byte, cb UpdateCallback) error
+	Update(namespace, key []byte, cb UpdateCallback) error
+
+	// ListKeys all keys in the given namespace.
+	// The keys are sorted in lexicographically order.
+	ListKeys(namespace []byte, cb ListCallback) error
 
 	// Close any open (database) resources.
 	Close() error
@@ -72,3 +76,6 @@ type DB interface {
 // UpdateCallback is the type of callback used to update the processed (encoded)
 // metadata, which was already stored, previously.
 type UpdateCallback func(orgMetadata []byte) (newMetadata []byte, err error)
+
+// ListCallback is the type of callback used to process the listed keys
+type ListCallback func(key []byte) error

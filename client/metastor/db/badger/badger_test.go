@@ -41,20 +41,26 @@ func makeTestDB(t *testing.T) (*DB, func()) {
 	return db, cleanup
 }
 
-func TestInMemoryDB_RoundTrip(t *testing.T) {
+func TestBadgerDB_RoundTrip(t *testing.T) {
 	db, cleanup := makeTestDB(t)
 	defer cleanup()
 	test.RoundTrip(t, db)
 }
 
-func TestInMemoryDB_SyncUpdate(t *testing.T) {
+func TestBadgerDB_SyncUpdate(t *testing.T) {
 	db, cleanup := makeTestDB(t)
 	defer cleanup()
 	test.SyncUpdate(t, db)
 }
 
-func TestInMemoryDB_AsyncUpdate(t *testing.T) {
+func TestBadgerDB_AsyncUpdate(t *testing.T) {
 	db, cleanup := makeTestDB(t)
 	defer cleanup()
 	test.AsyncUpdate(t, db)
+}
+
+func TestBadgerDB_List(t *testing.T) {
+	db, cleanup := makeTestDB(t)
+	defer cleanup()
+	test.ListKeys(t, db)
 }

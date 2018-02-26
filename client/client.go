@@ -91,14 +91,14 @@ func newClientFromConfig(cfg *Config, jobCount int, enableCaching bool) (*Client
 	}
 
 	// create metastor client
-	metastorClient, err := createMetastorClientFromConfig(&cfg.MetaStor)
+	metastorClient, err := createMetastorClientFromConfig(cfg.Namespace, &cfg.MetaStor)
 	if err != nil {
 		return nil, err
 	}
 	return NewClient(metastorClient, dataPipeline), nil
 }
 
-func createMetastorClientFromConfig(cfg *MetaStorConfig) (*metastor.Client, error) {
+func createMetastorClientFromConfig(namespace string, cfg *MetaStorConfig) (*metastor.Client, error) {
 	if len(cfg.Database.Endpoints) == 0 {
 		return nil, errors.New("no metadata storage ETCD endpoints given")
 	}
@@ -112,10 +112,10 @@ func createMetastorClientFromConfig(cfg *MetaStorConfig) (*metastor.Client, erro
 	}
 
 	// create the metastor client and the rest of its components
-	return createMetastorClientFromConfigAndDatabase(cfg, db)
+	return createMetastorClientFromConfigAndDatabase(namespace, cfg, db)
 }
 
-func createMetastorClientFromConfigAndDatabase(cfg *MetaStorConfig, db metaDB.DB) (*metastor.Client, error) {
+func createMetastorClientFromConfigAndDatabase(namespace string, cfg *MetaStorConfig, db metaDB.DB) (*metastor.Client, error) {
 	var (
 		err    error
 		config = metastor.Config{Database: db}
@@ -129,7 +129,7 @@ func createMetastorClientFromConfigAndDatabase(cfg *MetaStorConfig, db metaDB.DB
 
 	if len(cfg.Encryption.PrivateKey) == 0 {
 		// create potentially insecure metastor storage
-		return metastor.NewClient(config)
+		return metastor.NewClient([]byte(namespace), config)
 	}
 
 	// create the constructor which will create our encrypter-decrypter when needed
@@ -147,7 +147,7 @@ func createMetastorClientFromConfigAndDatabase(cfg *MetaStorConfig, db metaDB.DB
 
 	// create our full-configured metastor client,
 	// including encryption support for our metadata in binary form
-	return metastor.NewClient(config)
+	return metastor.NewClient([]byte(namespace), config)
 }
 
 func createDataClusterFromConfig(cfg *Config, enableCaching bool) (datastor.Cluster, error) {

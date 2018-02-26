@@ -28,6 +28,10 @@ type (
 	// It is stored in some metadata server/cluster, and references
 	// the data (see: Chunk and Object), which is stored in a zstordb cluster.
 	Metadata struct {
+		// Namespace defines namespace of the data,
+		// and is chosen by the owner of this data.
+		Namespace []byte
+
 		// Key defines the key of the data,
 		// and is chosen by the owner of this data.
 		Key []byte

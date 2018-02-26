@@ -65,7 +65,7 @@ type Config struct {
 }
 
 // NewClient creates a new
-func NewClient(cfg Config) (*Client, error) {
+func NewClient(namespace []byte, cfg Config) (*Client, error) {
 	if cfg.Database == nil {
 		return nil, errors.New("NewClient: no metastor database given")
 	}
@@ -121,9 +121,10 @@ func NewClient(cfg Config) (*Client, error) {
 
 	// return the created client
 	return &Client{
-		db:     cfg.Database,
-		encode: encode,
-		decode: decode,
+		namespace: namespace,
+		db:        cfg.Database,
+		encode:    encode,
+		decode:    decode,
 	}, nil
 }
 
@@ -134,9 +135,10 @@ func NewClient(cfg Config) (*Client, error) {
 //
 // A Client is thread-safe.
 type Client struct {
-	db     dbp.DB
-	encode encoding.MarshalMetadata
-	decode encoding.UnmarshalMetadata
+	namespace []byte
+	db        dbp.DB
+	encode    encoding.MarshalMetadata
+	decode    encoding.UnmarshalMetadata
 }
 
 type (
@@ -160,13 +162,14 @@ func (c *Client) SetMetadata(md metatypes.Metadata) error {
 	if len(md.Key) == 0 {
 		return ErrNilKey
 	}
+	md.Namespace = c.namespace
 
 	bytes, err := c.encode(md)
 	if err != nil {
 		return err
 	}
 
-	return c.db.Set(md.Key, bytes)
+	return c.db.Set(md.Namespace, md.Key, bytes)
 }
 
 // UpdateMetadata updates already existing metadata,
@@ -180,7 +183,7 @@ func (c *Client) UpdateMetadata(key []byte, cb UpdateMetadataFunc) (*metatypes.M
 	}
 
 	metadata := new(metatypes.Metadata)
-	err := c.db.Update(key, func(bytes []byte) ([]byte, error) {
+	err := c.db.Update(c.namespace, key, func(bytes []byte) ([]byte, error) {
 		// decode the (fetched) metadata, so we can update it
 		err := c.decode(bytes, metadata)
 		if err != nil {
@@ -210,7 +213,7 @@ func (c *Client) GetMetadata(key []byte) (*metatypes.Metadata, error) {
 		return nil, ErrNilKey
 	}
 
-	bytes, err := c.db.Get(key)
+	bytes, err := c.db.Get(c.namespace, key)
 	if err != nil {
 		return nil, err
 	}
@@ -232,7 +235,14 @@ func (c *Client) DeleteMetadata(key []byte) error {
 	if len(key) == 0 {
 		return ErrNilKey
 	}
-	return c.db.Delete(key)
+	return c.db.Delete(c.namespace, key)
+}
+
+// ListKeys list all keys in the namespace,
+// and exectute the given callback against each keys.
+// Keys are sorted in lexicographically order
+func (c *Client) ListKeys(cb dbp.ListCallback) error {
+	return c.db.ListKeys(c.namespace, cb)
 }
 
 // Close any open resources of this metadata client.

@@ -332,6 +332,11 @@ class MetadataServiceStub(object):
         request_serializer=daemon__pb2.DeleteMetadataRequest.SerializeToString,
         response_deserializer=daemon__pb2.DeleteMetadataResponse.FromString,
         )
+    self.ListKeys = channel.unary_stream(
+        '/schema.MetadataService/ListKeys',
+        request_serializer=daemon__pb2.ListMetadataKeysRequest.SerializeToString,
+        response_deserializer=daemon__pb2.ListMetadataKeysResponse.FromString,
+        )
 
 
 class MetadataServiceServicer(object):
@@ -360,6 +365,13 @@ class MetadataServiceServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def ListKeys(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
 
 def add_MetadataServiceServicer_to_server(servicer, server):
   rpc_method_handlers = {
@@ -377,6 +389,11 @@ def add_MetadataServiceServicer_to_server(servicer, server):
           servicer.DeleteMetadata,
           request_deserializer=daemon__pb2.DeleteMetadataRequest.FromString,
           response_serializer=daemon__pb2.DeleteMetadataResponse.SerializeToString,
+      ),
+      'ListKeys': grpc.unary_stream_rpc_method_handler(
+          servicer.ListKeys,
+          request_deserializer=daemon__pb2.ListMetadataKeysRequest.FromString,
+          response_serializer=daemon__pb2.ListMetadataKeysResponse.SerializeToString,
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(

@@ -24,6 +24,7 @@ import (
 // It is important to use this function with the `UnmarshalMetadata` function of this package.
 func MarshalMetadata(md metatypes.Metadata) ([]byte, error) {
 	s := Metadata{
+		Namespace:      md.Namespace,
 		Key:            md.Key,
 		TotalSize:      md.Size,
 		StorageSize:    md.StorageSize,
@@ -70,6 +71,7 @@ func UnmarshalMetadata(b []byte, md *metatypes.Metadata) error {
 		return err
 	}
 
+	md.Namespace = s.Namespace
 	md.Key = s.Key
 	md.Size = s.TotalSize
 	md.StorageSize = s.StorageSize

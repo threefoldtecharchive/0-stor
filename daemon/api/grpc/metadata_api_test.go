@@ -18,14 +18,19 @@ package grpc
 
 import (
 	"errors"
+	"fmt"
+	"io"
+	"net"
 	"testing"
 
+	"github.com/zero-os/0-stor/client/metastor/db"
 	"github.com/zero-os/0-stor/client/metastor/metatypes"
 	"github.com/zero-os/0-stor/daemon/api/grpc/rpctypes"
 	pb "github.com/zero-os/0-stor/daemon/api/grpc/schema"
 
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/context"
+	"google.golang.org/grpc"
 )
 
 func TestSetMetadata(t *testing.T) {
@@ -94,6 +99,60 @@ func TestDeleteMetadataError(t *testing.T) {
 	require.Equal(t, errFooMetadataClient, err)
 }
 
+func TestListKeys(t *testing.T) {
+	require := require.New(t)
+
+	// creates test daemon
+	daemon := newTestDaemon(t)
+	require.NotNil(daemon)
+	defer daemon.Close()
+
+	lis, err := net.Listen("tcp", "localhost:0")
+	require.NoError(err)
+	go func() {
+		err := daemon.Serve(lis)
+		if err != nil {
+			panic(err)
+		}
+	}()
+
+	// creates grpc client
+	conn, err := grpc.Dial(lis.Addr().String(), grpc.WithInsecure())
+	require.NoError(err)
+
+	client := pb.NewMetadataServiceClient(conn)
+	require.NotNil(client)
+
+	ctx := context.Background()
+
+	// populates the data
+	var (
+		keys       [][]byte
+		listedKeys [][]byte
+	)
+	for i := 0; i < 10; i++ {
+		key := []byte(fmt.Sprintf("key_%d", i))
+		_, err := client.SetMetadata(ctx, &pb.SetMetadataRequest{
+			Metadata: &pb.Metadata{Key: key},
+		})
+		require.NoError(err)
+
+		keys = append(keys, key)
+	}
+
+	// list it
+	stream, err := client.ListKeys(ctx, &pb.ListMetadataKeysRequest{})
+	for {
+		resp, err := stream.Recv()
+		if err != nil {
+			require.Equal(io.EOF, err)
+			break
+		}
+		listedKeys = append(listedKeys, resp.Key)
+	}
+	require.Equal(keys, listedKeys)
+}
+
 type metadataClientStub struct{}
 
 func (stub metadataClientStub) SetMetadata(metadata metatypes.Metadata) error {
@@ -103,6 +162,10 @@ func (stub metadataClientStub) GetMetadata(key []byte) (*metatypes.Metadata, err
 	return &metatypes.Metadata{}, nil
 }
 func (stub metadataClientStub) DeleteMetadata(key []byte) error {
+	return nil
+}
+
+func (stub metadataClientStub) ListKeys(cb db.ListCallback) error {
 	return nil
 }
 
@@ -117,6 +180,10 @@ func (stub metadataErrorClient) GetMetadata(key []byte) (*metatypes.Metadata, er
 	return nil, errFooMetadataClient
 }
 func (stub metadataErrorClient) DeleteMetadata(key []byte) error {
+	return errFooMetadataClient
+}
+
+func (stub metadataErrorClient) ListKeys(cb db.ListCallback) error {
 	return errFooMetadataClient
 }
 

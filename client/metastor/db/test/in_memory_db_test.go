@@ -35,3 +35,9 @@ func TestInMemoryDB_AsyncUpdate(t *testing.T) {
 	defer db.Close()
 	AsyncUpdate(t, db)
 }
+
+func TestInMemoryDB_List(t *testing.T) {
+	db := New()
+	defer db.Close()
+	ListKeys(t, db)
+}

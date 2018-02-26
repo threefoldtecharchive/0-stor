@@ -74,3 +74,10 @@ class TestMetadataClient(unittest.TestCase):
                 key=key,
             )
         )
+
+    def test_list_keys(self):
+        self.client.list_keys()
+
+        self.client._stub.ListKeys.assert_called_once_with(
+            model.ListMetadataKeysRequest()
+        )

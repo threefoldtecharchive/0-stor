@@ -37,30 +37,31 @@ func RoundTrip(t *testing.T, db dbp.DB) {
 	require.NotNil(db)
 
 	var (
-		key  = []byte("foo")
-		data = []byte("bar")
+		namespace = []byte("ns")
+		key       = []byte("foo")
+		data      = []byte("bar")
 	)
 
 	// ensure metadata is not there yet
-	_, err := db.Get(key)
+	_, err := db.Get(namespace, key)
 	require.Equal(dbp.ErrNotFound, err)
 
 	// set the metadata
-	err = db.Set(key, data)
+	err = db.Set(namespace, key, data)
 	require.NoError(err)
 
 	// get it back
-	storedData, err := db.Get(key)
+	storedData, err := db.Get(namespace, key)
 	require.NoError(err)
 	// check stored value
 	require.NotEmpty(storedData)
 	require.Equal(data, storedData)
 
 	// delete the metadata
-	err = db.Delete(key)
+	err = db.Delete(namespace, key)
 	require.NoError(err)
 	// make sure we can't get it back
-	_, err = db.Get(key)
+	_, err = db.Get(namespace, key)
 	require.Equal(dbp.ErrNotFound, err)
 }
 
@@ -69,26 +70,29 @@ func RoundTrip(t *testing.T, db dbp.DB) {
 func SyncUpdate(t *testing.T, db dbp.DB) {
 	require := require.New(t)
 
-	key := []byte("foo")
+	var (
+		namespace = []byte("ns")
+		key       = []byte("foo")
+	)
 
-	err := db.Update(key, func(bs []byte) ([]byte, error) { return bs, nil })
+	err := db.Update(namespace, key, func(bs []byte) ([]byte, error) { return bs, nil })
 	require.Equal(dbp.ErrNotFound, err)
 
 	data := []byte("foo")
-	err = db.Set(key, data)
+	err = db.Set(namespace, key, data)
 	require.NoError(err)
 
-	output, err := db.Get(data)
+	output, err := db.Get(namespace, data)
 	require.NoError(err)
 	require.Equal(data, output)
 
-	err = db.Update(key, func(bs []byte) ([]byte, error) {
+	err = db.Update(namespace, key, func(bs []byte) ([]byte, error) {
 		bs[0] = 'b'
 		return bs, nil
 	})
 	require.NoError(err)
 
-	output, err = db.Get(key)
+	output, err = db.Get(namespace, key)
 	require.NoError(err)
 	require.NotEqual(data, output)
 	data[0] = 'b'
@@ -105,19 +109,20 @@ func AsyncUpdate(t *testing.T, db dbp.DB) {
 		jobs = 128
 	)
 	var (
-		err  error
-		key  = []byte("foo")
-		data = []byte("l:")
+		err       error
+		namespace = []byte("ns")
+		key       = []byte("foo")
+		data      = []byte("l:")
 	)
 
-	err = db.Set(key, data)
+	err = db.Set(namespace, key, data)
 	require.NoError(err)
 
 	group, _ := errgroup.WithContext(context.Background())
 	for i := 0; i < jobs; i++ {
 		i := i
 		group.Go(func() error {
-			return db.Update(key, func(bs []byte) ([]byte, error) {
+			return db.Update(namespace, key, func(bs []byte) ([]byte, error) {
 				bs = []byte(string(bs) + fmt.Sprintf("%d,", i))
 				return bs, nil
 			})
@@ -125,7 +130,7 @@ func AsyncUpdate(t *testing.T, db dbp.DB) {
 	}
 	require.NoError(group.Wait())
 
-	data, err = db.Get(key)
+	data, err = db.Get(namespace, key)
 	require.NoError(err)
 	require.True(bytes.HasPrefix(data, []byte{'l', ':'}))
 
@@ -143,4 +148,49 @@ func AsyncUpdate(t *testing.T, db dbp.DB) {
 	for i := 0; i < jobs; i++ {
 		require.Equal(i, integers[i])
 	}
+}
+
+// ListKeys test the given database in listing
+// the keys it has
+func ListKeys(t *testing.T, db dbp.DB) {
+	require := require.New(t)
+	require.NotNil(db)
+
+	var (
+		wantedNamespace   = []byte("namespace")
+		unwantedNamespace = []byte("unnamespace")
+		wantKey           = "wantKey"
+		unwantKey         = "unwantKey"
+		data              = []byte("data")
+		wantKeys          [][]byte
+		listedKeys        [][]byte
+	)
+
+	const (
+		numData = 10
+	)
+
+	// generates data for wanted namespace
+	for i := 0; i < numData; i++ {
+		key := []byte(fmt.Sprintf("%v_%v", wantKey, i))
+		err := db.Set(wantedNamespace, key, data)
+		require.NoError(err)
+		wantKeys = append(wantKeys, key)
+	}
+
+	// generates data for unwanted namespace
+	for i := 0; i < numData; i++ {
+		key := []byte(fmt.Sprintf("%v_%v", unwantKey, i))
+		err := db.Set(unwantedNamespace, key, data)
+		require.NoError(err)
+	}
+
+	// list keys
+	err := db.ListKeys(wantedNamespace, func(key []byte) error {
+		listedKeys = append(listedKeys, key)
+		return nil
+	})
+
+	require.NoError(err)
+	require.Equal(wantKeys, listedKeys)
 }

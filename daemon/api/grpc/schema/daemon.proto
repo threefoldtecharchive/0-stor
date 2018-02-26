@@ -253,6 +253,7 @@ service MetadataService {
 	rpc SetMetadata(SetMetadataRequest) returns (SetMetadataResponse) {}
 	rpc GetMetadata(GetMetadataRequest) returns (GetMetadataResponse) {}
 	rpc DeleteMetadata(DeleteMetadataRequest) returns (DeleteMetadataResponse) {}
+	rpc ListKeys(ListMetadataKeysRequest) returns (stream ListMetadataKeysResponse) {}
 
 	// TODO:
 	// figure out a way to support UpdateMetadata,
@@ -278,6 +279,13 @@ message DeleteMetadataRequest {
 	bytes key = 1;
 }
 message DeleteMetadataResponse {
+}
+
+message ListMetadataKeysRequest {
+}
+
+message ListMetadataKeysResponse {
+	bytes key = 1;
 }
 
 // DataService is used write, read, delete, check and repair (processed) data.

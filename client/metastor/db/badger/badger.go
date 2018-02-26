@@ -96,9 +96,9 @@ type DB struct {
 }
 
 // Set implements db.Set
-func (db *DB) Set(key, metadata []byte) error {
+func (db *DB) Set(namespace, key, metadata []byte) error {
 	err := db.badger.Update(func(txn *badgerdb.Txn) error {
-		return txn.Set(key, metadata)
+		return txn.Set(badgerKey(namespace, key), metadata)
 	})
 	if err != nil {
 		return mapBadgerError(err)
@@ -107,9 +107,9 @@ func (db *DB) Set(key, metadata []byte) error {
 }
 
 // Get implements db.Get
-func (db *DB) Get(key []byte) (metadata []byte, err error) {
+func (db *DB) Get(namespace, key []byte) (metadata []byte, err error) {
 	err = db.badger.View(func(txn *badgerdb.Txn) error {
-		item, err := txn.Get(key)
+		item, err := txn.Get(badgerKey(namespace, key))
 		if err != nil {
 			return err
 		}
@@ -128,9 +128,9 @@ func (db *DB) Get(key []byte) (metadata []byte, err error) {
 }
 
 // Delete implements db.Delete
-func (db *DB) Delete(key []byte) error {
+func (db *DB) Delete(namespace, key []byte) error {
 	err := db.badger.Update(func(txn *badgerdb.Txn) error {
-		return txn.Delete(key)
+		return txn.Delete(badgerKey(namespace, key))
 	})
 	if err != nil {
 		return mapBadgerError(err)
@@ -139,12 +139,14 @@ func (db *DB) Delete(key []byte) error {
 }
 
 // Update implements db.Update
-func (db *DB) Update(key []byte, cb dbp.UpdateCallback) error {
+func (db *DB) Update(namespace, key []byte, cb dbp.UpdateCallback) error {
+	bgrKey := badgerKey(namespace, key)
+
 	err := badgerdb.ErrConflict
 	for err == badgerdb.ErrConflict {
 		err = db.badger.Update(func(txn *badgerdb.Txn) error {
 			// fetch the original stored and encoded metadata
-			item, err := txn.Get(key)
+			item, err := txn.Get(bgrKey)
 			if err != nil {
 				return mapBadgerError(err)
 			}
@@ -160,13 +162,40 @@ func (db *DB) Update(key []byte, cb dbp.UpdateCallback) error {
 			}
 
 			// store the updated metadata
-			err = txn.Set(key, metadata)
+			err = txn.Set(bgrKey, metadata)
 			if err != nil {
 				return mapBadgerError(err)
 			}
 			return nil
 		})
 	}
+	return err
+}
+
+// ListKeys implements db.ListKeys
+func (db *DB) ListKeys(namespace []byte, cb dbp.ListCallback) error {
+	prefix := badgerPrefix(namespace)
+	lenPrefix := len(prefix)
+
+	err := db.badger.View(func(txt *badgerdb.Txn) error {
+		opts := badgerdb.DefaultIteratorOptions
+		opts.PrefetchValues = false
+
+		it := txt.NewIterator(opts)
+
+		for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
+			item := it.Item()
+
+			key := make([]byte, len(item.Key())-lenPrefix)
+			copy(key, item.Key()[lenPrefix:])
+
+			err := cb(key)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 	return err
 }
 
@@ -212,6 +241,14 @@ func (db *DB) runGC() {
 	}
 }
 
+func badgerPrefix(namespace []byte) []byte {
+	return []byte(string(namespace) + "/")
+}
+
+func badgerKey(namespace, key []byte) []byte {
+	return append(badgerPrefix(namespace), key...)
+}
+
 // map badger errors, if we know about them
 func mapBadgerError(err error) error {
 	switch err {
@@ -224,4 +261,8 @@ func mapBadgerError(err error) error {
 
 const (
 	databaseType = "Badger"
+)
+
+var (
+	_ dbp.DB = (*DB)(nil)
 )

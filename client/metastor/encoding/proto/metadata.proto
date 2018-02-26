@@ -29,6 +29,10 @@ option (gogoproto.populate_all) = true;
 option (gogoproto.testgen_all) = true;
 
 message Metadata {
+    // namespace defines the namespace of the data,
+    // and is chosen by the owner of this data.
+	bytes namespace = 9;
+
     // key defines the key of the data,
     // and is chosen by the owner of this data.
     bytes key = 1;

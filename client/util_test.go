@@ -117,7 +117,7 @@ func getTestClient(cfg Config) (*Client, datastor.Cluster, error) {
 
 	// create metastor client first,
 	// and than create our master 0-stor client with all features.
-	metastorClient, err := createMetastorClientFromConfigAndDatabase(&cfg.MetaStor, db)
+	metastorClient, err := createMetastorClientFromConfigAndDatabase(cfg.Namespace, &cfg.MetaStor, db)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -104,7 +104,7 @@ func getMetaClient() (*metastor.Client, error) {
 
 	if len(cfg.Encryption.PrivateKey) == 0 {
 		// create potentially insecure metastor storage
-		return metastor.NewClient(config)
+		return metastor.NewClient([]byte(clientCfg.Namespace), config)
 	}
 
 	// create the constructor which will create our encrypter-decrypter when needed
@@ -122,7 +122,7 @@ func getMetaClient() (*metastor.Client, error) {
 
 	// create our full-configured metastor client,
 	// including encryption support for our metadata in binary form
-	return metastor.NewClient(config)
+	return metastor.NewClient([]byte(clientCfg.Namespace), config)
 }
 
 func getNamespaceManager() (*itsyouonline.Client, error) {

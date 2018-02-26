@@ -17,6 +17,9 @@
 package test
 
 import (
+	"fmt"
+	"sort"
+	"strings"
 	"sync"
 
 	dbp "github.com/zero-os/0-stor/client/metastor/db"
@@ -49,8 +52,8 @@ type DB struct {
 }
 
 // Set implements db.Set
-func (db *DB) Set(key, metadata []byte) error {
-	keyStr := string(key)
+func (db *DB) Set(namespace, key, metadata []byte) error {
+	keyStr := inMemKey(namespace, key)
 	db.mux.Lock()
 	db.md[keyStr] = string(metadata)
 	db.versions[keyStr]++
@@ -59,9 +62,9 @@ func (db *DB) Set(key, metadata []byte) error {
 }
 
 // Get implements db.Get
-func (db *DB) Get(key []byte) ([]byte, error) {
+func (db *DB) Get(namespace, key []byte) ([]byte, error) {
 	db.mux.RLock()
-	metadata, ok := db.md[string(key)]
+	metadata, ok := db.md[inMemKey(namespace, key)]
 	db.mux.RUnlock()
 	if !ok {
 		return nil, dbp.ErrNotFound
@@ -70,8 +73,8 @@ func (db *DB) Get(key []byte) ([]byte, error) {
 }
 
 // Delete implements db.Delete
-func (db *DB) Delete(key []byte) error {
-	keyStr := string(key)
+func (db *DB) Delete(namespace, key []byte) error {
+	keyStr := inMemKey(namespace, key)
 	db.mux.Lock()
 	delete(db.md, keyStr)
 	delete(db.versions, keyStr)
@@ -80,8 +83,8 @@ func (db *DB) Delete(key []byte) error {
 }
 
 // Update implements db.Update
-func (db *DB) Update(key []byte, cb dbp.UpdateCallback) error {
-	keyStr := string(key)
+func (db *DB) Update(namespace, key []byte, cb dbp.UpdateCallback) error {
+	keyStr := inMemKey(namespace, key)
 	for {
 		db.mux.RLock()
 		metadataIn, ok := db.md[keyStr]
@@ -112,6 +115,33 @@ func (db *DB) Update(key []byte, cb dbp.UpdateCallback) error {
 	return nil
 }
 
+// ListKeys implements db.ListKeys
+func (db *DB) ListKeys(namespace []byte, cb dbp.ListCallback) error {
+	db.mux.Lock()
+	defer db.mux.Unlock()
+
+	var (
+		keys   []string
+		prefix = inMemPrefix(namespace)
+	)
+
+	for key := range db.md {
+		if strings.HasPrefix(key, prefix) {
+			keys = append(keys, strings.TrimPrefix(key, prefix))
+		}
+	}
+
+	// make it sorted in lexicographically order
+	sort.Strings(keys)
+
+	for _, key := range keys {
+		if err := cb([]byte(key)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // Close implements db.DB
 func (db *DB) Close() error {
 	db.mux.Lock()
@@ -120,6 +150,13 @@ func (db *DB) Close() error {
 	db.mux.Unlock()
 
 	return nil
+}
+
+func inMemPrefix(namespace []byte) string {
+	return fmt.Sprintf("%s/", string(namespace))
+}
+func inMemKey(namespace, key []byte) string {
+	return fmt.Sprintf("%s%s", inMemPrefix(namespace), string(key))
 }
 
 var (
