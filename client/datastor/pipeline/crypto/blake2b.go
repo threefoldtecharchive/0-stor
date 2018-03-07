@@ -33,7 +33,7 @@ func SumBlake2b256(data []byte) []byte {
 // NewBlake2b256Hasher creates a new hasher,
 // using the Blake2b (32 bytes output) algorithm.
 func NewBlake2b256Hasher(key []byte) (*Blake2b256Hasher, error) {
-	hash, err := blake2b.New(32, key)
+	hash, err := blake2b.New256(key)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +67,7 @@ func SumBlake2b512(data []byte) []byte {
 // NewBlake2b512Hasher creates a new hasher,
 // using the Blake2b (64 bytes output) algorithm.
 func NewBlake2b512Hasher(key []byte) (*Blake2b512Hasher, error) {
-	hash, err := blake2b.New(64, key)
+	hash, err := blake2b.New512(key)
 	if err != nil {
 		return nil, err
 	}
