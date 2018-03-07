@@ -299,7 +299,7 @@ func TestConfigBasedPipelines_WriteRead(t *testing.T) {
 	for _, testCase := range configTestCases {
 		t.Run(testCase.Description, func(t *testing.T) {
 			shardCount := requiredShardCount(testCase.Config.Distribution)
-			cluster, cleanup, err := newGRPCServerCluster(shardCount)
+			cluster, cleanup, err := newZdbServerCluster(shardCount)
 			require.NoError(t, err)
 			defer cleanup()
 
@@ -319,7 +319,7 @@ func TestYAMLConfigBasedPipelines_WriteRead(t *testing.T) {
 			require.NoErrorf(t, err, "invalid yaml: %v", testCase.YAMLConfig)
 
 			shardCount := requiredShardCount(cfg.Distribution)
-			cluster, cleanup, err := newGRPCServerCluster(shardCount)
+			cluster, cleanup, err := newZdbServerCluster(shardCount)
 			require.NoError(t, err)
 			defer cleanup()
 
@@ -513,7 +513,7 @@ func testPipelineReadWriteFile(t *testing.T, path string) {
 	for _, testCase := range testCases {
 		t.Run(testCase.Name, func(t *testing.T) {
 			shardCount := requiredShardCount(testCase.Config.Distribution)
-			cluster, cleanup, err := newGRPCServerCluster(shardCount)
+			cluster, cleanup, err := newZdbServerCluster(shardCount)
 			require.NoError(t, err)
 			defer cleanup()
 

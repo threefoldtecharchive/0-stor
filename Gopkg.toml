@@ -113,3 +113,8 @@
 [[override]]
   name = "github.com/ugorji/go"
   revision = "ded73eae5db7e7a0ef6f55aace87a2873c5d2b74"
+
+# it is OK to do this because we only use `redcon` package during the test
+[[constraint]]
+  branch = "zerodb-test"
+  name = "github.com/iwanbk/redcon"

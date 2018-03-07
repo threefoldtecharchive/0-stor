@@ -49,7 +49,7 @@ func TestNewDistributedStorageErrors(t *testing.T) {
 
 func TestDistributedStorageReadCheckWriteDelete(t *testing.T) {
 	t.Run("dataShardCount=1,parityShardCount=1,jobCount=D", func(t *testing.T) {
-		cluster, cleanup, err := newGRPCServerCluster(4)
+		cluster, cleanup, err := newZdbServerCluster(4)
 		require.NoError(t, err)
 		defer cleanup()
 		defer cluster.Close()
@@ -61,7 +61,7 @@ func TestDistributedStorageReadCheckWriteDelete(t *testing.T) {
 	})
 
 	t.Run("dataShardCount=2,parityShardCount=1,jobCount=D", func(t *testing.T) {
-		cluster, cleanup, err := newGRPCServerCluster(6)
+		cluster, cleanup, err := newZdbServerCluster(6)
 		require.NoError(t, err)
 		defer cleanup()
 		defer cluster.Close()
@@ -73,7 +73,7 @@ func TestDistributedStorageReadCheckWriteDelete(t *testing.T) {
 	})
 
 	t.Run("dataShardCount=1,parityShardCount=2,jobCount=D", func(t *testing.T) {
-		cluster, cleanup, err := newGRPCServerCluster(6)
+		cluster, cleanup, err := newZdbServerCluster(6)
 		require.NoError(t, err)
 		defer cleanup()
 		defer cluster.Close()
@@ -85,7 +85,7 @@ func TestDistributedStorageReadCheckWriteDelete(t *testing.T) {
 	})
 
 	t.Run("dataShardCount=2,parityShardCount=2,jobCount=1", func(t *testing.T) {
-		cluster, cleanup, err := newGRPCServerCluster(8)
+		cluster, cleanup, err := newZdbServerCluster(8)
 		require.NoError(t, err)
 		defer cleanup()
 		defer cluster.Close()
@@ -97,7 +97,7 @@ func TestDistributedStorageReadCheckWriteDelete(t *testing.T) {
 	})
 
 	t.Run("dataShardCount=8,parityShardCount=8,jobCount=D", func(t *testing.T) {
-		cluster, cleanup, err := newGRPCServerCluster(16)
+		cluster, cleanup, err := newZdbServerCluster(16)
 		require.NoError(t, err)
 		defer cleanup()
 		defer cluster.Close()
@@ -109,7 +109,7 @@ func TestDistributedStorageReadCheckWriteDelete(t *testing.T) {
 	})
 
 	t.Run("dataShardCount=4,parityShardCount=8,jobCount=D", func(t *testing.T) {
-		cluster, cleanup, err := newGRPCServerCluster(16)
+		cluster, cleanup, err := newZdbServerCluster(16)
 		require.NoError(t, err)
 		defer cleanup()
 		defer cluster.Close()
@@ -121,7 +121,7 @@ func TestDistributedStorageReadCheckWriteDelete(t *testing.T) {
 	})
 
 	t.Run("dataShardCount=8,parityShardCount=4,jobCount=D", func(t *testing.T) {
-		cluster, cleanup, err := newGRPCServerCluster(16)
+		cluster, cleanup, err := newZdbServerCluster(16)
 		require.NoError(t, err)
 		defer cleanup()
 		defer cluster.Close()
@@ -133,7 +133,7 @@ func TestDistributedStorageReadCheckWriteDelete(t *testing.T) {
 	})
 
 	t.Run("dataShardCount=8,parityShardCount=8,jobCount=1", func(t *testing.T) {
-		cluster, cleanup, err := newGRPCServerCluster(16)
+		cluster, cleanup, err := newZdbServerCluster(16)
 		require.NoError(t, err)
 		defer cleanup()
 		defer cluster.Close()
@@ -169,7 +169,7 @@ func TestDistributedStorageCheckRepair(t *testing.T) {
 func testDistributedStorageCheckRepair(t *testing.T, dataShardCount, parityShardCount, jobCount int) {
 	require := require.New(t)
 
-	cluster, cleanup, err := newGRPCServerCluster((dataShardCount + parityShardCount) * 2)
+	cluster, cleanup, err := newZdbServerCluster((dataShardCount + parityShardCount) * 2)
 	require.NoError(err)
 	defer cleanup()
 	defer cluster.Close()

@@ -26,10 +26,9 @@ import (
 	"time"
 
 	"github.com/zero-os/0-stor/client/datastor"
-	storgrpc "github.com/zero-os/0-stor/client/datastor/grpc"
 	"github.com/zero-os/0-stor/client/datastor/pipeline"
 	"github.com/zero-os/0-stor/client/datastor/pipeline/storage"
-	"github.com/zero-os/0-stor/client/itsyouonline"
+	"github.com/zero-os/0-stor/client/datastor/zerodb"
 	"github.com/zero-os/0-stor/client/metastor"
 	metaDB "github.com/zero-os/0-stor/client/metastor/db"
 	"github.com/zero-os/0-stor/client/metastor/db/etcd"
@@ -79,7 +78,7 @@ func NewClientFromConfigWithoutCaching(cfg Config, jobCount int) (*Client, error
 
 func newClientFromConfig(cfg *Config, jobCount int, enableCaching bool) (*Client, error) {
 	// create datastor cluster
-	datastorCluster, err := createDataClusterFromConfig(cfg, enableCaching)
+	datastorCluster, err := createDataClusterFromConfig(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -150,43 +149,13 @@ func createMetastorClientFromConfigAndDatabase(namespace string, cfg *MetaStorCo
 	return metastor.NewClient([]byte(namespace), config)
 }
 
-func createDataClusterFromConfig(cfg *Config, enableCaching bool) (datastor.Cluster, error) {
+func createDataClusterFromConfig(cfg *Config) (datastor.Cluster, error) {
 	// optionally create the global datastor TLS config
 	tlsConfig, err := createTLSConfigFromDatastorTLSConfig(&cfg.DataStor.TLS)
 	if err != nil {
 		return nil, err
 	}
-
-	if cfg.IYO == (itsyouonline.Config{}) {
-		// create datastor cluster without the use of IYO-backed JWT Tokens,
-		// this will only work if all shards use zstordb servers that
-		// do not require any authentication
-		return storgrpc.NewCluster(cfg.DataStor.Shards, cfg.Namespace, nil, tlsConfig)
-	}
-
-	// create IYO client
-	client, err := itsyouonline.NewClient(cfg.IYO)
-	if err != nil {
-		return nil, err
-	}
-
-	var tokenGetter datastor.JWTTokenGetter
-	// create JWT Token Getter (Using the earlier created IYO Client)
-	tokenGetter, err = datastor.JWTTokenGetterUsingIYOClient(cfg.IYO.Organization, client)
-	if err != nil {
-		return nil, err
-	}
-
-	if enableCaching {
-		// create cached token getter from this getter, using the default bucket size and count
-		tokenGetter, err = datastor.CachedJWTTokenGetter(tokenGetter, -1, -1)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// create datastor cluster, with the use of IYO-backed JWT Tokens
-	return storgrpc.NewCluster(cfg.DataStor.Shards, cfg.Namespace, tokenGetter, tlsConfig)
+	return zerodb.NewCluster(cfg.DataStor.Shards, cfg.Password, cfg.Namespace, tlsConfig)
 }
 
 func createTLSConfigFromDatastorTLSConfig(config *DataStorTLSConfig) (*tls.Config, error) {

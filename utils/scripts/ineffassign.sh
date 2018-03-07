@@ -2,4 +2,4 @@
 
 go get -u github.com/gordonklaus/ineffassign
 
-ineffassign client server cmd
+ineffassign client cmd

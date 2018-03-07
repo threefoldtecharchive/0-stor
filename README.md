@@ -35,58 +35,16 @@ For a full overview check out the [code organization docs](/docs/code_organizati
 
 ## Server
 
-The 0-stor server is a generic object store that provide simple storage primitives, read, write, list, delete.
+0-stor uses 0-db as storage server.
 
-0-stor uses [badger](https://github.com/dgraph-io/badger) as the backend key value store. Badger allows storing the keys and the value onto separate devices. Because of this separation, the LSM (Log-Structured Merge) tree of keys can most of the time stay in memory. Typically the keys could be kept in memory and depending on the use case, the values could be served from an SSD or HDD.
+See [0-db page](https://github.com/zero-os/0-db) for more information.
 
-See [the server docs][/docs/server/server.md] for more information.
-
-### Installation
-
-Install the 0-stor server
-
-```
-go get -u github.com/zero-os/0-stor/cmd/zstordb
-```
-
-### How to run the server
-
-## Running the server
-
-Here are the options of the server:
-
-```
-      --async-write                  Enable asynchronous writes in BadgerDB.
-      --data-dir string              Directory path used to store the data. (default ".db/data")
-  -D, --debug                        Enable debug logging.
-  -h, --help                         help for zstordb
-  -j, --jobs int                     amount of async jobs to run for heavy GRPC server commands (default $NUM_OF_CPUS_TIMES_TWO)
-  -L, --listen listenAddress         Bind the server to the given unix socket path or tcp address. Format has to be either host:port, with host optional, or a valid unix (socket) path. (default :8080)
-      --max-msg-size int             Configure the maximum size of the message GRPC server can receive, in MiB (default 32)
-      --meta-dir string              Directory path used to store the meta data. (default ".db/meta")
-      --no-auth                      Disable JWT authentication.
-      --profile-addr string          Enables profiling of this server as an http service.
-      --profile-mode profileMode     Enable profiling mode, one of [cpu, mem, block, trace]
-      --profile-output string        Path of the directory where profiling files are written (default ".")
-      --tls-cert string              TLS certificate used for this server, paired with the given key
-      --tls-key string               TLS private key used for this server, paired with the given cert
-      --tls-key-pass string          Passphrase of the given TLS private key file, only required if that file is encrypted
-      --tls-live-reload              Enable in order to support the live reloading of TLS Cert/Key file pairs, when signaling a SIGHUP signal
-      --tls-max-version TLSVersion   Maximum supperted/accepted TLS version (default TLS12)
-      --tls-min-version TLSVersion   Minimum supperted/accepted TLS version (default TLS11)
-```
-
-Start the server with listening on all interfaces and port 12345
-
-```shell
-zstordb --listen :12345 --data-dir /path/to/data --meta-dir /path/to/meta
-```
 
 ## Client
 
-The client contains all the logic to communicate with the 0-stor server.
+The client contains all the logic to communicate with the 0-db servers.
 
-The client provides some basic storage primitives to process your data before sending it to the 0-stor server:
+The client provides some basic storage primitives to process your data before sending it to the 0-db servers:
 - chunking
 - compression
 - encryption
@@ -96,7 +54,7 @@ All of these primitives are configurable and you can decide how your data will b
 
 ### etcd
 
-Other then a 0-stor server cluster, 0-stor clients also needs an [etcd](https://github.com/coreos/etcd) server cluster running to store it's metadata onto.
+Other then a 0-db server cluster, 0-stor clients also needs an [etcd](https://github.com/coreos/etcd) server cluster running to store it's metadata onto.
 
 To install and run an etcd cluster, check out the [etcd documentation](https://github.com/coreos/etcd#getting-etcd).
 

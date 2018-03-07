@@ -61,7 +61,7 @@ func TestAsyncSplitterPipeline_WriteReadDeleteCheck(t *testing.T) {
 func testAsyncSplitterPipelineWriteReadDeleteCheckCycle(t *testing.T, cfg ObjectDistributionConfig, blockSize int, pc ProcessorConstructor, hc HasherConstructor) {
 	require := require.New(t)
 
-	cluster, cleanup, err := newGRPCServerCluster(requiredShardCount(cfg))
+	cluster, cleanup, err := newZdbServerCluster(requiredShardCount(cfg))
 	require.NoError(err)
 	defer cleanup()
 
@@ -102,7 +102,7 @@ func TestAsyncSplitterPipeline_CheckRepair(t *testing.T) {
 func testAsyncSplitterPipelineCheckRepairCycle(t *testing.T, cfg ObjectDistributionConfig, blockSize int, pc ProcessorConstructor, hc HasherConstructor) {
 	require := require.New(t)
 
-	cluster, cleanup, err := newGRPCServerCluster(requiredShardCount(cfg))
+	cluster, cleanup, err := newZdbServerCluster(requiredShardCount(cfg))
 	require.NoError(err)
 	defer cleanup()
 
@@ -119,7 +119,7 @@ func TestNewAsyncSplitterPipeline(t *testing.T) {
 		NewAsyncSplitterPipeline(nil, 42, nil, nil, -1)
 	}, "no object storage given")
 
-	cluster, cleanup, err := newGRPCServerCluster(1)
+	cluster, cleanup, err := newZdbServerCluster(1)
 	require.NoError(t, err)
 	defer cleanup()
 	storage, err := storage.NewRandomChunkStorage(cluster)
@@ -186,7 +186,7 @@ func TestDefaultAsyncSplitterPipelines(t *testing.T) {
 func testDefaultAsyncSplitterPipeline(t *testing.T, cfg ObjectDistributionConfig, blockSize int, pc ProcessorConstructor, hc HasherConstructor) {
 	require := require.New(t)
 
-	cluster, cleanup, err := newGRPCServerCluster(requiredShardCount(cfg))
+	cluster, cleanup, err := newZdbServerCluster(requiredShardCount(cfg))
 	require.NoError(err)
 	defer cleanup()
 

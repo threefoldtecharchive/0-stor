@@ -17,20 +17,14 @@
 package client
 
 import (
-	"io/ioutil"
-	"net"
-	"os"
-	"path"
 	"testing"
 
 	"github.com/zero-os/0-stor/client/datastor"
 	"github.com/zero-os/0-stor/client/datastor/pipeline"
+	zdbtest "github.com/zero-os/0-stor/client/datastor/zerodb/test"
 	dbp "github.com/zero-os/0-stor/client/metastor/db"
 	"github.com/zero-os/0-stor/client/metastor/db/etcd"
 	"github.com/zero-os/0-stor/client/metastor/db/test"
-	"github.com/zero-os/0-stor/server/api"
-	"github.com/zero-os/0-stor/server/api/grpc"
-	"github.com/zero-os/0-stor/server/db/badger"
 
 	"github.com/stretchr/testify/require"
 )
@@ -41,7 +35,6 @@ const (
 )
 
 type testServer struct {
-	api.Server
 	addr string
 }
 
@@ -49,51 +42,34 @@ func (ts *testServer) Address() string {
 	return ts.addr
 }
 
-func testGRPCServer(t testing.TB, n int) ([]*testServer, func()) {
+func testZdbServer(t testing.TB, n int) (servers []*testServer, cleanups func()) {
 	require := require.New(t)
 
-	servers := make([]*testServer, n)
-	dirs := make([]string, n)
+	var (
+		namespace    = "ns"
+		cleanupFuncs []func()
+	)
 
 	for i := 0; i < n; i++ {
-		tmpDir, err := ioutil.TempDir("", "0stortest")
+		addr, cleanup, err := zdbtest.NewInMem0DBServer(namespace)
 		require.NoError(err)
-		dirs[i] = tmpDir
-
-		db, err := badger.New(path.Join(tmpDir, "data"), path.Join(tmpDir, "meta"))
-		require.NoError(err)
-
-		server, err := grpc.New(db, grpc.ServerConfig{MaxMsgSize: 4})
-		require.NoError(err)
-
-		listener, err := net.Listen("tcp", "localhost:0")
-		require.NoError(err, "failed to create listener on /any/ open (local) port")
-
-		go func() {
-			err := server.Serve(listener)
-			if err != nil {
-				panic(err)
-			}
-		}()
-
-		servers[i] = &testServer{Server: server, addr: listener.Addr().String()}
+		cleanupFuncs = append(cleanupFuncs, cleanup)
+		servers = append(servers, &testServer{
+			addr: addr,
+		})
 	}
 
-	clean := func() {
-		for _, server := range servers {
-			server.Close()
-		}
-		for _, dir := range dirs {
-			os.RemoveAll(dir)
+	cleanups = func() {
+		for _, cleanup := range cleanupFuncs {
+			cleanup()
 		}
 	}
-
-	return servers, clean
+	return
 }
 
 func getTestClient(cfg Config) (*Client, datastor.Cluster, error) {
 	// create datastor cluster
-	datastorCluster, err := createDataClusterFromConfig(&cfg, false)
+	datastorCluster, err := createDataClusterFromConfig(&cfg)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='daemon.proto',
   package='schema',
   syntax='proto3',
-  serialized_pb=_b('\n\x0c\x64\x61\x65mon.proto\x12\x06schema\"H\n\nPermission\x12\x0c\n\x04read\x18\x01 \x01(\x08\x12\r\n\x05write\x18\x02 \x01(\x08\x12\x0e\n\x06\x64\x65lete\x18\x03 \x01(\x08\x12\r\n\x05\x61\x64min\x18\x04 \x01(\x08\"\x17\n\x15ListNamespacesRequest\",\n\x16ListNamespacesResponse\x12\x12\n\nnamespaces\x18\x01 \x03(\t\"+\n\x16\x43reateNamespaceRequest\x12\x11\n\tnamespace\x18\x01 \x01(\t\"\x19\n\x17\x43reateNamespaceResponse\"+\n\x16\x44\x65leteNamespaceRequest\x12\x11\n\tnamespace\x18\x01 \x01(\t\"\x19\n\x17\x44\x65leteNamespaceResponse\"a\n\x14SetPermissionRequest\x12\x11\n\tnamespace\x18\x01 \x01(\t\x12\x0e\n\x06userID\x18\x02 \x01(\t\x12&\n\npermission\x18\x03 \x01(\x0b\x32\x12.schema.Permission\"\x17\n\x15SetPermissionResponse\"9\n\x14GetPermissionRequest\x12\x11\n\tnamespace\x18\x01 \x01(\t\x12\x0e\n\x06userID\x18\x02 \x01(\t\"?\n\x15GetPermissionResponse\x12&\n\npermission\x18\x01 \x01(\x0b\x32\x12.schema.Permission\"x\n\x08Metadata\x12\x0b\n\x03key\x18\x01 \x01(\x0c\x12\x11\n\ttotalSize\x18\x02 \x01(\x03\x12\x15\n\rcreationEpoch\x18\x03 \x01(\x03\x12\x16\n\x0elastWriteEpoch\x18\x04 \x01(\x03\x12\x1d\n\x06\x63hunks\x18\x05 \x03(\x0b\x32\r.schema.Chunk\"I\n\x05\x43hunk\x12\x11\n\tchunkSize\x18\x01 \x01(\x03\x12\x1f\n\x07objects\x18\x02 \x03(\x0b\x32\x0e.schema.Object\x12\x0c\n\x04hash\x18\x03 \x01(\x0c\"&\n\x06Object\x12\x0b\n\x03key\x18\x01 \x01(\x0c\x12\x0f\n\x07shardID\x18\x02 \x01(\t\")\n\x0cWriteRequest\x12\x0b\n\x03key\x18\x01 \x01(\x0c\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\x0c\"3\n\rWriteResponse\x12\"\n\x08metadata\x18\x01 \x01(\x0b\x32\x10.schema.Metadata\"1\n\x10WriteFileRequest\x12\x0b\n\x03key\x18\x01 \x01(\x0c\x12\x10\n\x08\x66ilePath\x18\x02 \x01(\t\"7\n\x11WriteFileResponse\x12\"\n\x08metadata\x18\x01 \x01(\x0b\x32\x10.schema.Metadata\"\xbb\x01\n\x12WriteStreamRequest\x12\x37\n\x08metadata\x18\x01 \x01(\x0b\x32#.schema.WriteStreamRequest.MetadataH\x00\x12/\n\x04\x64\x61ta\x18\x02 \x01(\x0b\x32\x1f.schema.WriteStreamRequest.DataH\x00\x1a\x17\n\x08Metadata\x12\x0b\n\x03key\x18\x01 \x01(\x0c\x1a\x19\n\x04\x44\x61ta\x12\x11\n\tdataChunk\x18\x02 \x01(\x0c\x42\x07\n\x05input\"9\n\x13WriteStreamResponse\x12\"\n\x08metadata\x18\x01 \x01(\x0b\x32\x10.schema.Metadata\"K\n\x0bReadRequest\x12\r\n\x03key\x18\x01 \x01(\x0cH\x00\x12$\n\x08metadata\x18\x02 \x01(\x0b\x32\x10.schema.MetadataH\x00\x42\x07\n\x05input\"\x1c\n\x0cReadResponse\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\"\x9c\x01\n\x0fReadFileRequest\x12\r\n\x03key\x18\x01 \x01(\x0cH\x00\x12$\n\x08metadata\x18\x02 \x01(\x0b\x32\x10.schema.MetadataH\x00\x12\x10\n\x08\x66ilePath\x18\x03 \x01(\t\x12\"\n\x08\x66ileMode\x18\x04 \x01(\x0e\x32\x10.schema.FileMode\x12\x15\n\rsynchronousIO\x18\x05 \x01(\x08\x42\x07\n\x05input\"\x12\n\x10ReadFileResponse\"d\n\x11ReadStreamRequest\x12\r\n\x03key\x18\x01 \x01(\x0cH\x00\x12$\n\x08metadata\x18\x02 \x01(\x0b\x32\x10.schema.MetadataH\x00\x12\x11\n\tchunkSize\x18\x03 \x01(\x03\x42\x07\n\x05input\"\'\n\x12ReadStreamResponse\x12\x11\n\tdataChunk\x18\x01 \x01(\x0c\"M\n\rDeleteRequest\x12\r\n\x03key\x18\x01 \x01(\x0cH\x00\x12$\n\x08metadata\x18\x02 \x01(\x0b\x32\x10.schema.MetadataH\x00\x42\x07\n\x05input\"\x10\n\x0e\x44\x65leteResponse\"Z\n\x0c\x43heckRequest\x12\r\n\x03key\x18\x01 \x01(\x0cH\x00\x12$\n\x08metadata\x18\x02 \x01(\x0b\x32\x10.schema.MetadataH\x00\x12\x0c\n\x04\x66\x61st\x18\x03 \x01(\x08\x42\x07\n\x05input\"4\n\rCheckResponse\x12#\n\x06status\x18\x01 \x01(\x0e\x32\x13.schema.CheckStatus\"\x1c\n\rRepairRequest\x12\x0b\n\x03key\x18\x01 \x01(\x0c\"4\n\x0eRepairResponse\x12\"\n\x08metadata\x18\x01 \x01(\x0b\x32\x10.schema.Metadata\"8\n\x12SetMetadataRequest\x12\"\n\x08metadata\x18\x01 \x01(\x0b\x32\x10.schema.Metadata\"\x15\n\x13SetMetadataResponse\"!\n\x12GetMetadataRequest\x12\x0b\n\x03key\x18\x01 \x01(\x0c\"9\n\x13GetMetadataResponse\x12\"\n\x08metadata\x18\x01 \x01(\x0b\x32\x10.schema.Metadata\"$\n\x15\x44\x65leteMetadataRequest\x12\x0b\n\x03key\x18\x01 \x01(\x0c\"\x18\n\x16\x44\x65leteMetadataResponse\"\x19\n\x17ListMetadataKeysRequest\"\'\n\x18ListMetadataKeysResponse\x12\x0b\n\x03key\x18\x01 \x01(\x0c\" \n\x10\x44\x61taWriteRequest\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\"2\n\x11\x44\x61taWriteResponse\x12\x1d\n\x06\x63hunks\x18\x01 \x03(\x0b\x32\r.schema.Chunk\"(\n\x14\x44\x61taWriteFileRequest\x12\x10\n\x08\x66ilePath\x18\x01 \x01(\t\"6\n\x15\x44\x61taWriteFileResponse\x12\x1d\n\x06\x63hunks\x18\x01 \x03(\x0b\x32\r.schema.Chunk\"+\n\x16\x44\x61taWriteStreamRequest\x12\x11\n\tdataChunk\x18\x01 \x01(\x0c\"8\n\x17\x44\x61taWriteStreamResponse\x12\x1d\n\x06\x63hunks\x18\x01 \x03(\x0b\x32\r.schema.Chunk\"0\n\x0f\x44\x61taReadRequest\x12\x1d\n\x06\x63hunks\x18\x01 \x03(\x0b\x32\r.schema.Chunk\" \n\x10\x44\x61taReadResponse\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\"\x81\x01\n\x13\x44\x61taReadFileRequest\x12\x1d\n\x06\x63hunks\x18\x01 \x03(\x0b\x32\r.schema.Chunk\x12\x10\n\x08\x66ilePath\x18\x02 \x01(\t\x12\"\n\x08\x66ileMode\x18\x03 \x01(\x0e\x32\x10.schema.FileMode\x12\x15\n\rsynchronousIO\x18\x04 \x01(\x08\"\x16\n\x14\x44\x61taReadFileResponse\"I\n\x15\x44\x61taReadStreamRequest\x12\x1d\n\x06\x63hunks\x18\x01 \x03(\x0b\x32\r.schema.Chunk\x12\x11\n\tchunkSize\x18\x02 \x01(\x03\"+\n\x16\x44\x61taReadStreamResponse\x12\x11\n\tdataChunk\x18\x01 \x01(\x0c\"2\n\x11\x44\x61taDeleteRequest\x12\x1d\n\x06\x63hunks\x18\x01 \x03(\x0b\x32\r.schema.Chunk\"\x14\n\x12\x44\x61taDeleteResponse\"?\n\x10\x44\x61taCheckRequest\x12\x1d\n\x06\x63hunks\x18\x01 \x03(\x0b\x32\r.schema.Chunk\x12\x0c\n\x04\x66\x61st\x18\x02 \x01(\x08\"8\n\x11\x44\x61taCheckResponse\x12#\n\x06status\x18\x01 \x01(\x0e\x32\x13.schema.CheckStatus\"2\n\x11\x44\x61taRepairRequest\x12\x1d\n\x06\x63hunks\x18\x01 \x03(\x0b\x32\r.schema.Chunk\"3\n\x12\x44\x61taRepairResponse\x12\x1d\n\x06\x63hunks\x18\x01 \x03(\x0b\x32\r.schema.Chunk*S\n\x0b\x43heckStatus\x12\x16\n\x12\x43heckStatusInvalid\x10\x00\x12\x14\n\x10\x43heckStatusValid\x10\x01\x12\x16\n\x12\x43heckStatusOptimal\x10\x02*K\n\x08\x46ileMode\x12\x14\n\x10\x46ileModeTruncate\x10\x00\x12\x12\n\x0e\x46ileModeAppend\x10\x01\x12\x15\n\x11\x46ileModeExclusive\x10\x02\x32\xb1\x03\n\x10NamespaceService\x12Q\n\x0eListNamespaces\x12\x1d.schema.ListNamespacesRequest\x1a\x1e.schema.ListNamespacesResponse\"\x00\x12T\n\x0f\x43reateNamespace\x12\x1e.schema.CreateNamespaceRequest\x1a\x1f.schema.CreateNamespaceResponse\"\x00\x12T\n\x0f\x44\x65leteNamespace\x12\x1e.schema.DeleteNamespaceRequest\x1a\x1f.schema.DeleteNamespaceResponse\"\x00\x12N\n\rSetPermission\x12\x1c.schema.SetPermissionRequest\x1a\x1d.schema.SetPermissionResponse\"\x00\x12N\n\rGetPermission\x12\x1c.schema.GetPermissionRequest\x1a\x1d.schema.GetPermissionResponse\"\x00\x32\xc2\x04\n\x0b\x46ileService\x12\x36\n\x05Write\x12\x14.schema.WriteRequest\x1a\x15.schema.WriteResponse\"\x00\x12\x42\n\tWriteFile\x12\x18.schema.WriteFileRequest\x1a\x19.schema.WriteFileResponse\"\x00\x12J\n\x0bWriteStream\x12\x1a.schema.WriteStreamRequest\x1a\x1b.schema.WriteStreamResponse\"\x00(\x01\x12\x33\n\x04Read\x12\x13.schema.ReadRequest\x1a\x14.schema.ReadResponse\"\x00\x12?\n\x08ReadFile\x12\x17.schema.ReadFileRequest\x1a\x18.schema.ReadFileResponse\"\x00\x12G\n\nReadStream\x12\x19.schema.ReadStreamRequest\x1a\x1a.schema.ReadStreamResponse\"\x00\x30\x01\x12\x39\n\x06\x44\x65lete\x12\x15.schema.DeleteRequest\x1a\x16.schema.DeleteResponse\"\x00\x12\x36\n\x05\x43heck\x12\x14.schema.CheckRequest\x1a\x15.schema.CheckResponse\"\x00\x12\x39\n\x06Repair\x12\x15.schema.RepairRequest\x1a\x16.schema.RepairResponse\"\x00\x32\xcb\x02\n\x0fMetadataService\x12H\n\x0bSetMetadata\x12\x1a.schema.SetMetadataRequest\x1a\x1b.schema.SetMetadataResponse\"\x00\x12H\n\x0bGetMetadata\x12\x1a.schema.GetMetadataRequest\x1a\x1b.schema.GetMetadataResponse\"\x00\x12Q\n\x0e\x44\x65leteMetadata\x12\x1d.schema.DeleteMetadataRequest\x1a\x1e.schema.DeleteMetadataResponse\"\x00\x12Q\n\x08ListKeys\x12\x1f.schema.ListMetadataKeysRequest\x1a .schema.ListMetadataKeysResponse\"\x00\x30\x01\x32\x8a\x05\n\x0b\x44\x61taService\x12>\n\x05Write\x12\x18.schema.DataWriteRequest\x1a\x19.schema.DataWriteResponse\"\x00\x12J\n\tWriteFile\x12\x1c.schema.DataWriteFileRequest\x1a\x1d.schema.DataWriteFileResponse\"\x00\x12R\n\x0bWriteStream\x12\x1e.schema.DataWriteStreamRequest\x1a\x1f.schema.DataWriteStreamResponse\"\x00(\x01\x12;\n\x04Read\x12\x17.schema.DataReadRequest\x1a\x18.schema.DataReadResponse\"\x00\x12G\n\x08ReadFile\x12\x1b.schema.DataReadFileRequest\x1a\x1c.schema.DataReadFileResponse\"\x00\x12O\n\nReadStream\x12\x1d.schema.DataReadStreamRequest\x1a\x1e.schema.DataReadStreamResponse\"\x00\x30\x01\x12\x41\n\x06\x44\x65lete\x12\x19.schema.DataDeleteRequest\x1a\x1a.schema.DataDeleteResponse\"\x00\x12>\n\x05\x43heck\x12\x18.schema.DataCheckRequest\x1a\x19.schema.DataCheckResponse\"\x00\x12\x41\n\x06Repair\x12\x19.schema.DataRepairRequest\x1a\x1a.schema.DataRepairResponse\"\x00\x62\x06proto3')
+  serialized_pb=_b('\n\x0c\x64\x61\x65mon.proto\x12\x06schema\"x\n\x08Metadata\x12\x0b\n\x03key\x18\x01 \x01(\x0c\x12\x11\n\ttotalSize\x18\x02 \x01(\x03\x12\x15\n\rcreationEpoch\x18\x03 \x01(\x03\x12\x16\n\x0elastWriteEpoch\x18\x04 \x01(\x03\x12\x1d\n\x06\x63hunks\x18\x05 \x03(\x0b\x32\r.schema.Chunk\"I\n\x05\x43hunk\x12\x11\n\tchunkSize\x18\x01 \x01(\x03\x12\x1f\n\x07objects\x18\x02 \x03(\x0b\x32\x0e.schema.Object\x12\x0c\n\x04hash\x18\x03 \x01(\x0c\"&\n\x06Object\x12\x0b\n\x03key\x18\x01 \x01(\x0c\x12\x0f\n\x07shardID\x18\x02 \x01(\t\")\n\x0cWriteRequest\x12\x0b\n\x03key\x18\x01 \x01(\x0c\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\x0c\"3\n\rWriteResponse\x12\"\n\x08metadata\x18\x01 \x01(\x0b\x32\x10.schema.Metadata\"1\n\x10WriteFileRequest\x12\x0b\n\x03key\x18\x01 \x01(\x0c\x12\x10\n\x08\x66ilePath\x18\x02 \x01(\t\"7\n\x11WriteFileResponse\x12\"\n\x08metadata\x18\x01 \x01(\x0b\x32\x10.schema.Metadata\"\xbb\x01\n\x12WriteStreamRequest\x12\x37\n\x08metadata\x18\x01 \x01(\x0b\x32#.schema.WriteStreamRequest.MetadataH\x00\x12/\n\x04\x64\x61ta\x18\x02 \x01(\x0b\x32\x1f.schema.WriteStreamRequest.DataH\x00\x1a\x17\n\x08Metadata\x12\x0b\n\x03key\x18\x01 \x01(\x0c\x1a\x19\n\x04\x44\x61ta\x12\x11\n\tdataChunk\x18\x02 \x01(\x0c\x42\x07\n\x05input\"9\n\x13WriteStreamResponse\x12\"\n\x08metadata\x18\x01 \x01(\x0b\x32\x10.schema.Metadata\"K\n\x0bReadRequest\x12\r\n\x03key\x18\x01 \x01(\x0cH\x00\x12$\n\x08metadata\x18\x02 \x01(\x0b\x32\x10.schema.MetadataH\x00\x42\x07\n\x05input\"\x1c\n\x0cReadResponse\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\"\x9c\x01\n\x0fReadFileRequest\x12\r\n\x03key\x18\x01 \x01(\x0cH\x00\x12$\n\x08metadata\x18\x02 \x01(\x0b\x32\x10.schema.MetadataH\x00\x12\x10\n\x08\x66ilePath\x18\x03 \x01(\t\x12\"\n\x08\x66ileMode\x18\x04 \x01(\x0e\x32\x10.schema.FileMode\x12\x15\n\rsynchronousIO\x18\x05 \x01(\x08\x42\x07\n\x05input\"\x12\n\x10ReadFileResponse\"d\n\x11ReadStreamRequest\x12\r\n\x03key\x18\x01 \x01(\x0cH\x00\x12$\n\x08metadata\x18\x02 \x01(\x0b\x32\x10.schema.MetadataH\x00\x12\x11\n\tchunkSize\x18\x03 \x01(\x03\x42\x07\n\x05input\"\'\n\x12ReadStreamResponse\x12\x11\n\tdataChunk\x18\x01 \x01(\x0c\"M\n\rDeleteRequest\x12\r\n\x03key\x18\x01 \x01(\x0cH\x00\x12$\n\x08metadata\x18\x02 \x01(\x0b\x32\x10.schema.MetadataH\x00\x42\x07\n\x05input\"\x10\n\x0e\x44\x65leteResponse\"Z\n\x0c\x43heckRequest\x12\r\n\x03key\x18\x01 \x01(\x0cH\x00\x12$\n\x08metadata\x18\x02 \x01(\x0b\x32\x10.schema.MetadataH\x00\x12\x0c\n\x04\x66\x61st\x18\x03 \x01(\x08\x42\x07\n\x05input\"4\n\rCheckResponse\x12#\n\x06status\x18\x01 \x01(\x0e\x32\x13.schema.CheckStatus\"\x1c\n\rRepairRequest\x12\x0b\n\x03key\x18\x01 \x01(\x0c\"4\n\x0eRepairResponse\x12\"\n\x08metadata\x18\x01 \x01(\x0b\x32\x10.schema.Metadata\"8\n\x12SetMetadataRequest\x12\"\n\x08metadata\x18\x01 \x01(\x0b\x32\x10.schema.Metadata\"\x15\n\x13SetMetadataResponse\"!\n\x12GetMetadataRequest\x12\x0b\n\x03key\x18\x01 \x01(\x0c\"9\n\x13GetMetadataResponse\x12\"\n\x08metadata\x18\x01 \x01(\x0b\x32\x10.schema.Metadata\"$\n\x15\x44\x65leteMetadataRequest\x12\x0b\n\x03key\x18\x01 \x01(\x0c\"\x18\n\x16\x44\x65leteMetadataResponse\"\x19\n\x17ListMetadataKeysRequest\"\'\n\x18ListMetadataKeysResponse\x12\x0b\n\x03key\x18\x01 \x01(\x0c\" \n\x10\x44\x61taWriteRequest\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\"2\n\x11\x44\x61taWriteResponse\x12\x1d\n\x06\x63hunks\x18\x01 \x03(\x0b\x32\r.schema.Chunk\"(\n\x14\x44\x61taWriteFileRequest\x12\x10\n\x08\x66ilePath\x18\x01 \x01(\t\"6\n\x15\x44\x61taWriteFileResponse\x12\x1d\n\x06\x63hunks\x18\x01 \x03(\x0b\x32\r.schema.Chunk\"+\n\x16\x44\x61taWriteStreamRequest\x12\x11\n\tdataChunk\x18\x01 \x01(\x0c\"8\n\x17\x44\x61taWriteStreamResponse\x12\x1d\n\x06\x63hunks\x18\x01 \x03(\x0b\x32\r.schema.Chunk\"0\n\x0f\x44\x61taReadRequest\x12\x1d\n\x06\x63hunks\x18\x01 \x03(\x0b\x32\r.schema.Chunk\" \n\x10\x44\x61taReadResponse\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\"\x81\x01\n\x13\x44\x61taReadFileRequest\x12\x1d\n\x06\x63hunks\x18\x01 \x03(\x0b\x32\r.schema.Chunk\x12\x10\n\x08\x66ilePath\x18\x02 \x01(\t\x12\"\n\x08\x66ileMode\x18\x03 \x01(\x0e\x32\x10.schema.FileMode\x12\x15\n\rsynchronousIO\x18\x04 \x01(\x08\"\x16\n\x14\x44\x61taReadFileResponse\"I\n\x15\x44\x61taReadStreamRequest\x12\x1d\n\x06\x63hunks\x18\x01 \x03(\x0b\x32\r.schema.Chunk\x12\x11\n\tchunkSize\x18\x02 \x01(\x03\"+\n\x16\x44\x61taReadStreamResponse\x12\x11\n\tdataChunk\x18\x01 \x01(\x0c\"2\n\x11\x44\x61taDeleteRequest\x12\x1d\n\x06\x63hunks\x18\x01 \x03(\x0b\x32\r.schema.Chunk\"\x14\n\x12\x44\x61taDeleteResponse\"?\n\x10\x44\x61taCheckRequest\x12\x1d\n\x06\x63hunks\x18\x01 \x03(\x0b\x32\r.schema.Chunk\x12\x0c\n\x04\x66\x61st\x18\x02 \x01(\x08\"8\n\x11\x44\x61taCheckResponse\x12#\n\x06status\x18\x01 \x01(\x0e\x32\x13.schema.CheckStatus\"2\n\x11\x44\x61taRepairRequest\x12\x1d\n\x06\x63hunks\x18\x01 \x03(\x0b\x32\r.schema.Chunk\"3\n\x12\x44\x61taRepairResponse\x12\x1d\n\x06\x63hunks\x18\x01 \x03(\x0b\x32\r.schema.Chunk*S\n\x0b\x43heckStatus\x12\x16\n\x12\x43heckStatusInvalid\x10\x00\x12\x14\n\x10\x43heckStatusValid\x10\x01\x12\x16\n\x12\x43heckStatusOptimal\x10\x02*K\n\x08\x46ileMode\x12\x14\n\x10\x46ileModeTruncate\x10\x00\x12\x12\n\x0e\x46ileModeAppend\x10\x01\x12\x15\n\x11\x46ileModeExclusive\x10\x02\x32\xc2\x04\n\x0b\x46ileService\x12\x36\n\x05Write\x12\x14.schema.WriteRequest\x1a\x15.schema.WriteResponse\"\x00\x12\x42\n\tWriteFile\x12\x18.schema.WriteFileRequest\x1a\x19.schema.WriteFileResponse\"\x00\x12J\n\x0bWriteStream\x12\x1a.schema.WriteStreamRequest\x1a\x1b.schema.WriteStreamResponse\"\x00(\x01\x12\x33\n\x04Read\x12\x13.schema.ReadRequest\x1a\x14.schema.ReadResponse\"\x00\x12?\n\x08ReadFile\x12\x17.schema.ReadFileRequest\x1a\x18.schema.ReadFileResponse\"\x00\x12G\n\nReadStream\x12\x19.schema.ReadStreamRequest\x1a\x1a.schema.ReadStreamResponse\"\x00\x30\x01\x12\x39\n\x06\x44\x65lete\x12\x15.schema.DeleteRequest\x1a\x16.schema.DeleteResponse\"\x00\x12\x36\n\x05\x43heck\x12\x14.schema.CheckRequest\x1a\x15.schema.CheckResponse\"\x00\x12\x39\n\x06Repair\x12\x15.schema.RepairRequest\x1a\x16.schema.RepairResponse\"\x00\x32\xcb\x02\n\x0fMetadataService\x12H\n\x0bSetMetadata\x12\x1a.schema.SetMetadataRequest\x1a\x1b.schema.SetMetadataResponse\"\x00\x12H\n\x0bGetMetadata\x12\x1a.schema.GetMetadataRequest\x1a\x1b.schema.GetMetadataResponse\"\x00\x12Q\n\x0e\x44\x65leteMetadata\x12\x1d.schema.DeleteMetadataRequest\x1a\x1e.schema.DeleteMetadataResponse\"\x00\x12Q\n\x08ListKeys\x12\x1f.schema.ListMetadataKeysRequest\x1a .schema.ListMetadataKeysResponse\"\x00\x30\x01\x32\x8a\x05\n\x0b\x44\x61taService\x12>\n\x05Write\x12\x18.schema.DataWriteRequest\x1a\x19.schema.DataWriteResponse\"\x00\x12J\n\tWriteFile\x12\x1c.schema.DataWriteFileRequest\x1a\x1d.schema.DataWriteFileResponse\"\x00\x12R\n\x0bWriteStream\x12\x1e.schema.DataWriteStreamRequest\x1a\x1f.schema.DataWriteStreamResponse\"\x00(\x01\x12;\n\x04Read\x12\x17.schema.DataReadRequest\x1a\x18.schema.DataReadResponse\"\x00\x12G\n\x08ReadFile\x12\x1b.schema.DataReadFileRequest\x1a\x1c.schema.DataReadFileResponse\"\x00\x12O\n\nReadStream\x12\x1d.schema.DataReadStreamRequest\x1a\x1e.schema.DataReadStreamResponse\"\x00\x30\x01\x12\x41\n\x06\x44\x65lete\x12\x19.schema.DataDeleteRequest\x1a\x1a.schema.DataDeleteResponse\"\x00\x12>\n\x05\x43heck\x12\x18.schema.DataCheckRequest\x1a\x19.schema.DataCheckResponse\"\x00\x12\x41\n\x06Repair\x12\x19.schema.DataRepairRequest\x1a\x1a.schema.DataRepairResponse\"\x00\x62\x06proto3')
 )
 
 _CHECKSTATUS = _descriptor.EnumDescriptor(
@@ -44,8 +44,8 @@ _CHECKSTATUS = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=3263,
-  serialized_end=3346,
+  serialized_start=2726,
+  serialized_end=2809,
 )
 _sym_db.RegisterEnumDescriptor(_CHECKSTATUS)
 
@@ -71,8 +71,8 @@ _FILEMODE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=3348,
-  serialized_end=3423,
+  serialized_start=2811,
+  serialized_end=2886,
 )
 _sym_db.RegisterEnumDescriptor(_FILEMODE)
 
@@ -84,361 +84,6 @@ FileModeTruncate = 0
 FileModeAppend = 1
 FileModeExclusive = 2
 
-
-
-_PERMISSION = _descriptor.Descriptor(
-  name='Permission',
-  full_name='schema.Permission',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='read', full_name='schema.Permission.read', index=0,
-      number=1, type=8, cpp_type=7, label=1,
-      has_default_value=False, default_value=False,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='write', full_name='schema.Permission.write', index=1,
-      number=2, type=8, cpp_type=7, label=1,
-      has_default_value=False, default_value=False,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='delete', full_name='schema.Permission.delete', index=2,
-      number=3, type=8, cpp_type=7, label=1,
-      has_default_value=False, default_value=False,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='admin', full_name='schema.Permission.admin', index=3,
-      number=4, type=8, cpp_type=7, label=1,
-      has_default_value=False, default_value=False,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=24,
-  serialized_end=96,
-)
-
-
-_LISTNAMESPACESREQUEST = _descriptor.Descriptor(
-  name='ListNamespacesRequest',
-  full_name='schema.ListNamespacesRequest',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=98,
-  serialized_end=121,
-)
-
-
-_LISTNAMESPACESRESPONSE = _descriptor.Descriptor(
-  name='ListNamespacesResponse',
-  full_name='schema.ListNamespacesResponse',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='namespaces', full_name='schema.ListNamespacesResponse.namespaces', index=0,
-      number=1, type=9, cpp_type=9, label=3,
-      has_default_value=False, default_value=[],
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=123,
-  serialized_end=167,
-)
-
-
-_CREATENAMESPACEREQUEST = _descriptor.Descriptor(
-  name='CreateNamespaceRequest',
-  full_name='schema.CreateNamespaceRequest',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='namespace', full_name='schema.CreateNamespaceRequest.namespace', index=0,
-      number=1, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=169,
-  serialized_end=212,
-)
-
-
-_CREATENAMESPACERESPONSE = _descriptor.Descriptor(
-  name='CreateNamespaceResponse',
-  full_name='schema.CreateNamespaceResponse',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=214,
-  serialized_end=239,
-)
-
-
-_DELETENAMESPACEREQUEST = _descriptor.Descriptor(
-  name='DeleteNamespaceRequest',
-  full_name='schema.DeleteNamespaceRequest',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='namespace', full_name='schema.DeleteNamespaceRequest.namespace', index=0,
-      number=1, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=241,
-  serialized_end=284,
-)
-
-
-_DELETENAMESPACERESPONSE = _descriptor.Descriptor(
-  name='DeleteNamespaceResponse',
-  full_name='schema.DeleteNamespaceResponse',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=286,
-  serialized_end=311,
-)
-
-
-_SETPERMISSIONREQUEST = _descriptor.Descriptor(
-  name='SetPermissionRequest',
-  full_name='schema.SetPermissionRequest',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='namespace', full_name='schema.SetPermissionRequest.namespace', index=0,
-      number=1, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='userID', full_name='schema.SetPermissionRequest.userID', index=1,
-      number=2, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='permission', full_name='schema.SetPermissionRequest.permission', index=2,
-      number=3, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=313,
-  serialized_end=410,
-)
-
-
-_SETPERMISSIONRESPONSE = _descriptor.Descriptor(
-  name='SetPermissionResponse',
-  full_name='schema.SetPermissionResponse',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=412,
-  serialized_end=435,
-)
-
-
-_GETPERMISSIONREQUEST = _descriptor.Descriptor(
-  name='GetPermissionRequest',
-  full_name='schema.GetPermissionRequest',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='namespace', full_name='schema.GetPermissionRequest.namespace', index=0,
-      number=1, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='userID', full_name='schema.GetPermissionRequest.userID', index=1,
-      number=2, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=437,
-  serialized_end=494,
-)
-
-
-_GETPERMISSIONRESPONSE = _descriptor.Descriptor(
-  name='GetPermissionResponse',
-  full_name='schema.GetPermissionResponse',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='permission', full_name='schema.GetPermissionResponse.permission', index=0,
-      number=1, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=496,
-  serialized_end=559,
-)
 
 
 _METADATA = _descriptor.Descriptor(
@@ -495,8 +140,8 @@ _METADATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=561,
-  serialized_end=681,
+  serialized_start=24,
+  serialized_end=144,
 )
 
 
@@ -540,8 +185,8 @@ _CHUNK = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=683,
-  serialized_end=756,
+  serialized_start=146,
+  serialized_end=219,
 )
 
 
@@ -578,8 +223,8 @@ _OBJECT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=758,
-  serialized_end=796,
+  serialized_start=221,
+  serialized_end=259,
 )
 
 
@@ -616,8 +261,8 @@ _WRITEREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=798,
-  serialized_end=839,
+  serialized_start=261,
+  serialized_end=302,
 )
 
 
@@ -647,8 +292,8 @@ _WRITERESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=841,
-  serialized_end=892,
+  serialized_start=304,
+  serialized_end=355,
 )
 
 
@@ -685,8 +330,8 @@ _WRITEFILEREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=894,
-  serialized_end=943,
+  serialized_start=357,
+  serialized_end=406,
 )
 
 
@@ -716,8 +361,8 @@ _WRITEFILERESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=945,
-  serialized_end=1000,
+  serialized_start=408,
+  serialized_end=463,
 )
 
 
@@ -747,8 +392,8 @@ _WRITESTREAMREQUEST_METADATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=561,
-  serialized_end=584,
+  serialized_start=24,
+  serialized_end=47,
 )
 
 _WRITESTREAMREQUEST_DATA = _descriptor.Descriptor(
@@ -777,8 +422,8 @@ _WRITESTREAMREQUEST_DATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1156,
-  serialized_end=1181,
+  serialized_start=619,
+  serialized_end=644,
 )
 
 _WRITESTREAMREQUEST = _descriptor.Descriptor(
@@ -817,8 +462,8 @@ _WRITESTREAMREQUEST = _descriptor.Descriptor(
       name='input', full_name='schema.WriteStreamRequest.input',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=1003,
-  serialized_end=1190,
+  serialized_start=466,
+  serialized_end=653,
 )
 
 
@@ -848,8 +493,8 @@ _WRITESTREAMRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1192,
-  serialized_end=1249,
+  serialized_start=655,
+  serialized_end=712,
 )
 
 
@@ -889,8 +534,8 @@ _READREQUEST = _descriptor.Descriptor(
       name='input', full_name='schema.ReadRequest.input',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=1251,
-  serialized_end=1326,
+  serialized_start=714,
+  serialized_end=789,
 )
 
 
@@ -920,8 +565,8 @@ _READRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1328,
-  serialized_end=1356,
+  serialized_start=791,
+  serialized_end=819,
 )
 
 
@@ -982,8 +627,8 @@ _READFILEREQUEST = _descriptor.Descriptor(
       name='input', full_name='schema.ReadFileRequest.input',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=1359,
-  serialized_end=1515,
+  serialized_start=822,
+  serialized_end=978,
 )
 
 
@@ -1006,8 +651,8 @@ _READFILERESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1517,
-  serialized_end=1535,
+  serialized_start=980,
+  serialized_end=998,
 )
 
 
@@ -1054,8 +699,8 @@ _READSTREAMREQUEST = _descriptor.Descriptor(
       name='input', full_name='schema.ReadStreamRequest.input',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=1537,
-  serialized_end=1637,
+  serialized_start=1000,
+  serialized_end=1100,
 )
 
 
@@ -1085,8 +730,8 @@ _READSTREAMRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1639,
-  serialized_end=1678,
+  serialized_start=1102,
+  serialized_end=1141,
 )
 
 
@@ -1126,8 +771,8 @@ _DELETEREQUEST = _descriptor.Descriptor(
       name='input', full_name='schema.DeleteRequest.input',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=1680,
-  serialized_end=1757,
+  serialized_start=1143,
+  serialized_end=1220,
 )
 
 
@@ -1150,8 +795,8 @@ _DELETERESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1759,
-  serialized_end=1775,
+  serialized_start=1222,
+  serialized_end=1238,
 )
 
 
@@ -1198,8 +843,8 @@ _CHECKREQUEST = _descriptor.Descriptor(
       name='input', full_name='schema.CheckRequest.input',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=1777,
-  serialized_end=1867,
+  serialized_start=1240,
+  serialized_end=1330,
 )
 
 
@@ -1229,8 +874,8 @@ _CHECKRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1869,
-  serialized_end=1921,
+  serialized_start=1332,
+  serialized_end=1384,
 )
 
 
@@ -1260,8 +905,8 @@ _REPAIRREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1923,
-  serialized_end=1951,
+  serialized_start=1386,
+  serialized_end=1414,
 )
 
 
@@ -1291,8 +936,8 @@ _REPAIRRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1953,
-  serialized_end=2005,
+  serialized_start=1416,
+  serialized_end=1468,
 )
 
 
@@ -1322,8 +967,8 @@ _SETMETADATAREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2007,
-  serialized_end=2063,
+  serialized_start=1470,
+  serialized_end=1526,
 )
 
 
@@ -1346,8 +991,8 @@ _SETMETADATARESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2065,
-  serialized_end=2086,
+  serialized_start=1528,
+  serialized_end=1549,
 )
 
 
@@ -1377,8 +1022,8 @@ _GETMETADATAREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2088,
-  serialized_end=2121,
+  serialized_start=1551,
+  serialized_end=1584,
 )
 
 
@@ -1408,8 +1053,8 @@ _GETMETADATARESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2123,
-  serialized_end=2180,
+  serialized_start=1586,
+  serialized_end=1643,
 )
 
 
@@ -1439,8 +1084,8 @@ _DELETEMETADATAREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2182,
-  serialized_end=2218,
+  serialized_start=1645,
+  serialized_end=1681,
 )
 
 
@@ -1463,8 +1108,8 @@ _DELETEMETADATARESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2220,
-  serialized_end=2244,
+  serialized_start=1683,
+  serialized_end=1707,
 )
 
 
@@ -1487,8 +1132,8 @@ _LISTMETADATAKEYSREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2246,
-  serialized_end=2271,
+  serialized_start=1709,
+  serialized_end=1734,
 )
 
 
@@ -1518,8 +1163,8 @@ _LISTMETADATAKEYSRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2273,
-  serialized_end=2312,
+  serialized_start=1736,
+  serialized_end=1775,
 )
 
 
@@ -1549,8 +1194,8 @@ _DATAWRITEREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2314,
-  serialized_end=2346,
+  serialized_start=1777,
+  serialized_end=1809,
 )
 
 
@@ -1580,8 +1225,8 @@ _DATAWRITERESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2348,
-  serialized_end=2398,
+  serialized_start=1811,
+  serialized_end=1861,
 )
 
 
@@ -1611,8 +1256,8 @@ _DATAWRITEFILEREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2400,
-  serialized_end=2440,
+  serialized_start=1863,
+  serialized_end=1903,
 )
 
 
@@ -1642,8 +1287,8 @@ _DATAWRITEFILERESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2442,
-  serialized_end=2496,
+  serialized_start=1905,
+  serialized_end=1959,
 )
 
 
@@ -1673,8 +1318,8 @@ _DATAWRITESTREAMREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2498,
-  serialized_end=2541,
+  serialized_start=1961,
+  serialized_end=2004,
 )
 
 
@@ -1704,8 +1349,8 @@ _DATAWRITESTREAMRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2543,
-  serialized_end=2599,
+  serialized_start=2006,
+  serialized_end=2062,
 )
 
 
@@ -1735,8 +1380,8 @@ _DATAREADREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2601,
-  serialized_end=2649,
+  serialized_start=2064,
+  serialized_end=2112,
 )
 
 
@@ -1766,8 +1411,8 @@ _DATAREADRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2651,
-  serialized_end=2683,
+  serialized_start=2114,
+  serialized_end=2146,
 )
 
 
@@ -1818,8 +1463,8 @@ _DATAREADFILEREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2686,
-  serialized_end=2815,
+  serialized_start=2149,
+  serialized_end=2278,
 )
 
 
@@ -1842,8 +1487,8 @@ _DATAREADFILERESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2817,
-  serialized_end=2839,
+  serialized_start=2280,
+  serialized_end=2302,
 )
 
 
@@ -1880,8 +1525,8 @@ _DATAREADSTREAMREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2841,
-  serialized_end=2914,
+  serialized_start=2304,
+  serialized_end=2377,
 )
 
 
@@ -1911,8 +1556,8 @@ _DATAREADSTREAMRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2916,
-  serialized_end=2959,
+  serialized_start=2379,
+  serialized_end=2422,
 )
 
 
@@ -1942,8 +1587,8 @@ _DATADELETEREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2961,
-  serialized_end=3011,
+  serialized_start=2424,
+  serialized_end=2474,
 )
 
 
@@ -1966,8 +1611,8 @@ _DATADELETERESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3013,
-  serialized_end=3033,
+  serialized_start=2476,
+  serialized_end=2496,
 )
 
 
@@ -2004,8 +1649,8 @@ _DATACHECKREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3035,
-  serialized_end=3098,
+  serialized_start=2498,
+  serialized_end=2561,
 )
 
 
@@ -2035,8 +1680,8 @@ _DATACHECKRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3100,
-  serialized_end=3156,
+  serialized_start=2563,
+  serialized_end=2619,
 )
 
 
@@ -2066,8 +1711,8 @@ _DATAREPAIRREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3158,
-  serialized_end=3208,
+  serialized_start=2621,
+  serialized_end=2671,
 )
 
 
@@ -2097,12 +1742,10 @@ _DATAREPAIRRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3210,
-  serialized_end=3261,
+  serialized_start=2673,
+  serialized_end=2724,
 )
 
-_SETPERMISSIONREQUEST.fields_by_name['permission'].message_type = _PERMISSION
-_GETPERMISSIONRESPONSE.fields_by_name['permission'].message_type = _PERMISSION
 _METADATA.fields_by_name['chunks'].message_type = _CHUNK
 _CHUNK.fields_by_name['objects'].message_type = _OBJECT
 _WRITERESPONSE.fields_by_name['metadata'].message_type = _METADATA
@@ -2170,17 +1813,6 @@ _DATACHECKREQUEST.fields_by_name['chunks'].message_type = _CHUNK
 _DATACHECKRESPONSE.fields_by_name['status'].enum_type = _CHECKSTATUS
 _DATAREPAIRREQUEST.fields_by_name['chunks'].message_type = _CHUNK
 _DATAREPAIRRESPONSE.fields_by_name['chunks'].message_type = _CHUNK
-DESCRIPTOR.message_types_by_name['Permission'] = _PERMISSION
-DESCRIPTOR.message_types_by_name['ListNamespacesRequest'] = _LISTNAMESPACESREQUEST
-DESCRIPTOR.message_types_by_name['ListNamespacesResponse'] = _LISTNAMESPACESRESPONSE
-DESCRIPTOR.message_types_by_name['CreateNamespaceRequest'] = _CREATENAMESPACEREQUEST
-DESCRIPTOR.message_types_by_name['CreateNamespaceResponse'] = _CREATENAMESPACERESPONSE
-DESCRIPTOR.message_types_by_name['DeleteNamespaceRequest'] = _DELETENAMESPACEREQUEST
-DESCRIPTOR.message_types_by_name['DeleteNamespaceResponse'] = _DELETENAMESPACERESPONSE
-DESCRIPTOR.message_types_by_name['SetPermissionRequest'] = _SETPERMISSIONREQUEST
-DESCRIPTOR.message_types_by_name['SetPermissionResponse'] = _SETPERMISSIONRESPONSE
-DESCRIPTOR.message_types_by_name['GetPermissionRequest'] = _GETPERMISSIONREQUEST
-DESCRIPTOR.message_types_by_name['GetPermissionResponse'] = _GETPERMISSIONRESPONSE
 DESCRIPTOR.message_types_by_name['Metadata'] = _METADATA
 DESCRIPTOR.message_types_by_name['Chunk'] = _CHUNK
 DESCRIPTOR.message_types_by_name['Object'] = _OBJECT
@@ -2231,83 +1863,6 @@ DESCRIPTOR.message_types_by_name['DataRepairResponse'] = _DATAREPAIRRESPONSE
 DESCRIPTOR.enum_types_by_name['CheckStatus'] = _CHECKSTATUS
 DESCRIPTOR.enum_types_by_name['FileMode'] = _FILEMODE
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
-
-Permission = _reflection.GeneratedProtocolMessageType('Permission', (_message.Message,), dict(
-  DESCRIPTOR = _PERMISSION,
-  __module__ = 'daemon_pb2'
-  # @@protoc_insertion_point(class_scope:schema.Permission)
-  ))
-_sym_db.RegisterMessage(Permission)
-
-ListNamespacesRequest = _reflection.GeneratedProtocolMessageType('ListNamespacesRequest', (_message.Message,), dict(
-  DESCRIPTOR = _LISTNAMESPACESREQUEST,
-  __module__ = 'daemon_pb2'
-  # @@protoc_insertion_point(class_scope:schema.ListNamespacesRequest)
-  ))
-_sym_db.RegisterMessage(ListNamespacesRequest)
-
-ListNamespacesResponse = _reflection.GeneratedProtocolMessageType('ListNamespacesResponse', (_message.Message,), dict(
-  DESCRIPTOR = _LISTNAMESPACESRESPONSE,
-  __module__ = 'daemon_pb2'
-  # @@protoc_insertion_point(class_scope:schema.ListNamespacesResponse)
-  ))
-_sym_db.RegisterMessage(ListNamespacesResponse)
-
-CreateNamespaceRequest = _reflection.GeneratedProtocolMessageType('CreateNamespaceRequest', (_message.Message,), dict(
-  DESCRIPTOR = _CREATENAMESPACEREQUEST,
-  __module__ = 'daemon_pb2'
-  # @@protoc_insertion_point(class_scope:schema.CreateNamespaceRequest)
-  ))
-_sym_db.RegisterMessage(CreateNamespaceRequest)
-
-CreateNamespaceResponse = _reflection.GeneratedProtocolMessageType('CreateNamespaceResponse', (_message.Message,), dict(
-  DESCRIPTOR = _CREATENAMESPACERESPONSE,
-  __module__ = 'daemon_pb2'
-  # @@protoc_insertion_point(class_scope:schema.CreateNamespaceResponse)
-  ))
-_sym_db.RegisterMessage(CreateNamespaceResponse)
-
-DeleteNamespaceRequest = _reflection.GeneratedProtocolMessageType('DeleteNamespaceRequest', (_message.Message,), dict(
-  DESCRIPTOR = _DELETENAMESPACEREQUEST,
-  __module__ = 'daemon_pb2'
-  # @@protoc_insertion_point(class_scope:schema.DeleteNamespaceRequest)
-  ))
-_sym_db.RegisterMessage(DeleteNamespaceRequest)
-
-DeleteNamespaceResponse = _reflection.GeneratedProtocolMessageType('DeleteNamespaceResponse', (_message.Message,), dict(
-  DESCRIPTOR = _DELETENAMESPACERESPONSE,
-  __module__ = 'daemon_pb2'
-  # @@protoc_insertion_point(class_scope:schema.DeleteNamespaceResponse)
-  ))
-_sym_db.RegisterMessage(DeleteNamespaceResponse)
-
-SetPermissionRequest = _reflection.GeneratedProtocolMessageType('SetPermissionRequest', (_message.Message,), dict(
-  DESCRIPTOR = _SETPERMISSIONREQUEST,
-  __module__ = 'daemon_pb2'
-  # @@protoc_insertion_point(class_scope:schema.SetPermissionRequest)
-  ))
-_sym_db.RegisterMessage(SetPermissionRequest)
-
-SetPermissionResponse = _reflection.GeneratedProtocolMessageType('SetPermissionResponse', (_message.Message,), dict(
-  DESCRIPTOR = _SETPERMISSIONRESPONSE,
-  __module__ = 'daemon_pb2'
-  # @@protoc_insertion_point(class_scope:schema.SetPermissionResponse)
-  ))
-_sym_db.RegisterMessage(SetPermissionResponse)
-
-GetPermissionRequest = _reflection.GeneratedProtocolMessageType('GetPermissionRequest', (_message.Message,), dict(
-  DESCRIPTOR = _GETPERMISSIONREQUEST,
-  __module__ = 'daemon_pb2'
-  # @@protoc_insertion_point(class_scope:schema.GetPermissionRequest)
-  ))
-_sym_db.RegisterMessage(GetPermissionRequest)
-
-GetPermissionResponse = _reflection.GeneratedProtocolMessageType('GetPermissionResponse', (_message.Message,), dict(
-  DESCRIPTOR = _GETPERMISSIONRESPONSE,
-  __module__ = 'daemon_pb2'
-  # @@protoc_insertion_point(class_scope:schema.GetPermissionResponse)
-  ))
-_sym_db.RegisterMessage(GetPermissionResponse)
 
 Metadata = _reflection.GeneratedProtocolMessageType('Metadata', (_message.Message,), dict(
   DESCRIPTOR = _METADATA,
@@ -2656,74 +2211,14 @@ _sym_db.RegisterMessage(DataRepairResponse)
 
 
 
-_NAMESPACESERVICE = _descriptor.ServiceDescriptor(
-  name='NamespaceService',
-  full_name='schema.NamespaceService',
-  file=DESCRIPTOR,
-  index=0,
-  options=None,
-  serialized_start=3426,
-  serialized_end=3859,
-  methods=[
-  _descriptor.MethodDescriptor(
-    name='ListNamespaces',
-    full_name='schema.NamespaceService.ListNamespaces',
-    index=0,
-    containing_service=None,
-    input_type=_LISTNAMESPACESREQUEST,
-    output_type=_LISTNAMESPACESRESPONSE,
-    options=None,
-  ),
-  _descriptor.MethodDescriptor(
-    name='CreateNamespace',
-    full_name='schema.NamespaceService.CreateNamespace',
-    index=1,
-    containing_service=None,
-    input_type=_CREATENAMESPACEREQUEST,
-    output_type=_CREATENAMESPACERESPONSE,
-    options=None,
-  ),
-  _descriptor.MethodDescriptor(
-    name='DeleteNamespace',
-    full_name='schema.NamespaceService.DeleteNamespace',
-    index=2,
-    containing_service=None,
-    input_type=_DELETENAMESPACEREQUEST,
-    output_type=_DELETENAMESPACERESPONSE,
-    options=None,
-  ),
-  _descriptor.MethodDescriptor(
-    name='SetPermission',
-    full_name='schema.NamespaceService.SetPermission',
-    index=3,
-    containing_service=None,
-    input_type=_SETPERMISSIONREQUEST,
-    output_type=_SETPERMISSIONRESPONSE,
-    options=None,
-  ),
-  _descriptor.MethodDescriptor(
-    name='GetPermission',
-    full_name='schema.NamespaceService.GetPermission',
-    index=4,
-    containing_service=None,
-    input_type=_GETPERMISSIONREQUEST,
-    output_type=_GETPERMISSIONRESPONSE,
-    options=None,
-  ),
-])
-_sym_db.RegisterServiceDescriptor(_NAMESPACESERVICE)
-
-DESCRIPTOR.services_by_name['NamespaceService'] = _NAMESPACESERVICE
-
-
 _FILESERVICE = _descriptor.ServiceDescriptor(
   name='FileService',
   full_name='schema.FileService',
   file=DESCRIPTOR,
-  index=1,
+  index=0,
   options=None,
-  serialized_start=3862,
-  serialized_end=4440,
+  serialized_start=2889,
+  serialized_end=3467,
   methods=[
   _descriptor.MethodDescriptor(
     name='Write',
@@ -2816,10 +2311,10 @@ _METADATASERVICE = _descriptor.ServiceDescriptor(
   name='MetadataService',
   full_name='schema.MetadataService',
   file=DESCRIPTOR,
-  index=2,
+  index=1,
   options=None,
-  serialized_start=4443,
-  serialized_end=4774,
+  serialized_start=3470,
+  serialized_end=3801,
   methods=[
   _descriptor.MethodDescriptor(
     name='SetMetadata',
@@ -2867,10 +2362,10 @@ _DATASERVICE = _descriptor.ServiceDescriptor(
   name='DataService',
   full_name='schema.DataService',
   file=DESCRIPTOR,
-  index=3,
+  index=2,
   options=None,
-  serialized_start=4777,
-  serialized_end=5427,
+  serialized_start=3804,
+  serialized_end=4454,
   methods=[
   _descriptor.MethodDescriptor(
     name='Write',

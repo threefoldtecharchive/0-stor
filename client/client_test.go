@@ -43,7 +43,7 @@ func TestNewClientFromConfigErrors(t *testing.T) {
 	_, err = NewClientFromConfig(Config{Namespace: "foo"}, -1)
 	require.Error(err, "missing: data shards and meta shards")
 
-	servers, serverClean := testGRPCServer(t, 4)
+	servers, serverClean := testZdbServer(t, 4)
 	defer serverClean()
 
 	_, err = NewClientFromConfig(Config{
@@ -71,7 +71,7 @@ func TestNewClientPanics(t *testing.T) {
 }
 
 func TestRoundTripGRPC(t *testing.T) {
-	servers, serverClean := testGRPCServer(t, 4)
+	servers, serverClean := testZdbServer(t, 4)
 	defer serverClean()
 
 	shards := make([]string, len(servers))
@@ -220,7 +220,7 @@ func TestRoundTripGRPC(t *testing.T) {
 }
 
 func TestBlocksizes(t *testing.T) {
-	servers, serverClean := testGRPCServer(t, 4)
+	servers, serverClean := testZdbServer(t, 4)
 	defer serverClean()
 
 	shards := make([]string, len(servers))
@@ -270,7 +270,7 @@ func TestBlocksizes(t *testing.T) {
 func TestMultipleDownload_Issue208(t *testing.T) {
 	// #test for https://github.com/zero-os/0-stor/issues/208
 
-	servers, serverClean := testGRPCServer(t, 4)
+	servers, serverClean := testZdbServer(t, 4)
 	defer serverClean()
 
 	shards := make([]string, len(servers))
@@ -306,7 +306,7 @@ func TestMultipleDownload_Issue208(t *testing.T) {
 }
 
 func TestConcurrentWriteRead(t *testing.T) {
-	servers, serverClean := testGRPCServer(t, 4)
+	servers, serverClean := testZdbServer(t, 4)
 	defer serverClean()
 
 	shards := make([]string, len(servers))
@@ -362,7 +362,7 @@ func TestConcurrentWriteRead(t *testing.T) {
 }
 
 func BenchmarkWriteFilesSizes(b *testing.B) {
-	servers, serverClean := testGRPCServer(b, 4)
+	servers, serverClean := testZdbServer(b, 4)
 	defer serverClean()
 
 	shards := make([]string, len(servers))
@@ -410,7 +410,7 @@ func BenchmarkWriteFilesSizes(b *testing.B) {
 }
 
 func TestIssue225(t *testing.T) {
-	servers, serverClean := testGRPCServer(t, 4)
+	servers, serverClean := testZdbServer(t, 4)
 	defer serverClean()
 
 	shards := make([]string, len(servers))
@@ -464,7 +464,7 @@ func newDefaultConfig(dataShards []string, blockSize int) Config {
 	}
 }
 func TestClientCheck(t *testing.T) {
-	servers, serverClean := testGRPCServer(t, 4)
+	servers, serverClean := testZdbServer(t, 4)
 	defer serverClean()
 
 	shards := make([]string, len(servers))
@@ -511,11 +511,12 @@ func TestClientCheck(t *testing.T) {
 	// Check status is corrupted
 	status, err = c.Check(meta.Key, false)
 	require.NoError(t, err, "fail to check object")
-	require.True(t, status == storage.CheckStatusValid || status == storage.CheckStatusInvalid)
+	require.True(t, status == storage.CheckStatusValid || status == storage.CheckStatusInvalid,
+		"status=%v, %d", status, status)
 }
 
 func TestClientRepair(t *testing.T) {
-	servers, serverClean := testGRPCServer(t, 4)
+	servers, serverClean := testZdbServer(t, 4)
 	defer serverClean()
 
 	shards := make([]string, len(servers))
@@ -566,7 +567,7 @@ func testRepair(t *testing.T, config Config, repairErr error) {
 	require.NoError(t, err, "fail to create client")
 	defer c.Close()
 
-	data := make([]byte, 1204*10)
+	data := make([]byte, 1024*10)
 	key := make([]byte, 64)
 
 	_, err = rand.Read(data)
@@ -630,7 +631,7 @@ func testRepair(t *testing.T, config Config, repairErr error) {
 func TestClient_ExplicitErrors(t *testing.T) {
 	require := require.New(t)
 
-	servers, serverClean := testGRPCServer(t, 1)
+	servers, serverClean := testZdbServer(t, 1)
 	defer serverClean()
 
 	dataShards := []string{servers[0].Address()}
@@ -663,5 +664,4 @@ func TestClient_ExplicitErrors(t *testing.T) {
 	require.Error(err, "no key given")
 
 	require.NoError(cli.Close())
-	require.Error(cli.Close())
 }

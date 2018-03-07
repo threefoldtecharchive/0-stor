@@ -34,7 +34,7 @@ func TestNewReplicatedStoragePanics(t *testing.T) {
 
 func TestReplicationStorageReadCheckWriteDelete(t *testing.T) {
 	t.Run("dataShardCount=1,jobCount=D", func(t *testing.T) {
-		cluster, cleanup, err := newGRPCServerCluster(2)
+		cluster, cleanup, err := newZdbServerCluster(2)
 		require.NoError(t, err)
 		defer cleanup()
 		defer cluster.Close()
@@ -46,7 +46,7 @@ func TestReplicationStorageReadCheckWriteDelete(t *testing.T) {
 	})
 
 	t.Run("dataShardCount=2,jobCount=D", func(t *testing.T) {
-		cluster, cleanup, err := newGRPCServerCluster(4)
+		cluster, cleanup, err := newZdbServerCluster(4)
 		require.NoError(t, err)
 		defer cleanup()
 		defer cluster.Close()
@@ -58,7 +58,7 @@ func TestReplicationStorageReadCheckWriteDelete(t *testing.T) {
 	})
 
 	t.Run("dataShardCount=2,jobCount=1", func(t *testing.T) {
-		cluster, cleanup, err := newGRPCServerCluster(4)
+		cluster, cleanup, err := newZdbServerCluster(4)
 		require.NoError(t, err)
 		defer cleanup()
 		defer cluster.Close()
@@ -70,7 +70,7 @@ func TestReplicationStorageReadCheckWriteDelete(t *testing.T) {
 	})
 
 	t.Run("dataShardCount=16,jobCount=D", func(t *testing.T) {
-		cluster, cleanup, err := newGRPCServerCluster(32)
+		cluster, cleanup, err := newZdbServerCluster(32)
 		require.NoError(t, err)
 		defer cleanup()
 		defer cluster.Close()
@@ -82,7 +82,7 @@ func TestReplicationStorageReadCheckWriteDelete(t *testing.T) {
 	})
 
 	t.Run("dataShardCount=16,jobCount=1", func(t *testing.T) {
-		cluster, cleanup, err := newGRPCServerCluster(32)
+		cluster, cleanup, err := newZdbServerCluster(32)
 		require.NoError(t, err)
 		defer cleanup()
 		defer cluster.Close()
@@ -121,7 +121,7 @@ func TestReplicatedStorageCheckRepair(t *testing.T) {
 func testReplicatedStorageCheckRepair(t *testing.T, dataShardCount, jobCount int) {
 	require := require.New(t)
 
-	cluster, cleanup, err := newGRPCServerCluster(dataShardCount * 2)
+	cluster, cleanup, err := newZdbServerCluster(dataShardCount * 2)
 	require.NoError(err)
 	defer cleanup()
 	defer cluster.Close()

@@ -155,6 +155,15 @@
   revision = "ac7624ea8da311f2fbbd94401d8c1cf66089f9fb"
 
 [[projects]]
+  name = "github.com/garyburd/redigo"
+  packages = [
+    "internal",
+    "redis"
+  ]
+  revision = "d1ed5c67e5794de818ea85e6b522fda02623a484"
+  version = "v1.5.0"
+
+[[projects]]
   name = "github.com/ghodss/yaml"
   packages = ["."]
   revision = "0ca9ea5df5451ffdf184b4428c902747c2c11cd7"
@@ -225,37 +234,22 @@
   version = "v1.3.0"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/hashicorp/golang-lru"
-  packages = ["simplelru"]
-  revision = "0a025b7e63adc15a622f29b0b2c4c3848243bbf6"
-
-[[projects]]
   name = "github.com/inconshreveable/mousetrap"
   packages = ["."]
   revision = "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
   version = "v1.0"
 
 [[projects]]
-  name = "github.com/itsyouonline/identityserver"
-  packages = [
-    "clients/go/itsyouonline",
-    "clients/go/itsyouonline/goraml"
-  ]
-  revision = "3556ceabfcb5c25a6f2615f66806465151565c5c"
-  version = "v1.0.1"
+  branch = "zerodb-test"
+  name = "github.com/iwanbk/redcon"
+  packages = ["."]
+  revision = "1f58e65a7e1c8df6a7ec5c833c1584e7d51d4957"
 
 [[projects]]
   name = "github.com/jonboulle/clockwork"
   packages = ["."]
   revision = "2eee05ed794112d45db504eb05aa693efd2b8b09"
   version = "v0.1.0"
-
-[[projects]]
-  name = "github.com/karlseguin/ccache"
-  packages = ["."]
-  revision = "a2d62155777b39595c825ed3824279e642a5db3c"
-  version = "v2.0.2"
 
 [[projects]]
   name = "github.com/matttproud/golang_protobuf_extensions"
@@ -268,12 +262,6 @@
   name = "github.com/minio/blake2b-simd"
   packages = ["."]
   revision = "3f5f724cb5b182a5c278d6d3d55b40e7f8c2efb4"
-
-[[projects]]
-  name = "github.com/paulbellamy/ratecounter"
-  packages = ["."]
-  revision = "524851a93235ac051e3540563ed7909357fe24ab"
-  version = "v0.2.0"
 
 [[projects]]
   branch = "master"
@@ -486,6 +474,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "d1554f66aa8638c8e257e907ed02b7d158776dbd06a43aaa677d2a78647b3dee"
+  inputs-digest = "82663bbec7a19779169d9f06302dc1c36f3a3137b5dd487c9f00c81309d5294e"
   solver-name = "gps-cdcl"
   solver-version = 1

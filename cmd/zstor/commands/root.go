@@ -24,7 +24,6 @@ import (
 	"sync"
 
 	"github.com/zero-os/0-stor/client"
-	"github.com/zero-os/0-stor/client/itsyouonline"
 	"github.com/zero-os/0-stor/client/metastor"
 	"github.com/zero-os/0-stor/client/metastor/db/etcd"
 	"github.com/zero-os/0-stor/client/metastor/encoding"
@@ -67,7 +66,7 @@ func getClient() (*client.Client, error) {
 		return nil, err
 	}
 	// create client
-	cl, err := client.NewClientFromConfigWithoutCaching(*cfg, rootCfg.JobCount)
+	cl, err := client.NewClientFromConfig(*cfg, rootCfg.JobCount)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create 0-stor client: %v", err)
 	}
@@ -125,14 +124,6 @@ func getMetaClient() (*metastor.Client, error) {
 	return metastor.NewClient([]byte(clientCfg.Namespace), config)
 }
 
-func getNamespaceManager() (*itsyouonline.Client, error) {
-	cfg, err := getClientConfig()
-	if err != nil {
-		return nil, err
-	}
-	return itsyouonline.NewClient(cfg.IYO)
-}
-
 func getClientConfig() (*client.Config, error) {
 	_ClientConfigOnce.Do(func() {
 		_ClientConfig, _ClientConfigError = client.ReadConfig(rootCfg.ConfigFile)
@@ -149,7 +140,6 @@ var (
 func init() {
 	rootCmd.AddCommand(
 		fileCmd,
-		namespaceCmd,
 		daemonCmd,
 		cmd.VersionCmd,
 	)

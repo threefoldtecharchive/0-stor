@@ -60,7 +60,7 @@ func TestSingleObjectPipeline_WriteReadDeleteCheck(t *testing.T) {
 func testSingleObjectPipelineWriteReadDeleteCheckCycle(t *testing.T, cfg ObjectDistributionConfig, pc ProcessorConstructor, hc HasherConstructor) {
 	require := require.New(t)
 
-	cluster, cleanup, err := newGRPCServerCluster(requiredShardCount(cfg))
+	cluster, cleanup, err := newZdbServerCluster(requiredShardCount(cfg))
 	require.NoError(err)
 	defer cleanup()
 
@@ -101,7 +101,7 @@ func TestSingleObjectPipeline_CheckRepair(t *testing.T) {
 func testSingleObjectPipelineCheckRepairCycle(t *testing.T, cfg ObjectDistributionConfig, pc ProcessorConstructor, hc HasherConstructor) {
 	require := require.New(t)
 
-	cluster, cleanup, err := newGRPCServerCluster(requiredShardCount(cfg))
+	cluster, cleanup, err := newZdbServerCluster(requiredShardCount(cfg))
 	require.NoError(err)
 	defer cleanup()
 
@@ -169,7 +169,7 @@ func TestDefaultSingleObjectPipelines(t *testing.T) {
 func testDefaultSingleObjectPipeline(t *testing.T, cfg ObjectDistributionConfig, pc ProcessorConstructor, hc HasherConstructor) {
 	require := require.New(t)
 
-	cluster, cleanup, err := newGRPCServerCluster(requiredShardCount(cfg))
+	cluster, cleanup, err := newZdbServerCluster(requiredShardCount(cfg))
 	require.NoError(err)
 	defer cleanup()
 
