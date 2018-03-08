@@ -788,6 +788,11 @@ func (asp *AsyncSplitterPipeline) Delete(chunks []metatypes.Chunk) error {
 	return group.Wait()
 }
 
+// ChunkSize implements Pipeline.ChunkSize
+func (asp *AsyncSplitterPipeline) ChunkSize() int {
+	return asp.chunkSize
+}
+
 // Close implements Pipeline.Close
 func (asp *AsyncSplitterPipeline) Close() error {
 	return asp.storage.Close()

@@ -57,6 +57,10 @@ type Pipeline interface {
 	// the details depend upon the specific implementation.
 	Delete(chunks []metatypes.Chunk) error
 
+	// ChunkSize returns the fixed chunk size, which is size used for all chunks,
+	// except for the last chunk which might be less or equal to that chunk size.
+	ChunkSize() int
+
 	// Close any open resources.
 	Close() error
 }

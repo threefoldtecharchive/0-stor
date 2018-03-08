@@ -28,6 +28,7 @@ func MarshalMetadata(md metatypes.Metadata) ([]byte, error) {
 		Key:            md.Key,
 		TotalSize:      md.Size,
 		StorageSize:    md.StorageSize,
+		ChunkSize:      md.ChunkSize,
 		CreationEpoch:  md.CreationEpoch,
 		LastWriteEpoch: md.LastWriteEpoch,
 		PreviousKey:    md.PreviousKey,
@@ -75,6 +76,7 @@ func UnmarshalMetadata(b []byte, md *metatypes.Metadata) error {
 	md.Key = s.Key
 	md.Size = s.TotalSize
 	md.StorageSize = s.StorageSize
+	md.ChunkSize = s.ChunkSize
 	md.CreationEpoch = s.CreationEpoch
 	md.LastWriteEpoch = s.LastWriteEpoch
 	md.NextKey = s.NextKey

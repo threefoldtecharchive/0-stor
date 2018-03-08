@@ -53,6 +53,10 @@ type (
 		// Chunks is the metadata list of all chunks that make up the data, when combined.
 		Chunks []Chunk
 
+		// ChunkSize is the fixed chunk size, which is size used for all chunks,
+		// except for the last chunk which might be less or equal to that chunk size.
+		ChunkSize int32
+
 		// PreviousKey is an optional key to the previous Metadata (node),
 		// in case this Metadata (node) is used as part of a reversed/double linked list.
 		PreviousKey []byte

@@ -56,6 +56,9 @@ message Metadata {
     // that make up the data, when combined.
     repeated Chunk chunks = 5 [(gogoproto.nullable) = false];
 
+	// maximal size of each chunk
+	int32 chunkSize = 10;
+
     // previousKey is an optional key to the previous Metadata (node),
     // in case this Metadata (node) is used as part
     // of a reversed/double linked list.

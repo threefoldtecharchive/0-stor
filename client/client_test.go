@@ -70,7 +70,7 @@ func TestNewClientPanics(t *testing.T) {
 	}, "no data pipeline given")
 }
 
-func TestRoundTripGRPC(t *testing.T) {
+func TestRoundTrip(t *testing.T) {
 	servers, serverClean := testZdbServer(t, 4)
 	defer serverClean()
 
@@ -263,6 +263,94 @@ func TestBlocksizes(t *testing.T) {
 				t.Errorf("data read from store is not the same as original data")
 				t.Errorf("len original: %d len actual %d", len(data), len(dataRead))
 			}
+		})
+	}
+}
+
+func TestReadRangeChunked(t *testing.T) {
+	testReadRange(t, 256)
+}
+
+func TestReadRangeNotChunked(t *testing.T) {
+	testReadRange(t, 0)
+}
+
+func testReadRange(t *testing.T, chunkSize int) {
+	servers, serverClean := testZdbServer(t, 4)
+	defer serverClean()
+
+	shards := make([]string, len(servers))
+	for i, server := range servers {
+		shards[i] = server.Address()
+	}
+
+	const (
+		blockSize = 256
+		numBlocks = 10
+	)
+
+	config := newDefaultConfig(shards, chunkSize)
+
+	c, _, err := getTestClient(config)
+	require.NoError(t, err, "fail to create client")
+	defer c.Close()
+
+	require.Equal(t, chunkSize, c.dataPipeline.ChunkSize())
+
+	data := make([]byte, blockSize*numBlocks)
+
+	_, err = rand.Read(data)
+	require.NoError(t, err, "fail to read random data")
+	key := []byte("testkey")
+
+	_, err = c.Write(key, bytes.NewReader(data))
+	require.NoError(t, err, "fail write data")
+
+	testCases := []struct {
+		name   string
+		offset int
+		length int
+	}{
+		{
+			name:   "min offset max length",
+			offset: 0,
+			length: len(data),
+		},
+		{
+			name:   "multiply of blocksize",
+			offset: blockSize,
+			length: blockSize * 3,
+		},
+		{
+			name:   "length not multiply of blocksize",
+			offset: blockSize,
+			length: (blockSize * 3) - 1,
+		},
+		{
+			name:   "offset not multiply of blocksize",
+			offset: blockSize + 1,
+			length: blockSize * 3,
+		},
+		{
+			name:   "offset & length not multiply of blocksize",
+			offset: blockSize + 1,
+			length: (blockSize * 3) - 1,
+		},
+		{
+			name:   "offset & length not multiply of blocksize, in same chunk",
+			offset: blockSize + 1,
+			length: blockSize - 10,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			buf := bytes.NewBuffer(nil)
+
+			err = c.ReadRange(key, buf, int64(tc.offset), int64(tc.length))
+
+			require.NoError(t, err)
+			require.Equal(t, tc.length, buf.Len())
+			require.Equal(t, data[tc.offset:tc.offset+tc.length], buf.Bytes())
 		})
 	}
 }
@@ -511,7 +599,7 @@ func TestClientCheck(t *testing.T) {
 	// Check status is corrupted
 	status, err = c.Check(meta.Key, false)
 	require.NoError(t, err, "fail to check object")
-	require.True(t, status == storage.CheckStatusValid || status == storage.CheckStatusInvalid,
+	require.Truef(t, status == storage.CheckStatusValid || status == storage.CheckStatusInvalid,
 		"status=%v, %d", status, status)
 }
 

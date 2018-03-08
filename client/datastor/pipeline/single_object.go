@@ -222,6 +222,11 @@ func (sop *SingleObjectPipeline) Delete(chunks []metatypes.Chunk) error {
 	})
 }
 
+// ChunkSize implements Pipeline.ChunkSize
+func (sop *SingleObjectPipeline) ChunkSize() int {
+	return 0
+}
+
 // Close implements Pipeline.Close
 func (sop *SingleObjectPipeline) Close() error {
 	return sop.storage.Close()

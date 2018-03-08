@@ -47,6 +47,9 @@ var (
 
 	// ErrRepairSupport is returned when data is not stored using replication or distribution
 	ErrRepairSupport = errors.New("data is not stored using replication or distribution, repair impossible")
+
+	// ErrInvalidReadRange is returned when given read range is not valid
+	ErrInvalidReadRange = errors.New("invalid read range")
 )
 
 // Client defines 0-stor client
@@ -240,6 +243,7 @@ func (c *Client) Write(key []byte, r io.Reader) (*metatypes.Metadata, error) {
 		Size:           rc.Size(),
 		CreationEpoch:  now,
 		LastWriteEpoch: now,
+		ChunkSize:      int32(c.dataPipeline.ChunkSize()),
 	}
 
 	// set/update chunks and size in metadata
@@ -271,6 +275,96 @@ func (c *Client) Read(key []byte, w io.Writer) error {
 // using the reference information fetched from the given metadata.
 func (c *Client) ReadWithMeta(meta metatypes.Metadata, w io.Writer) error {
 	return c.dataPipeline.Read(meta.Chunks, w)
+}
+
+// ReadRange reads data with the given offset & length.
+func (c *Client) ReadRange(key []byte, w io.Writer, offset, length int64) error {
+	if len(key) == 0 {
+		return ErrNilKey // ensure a key is given
+	}
+	meta, err := c.metastorClient.GetMetadata(key)
+	if err != nil {
+		return err
+	}
+
+	// in case we don't split the data,
+	// no need to worry about which chunk to proceed
+	if meta.ChunkSize == 0 {
+		return c.dataPipeline.Read(meta.Chunks, &rangeWriter{
+			w:      w,
+			offset: offset,
+			length: length,
+		})
+	}
+
+	endOffset := offset + length
+
+	// make sure it has valid range
+	if endOffset > meta.Size {
+		return ErrInvalidReadRange
+	}
+
+	var (
+		startChunkIdx = int(offset / int64(meta.ChunkSize))
+		endChunkIdx   = int(endOffset / int64(meta.ChunkSize))
+	)
+	if int(endOffset)%int(meta.ChunkSize) > 0 {
+		endChunkIdx++
+	}
+
+	rw := &rangeWriter{
+		offset: offset % int64(meta.ChunkSize),
+		length: length,
+		w:      w,
+	}
+	return c.dataPipeline.Read(meta.Chunks[startChunkIdx:endChunkIdx], rw)
+}
+
+// range writer is writer that only write data
+// in the given offset & length range
+type rangeWriter struct {
+	offset int64
+	length int64
+	w      io.Writer
+}
+
+// Write implements io.Writer.Write
+func (rw *rangeWriter) Write(p []byte) (int, error) {
+	if rw.length <= 0 {
+		return 0, io.EOF
+	}
+
+	var (
+		startIdx = int(rw.offset) // default start data index is current offset
+		endIdx   = len(p)         // default end data index is length of the data
+		dataLen  = len(p)
+	)
+
+	// if offset > 0 dataLen, we can ignore the data
+	if rw.offset > int64(dataLen) {
+		rw.offset -= int64(dataLen)
+		return dataLen, nil // we need to return len(p) in case of err==nil
+	}
+
+	if rw.length+int64(startIdx) < int64(endIdx) {
+		endIdx = startIdx + int(rw.length)
+	}
+
+	// call the underlying writer
+	// propagate the error if happens
+	n, err := rw.w.Write(p[startIdx:endIdx])
+
+	// modify internal length & offset
+	rw.length -= int64(n)
+	if rw.offset > 0 {
+		rw.offset = 0
+	}
+
+	if err != nil {
+		return n, err
+	}
+
+	return dataLen, nil // always return len p in case of err == nil
 }
 
 // Delete deletes the data, from the 0-stor cluster,
