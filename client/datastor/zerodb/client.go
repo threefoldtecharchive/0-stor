@@ -29,9 +29,9 @@ import (
 )
 
 var (
-	readTimeout    = 60 * time.Second
-	writeTimeout   = 60 * time.Second
-	connectTimeout = 60 * time.Second
+	readTimeout    = 5 * time.Second
+	writeTimeout   = 5 * time.Second
+	connectTimeout = 10 * time.Second
 )
 
 // Client defines a data client,
@@ -78,6 +78,13 @@ func NewClient(addr, passwd, namespace string) (*Client, error) {
 			}
 			_, err = conn.Do("SELECT", selectArgs...)
 			return conn, err
+		},
+		TestOnBorrow: func(c redis.Conn, t time.Time) error {
+			if time.Since(t) < 3*time.Second {
+				return nil
+			}
+			_, err := c.Do("PING")
+			return err
 		},
 	}
 
