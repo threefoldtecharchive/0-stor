@@ -813,7 +813,7 @@ func newAsyncDataSplitter(ctx context.Context, r io.Reader, chunkSize, bufferSiz
 		var index int
 		buf := make([]byte, chunkSize)
 		for {
-			n, err := r.Read(buf)
+			n, err := io.ReadFull(r, buf)
 			if n > 0 {
 				data := make([]byte, n)
 				copy(data, buf)
@@ -825,7 +825,7 @@ func newAsyncDataSplitter(ctx context.Context, r io.Reader, chunkSize, bufferSiz
 				}
 			}
 			if err != nil {
-				if err == io.EOF {
+				if err == io.EOF || err == io.ErrUnexpectedEOF {
 					// we'll consider an EOF
 					// as a signal to let us know the reader is exhausted
 					return nil
