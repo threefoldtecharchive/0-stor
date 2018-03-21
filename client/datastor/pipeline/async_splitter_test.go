@@ -19,8 +19,10 @@ package pipeline
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"fmt"
 	"io"
+	mrand "math/rand"
 	"testing"
 
 	"github.com/zero-os/0-stor/client/datastor/pipeline/crypto"
@@ -305,4 +307,69 @@ func (r *eofReader) Read(p []byte) (n int, err error) {
 		err = io.EOF
 	}
 	return
+}
+
+// Test that the async splitter could read
+// the chunks properly with correct chunk size.
+// even though the underlying reader doesn't
+// always read the full chunck.
+// Added as a fix reported at https://github.com/zero-os/0-stor/issues/499#issuecomment-374141004
+func TestAsyncDataSplitterReadFullChunk(t *testing.T) {
+	const (
+		chunkSize    = 100
+		numChunks    = 100
+		lastChunkLen = 10
+	)
+	var (
+		data = make([]byte, chunkSize*(numChunks-1)+lastChunkLen)
+	)
+	_, err := rand.Read(data)
+	require.NoError(t, err)
+
+	// test that we return also partial content,
+	// even when receiving EOF at the end
+	r := &notFullReader{
+		Reader: bytes.NewReader(data),
+	}
+	inputCh, splitter := newAsyncDataSplitter(
+		context.Background(), r, chunkSize, 1)
+	go func() {
+		err := splitter()
+		if err != nil {
+			panic(err)
+		}
+	}()
+
+	var n int
+	for input := range inputCh {
+		n++
+		if n < numChunks {
+			require.Len(t, input.Data, chunkSize)
+		} else {
+			require.Len(t, input.Data, lastChunkLen)
+		}
+	}
+}
+
+// a reader that sometimes doesn't doesn't
+// fill all the given buffer when doing
+// read operation
+type notFullReader struct {
+	io.Reader
+	count int
+}
+
+func (r *notFullReader) Read(p []byte) (int, error) {
+	r.count++
+	toRead := len(p)
+	if r.count%2 == 0 {
+		half := toRead / 2
+		toRead = mrand.Intn(half) + half - 1
+	}
+	buf := make([]byte, toRead)
+	n, err := r.Reader.Read(buf)
+	if n != 0 {
+		copy(p, buf)
+	}
+	return n, err
 }
