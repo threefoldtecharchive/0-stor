@@ -491,6 +491,9 @@ func (asp *AsyncSplitterPipeline) Read(chunks []metatypes.Chunk, w io.Writer) er
 				}
 				expectedIndex++
 				data, ok = buffer[expectedIndex]
+				if ok {
+					delete(buffer, expectedIndex)
+				}
 			}
 		}
 
