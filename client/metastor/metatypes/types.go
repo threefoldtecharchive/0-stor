@@ -64,9 +64,9 @@ type (
 		// in case this Metadata (node) is used as part of a (double) linked list.
 		NextKey []byte
 
-		// TODO:
-		// Reserve space for user-defined/custom metadata?
-		// How to call it? How to declare it (interface{}?)? How to encode/decode it?
+		// UserDefined is user defined metadata,
+		// in case user want to store additional metadata.
+		UserDefined map[string]string
 	}
 
 	// Chunk represents the metadata of a chunk of data.

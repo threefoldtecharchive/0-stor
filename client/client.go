@@ -219,6 +219,18 @@ func NewClient(metaClient *metastor.Client, dataPipeline pipeline.Pipeline) *Cli
 // Write writes the data to a 0-stor cluster,
 // storing the metadata using the internal metastor client.
 func (c *Client) Write(key []byte, r io.Reader) (*metatypes.Metadata, error) {
+	return c.write(key, r, nil)
+}
+
+// WriteWithUserMeta writes the data to a 0-stor cluster,
+// storing the metadata using the internal metastor client.
+// The given user defined metadata will be stored in the `UserDefined` field
+// of the metadata.
+func (c *Client) WriteWithUserMeta(key []byte, r io.Reader, userDefined map[string]string) (*metatypes.Metadata, error) {
+	return c.write(key, r, userDefined)
+}
+
+func (c *Client) write(key []byte, r io.Reader, userDefinedMeta map[string]string) (*metatypes.Metadata, error) {
 	if len(key) == 0 {
 		return nil, ErrNilKey // ensure a key is given
 	}
@@ -244,6 +256,7 @@ func (c *Client) Write(key []byte, r io.Reader) (*metatypes.Metadata, error) {
 		CreationEpoch:  now,
 		LastWriteEpoch: now,
 		ChunkSize:      int32(c.dataPipeline.ChunkSize()),
+		UserDefined:    userDefinedMeta,
 	}
 
 	// set/update chunks and size in metadata

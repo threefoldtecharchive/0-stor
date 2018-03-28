@@ -219,6 +219,63 @@ func TestRoundTrip(t *testing.T) {
 	}
 }
 
+func TestWriteWithUserMeta(t *testing.T) {
+	servers, serverClean := testZdbServer(t, 4)
+	defer serverClean()
+
+	shards := make([]string, len(servers))
+	for i, server := range servers {
+		shards[i] = server.Address()
+	}
+
+	const (
+		blockSize = 256
+	)
+
+	config := newDefaultConfig(shards, blockSize)
+
+	c, _, err := getTestClient(config)
+	require.NoError(t, err, "fail to create client")
+	defer c.Close()
+
+	// initialize the data
+	data := make([]byte, blockSize*10)
+	_, err = rand.Read(data)
+	require.NoError(t, err, "fail to read random data")
+	key := []byte("testkey")
+
+	testCases := []struct {
+		name     string
+		userMeta map[string]string
+	}{
+		{
+			name:     "nil user meta",
+			userMeta: nil,
+		},
+		{
+			name: "non nil usermeta",
+			userMeta: map[string]string{
+				"key1": "val1",
+				"key2": "val2",
+				"key3": "val3",
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err = c.WriteWithUserMeta(key, bytes.NewReader(data), tc.userMeta)
+			require.NoError(t, err, "fail write data")
+
+			// check the metadata
+			md, err := c.metastorClient.GetMetadata(key)
+			require.NoError(t, err)
+			require.Equal(t, tc.userMeta, md.UserDefined)
+		})
+	}
+
+}
+
 func TestBlocksizes(t *testing.T) {
 	servers, serverClean := testZdbServer(t, 4)
 	defer serverClean()

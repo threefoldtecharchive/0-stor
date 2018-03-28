@@ -68,6 +68,11 @@ message Metadata {
     // in case this Metadata (node) is used as part
     // of a (double) linked list.
     bytes nextKey = 7;
+
+    // userDefined is user defined metadata,
+    // in case user want to store additional metadata
+    // for the object.
+	map<string, string> userDefined = 11;
 }
 
 message Chunk {
