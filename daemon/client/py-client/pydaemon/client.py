@@ -14,14 +14,13 @@
 
 import grpc
 
-from . import namespace
 from . import file
 from . import data
 from . import metadata
 
 
 class Client:
-    def __init__(self, address='172.0.0.1:8080'):
+    def __init__(self, address='127.0.0.1:8080'):
         '''
         Create a new client instance
 
@@ -30,14 +29,9 @@ class Client:
         channel = grpc.insecure_channel(address)
 
         # initialize stubs
-        self._namespace = namespace.Namespace(channel)
         self._file = file.File(channel)
         self._data = data.Data(channel)
         self._metadata = metadata.Metadata(channel)
-
-    @property
-    def namespace(self):
-        return self._namespace
 
     @property
     def file(self):
