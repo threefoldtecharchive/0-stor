@@ -26,7 +26,7 @@ import (
 	"github.com/zero-os/0-stor/cmd"
 	daemon "github.com/zero-os/0-stor/daemon/api/grpc"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 

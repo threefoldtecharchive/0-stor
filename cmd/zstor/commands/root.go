@@ -30,7 +30,7 @@ import (
 	"github.com/zero-os/0-stor/client/processing"
 	"github.com/zero-os/0-stor/cmd"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 

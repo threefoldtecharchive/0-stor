@@ -21,7 +21,7 @@ import (
 	"errors"
 	"sync"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/zero-os/0-stor/client/datastor"
 )

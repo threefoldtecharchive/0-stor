@@ -33,7 +33,7 @@ import (
 	"github.com/zero-os/0-stor/client/metastor/encoding"
 	"github.com/zero-os/0-stor/client/processing"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // newClientFromConfig creates a new zstor client from provided config

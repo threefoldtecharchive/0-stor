@@ -8,12 +8,6 @@
   revision = "28f7e881ca57bc00e028f9ede9f0d9104cfeef5e"
 
 [[projects]]
-  name = "github.com/Sirupsen/logrus"
-  packages = ["."]
-  revision = "f006c2ac4710855cf0f916dd6b77acf6b048dc6e"
-  version = "v1.0.3"
-
-[[projects]]
   branch = "master"
   name = "github.com/beorn7/perks"
   packages = ["quantile"]
@@ -207,7 +201,6 @@
   revision = "316fb6d3f031ae8f4d457c6c5186b9e3ded70435"
 
 [[projects]]
-  branch = "better_docs"
   name = "github.com/grpc-ecosystem/go-grpc-middleware"
   packages = [
     ".",
@@ -215,7 +208,7 @@
     "logging/logrus",
     "tags"
   ]
-  revision = "63e69ea2fcaa6764e67826381756e528db9203ab"
+  revision = "59cb774ae323e0a21179c6ce41384698c6827543"
 
 [[projects]]
   name = "github.com/grpc-ecosystem/go-grpc-prometheus"
@@ -329,6 +322,12 @@
     "xfs"
   ]
   revision = "a6e9df898b1336106c743392c48ee0b71f5c4efa"
+
+[[projects]]
+  name = "github.com/sirupsen/logrus"
+  packages = ["."]
+  revision = "c155da19408a8799da419ed3eeb0cb5db0ad5dbc"
+  version = "v1.0.5"
 
 [[projects]]
   branch = "master"
@@ -474,6 +473,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "82663bbec7a19779169d9f06302dc1c36f3a3137b5dd487c9f00c81309d5294e"
+  inputs-digest = "50879079dbecf432ba70986f9983b760f42c65ec034f2b7b04e5aab962d69960"
   solver-name = "gps-cdcl"
   solver-version = 1

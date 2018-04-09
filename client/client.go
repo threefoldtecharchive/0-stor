@@ -36,7 +36,7 @@ import (
 	"github.com/zero-os/0-stor/client/metastor/metatypes"
 	"github.com/zero-os/0-stor/client/processing"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 var (

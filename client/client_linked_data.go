@@ -24,7 +24,7 @@ import (
 	"github.com/zero-os/0-stor/client/metastor"
 	"github.com/zero-os/0-stor/client/metastor/metatypes"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // NOTE:

@@ -24,8 +24,8 @@ import (
 
 	dbp "github.com/zero-os/0-stor/client/metastor/db"
 
-	log "github.com/Sirupsen/logrus"
 	badgerdb "github.com/dgraph-io/badger"
+	log "github.com/sirupsen/logrus"
 )
 
 const (

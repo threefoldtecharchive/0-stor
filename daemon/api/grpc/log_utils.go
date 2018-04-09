@@ -17,7 +17,7 @@
 package grpc
 
 import (
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 )
 

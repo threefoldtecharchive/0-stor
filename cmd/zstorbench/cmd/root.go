@@ -24,8 +24,8 @@ import (
 	"github.com/zero-os/0-stor/benchmark/config"
 	"github.com/zero-os/0-stor/cmd"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/pkg/profile"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 

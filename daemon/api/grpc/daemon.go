@@ -36,8 +36,8 @@ import (
 	"github.com/zero-os/0-stor/daemon/api"
 	pb "github.com/zero-os/0-stor/daemon/api/grpc/schema"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
+	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
 
