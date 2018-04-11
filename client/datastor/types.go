@@ -36,9 +36,8 @@ var (
 // Errors that can be expected to be returned by a zstordb server,
 // in "normal" scenarios.
 var (
-	ErrKeyNotFound      = errors.New("zstordb: key is no found")
-	ErrObjectCorrupted  = errors.New("zstordb: object is corrupted")
-	ErrPermissionDenied = errors.New("zstordb: JWT token does not permit requested action")
+	ErrKeyNotFound     = errors.New("zstordb: key is no found")
+	ErrObjectCorrupted = errors.New("zstordb: object is corrupted")
 )
 
 type (

@@ -38,7 +38,6 @@ var (
 	ErrGRPCNotSupported     = grpc.Errorf(codes.Unimplemented, "daemon: method not supported")
 	ErrGRPCInvalidFileMode  = grpc.Errorf(codes.Unimplemented, "daemon: file mode not supported")
 	ErrGRPCNoLocalFS        = grpc.Errorf(codes.PermissionDenied, "daemon: local filesystem access not allowed")
-	ErrGRPCPermissionDenied = grpc.Errorf(codes.PermissionDenied, "daemon: JWT token does not permit requested action")
 )
 
 // string to (daemon) server error mapping
@@ -58,7 +57,6 @@ var errStringToError = map[string]error{
 	grpc.ErrorDesc(ErrGRPCNotSupported):     ErrGRPCNotSupported,
 	grpc.ErrorDesc(ErrGRPCInvalidFileMode):  ErrGRPCInvalidFileMode,
 	grpc.ErrorDesc(ErrGRPCNoLocalFS):        ErrGRPCNoLocalFS,
-	grpc.ErrorDesc(ErrGRPCPermissionDenied): ErrGRPCPermissionDenied,
 }
 
 // (daemon) client-side error
@@ -78,7 +76,6 @@ var (
 	ErrNotSupported     = Error(ErrGRPCNotSupported)
 	ErrInvalidFileMode  = Error(ErrGRPCInvalidFileMode)
 	ErrNoLocalFS        = Error(ErrGRPCNoLocalFS)
-	ErrPermissionDenied = Error(ErrGRPCPermissionDenied)
 )
 
 // DaemonError defines gRPC server errors.

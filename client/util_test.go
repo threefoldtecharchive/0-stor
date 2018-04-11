@@ -29,11 +29,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const (
-	// path to testing public key
-	testPubKeyPath = "./../devcert/jwt_pub.pem"
-)
-
 type testServer struct {
 	addr string
 }

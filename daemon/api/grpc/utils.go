@@ -173,9 +173,8 @@ func mapDataStorError(err error) error {
 }
 
 var _ErrDataStorErrorMapping = map[error]error{
-	datastor.ErrKeyNotFound:      rpctypes.ErrGRPCKeyNotFound,
-	datastor.ErrObjectCorrupted:  rpctypes.ErrGRPCDataCorrupted,
-	datastor.ErrPermissionDenied: rpctypes.ErrGRPCPermissionDenied,
+	datastor.ErrKeyNotFound:     rpctypes.ErrGRPCKeyNotFound,
+	datastor.ErrObjectCorrupted: rpctypes.ErrGRPCDataCorrupted,
 }
 
 func mapMetaStorError(err error) error {

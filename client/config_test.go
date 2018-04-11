@@ -84,7 +84,7 @@ func TestReadConfigErrors(t *testing.T) {
 	require.Error(err, "invalid path")
 	require.Nil(cfg)
 
-	cfg, err = ReadConfig(testPrivateKeyPath)
+	cfg, err = ReadConfig("client.go")
 	require.Error(err, "invalid config")
 	require.Nil(cfg)
 }
@@ -173,5 +173,3 @@ func TestTLSVersionConfig(t *testing.T) {
 		})
 	}
 }
-
-const testPrivateKeyPath = "../devcert/jwt_key.pem"

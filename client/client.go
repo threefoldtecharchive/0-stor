@@ -58,28 +58,15 @@ type Client struct {
 	metastorClient *metastor.Client
 }
 
-// NewClientFromConfig creates new 0-stor client using the given config,
-// with (JWT Token) caching enabled only if required.
-//
-// JWT Token caching is required only if IYO credentials have been configured
-// in the given config, which are to be used to create tokens using the IYO Web API.
+// NewClientFromConfig creates new 0-stor client using the given config.
 //
 // If JobCount is 0 or negative, the default JobCount will be used,
 // as defined by the pipeline package.
 func NewClientFromConfig(cfg Config, jobCount int) (*Client, error) {
-	return newClientFromConfig(&cfg, jobCount, true)
+	return newClientFromConfig(&cfg, jobCount)
 }
 
-// NewClientFromConfigWithoutCaching creates new 0-stor client using the given config,
-// and with (JWT Token) caching disabled.
-//
-// If JobCount is 0 or negative, the default JobCount will be used,
-// as defined by the pipeline package.
-func NewClientFromConfigWithoutCaching(cfg Config, jobCount int) (*Client, error) {
-	return newClientFromConfig(&cfg, jobCount, false)
-}
-
-func newClientFromConfig(cfg *Config, jobCount int, enableCaching bool) (*Client, error) {
+func newClientFromConfig(cfg *Config, jobCount int) (*Client, error) {
 	// create datastor cluster
 	datastorCluster, err := createDataClusterFromConfig(cfg)
 	if err != nil {
