@@ -26,10 +26,9 @@ import (
 	"time"
 
 	"github.com/zero-os/0-stor/client/datastor"
-	storgrpc "github.com/zero-os/0-stor/client/datastor/grpc"
 	"github.com/zero-os/0-stor/client/datastor/pipeline"
 	"github.com/zero-os/0-stor/client/datastor/pipeline/storage"
-	"github.com/zero-os/0-stor/client/itsyouonline"
+	"github.com/zero-os/0-stor/client/datastor/zerodb"
 	"github.com/zero-os/0-stor/client/metastor"
 	metaDB "github.com/zero-os/0-stor/client/metastor/db"
 	"github.com/zero-os/0-stor/client/metastor/db/etcd"
@@ -37,7 +36,7 @@ import (
 	"github.com/zero-os/0-stor/client/metastor/metatypes"
 	"github.com/zero-os/0-stor/client/processing"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -48,6 +47,9 @@ var (
 
 	// ErrRepairSupport is returned when data is not stored using replication or distribution
 	ErrRepairSupport = errors.New("data is not stored using replication or distribution, repair impossible")
+
+	// ErrInvalidReadRange is returned when given read range is not valid
+	ErrInvalidReadRange = errors.New("invalid read range")
 )
 
 // Client defines 0-stor client
@@ -79,7 +81,7 @@ func NewClientFromConfigWithoutCaching(cfg Config, jobCount int) (*Client, error
 
 func newClientFromConfig(cfg *Config, jobCount int, enableCaching bool) (*Client, error) {
 	// create datastor cluster
-	datastorCluster, err := createDataClusterFromConfig(cfg, enableCaching)
+	datastorCluster, err := createDataClusterFromConfig(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -91,14 +93,14 @@ func newClientFromConfig(cfg *Config, jobCount int, enableCaching bool) (*Client
 	}
 
 	// create metastor client
-	metastorClient, err := createMetastorClientFromConfig(&cfg.MetaStor)
+	metastorClient, err := createMetastorClientFromConfig(cfg.Namespace, &cfg.MetaStor)
 	if err != nil {
 		return nil, err
 	}
 	return NewClient(metastorClient, dataPipeline), nil
 }
 
-func createMetastorClientFromConfig(cfg *MetaStorConfig) (*metastor.Client, error) {
+func createMetastorClientFromConfig(namespace string, cfg *MetaStorConfig) (*metastor.Client, error) {
 	if len(cfg.Database.Endpoints) == 0 {
 		return nil, errors.New("no metadata storage ETCD endpoints given")
 	}
@@ -112,10 +114,10 @@ func createMetastorClientFromConfig(cfg *MetaStorConfig) (*metastor.Client, erro
 	}
 
 	// create the metastor client and the rest of its components
-	return createMetastorClientFromConfigAndDatabase(cfg, db)
+	return createMetastorClientFromConfigAndDatabase(namespace, cfg, db)
 }
 
-func createMetastorClientFromConfigAndDatabase(cfg *MetaStorConfig, db metaDB.DB) (*metastor.Client, error) {
+func createMetastorClientFromConfigAndDatabase(namespace string, cfg *MetaStorConfig, db metaDB.DB) (*metastor.Client, error) {
 	var (
 		err    error
 		config = metastor.Config{Database: db}
@@ -129,7 +131,7 @@ func createMetastorClientFromConfigAndDatabase(cfg *MetaStorConfig, db metaDB.DB
 
 	if len(cfg.Encryption.PrivateKey) == 0 {
 		// create potentially insecure metastor storage
-		return metastor.NewClient(config)
+		return metastor.NewClient([]byte(namespace), config)
 	}
 
 	// create the constructor which will create our encrypter-decrypter when needed
@@ -147,46 +149,16 @@ func createMetastorClientFromConfigAndDatabase(cfg *MetaStorConfig, db metaDB.DB
 
 	// create our full-configured metastor client,
 	// including encryption support for our metadata in binary form
-	return metastor.NewClient(config)
+	return metastor.NewClient([]byte(namespace), config)
 }
 
-func createDataClusterFromConfig(cfg *Config, enableCaching bool) (datastor.Cluster, error) {
+func createDataClusterFromConfig(cfg *Config) (datastor.Cluster, error) {
 	// optionally create the global datastor TLS config
 	tlsConfig, err := createTLSConfigFromDatastorTLSConfig(&cfg.DataStor.TLS)
 	if err != nil {
 		return nil, err
 	}
-
-	if cfg.IYO == (itsyouonline.Config{}) {
-		// create datastor cluster without the use of IYO-backed JWT Tokens,
-		// this will only work if all shards use zstordb servers that
-		// do not require any authentication
-		return storgrpc.NewCluster(cfg.DataStor.Shards, cfg.Namespace, nil, tlsConfig)
-	}
-
-	// create IYO client
-	client, err := itsyouonline.NewClient(cfg.IYO)
-	if err != nil {
-		return nil, err
-	}
-
-	var tokenGetter datastor.JWTTokenGetter
-	// create JWT Token Getter (Using the earlier created IYO Client)
-	tokenGetter, err = datastor.JWTTokenGetterUsingIYOClient(cfg.IYO.Organization, client)
-	if err != nil {
-		return nil, err
-	}
-
-	if enableCaching {
-		// create cached token getter from this getter, using the default bucket size and count
-		tokenGetter, err = datastor.CachedJWTTokenGetter(tokenGetter, -1, -1)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// create datastor cluster, with the use of IYO-backed JWT Tokens
-	return storgrpc.NewCluster(cfg.DataStor.Shards, cfg.Namespace, tokenGetter, tlsConfig)
+	return zerodb.NewCluster(cfg.DataStor.Shards, cfg.Password, cfg.Namespace, tlsConfig)
 }
 
 func createTLSConfigFromDatastorTLSConfig(config *DataStorTLSConfig) (*tls.Config, error) {
@@ -247,12 +219,31 @@ func NewClient(metaClient *metastor.Client, dataPipeline pipeline.Pipeline) *Cli
 // Write writes the data to a 0-stor cluster,
 // storing the metadata using the internal metastor client.
 func (c *Client) Write(key []byte, r io.Reader) (*metatypes.Metadata, error) {
+	return c.write(key, r, nil)
+}
+
+// WriteWithUserMeta writes the data to a 0-stor cluster,
+// storing the metadata using the internal metastor client.
+// The given user defined metadata will be stored in the `UserDefined` field
+// of the metadata.
+func (c *Client) WriteWithUserMeta(key []byte, r io.Reader, userDefined map[string]string) (*metatypes.Metadata, error) {
+	return c.write(key, r, userDefined)
+}
+
+func (c *Client) write(key []byte, r io.Reader, userDefinedMeta map[string]string) (*metatypes.Metadata, error) {
 	if len(key) == 0 {
 		return nil, ErrNilKey // ensure a key is given
 	}
 
+	if r == nil {
+		return nil, errors.New("no reader given to read from")
+	}
+
+	// used to count the total size of bytes read from r
+	rc := &readCounter{r: r}
+
 	// process and write the data
-	chunks, err := c.dataPipeline.Write(r)
+	chunks, err := c.dataPipeline.Write(rc)
 	if err != nil {
 		return nil, err
 	}
@@ -261,14 +252,17 @@ func (c *Client) Write(key []byte, r io.Reader) (*metatypes.Metadata, error) {
 	now := EpochNow()
 	md := metatypes.Metadata{
 		Key:            key,
+		Size:           rc.Size(),
 		CreationEpoch:  now,
 		LastWriteEpoch: now,
+		ChunkSize:      int32(c.dataPipeline.ChunkSize()),
+		UserDefined:    userDefinedMeta,
 	}
 
 	// set/update chunks and size in metadata
 	md.Chunks = chunks
 	for _, chunk := range chunks {
-		md.Size += chunk.Size
+		md.StorageSize += chunk.Size
 	}
 
 	// store metadata
@@ -294,6 +288,96 @@ func (c *Client) Read(key []byte, w io.Writer) error {
 // using the reference information fetched from the given metadata.
 func (c *Client) ReadWithMeta(meta metatypes.Metadata, w io.Writer) error {
 	return c.dataPipeline.Read(meta.Chunks, w)
+}
+
+// ReadRange reads data with the given offset & length.
+func (c *Client) ReadRange(key []byte, w io.Writer, offset, length int64) error {
+	if len(key) == 0 {
+		return ErrNilKey // ensure a key is given
+	}
+	meta, err := c.metastorClient.GetMetadata(key)
+	if err != nil {
+		return err
+	}
+
+	// in case we don't split the data,
+	// no need to worry about which chunk to proceed
+	if meta.ChunkSize == 0 {
+		return c.dataPipeline.Read(meta.Chunks, &rangeWriter{
+			w:      w,
+			offset: offset,
+			length: length,
+		})
+	}
+
+	endOffset := offset + length
+
+	// make sure it has valid range
+	if endOffset > meta.Size {
+		return ErrInvalidReadRange
+	}
+
+	var (
+		startChunkIdx = int(offset / int64(meta.ChunkSize))
+		endChunkIdx   = int(endOffset / int64(meta.ChunkSize))
+	)
+	if int(endOffset)%int(meta.ChunkSize) > 0 {
+		endChunkIdx++
+	}
+
+	rw := &rangeWriter{
+		offset: offset % int64(meta.ChunkSize),
+		length: length,
+		w:      w,
+	}
+	return c.dataPipeline.Read(meta.Chunks[startChunkIdx:endChunkIdx], rw)
+}
+
+// range writer is writer that only write data
+// in the given offset & length range
+type rangeWriter struct {
+	offset int64
+	length int64
+	w      io.Writer
+}
+
+// Write implements io.Writer.Write
+func (rw *rangeWriter) Write(p []byte) (int, error) {
+	if rw.length <= 0 {
+		return 0, io.EOF
+	}
+
+	var (
+		startIdx = int(rw.offset) // default start data index is current offset
+		endIdx   = len(p)         // default end data index is length of the data
+		dataLen  = len(p)
+	)
+
+	// if offset > 0 dataLen, we can ignore the data
+	if rw.offset > int64(dataLen) {
+		rw.offset -= int64(dataLen)
+		return dataLen, nil // we need to return len(p) in case of err==nil
+	}
+
+	if rw.length+int64(startIdx) < int64(endIdx) {
+		endIdx = startIdx + int(rw.length)
+	}
+
+	// call the underlying writer
+	// propagate the error if happens
+	n, err := rw.w.Write(p[startIdx:endIdx])
+
+	// modify internal length & offset
+	rw.length -= int64(n)
+	if rw.offset > 0 {
+		rw.offset = 0
+	}
+
+	if err != nil {
+		return n, err
+	}
+
+	return dataLen, nil // always return len p in case of err == nil
 }
 
 // Delete deletes the data, from the 0-stor cluster,
@@ -396,7 +480,7 @@ func (c *Client) Repair(key []byte) (*metatypes.Metadata, error) {
 			// update chunks
 			meta.Chunks = repairedChunks
 			// update total size
-			meta.Size = totalSizeAfterRepair
+			meta.StorageSize = totalSizeAfterRepair
 			// update last write epoch, as we have written while repairing
 			meta.LastWriteEpoch = repairEpoch
 
@@ -437,4 +521,23 @@ func (ce closeErrors) Error() string {
 		str += e.Error() + ";"
 	}
 	return str
+}
+
+// readCounter is a io.Reader wrapper that counts the
+// total of bytes read by the underlying reader
+type readCounter struct {
+	r    io.Reader
+	size int64
+}
+
+// Read implement the io.Reader interface
+func (rc *readCounter) Read(p []byte) (n int, err error) {
+	n, err = rc.r.Read(p)
+	rc.size += int64(n)
+	return n, err
+}
+
+// Size return the total of bytes read by the underlying reader
+func (rc *readCounter) Size() int64 {
+	return rc.size
 }

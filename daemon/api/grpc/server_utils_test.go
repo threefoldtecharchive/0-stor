@@ -17,22 +17,18 @@
 package grpc
 
 import (
-	"errors"
-	"fmt"
 	"io/ioutil"
-	"net"
 	"os"
 	"path"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	clientGRPC "github.com/zero-os/0-stor/client/datastor/grpc"
 	"github.com/zero-os/0-stor/client/datastor/pipeline"
 	"github.com/zero-os/0-stor/client/datastor/pipeline/storage"
+	"github.com/zero-os/0-stor/client/datastor/zerodb"
+	zdbtest "github.com/zero-os/0-stor/client/datastor/zerodb/test"
 	"github.com/zero-os/0-stor/client/metastor"
 	"github.com/zero-os/0-stor/client/metastor/db/badger"
-	"github.com/zero-os/0-stor/server/api/grpc"
-	"github.com/zero-os/0-stor/server/db/memory"
 )
 
 const testLabel = "testLabel"
@@ -58,7 +54,7 @@ func newTestDaemon(t *testing.T) *Daemon {
 		cleanup()
 		t.Fatal(err)
 	}
-	metaClient, err := metastor.NewClient(metastor.Config{Database: db})
+	metaClient, err := metastor.NewClient([]byte("namespace"), metastor.Config{Database: db})
 	if err != nil {
 		cleanup()
 		t.Fatal(err)
@@ -78,7 +74,7 @@ func newTestDaemon(t *testing.T) *Daemon {
 	daemon, err := New(Config{
 		Pipeline:   dataPipeline,
 		MetaClient: metaClient,
-		IYOClient:  nil})
+	})
 	if err != nil {
 		cleanupB()
 		t.Fatal(err)
@@ -98,86 +94,58 @@ func (tc *testCloser) Close() error {
 	return tc.cb()
 }
 
-func newServerCluster(count int) (*clientGRPC.Cluster, func(), error) {
-	if count < 1 {
-		return nil, nil, errors.New("invalid GRPC server-client count")
-	}
+// create cluster with `count` number of server
+func newServerCluster(count int) (clu *zerodb.Cluster, cleanup func(), err error) {
 	var (
-		cleanupSlice []func()
-		addressSlice []string
+		addresses []string
+		cleanups  []func()
+		addr      string
 	)
+
+	const (
+		namespace = "ns"
+		passwd    = "passwd"
+	)
+
 	for i := 0; i < count; i++ {
-		_, addr, cleanup, err := newServerClient()
+		addr, cleanup, err = zdbtest.NewInMem0DBServer(namespace)
 		if err != nil {
-			for _, cleanup := range cleanupSlice {
-				cleanup()
-			}
-			return nil, nil, err
+			return
 		}
-		cleanupSlice = append(cleanupSlice, cleanup)
-		addressSlice = append(addressSlice, addr)
+		cleanups = append(cleanups, cleanup)
+		addresses = append(addresses, addr)
 	}
 
-	cluster, err := clientGRPC.NewInsecureCluster(addressSlice, testLabel, nil)
+	clu, err = zerodb.NewCluster(addresses, passwd, namespace, nil)
 	if err != nil {
-		for _, cleanup := range cleanupSlice {
-			cleanup()
-		}
-		return nil, nil, err
+		return
 	}
 
-	cleanup := func() {
-		cluster.Close()
-		for _, cleanup := range cleanupSlice {
+	cleanup = func() {
+		clu.Close()
+		for _, cleanup := range cleanups {
 			cleanup()
 		}
 	}
-	return cluster, cleanup, nil
+	return
 }
 
-func newServer() (string, func(), error) {
-	listener, err := net.Listen("tcp", "localhost:0")
+// creates server and client
+func newServerClient(passwd, namespace string) (cli *zerodb.Client, addr string, cleanup func(), err error) {
+	var serverCleanup func()
+
+	addr, serverCleanup, err = zdbtest.NewInMem0DBServer(namespace)
 	if err != nil {
-		return "", nil, err
+		return
 	}
-
-	server, err := grpc.New(memory.New(), grpc.ServerConfig{})
+	cli, err = zerodb.NewClient(addr, passwd, namespace)
 	if err != nil {
-		return "", nil, err
+		return
 	}
 
-	go func() {
-		err := server.Serve(listener)
-		if err != nil {
-			panic(err)
-		}
-	}()
-	cleanup := func() {
-		err := server.Close()
-		if err != nil {
-			panic(err)
-		}
+	cleanup = func() {
+		serverCleanup()
+		cli.Close()
 	}
-	return listener.Addr().String(), cleanup, nil
-}
-
-func newServerClient() (*clientGRPC.Client, string, func(), error) {
-	addr, cleanup, err := newServer()
-	if err != nil {
-		return nil, "", nil, err
-	}
-
-	client, err := clientGRPC.NewInsecureClient(addr, testLabel, nil)
-	if err != nil {
-		cleanup()
-		return nil, "", nil, err
-	}
-
-	clean := func() {
-		fmt.Sprintln("clean called")
-		client.Close()
-		cleanup()
-	}
-
-	return client, addr, clean, nil
+	return
 }

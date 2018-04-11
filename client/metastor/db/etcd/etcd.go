@@ -58,11 +58,11 @@ type DB struct {
 }
 
 // Set implements db.Set
-func (db *DB) Set(key, metadata []byte) error {
+func (db *DB) Set(namespace, key, metadata []byte) error {
 	ctx, cancel := context.WithTimeout(db.ctx, metaOpTimeout)
 	defer cancel()
 
-	_, err := db.etcdClient.Put(ctx, string(key), string(metadata))
+	_, err := db.etcdClient.Put(ctx, toEtcdKey(namespace, key), string(metadata))
 	if err != nil {
 		return mapETCDError(err)
 	}
@@ -70,11 +70,11 @@ func (db *DB) Set(key, metadata []byte) error {
 }
 
 // Get implements db.Get
-func (db *DB) Get(key []byte) ([]byte, error) {
+func (db *DB) Get(namespace, key []byte) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(db.ctx, metaOpTimeout)
 	defer cancel()
 
-	resp, err := db.etcdClient.Get(ctx, string(key))
+	resp, err := db.etcdClient.Get(ctx, toEtcdKey(namespace, key))
 	if err != nil {
 		return nil, mapETCDError(err)
 	}
@@ -85,11 +85,11 @@ func (db *DB) Get(key []byte) ([]byte, error) {
 }
 
 // Delete implements db.Delete
-func (db *DB) Delete(key []byte) error {
+func (db *DB) Delete(namespace, key []byte) error {
 	ctx, cancel := context.WithTimeout(db.ctx, metaOpTimeout)
 	defer cancel()
 
-	_, err := db.etcdClient.Delete(ctx, string(key))
+	_, err := db.etcdClient.Delete(ctx, toEtcdKey(namespace, key))
 	if err != nil {
 		return mapETCDError(err)
 	}
@@ -97,13 +97,13 @@ func (db *DB) Delete(key []byte) error {
 }
 
 // Update implements db.Update
-func (db *DB) Update(key []byte, cb dbp.UpdateCallback) error {
+func (db *DB) Update(namespace, key []byte, cb dbp.UpdateCallback) error {
 	ctx, cancel := context.WithTimeout(db.ctx, metaOpTimeout)
 	defer cancel()
 
 	var (
 		preserveError bool
-		keyStr        = string(key)
+		keyStr        = toEtcdKey(namespace, key)
 	)
 	resp, err := concurrency.NewSTM(db.etcdClient, func(stm concurrency.STM) error {
 		// get the metadata
@@ -135,6 +135,32 @@ func (db *DB) Update(key []byte, cb dbp.UpdateCallback) error {
 	return nil
 }
 
+// ListKeys implements db.ListKeys
+func (db *DB) ListKeys(namespace []byte, cb dbp.ListCallback) error {
+	ctx, cancel := context.WithTimeout(db.ctx, metaOpTimeout)
+	defer cancel()
+
+	prefix := toEtcdPrefix(namespace)
+	lenPrefix := len(prefix)
+
+	resp, err := db.etcdClient.Get(ctx, prefix,
+		clientv3.WithPrefix(),
+		clientv3.WithKeysOnly(),
+		clientv3.WithSort(clientv3.SortByKey, clientv3.SortAscend),
+	)
+	if err != nil {
+		return err
+	}
+
+	for _, kv := range resp.Kvs {
+		err = cb(kv.Key[lenPrefix:])
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // Close implements db.Close
 func (db *DB) Close() error {
 	err := db.etcdClient.Close()
@@ -155,6 +181,13 @@ func mapETCDError(err error) error {
 		}
 	}
 	return &dbp.InternalError{Type: databaseType, Err: err}
+}
+
+func toEtcdPrefix(namespace []byte) string {
+	return fmt.Sprintf("%s/", string(namespace))
+}
+func toEtcdKey(namespace, key []byte) string {
+	return fmt.Sprintf("%s%s", toEtcdPrefix(namespace), string(key))
 }
 
 const (

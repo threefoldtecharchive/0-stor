@@ -17,86 +17,61 @@
 package pipeline
 
 import (
-	"errors"
-	"fmt"
-	"net"
-
-	clientGRPC "github.com/zero-os/0-stor/client/datastor/grpc"
-	serverGRPC "github.com/zero-os/0-stor/server/api/grpc"
-	"github.com/zero-os/0-stor/server/db/memory"
+	"github.com/zero-os/0-stor/client/datastor/zerodb"
+	zdbtest "github.com/zero-os/0-stor/client/datastor/zerodb/test"
 )
 
-func newGRPCServerCluster(count int) (*clientGRPC.Cluster, func(), error) {
-	if count < 1 {
-		return nil, nil, errors.New("invalid GRPC server-client count")
-	}
+func newZdbServerCluster(count int) (clu *zerodb.Cluster, cleanup func(), err error) {
 	var (
-		cleanupSlice []func()
-		addressSlice []string
+		addresses []string
+		cleanups  []func()
+		addr      string
 	)
+
+	const (
+		namespace = "ns"
+		passwd    = "passwd"
+	)
+
 	for i := 0; i < count; i++ {
-		_, addr, cleanup, err := newGRPCServerClient()
+		addr, cleanup, err = zdbtest.NewInMem0DBServer(namespace)
 		if err != nil {
-			for _, cleanup := range cleanupSlice {
-				cleanup()
-			}
-			return nil, nil, err
+			return
 		}
-		cleanupSlice = append(cleanupSlice, cleanup)
-		addressSlice = append(addressSlice, addr)
+		cleanups = append(cleanups, cleanup)
+		addresses = append(addresses, addr)
 	}
 
-	cluster, err := clientGRPC.NewInsecureCluster(addressSlice, "myLabel", nil)
+	clu, err = zerodb.NewCluster(addresses, passwd, namespace, nil)
 	if err != nil {
-		for _, cleanup := range cleanupSlice {
-			cleanup()
-		}
-		return nil, nil, err
+		return
 	}
 
-	cleanup := func() {
-		cluster.Close()
-		for _, cleanup := range cleanupSlice {
+	cleanup = func() {
+		clu.Close()
+		for _, cleanup := range cleanups {
 			cleanup()
 		}
 	}
-	return cluster, cleanup, nil
+	return
+
 }
 
-func newGRPCServerClient() (*clientGRPC.Client, string, func(), error) {
-	listener, err := net.Listen("tcp", "localhost:0")
+func newZdbServerClient(passwd, namespace string) (cli *zerodb.Client, addr string, cleanup func(), err error) {
+	var serverCleanup func()
+
+	addr, serverCleanup, err = zdbtest.NewInMem0DBServer(namespace)
 	if err != nil {
-		return nil, "", nil, err
+		return
 	}
-
-	server, err := serverGRPC.New(memory.New(), serverGRPC.ServerConfig{})
+	cli, err = zerodb.NewClient(addr, passwd, namespace)
 	if err != nil {
-		return nil, "", nil, err
-	}
-	go func() {
-		err := server.Serve(listener)
-		if err != nil {
-			panic(err)
-		}
-	}()
-
-	client, err := clientGRPC.NewInsecureClient(listener.Addr().String(), "myLabel", nil)
-	if err != nil {
-		server.Close()
-		return nil, "", nil, err
+		return
 	}
 
-	clean := func() {
-		fmt.Sprintln("clean called")
-		err := client.Close()
-		if err != nil {
-			panic(err)
-		}
-		err = server.Close()
-		if err != nil {
-			panic(err)
-		}
+	cleanup = func() {
+		serverCleanup()
+		cli.Close()
 	}
-
-	return client, listener.Addr().String(), clean, nil
+	return
 }

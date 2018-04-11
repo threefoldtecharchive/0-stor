@@ -22,7 +22,7 @@ import (
 	"github.com/zero-os/0-stor/client/datastor"
 	"github.com/zero-os/0-stor/client/metastor/metatypes"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // NewRandomChunkStorage creates a new RandomChunkStorage.

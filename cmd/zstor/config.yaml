@@ -1,10 +1,7 @@
-iyo:
-  organization: myorg  # itsyou.online organization name
-  app_id: appID
-  app_secret: secret
-namespace: namespace1  # (itsyou.online) data namespace (required)
+password: mypass
+namespace: namespace1  # 0-db namespace (required)
 datastor: # required
-  # the address(es) of a zstordb cluster (required0)
+  # the address(es) of a 0-db cluster (required0)
   shards: # required
     - 127.0.0.1:12345
     - 127.0.0.1:12346

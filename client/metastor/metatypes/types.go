@@ -28,13 +28,20 @@ type (
 	// It is stored in some metadata server/cluster, and references
 	// the data (see: Chunk and Object), which is stored in a zstordb cluster.
 	Metadata struct {
+		// Namespace defines namespace of the data,
+		// and is chosen by the owner of this data.
+		Namespace []byte
+
 		// Key defines the key of the data,
 		// and is chosen by the owner of this data.
 		Key []byte
 
-		// Size in bytes represents the total size of all chunks,
-		// that make up the stored data, combined.
+		// Size represent the total size of the data before any processing
 		Size int64
+
+		// StorageSize in bytes represents the total size of all chunks,
+		// that make up the stored data, combined.
+		StorageSize int64
 
 		// CreationEpoch defines the time this data was initially created,
 		// in the Unix epoch format, in nano seconds.
@@ -46,6 +53,10 @@ type (
 		// Chunks is the metadata list of all chunks that make up the data, when combined.
 		Chunks []Chunk
 
+		// ChunkSize is the fixed chunk size, which is size used for all chunks,
+		// except for the last chunk which might be less or equal to that chunk size.
+		ChunkSize int32
+
 		// PreviousKey is an optional key to the previous Metadata (node),
 		// in case this Metadata (node) is used as part of a reversed/double linked list.
 		PreviousKey []byte
@@ -53,9 +64,9 @@ type (
 		// in case this Metadata (node) is used as part of a (double) linked list.
 		NextKey []byte
 
-		// TODO:
-		// Reserve space for user-defined/custom metadata?
-		// How to call it? How to declare it (interface{}?)? How to encode/decode it?
+		// UserDefined is user defined metadata,
+		// in case user want to store additional metadata.
+		UserDefined map[string]string
 	}
 
 	// Chunk represents the metadata of a chunk of data.

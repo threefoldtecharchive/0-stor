@@ -22,9 +22,9 @@ import (
 	"fmt"
 	"io"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/golang/snappy"
 	"github.com/pierrec/lz4"
+	log "github.com/sirupsen/logrus"
 )
 
 // NewCompressorDecompressor returns a new instance for the given compression type.

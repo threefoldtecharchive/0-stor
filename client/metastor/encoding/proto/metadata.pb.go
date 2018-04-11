@@ -23,6 +23,7 @@ import bytes "bytes"
 
 import strings "strings"
 import reflect "reflect"
+import sortkeys "github.com/gogo/protobuf/sortkeys"
 
 import io "io"
 
@@ -38,12 +39,17 @@ var _ = math.Inf
 const _ = proto1.GoGoProtoPackageIsVersion2 // please upgrade the proto package
 
 type Metadata struct {
+	// namespace defines the namespace of the data,
+	// and is chosen by the owner of this data.
+	Namespace []byte `protobuf:"bytes,9,opt,name=namespace,proto3" json:"namespace,omitempty"`
 	// key defines the key of the data,
 	// and is chosen by the owner of this data.
 	Key []byte `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	// size in bytes represents the total size of all chunks,
+	// size in bytes represent the total size of the data before any processing
+	TotalSize int64 `protobuf:"varint,8,opt,name=size,proto3" json:"size,omitempty"`
+	// storageSize in bytes represents the total size of all chunks,
 	// that make up the stored data, combined.
-	SizeInBytes int64 `protobuf:"varint,2,opt,name=size,proto3" json:"size,omitempty"`
+	StorageSize int64 `protobuf:"varint,2,opt,name=storageSize,proto3" json:"storageSize,omitempty"`
 	// creationEpoch defines the time this data was initially created,
 	// in the Unix epoch format, in nano seconds.
 	CreationEpoch int64 `protobuf:"varint,3,opt,name=creationEpoch,proto3" json:"creationEpoch,omitempty"`
@@ -54,6 +60,8 @@ type Metadata struct {
 	// chunks is the metadata list of all chunks
 	// that make up the data, when combined.
 	Chunks []Chunk `protobuf:"bytes,5,rep,name=chunks" json:"chunks"`
+	// maximal size of each chunk
+	ChunkSize int32 `protobuf:"varint,10,opt,name=chunkSize,proto3" json:"chunkSize,omitempty"`
 	// previousKey is an optional key to the previous Metadata (node),
 	// in case this Metadata (node) is used as part
 	// of a reversed/double linked list.
@@ -62,6 +70,10 @@ type Metadata struct {
 	// in case this Metadata (node) is used as part
 	// of a (double) linked list.
 	NextKey []byte `protobuf:"bytes,7,opt,name=nextKey,proto3" json:"nextKey,omitempty"`
+	// userDefined is user defined metadata,
+	// in case user want to store additional metadata
+	// for the object.
+	UserDefined map[string]string `protobuf:"bytes,11,rep,name=userDefined" json:"userDefined,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 }
 
 func (m *Metadata) Reset()                    { *m = Metadata{} }
@@ -124,11 +136,20 @@ func (this *Metadata) Compare(that interface{}) int {
 	} else if this == nil {
 		return -1
 	}
+	if c := bytes.Compare(this.Namespace, that1.Namespace); c != 0 {
+		return c
+	}
 	if c := bytes.Compare(this.Key, that1.Key); c != 0 {
 		return c
 	}
-	if this.SizeInBytes != that1.SizeInBytes {
-		if this.SizeInBytes < that1.SizeInBytes {
+	if this.TotalSize != that1.TotalSize {
+		if this.TotalSize < that1.TotalSize {
+			return -1
+		}
+		return 1
+	}
+	if this.StorageSize != that1.StorageSize {
+		if this.StorageSize < that1.StorageSize {
 			return -1
 		}
 		return 1
@@ -156,11 +177,31 @@ func (this *Metadata) Compare(that interface{}) int {
 			return c
 		}
 	}
+	if this.ChunkSize != that1.ChunkSize {
+		if this.ChunkSize < that1.ChunkSize {
+			return -1
+		}
+		return 1
+	}
 	if c := bytes.Compare(this.PreviousKey, that1.PreviousKey); c != 0 {
 		return c
 	}
 	if c := bytes.Compare(this.NextKey, that1.NextKey); c != 0 {
 		return c
+	}
+	if len(this.UserDefined) != len(that1.UserDefined) {
+		if len(this.UserDefined) < len(that1.UserDefined) {
+			return -1
+		}
+		return 1
+	}
+	for i := range this.UserDefined {
+		if this.UserDefined[i] != that1.UserDefined[i] {
+			if this.UserDefined[i] < that1.UserDefined[i] {
+				return -1
+			}
+			return 1
+		}
 	}
 	return 0
 }
@@ -266,10 +307,16 @@ func (this *Metadata) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
+	if !bytes.Equal(this.Namespace, that1.Namespace) {
+		return false
+	}
 	if !bytes.Equal(this.Key, that1.Key) {
 		return false
 	}
-	if this.SizeInBytes != that1.SizeInBytes {
+	if this.TotalSize != that1.TotalSize {
+		return false
+	}
+	if this.StorageSize != that1.StorageSize {
 		return false
 	}
 	if this.CreationEpoch != that1.CreationEpoch {
@@ -286,11 +333,22 @@ func (this *Metadata) Equal(that interface{}) bool {
 			return false
 		}
 	}
+	if this.ChunkSize != that1.ChunkSize {
+		return false
+	}
 	if !bytes.Equal(this.PreviousKey, that1.PreviousKey) {
 		return false
 	}
 	if !bytes.Equal(this.NextKey, that1.NextKey) {
 		return false
+	}
+	if len(this.UserDefined) != len(that1.UserDefined) {
+		return false
+	}
+	for i := range this.UserDefined {
+		if this.UserDefined[i] != that1.UserDefined[i] {
+			return false
+		}
 	}
 	return true
 }
@@ -360,10 +418,12 @@ func (this *Metadata) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 11)
+	s := make([]string, 0, 15)
 	s = append(s, "&proto.Metadata{")
+	s = append(s, "Namespace: "+fmt.Sprintf("%#v", this.Namespace)+",\n")
 	s = append(s, "Key: "+fmt.Sprintf("%#v", this.Key)+",\n")
-	s = append(s, "SizeInBytes: "+fmt.Sprintf("%#v", this.SizeInBytes)+",\n")
+	s = append(s, "TotalSize: "+fmt.Sprintf("%#v", this.TotalSize)+",\n")
+	s = append(s, "StorageSize: "+fmt.Sprintf("%#v", this.StorageSize)+",\n")
 	s = append(s, "CreationEpoch: "+fmt.Sprintf("%#v", this.CreationEpoch)+",\n")
 	s = append(s, "LastWriteEpoch: "+fmt.Sprintf("%#v", this.LastWriteEpoch)+",\n")
 	if this.Chunks != nil {
@@ -373,8 +433,22 @@ func (this *Metadata) GoString() string {
 		}
 		s = append(s, "Chunks: "+fmt.Sprintf("%#v", vs)+",\n")
 	}
+	s = append(s, "ChunkSize: "+fmt.Sprintf("%#v", this.ChunkSize)+",\n")
 	s = append(s, "PreviousKey: "+fmt.Sprintf("%#v", this.PreviousKey)+",\n")
 	s = append(s, "NextKey: "+fmt.Sprintf("%#v", this.NextKey)+",\n")
+	keysForUserDefined := make([]string, 0, len(this.UserDefined))
+	for k, _ := range this.UserDefined {
+		keysForUserDefined = append(keysForUserDefined, k)
+	}
+	sortkeys.Strings(keysForUserDefined)
+	mapStringForUserDefined := "map[string]string{"
+	for _, k := range keysForUserDefined {
+		mapStringForUserDefined += fmt.Sprintf("%#v: %#v,", k, this.UserDefined[k])
+	}
+	mapStringForUserDefined += "}"
+	if this.UserDefined != nil {
+		s = append(s, "UserDefined: "+mapStringForUserDefined+",\n")
+	}
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -436,10 +510,10 @@ func (m *Metadata) MarshalTo(dAtA []byte) (int, error) {
 		i = encodeVarintMetadata(dAtA, i, uint64(len(m.Key)))
 		i += copy(dAtA[i:], m.Key)
 	}
-	if m.SizeInBytes != 0 {
+	if m.StorageSize != 0 {
 		dAtA[i] = 0x10
 		i++
-		i = encodeVarintMetadata(dAtA, i, uint64(m.SizeInBytes))
+		i = encodeVarintMetadata(dAtA, i, uint64(m.StorageSize))
 	}
 	if m.CreationEpoch != 0 {
 		dAtA[i] = 0x18
@@ -474,6 +548,39 @@ func (m *Metadata) MarshalTo(dAtA []byte) (int, error) {
 		i++
 		i = encodeVarintMetadata(dAtA, i, uint64(len(m.NextKey)))
 		i += copy(dAtA[i:], m.NextKey)
+	}
+	if m.TotalSize != 0 {
+		dAtA[i] = 0x40
+		i++
+		i = encodeVarintMetadata(dAtA, i, uint64(m.TotalSize))
+	}
+	if len(m.Namespace) > 0 {
+		dAtA[i] = 0x4a
+		i++
+		i = encodeVarintMetadata(dAtA, i, uint64(len(m.Namespace)))
+		i += copy(dAtA[i:], m.Namespace)
+	}
+	if m.ChunkSize != 0 {
+		dAtA[i] = 0x50
+		i++
+		i = encodeVarintMetadata(dAtA, i, uint64(m.ChunkSize))
+	}
+	if len(m.UserDefined) > 0 {
+		for k, _ := range m.UserDefined {
+			dAtA[i] = 0x5a
+			i++
+			v := m.UserDefined[k]
+			mapSize := 1 + len(k) + sovMetadata(uint64(len(k))) + 1 + len(v) + sovMetadata(uint64(len(v)))
+			i = encodeVarintMetadata(dAtA, i, uint64(mapSize))
+			dAtA[i] = 0xa
+			i++
+			i = encodeVarintMetadata(dAtA, i, uint64(len(k)))
+			i += copy(dAtA[i:], k)
+			dAtA[i] = 0x12
+			i++
+			i = encodeVarintMetadata(dAtA, i, uint64(len(v)))
+			i += copy(dAtA[i:], v)
+		}
 	}
 	return i, nil
 }
@@ -565,9 +672,9 @@ func NewPopulatedMetadata(r randyMetadata, easy bool) *Metadata {
 	for i := 0; i < v1; i++ {
 		this.Key[i] = byte(r.Intn(256))
 	}
-	this.SizeInBytes = int64(r.Int63())
+	this.StorageSize = int64(r.Int63())
 	if r.Intn(2) == 0 {
-		this.SizeInBytes *= -1
+		this.StorageSize *= -1
 	}
 	this.CreationEpoch = int64(r.Int63())
 	if r.Intn(2) == 0 {
@@ -595,6 +702,26 @@ func NewPopulatedMetadata(r randyMetadata, easy bool) *Metadata {
 	for i := 0; i < v5; i++ {
 		this.NextKey[i] = byte(r.Intn(256))
 	}
+	this.TotalSize = int64(r.Int63())
+	if r.Intn(2) == 0 {
+		this.TotalSize *= -1
+	}
+	v6 := r.Intn(100)
+	this.Namespace = make([]byte, v6)
+	for i := 0; i < v6; i++ {
+		this.Namespace[i] = byte(r.Intn(256))
+	}
+	this.ChunkSize = int32(r.Int31())
+	if r.Intn(2) == 0 {
+		this.ChunkSize *= -1
+	}
+	if r.Intn(10) != 0 {
+		v7 := r.Intn(10)
+		this.UserDefined = make(map[string]string)
+		for i := 0; i < v7; i++ {
+			this.UserDefined[randStringMetadata(r)] = randStringMetadata(r)
+		}
+	}
 	if !easy && r.Intn(10) != 0 {
 	}
 	return this
@@ -607,16 +734,16 @@ func NewPopulatedChunk(r randyMetadata, easy bool) *Chunk {
 		this.SizeInBytes *= -1
 	}
 	if r.Intn(10) != 0 {
-		v6 := r.Intn(5)
-		this.Objects = make([]Object, v6)
-		for i := 0; i < v6; i++ {
-			v7 := NewPopulatedObject(r, easy)
-			this.Objects[i] = *v7
+		v8 := r.Intn(5)
+		this.Objects = make([]Object, v8)
+		for i := 0; i < v8; i++ {
+			v9 := NewPopulatedObject(r, easy)
+			this.Objects[i] = *v9
 		}
 	}
-	v8 := r.Intn(100)
-	this.Hash = make([]byte, v8)
-	for i := 0; i < v8; i++ {
+	v10 := r.Intn(100)
+	this.Hash = make([]byte, v10)
+	for i := 0; i < v10; i++ {
 		this.Hash[i] = byte(r.Intn(256))
 	}
 	if !easy && r.Intn(10) != 0 {
@@ -626,9 +753,9 @@ func NewPopulatedChunk(r randyMetadata, easy bool) *Chunk {
 
 func NewPopulatedObject(r randyMetadata, easy bool) *Object {
 	this := &Object{}
-	v9 := r.Intn(100)
-	this.Key = make([]byte, v9)
-	for i := 0; i < v9; i++ {
+	v11 := r.Intn(100)
+	this.Key = make([]byte, v11)
+	for i := 0; i < v11; i++ {
 		this.Key[i] = byte(r.Intn(256))
 	}
 	this.ShardID = string(randStringMetadata(r))
@@ -656,9 +783,9 @@ func randUTF8RuneMetadata(r randyMetadata) rune {
 	return rune(ru + 61)
 }
 func randStringMetadata(r randyMetadata) string {
-	v10 := r.Intn(100)
-	tmps := make([]rune, v10)
-	for i := 0; i < v10; i++ {
+	v12 := r.Intn(100)
+	tmps := make([]rune, v12)
+	for i := 0; i < v12; i++ {
 		tmps[i] = randUTF8RuneMetadata(r)
 	}
 	return string(tmps)
@@ -680,11 +807,11 @@ func randFieldMetadata(dAtA []byte, r randyMetadata, fieldNumber int, wire int) 
 	switch wire {
 	case 0:
 		dAtA = encodeVarintPopulateMetadata(dAtA, uint64(key))
-		v11 := r.Int63()
+		v13 := r.Int63()
 		if r.Intn(2) == 0 {
-			v11 *= -1
+			v13 *= -1
 		}
-		dAtA = encodeVarintPopulateMetadata(dAtA, uint64(v11))
+		dAtA = encodeVarintPopulateMetadata(dAtA, uint64(v13))
 	case 1:
 		dAtA = encodeVarintPopulateMetadata(dAtA, uint64(key))
 		dAtA = append(dAtA, byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)))
@@ -716,8 +843,8 @@ func (m *Metadata) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovMetadata(uint64(l))
 	}
-	if m.SizeInBytes != 0 {
-		n += 1 + sovMetadata(uint64(m.SizeInBytes))
+	if m.StorageSize != 0 {
+		n += 1 + sovMetadata(uint64(m.StorageSize))
 	}
 	if m.CreationEpoch != 0 {
 		n += 1 + sovMetadata(uint64(m.CreationEpoch))
@@ -738,6 +865,24 @@ func (m *Metadata) Size() (n int) {
 	l = len(m.NextKey)
 	if l > 0 {
 		n += 1 + l + sovMetadata(uint64(l))
+	}
+	if m.TotalSize != 0 {
+		n += 1 + sovMetadata(uint64(m.TotalSize))
+	}
+	l = len(m.Namespace)
+	if l > 0 {
+		n += 1 + l + sovMetadata(uint64(l))
+	}
+	if m.ChunkSize != 0 {
+		n += 1 + sovMetadata(uint64(m.ChunkSize))
+	}
+	if len(m.UserDefined) > 0 {
+		for k, v := range m.UserDefined {
+			_ = k
+			_ = v
+			mapEntrySize := 1 + len(k) + sovMetadata(uint64(len(k))) + 1 + len(v) + sovMetadata(uint64(len(v)))
+			n += mapEntrySize + 1 + sovMetadata(uint64(mapEntrySize))
+		}
 	}
 	return n
 }
@@ -792,14 +937,28 @@ func (this *Metadata) String() string {
 	if this == nil {
 		return "nil"
 	}
+	keysForUserDefined := make([]string, 0, len(this.UserDefined))
+	for k, _ := range this.UserDefined {
+		keysForUserDefined = append(keysForUserDefined, k)
+	}
+	sortkeys.Strings(keysForUserDefined)
+	mapStringForUserDefined := "map[string]string{"
+	for _, k := range keysForUserDefined {
+		mapStringForUserDefined += fmt.Sprintf("%v: %v,", k, this.UserDefined[k])
+	}
+	mapStringForUserDefined += "}"
 	s := strings.Join([]string{`&Metadata{`,
 		`Key:` + fmt.Sprintf("%v", this.Key) + `,`,
-		`SizeInBytes:` + fmt.Sprintf("%v", this.SizeInBytes) + `,`,
+		`StorageSize:` + fmt.Sprintf("%v", this.StorageSize) + `,`,
 		`CreationEpoch:` + fmt.Sprintf("%v", this.CreationEpoch) + `,`,
 		`LastWriteEpoch:` + fmt.Sprintf("%v", this.LastWriteEpoch) + `,`,
 		`Chunks:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Chunks), "Chunk", "Chunk", 1), `&`, ``, 1) + `,`,
 		`PreviousKey:` + fmt.Sprintf("%v", this.PreviousKey) + `,`,
 		`NextKey:` + fmt.Sprintf("%v", this.NextKey) + `,`,
+		`TotalSize:` + fmt.Sprintf("%v", this.TotalSize) + `,`,
+		`Namespace:` + fmt.Sprintf("%v", this.Namespace) + `,`,
+		`ChunkSize:` + fmt.Sprintf("%v", this.ChunkSize) + `,`,
+		`UserDefined:` + mapStringForUserDefined + `,`,
 		`}`,
 	}, "")
 	return s
@@ -897,9 +1056,9 @@ func (m *Metadata) Unmarshal(dAtA []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field SizeInBytes", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field StorageSize", wireType)
 			}
-			m.SizeInBytes = 0
+			m.StorageSize = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowMetadata
@@ -909,7 +1068,7 @@ func (m *Metadata) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.SizeInBytes |= (int64(b) & 0x7F) << shift
+				m.StorageSize |= (int64(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1044,6 +1203,193 @@ func (m *Metadata) Unmarshal(dAtA []byte) error {
 			if m.NextKey == nil {
 				m.NextKey = []byte{}
 			}
+			iNdEx = postIndex
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TotalSize", wireType)
+			}
+			m.TotalSize = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMetadata
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.TotalSize |= (int64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Namespace", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMetadata
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthMetadata
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Namespace = append(m.Namespace[:0], dAtA[iNdEx:postIndex]...)
+			if m.Namespace == nil {
+				m.Namespace = []byte{}
+			}
+			iNdEx = postIndex
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ChunkSize", wireType)
+			}
+			m.ChunkSize = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMetadata
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.ChunkSize |= (int32(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UserDefined", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMetadata
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthMetadata
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.UserDefined == nil {
+				m.UserDefined = make(map[string]string)
+			}
+			var mapkey string
+			var mapvalue string
+			for iNdEx < postIndex {
+				entryPreIndex := iNdEx
+				var wire uint64
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowMetadata
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					wire |= (uint64(b) & 0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				fieldNum := int32(wire >> 3)
+				if fieldNum == 1 {
+					var stringLenmapkey uint64
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return ErrIntOverflowMetadata
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						stringLenmapkey |= (uint64(b) & 0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					intStringLenmapkey := int(stringLenmapkey)
+					if intStringLenmapkey < 0 {
+						return ErrInvalidLengthMetadata
+					}
+					postStringIndexmapkey := iNdEx + intStringLenmapkey
+					if postStringIndexmapkey > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
+					iNdEx = postStringIndexmapkey
+				} else if fieldNum == 2 {
+					var stringLenmapvalue uint64
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return ErrIntOverflowMetadata
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						stringLenmapvalue |= (uint64(b) & 0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					intStringLenmapvalue := int(stringLenmapvalue)
+					if intStringLenmapvalue < 0 {
+						return ErrInvalidLengthMetadata
+					}
+					postStringIndexmapvalue := iNdEx + intStringLenmapvalue
+					if postStringIndexmapvalue > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapvalue = string(dAtA[iNdEx:postStringIndexmapvalue])
+					iNdEx = postStringIndexmapvalue
+				} else {
+					iNdEx = entryPreIndex
+					skippy, err := skipMetadata(dAtA[iNdEx:])
+					if err != nil {
+						return err
+					}
+					if skippy < 0 {
+						return ErrInvalidLengthMetadata
+					}
+					if (iNdEx + skippy) > postIndex {
+						return io.ErrUnexpectedEOF
+					}
+					iNdEx += skippy
+				}
+			}
+			m.UserDefined[mapkey] = mapvalue
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -1415,29 +1761,36 @@ var (
 func init() { proto1.RegisterFile("metadata.proto", fileDescriptorMetadata) }
 
 var fileDescriptorMetadata = []byte{
-	// 384 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x7c, 0x90, 0x3f, 0x4f, 0xdb, 0x40,
-	0x18, 0xc6, 0x7d, 0xb1, 0x63, 0xb7, 0x97, 0x3f, 0xad, 0x6e, 0x3a, 0x75, 0xb8, 0x58, 0x69, 0x55,
-	0x45, 0x95, 0x92, 0x48, 0x6d, 0xc7, 0x4e, 0x2e, 0x0c, 0x11, 0x42, 0x48, 0x66, 0x60, 0xb6, 0x9d,
-	0x23, 0x36, 0x21, 0xbe, 0xc8, 0x77, 0x46, 0x24, 0x13, 0x1f, 0x81, 0x8f, 0x91, 0x8f, 0xc0, 0x47,
-	0xc8, 0x98, 0x91, 0x29, 0xc2, 0x97, 0x85, 0x31, 0x1b, 0x8c, 0xc8, 0x67, 0x07, 0x01, 0x42, 0x4c,
-	0xf7, 0x3e, 0xcf, 0xfb, 0xdc, 0xab, 0xdf, 0xfb, 0xc2, 0xe6, 0x84, 0x0a, 0x6f, 0xe8, 0x09, 0xaf,
-	0x37, 0x4d, 0x98, 0x60, 0xa8, 0xaa, 0x9e, 0x6f, 0xdd, 0x51, 0x24, 0xc2, 0xd4, 0xef, 0x05, 0x6c,
-	0xd2, 0x1f, 0xb1, 0x11, 0xeb, 0x2b, 0xdb, 0x4f, 0x4f, 0x95, 0x52, 0x42, 0x55, 0xc5, 0xaf, 0xf6,
-	0x03, 0x80, 0x9f, 0x0e, 0xcb, 0x41, 0xe8, 0x2b, 0xd4, 0xc7, 0x74, 0x86, 0x81, 0x0d, 0x3a, 0x75,
-	0x37, 0x2f, 0xd1, 0x77, 0x68, 0xf0, 0x68, 0x4e, 0x71, 0xc5, 0x06, 0x1d, 0xdd, 0xf9, 0x22, 0xd7,
-	0xad, 0xda, 0x71, 0x34, 0xa7, 0x83, 0xd8, 0x99, 0x09, 0xca, 0x5d, 0xd5, 0x44, 0x3f, 0x60, 0x23,
-	0x48, 0xa8, 0x27, 0x22, 0x16, 0xef, 0x4f, 0x59, 0x10, 0x62, 0x3d, 0x4f, 0xbb, 0xaf, 0x4d, 0xf4,
-	0x13, 0x36, 0xcf, 0x3d, 0x2e, 0x4e, 0x92, 0x48, 0xd0, 0x22, 0x66, 0xa8, 0xd8, 0x1b, 0x17, 0xfd,
-	0x82, 0x66, 0x10, 0xa6, 0xf1, 0x98, 0xe3, 0xaa, 0xad, 0x77, 0x6a, 0xbf, 0xeb, 0x05, 0x69, 0xef,
-	0x7f, 0x6e, 0x3a, 0xc6, 0x72, 0xdd, 0xd2, 0xdc, 0x32, 0x81, 0x6c, 0x58, 0x9b, 0x26, 0xf4, 0x22,
-	0x62, 0x29, 0x3f, 0xa0, 0x33, 0x6c, 0x2a, 0xf0, 0x97, 0x16, 0xc2, 0xd0, 0x8a, 0xe9, 0xa5, 0xc8,
-	0xbb, 0x96, 0xea, 0xee, 0x64, 0x9b, 0xc1, 0xaa, 0x1a, 0xf9, 0xbc, 0x23, 0xf8, 0x68, 0xc7, 0x2e,
-	0xb4, 0x98, 0x7f, 0x46, 0x03, 0xc1, 0x71, 0x45, 0x61, 0x35, 0x4a, 0xac, 0x23, 0xe5, 0x96, 0x5c,
-	0xbb, 0x0c, 0x42, 0xd0, 0x08, 0x3d, 0x5e, 0x5c, 0xa2, 0xee, 0xaa, 0xba, 0xfd, 0x17, 0x9a, 0x45,
-	0xf8, 0x9d, 0x3b, 0x63, 0x68, 0xf1, 0xd0, 0x4b, 0x86, 0x83, 0x3d, 0x75, 0xea, 0xcf, 0xee, 0x4e,
-	0x3a, 0xff, 0x96, 0x19, 0xd1, 0x56, 0x19, 0xd1, 0x6e, 0x33, 0xa2, 0x6d, 0x33, 0x02, 0x1e, 0x33,
-	0x02, 0xae, 0x24, 0x01, 0x0b, 0x49, 0xc0, 0x8d, 0x24, 0x60, 0x29, 0x09, 0x58, 0x49, 0x02, 0xee,
-	0x24, 0x01, 0xf7, 0x92, 0x68, 0x5b, 0x49, 0xc0, 0xf5, 0x86, 0x68, 0x8b, 0x0d, 0x01, 0xbe, 0xa9,
-	0x20, 0xff, 0x3c, 0x05, 0x00, 0x00, 0xff, 0xff, 0x52, 0x1c, 0x5f, 0x15, 0x2d, 0x02, 0x00, 0x00,
+	// 493 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x6c, 0x52, 0xc1, 0x6e, 0xd3, 0x40,
+	0x10, 0xf5, 0xc6, 0x71, 0x52, 0xaf, 0x93, 0x52, 0xad, 0x38, 0xac, 0x2a, 0xb4, 0x31, 0x01, 0xa1,
+	0x08, 0xa9, 0xa9, 0x04, 0x1c, 0x10, 0x42, 0x1c, 0x4c, 0x7b, 0xa8, 0x10, 0x42, 0x32, 0x20, 0xce,
+	0x1b, 0x67, 0x1b, 0x9b, 0x26, 0xde, 0xc8, 0xbb, 0xae, 0x08, 0x27, 0x3e, 0x81, 0xcf, 0xe8, 0x27,
+	0xf0, 0x09, 0x39, 0xf6, 0x06, 0xa7, 0x08, 0x6f, 0x2f, 0x1c, 0x7b, 0xe4, 0x88, 0x3c, 0x76, 0x94,
+	0x50, 0xf5, 0xe4, 0x79, 0x6f, 0xde, 0x58, 0xef, 0xcd, 0x2c, 0xde, 0x9d, 0x09, 0xcd, 0xc7, 0x5c,
+	0xf3, 0xe1, 0x3c, 0x93, 0x5a, 0x12, 0x07, 0x3e, 0xfb, 0x07, 0x93, 0x44, 0xc7, 0xf9, 0x68, 0x18,
+	0xc9, 0xd9, 0xe1, 0x44, 0x4e, 0xe4, 0x21, 0xd0, 0xa3, 0xfc, 0x14, 0x10, 0x00, 0xa8, 0xaa, 0xa9,
+	0xfe, 0x4f, 0x1b, 0xef, 0xbc, 0xad, 0x7f, 0x44, 0xf6, 0xb0, 0x7d, 0x26, 0x16, 0x14, 0xf9, 0x68,
+	0xd0, 0x09, 0xcb, 0x92, 0xf8, 0xd8, 0x53, 0x5a, 0x66, 0x7c, 0x22, 0xde, 0x27, 0x5f, 0x05, 0x6d,
+	0xf8, 0x68, 0x60, 0x87, 0xdb, 0x14, 0x79, 0x88, 0xbb, 0x51, 0x26, 0xb8, 0x4e, 0x64, 0x7a, 0x3c,
+	0x97, 0x51, 0x4c, 0x6d, 0xd0, 0xfc, 0x4f, 0x92, 0x47, 0x78, 0x77, 0xca, 0x95, 0xfe, 0x94, 0x25,
+	0x5a, 0x54, 0xb2, 0x26, 0xc8, 0x6e, 0xb0, 0xe4, 0x31, 0x6e, 0x45, 0x71, 0x9e, 0x9e, 0x29, 0xea,
+	0xf8, 0xf6, 0xc0, 0x7b, 0xd2, 0xa9, 0x6c, 0x0e, 0x5f, 0x97, 0x64, 0xd0, 0x5c, 0xae, 0x7a, 0x56,
+	0x58, 0x2b, 0x4a, 0x6f, 0xf3, 0x4c, 0x9c, 0x27, 0x32, 0x57, 0x6f, 0xc4, 0x82, 0xb6, 0xc0, 0xf5,
+	0x36, 0x45, 0x28, 0x6e, 0xa7, 0xe2, 0x8b, 0x2e, 0xbb, 0x6d, 0xe8, 0xae, 0x21, 0xb9, 0x8f, 0x9b,
+	0xaa, 0x0c, 0xb4, 0x53, 0xba, 0x08, 0xba, 0x66, 0xd5, 0x73, 0x3f, 0x48, 0xcd, 0xa7, 0x65, 0xa4,
+	0x10, 0x5a, 0xe4, 0x1e, 0x76, 0x53, 0x3e, 0x13, 0x6a, 0xce, 0x23, 0x41, 0x5d, 0x18, 0xdf, 0x10,
+	0x65, 0x17, 0x6c, 0xc0, 0x5a, 0xb0, 0x8f, 0x06, 0x4e, 0xb8, 0x21, 0x48, 0x80, 0xbd, 0x5c, 0x89,
+	0xec, 0x48, 0x9c, 0x26, 0xa9, 0x18, 0x53, 0x0f, 0xb2, 0xf8, 0x75, 0x96, 0xf5, 0xba, 0x87, 0x1f,
+	0x37, 0x92, 0xe3, 0x54, 0x67, 0x8b, 0x70, 0x7b, 0x68, 0xff, 0x15, 0xde, 0xbb, 0x29, 0xd8, 0x3e,
+	0x90, 0x5b, 0x1d, 0xe8, 0x2e, 0x76, 0xce, 0xf9, 0x34, 0xaf, 0x4e, 0xe3, 0x86, 0x15, 0x78, 0xd1,
+	0x78, 0x8e, 0xfa, 0x12, 0x3b, 0xb0, 0x35, 0xf2, 0xa0, 0xce, 0x8a, 0x20, 0xeb, 0x1d, 0xb3, 0xea,
+	0x79, 0xa5, 0xc9, 0x93, 0x34, 0x58, 0x68, 0xa1, 0xea, 0xb4, 0x07, 0xb8, 0x2d, 0x47, 0x9f, 0x45,
+	0xa4, 0x15, 0x6d, 0x80, 0xdb, 0x6e, 0xed, 0xf6, 0x1d, 0xb0, 0xf5, 0xea, 0xd7, 0x1a, 0x42, 0x70,
+	0x33, 0xe6, 0xaa, 0x3a, 0x76, 0x27, 0x84, 0xba, 0xff, 0x0c, 0xb7, 0x2a, 0xf1, 0x2d, 0xef, 0x88,
+	0xe2, 0xb6, 0x8a, 0x79, 0x36, 0x3e, 0x39, 0xaa, 0x8d, 0xae, 0x61, 0xf0, 0x72, 0x59, 0x30, 0xeb,
+	0xb2, 0x60, 0xd6, 0xaf, 0x82, 0x59, 0xd7, 0x05, 0x43, 0x7f, 0x0b, 0x86, 0xbe, 0x19, 0x86, 0x2e,
+	0x0c, 0x43, 0x3f, 0x0c, 0x43, 0x4b, 0xc3, 0xd0, 0xa5, 0x61, 0xe8, 0xb7, 0x61, 0xe8, 0x8f, 0x61,
+	0xd6, 0xb5, 0x61, 0xe8, 0xfb, 0x15, 0xb3, 0x2e, 0xae, 0x18, 0x1a, 0xb5, 0xc0, 0xe4, 0xd3, 0x7f,
+	0x01, 0x00, 0x00, 0xff, 0xff, 0x6c, 0x48, 0x9f, 0x2d, 0x0d, 0x03, 0x00, 0x00,
 }

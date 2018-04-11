@@ -64,3 +64,9 @@ class Metadata:
         return self._stub.DeleteMetadata(
             model.DeleteMetadataRequest(key=key)
         )
+
+    def list_keys(self):
+        '''
+        List all keys in the namespace
+        '''
+        return self._stub.ListKeys(model.ListMetadataKeysRequest())

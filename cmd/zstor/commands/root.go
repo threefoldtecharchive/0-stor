@@ -24,14 +24,13 @@ import (
 	"sync"
 
 	"github.com/zero-os/0-stor/client"
-	"github.com/zero-os/0-stor/client/itsyouonline"
 	"github.com/zero-os/0-stor/client/metastor"
 	"github.com/zero-os/0-stor/client/metastor/db/etcd"
 	"github.com/zero-os/0-stor/client/metastor/encoding"
 	"github.com/zero-os/0-stor/client/processing"
 	"github.com/zero-os/0-stor/cmd"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -67,7 +66,7 @@ func getClient() (*client.Client, error) {
 		return nil, err
 	}
 	// create client
-	cl, err := client.NewClientFromConfigWithoutCaching(*cfg, rootCfg.JobCount)
+	cl, err := client.NewClientFromConfig(*cfg, rootCfg.JobCount)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create 0-stor client: %v", err)
 	}
@@ -104,7 +103,7 @@ func getMetaClient() (*metastor.Client, error) {
 
 	if len(cfg.Encryption.PrivateKey) == 0 {
 		// create potentially insecure metastor storage
-		return metastor.NewClient(config)
+		return metastor.NewClient([]byte(clientCfg.Namespace), config)
 	}
 
 	// create the constructor which will create our encrypter-decrypter when needed
@@ -122,15 +121,7 @@ func getMetaClient() (*metastor.Client, error) {
 
 	// create our full-configured metastor client,
 	// including encryption support for our metadata in binary form
-	return metastor.NewClient(config)
-}
-
-func getNamespaceManager() (*itsyouonline.Client, error) {
-	cfg, err := getClientConfig()
-	if err != nil {
-		return nil, err
-	}
-	return itsyouonline.NewClient(cfg.IYO)
+	return metastor.NewClient([]byte(clientCfg.Namespace), config)
 }
 
 func getClientConfig() (*client.Config, error) {
@@ -149,7 +140,6 @@ var (
 func init() {
 	rootCmd.AddCommand(
 		fileCmd,
-		namespaceCmd,
 		daemonCmd,
 		cmd.VersionCmd,
 	)

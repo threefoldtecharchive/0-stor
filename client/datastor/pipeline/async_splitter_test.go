@@ -19,13 +19,17 @@ package pipeline
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"fmt"
+	"io"
+	mrand "math/rand"
 	"testing"
 
 	"github.com/zero-os/0-stor/client/datastor/pipeline/crypto"
 	"github.com/zero-os/0-stor/client/datastor/pipeline/storage"
 	"github.com/zero-os/0-stor/client/processing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
 )
@@ -59,7 +63,7 @@ func TestAsyncSplitterPipeline_WriteReadDeleteCheck(t *testing.T) {
 func testAsyncSplitterPipelineWriteReadDeleteCheckCycle(t *testing.T, cfg ObjectDistributionConfig, blockSize int, pc ProcessorConstructor, hc HasherConstructor) {
 	require := require.New(t)
 
-	cluster, cleanup, err := newGRPCServerCluster(requiredShardCount(cfg))
+	cluster, cleanup, err := newZdbServerCluster(requiredShardCount(cfg))
 	require.NoError(err)
 	defer cleanup()
 
@@ -100,7 +104,7 @@ func TestAsyncSplitterPipeline_CheckRepair(t *testing.T) {
 func testAsyncSplitterPipelineCheckRepairCycle(t *testing.T, cfg ObjectDistributionConfig, blockSize int, pc ProcessorConstructor, hc HasherConstructor) {
 	require := require.New(t)
 
-	cluster, cleanup, err := newGRPCServerCluster(requiredShardCount(cfg))
+	cluster, cleanup, err := newZdbServerCluster(requiredShardCount(cfg))
 	require.NoError(err)
 	defer cleanup()
 
@@ -117,7 +121,7 @@ func TestNewAsyncSplitterPipeline(t *testing.T) {
 		NewAsyncSplitterPipeline(nil, 42, nil, nil, -1)
 	}, "no object storage given")
 
-	cluster, cleanup, err := newGRPCServerCluster(1)
+	cluster, cleanup, err := newZdbServerCluster(1)
 	require.NoError(t, err)
 	defer cleanup()
 	storage, err := storage.NewRandomChunkStorage(cluster)
@@ -184,7 +188,7 @@ func TestDefaultAsyncSplitterPipelines(t *testing.T) {
 func testDefaultAsyncSplitterPipeline(t *testing.T, cfg ObjectDistributionConfig, blockSize int, pc ProcessorConstructor, hc HasherConstructor) {
 	require := require.New(t)
 
-	cluster, cleanup, err := newGRPCServerCluster(requiredShardCount(cfg))
+	cluster, cleanup, err := newZdbServerCluster(requiredShardCount(cfg))
 	require.NoError(err)
 	defer cleanup()
 
@@ -244,4 +248,128 @@ func testAsyncDataSplitterCycle(t *testing.T, input []byte, output [][]byte, blo
 	err := group.Wait()
 	require.NoError(t, err)
 	require.Equal(t, output, out)
+}
+
+// TestAsyncDataSplitterEOF ensures that known errors get ignored,
+// and that read content gets returned prior to error checking.
+// Added as part of the fix for https://github.com/zero-os/0-stor/pull/513
+func TestAsyncDataSplitterEOF(t *testing.T) {
+	// test that we do not return io.EOF
+	r := &eofReader{bytes.NewReader(nil)}
+	inputCh, splitter := newAsyncDataSplitter(
+		context.Background(), r, 1, 1)
+	go func() {
+		err := splitter()
+		if err != nil {
+			panic(err)
+		}
+	}()
+	input, ok := <-inputCh
+	if !assert.False(t, ok) {
+		t.Fatalf("unexpected input: %v", input)
+	}
+
+	// test that we return also partial content,
+	// even when receiving EOF at the end
+	r = &eofReader{bytes.NewReader([]byte{1, 2, 3})}
+	inputCh, splitter = newAsyncDataSplitter(
+		context.Background(), r, 2, 1)
+	go func() {
+		err := splitter()
+		if err != nil {
+			panic(err)
+		}
+	}()
+	input, ok = <-inputCh
+	require.True(t, ok)
+	require.EqualValues(t, 0, input.Index)
+	require.Equal(t, []byte{1, 2}, input.Data)
+	input, ok = <-inputCh
+	require.True(t, ok)
+	require.EqualValues(t, 1, input.Index)
+	require.Equal(t, []byte{3}, input.Data)
+	input, ok = <-inputCh
+	if !assert.False(t, ok) {
+		t.Fatalf("unexpected input: %v", input)
+	}
+}
+
+type eofReader struct {
+	io.Reader
+}
+
+func (r *eofReader) Read(p []byte) (n int, err error) {
+	n, err = r.Reader.Read(p)
+	if err != nil {
+		return
+	}
+	if n != len(p) {
+		err = io.EOF
+	}
+	return
+}
+
+// Test that the async splitter could read
+// the chunks properly with correct chunk size.
+// even though the underlying reader doesn't
+// always read the full chunck.
+// Added as a fix reported at https://github.com/zero-os/0-stor/issues/499#issuecomment-374141004
+func TestAsyncDataSplitterReadFullChunk(t *testing.T) {
+	const (
+		chunkSize    = 100
+		numChunks    = 100
+		lastChunkLen = 10
+	)
+	var (
+		data = make([]byte, chunkSize*(numChunks-1)+lastChunkLen)
+	)
+	_, err := rand.Read(data)
+	require.NoError(t, err)
+
+	// test that we return also partial content,
+	// even when receiving EOF at the end
+	r := &notFullReader{
+		Reader: bytes.NewReader(data),
+	}
+	inputCh, splitter := newAsyncDataSplitter(
+		context.Background(), r, chunkSize, 1)
+	go func() {
+		err := splitter()
+		if err != nil {
+			panic(err)
+		}
+	}()
+
+	var n int
+	for input := range inputCh {
+		n++
+		if n < numChunks {
+			require.Len(t, input.Data, chunkSize)
+		} else {
+			require.Len(t, input.Data, lastChunkLen)
+		}
+	}
+}
+
+// a reader that sometimes doesn't doesn't
+// fill all the given buffer when doing
+// read operation
+type notFullReader struct {
+	io.Reader
+	count int
+}
+
+func (r *notFullReader) Read(p []byte) (int, error) {
+	r.count++
+	toRead := len(p)
+	if r.count%2 == 0 {
+		half := toRead / 2
+		toRead = mrand.Intn(half) + half - 1
+	}
+	buf := make([]byte, toRead)
+	n, err := r.Reader.Read(buf)
+	if n != 0 {
+		copy(p, buf)
+	}
+	return n, err
 }

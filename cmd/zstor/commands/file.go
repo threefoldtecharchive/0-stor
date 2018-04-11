@@ -23,7 +23,7 @@ import (
 	"os"
 	"path/filepath"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -205,6 +205,34 @@ var fileMetadataCmd = &cobra.Command{
 	},
 }
 
+var fileListCmdCfg struct {
+	HexFormat bool
+}
+
+// fileMetadataCmd represents the file-print-metadata command
+var fileListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "Print all files. ",
+	Long:  "Print all files in this namespace",
+	Args:  cobra.ExactArgs(0),
+	RunE: func(_cmd *cobra.Command, args []string) error {
+		cl, err := getMetaClient()
+		if err != nil {
+			return err
+		}
+
+		return cl.ListKeys(func(key []byte) error {
+			if fileListCmdCfg.HexFormat {
+				fmt.Printf("0x%X\n", key)
+			} else {
+				fmt.Println(string(key))
+			}
+			return nil
+		})
+
+	},
+}
+
 var fileMetadataCfg struct {
 	JSONFormat       bool
 	JSONPrettyFormat bool
@@ -240,6 +268,7 @@ func init() {
 		fileDownloadCmd,
 		fileDeleteCmd,
 		fileMetadataCmd,
+		fileListCmd,
 		fileRepairCmd,
 	)
 
@@ -253,6 +282,10 @@ func init() {
 	fileDownloadCmd.Flags().StringVarP(
 		&fileDownloadCfg.Output, "output", "o", "",
 		"Download the file to the given file, otherwise it will be streamed to the STDOUT.")
+
+	fileListCmd.Flags().BoolVar(
+		&fileListCmdCfg.HexFormat, "hex", false,
+		"Print the keys in hex format.")
 
 	fileMetadataCmd.Flags().BoolVar(
 		&fileMetadataCfg.JSONFormat, "json", false,

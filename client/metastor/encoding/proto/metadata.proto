@@ -29,13 +29,20 @@ option (gogoproto.populate_all) = true;
 option (gogoproto.testgen_all) = true;
 
 message Metadata {
+    // namespace defines the namespace of the data,
+    // and is chosen by the owner of this data.
+	bytes namespace = 9;
+
     // key defines the key of the data,
     // and is chosen by the owner of this data.
     bytes key = 1;
 
-    // size in bytes represents the total size of all chunks,
+    // size in bytes represent the total size of the data before any processing
+    int64 size = 8 [(gogoproto.customname) = "TotalSize"];
+
+    // storageSize in bytes represents the total size of all chunks,
     // that make up the stored data, combined.
-    int64 size = 2 [(gogoproto.customname) = "SizeInBytes"];
+    int64 storageSize = 2;
 
     // creationEpoch defines the time this data was initially created,
     // in the Unix epoch format, in nano seconds.
@@ -49,6 +56,9 @@ message Metadata {
     // that make up the data, when combined.
     repeated Chunk chunks = 5 [(gogoproto.nullable) = false];
 
+	// maximal size of each chunk
+	int32 chunkSize = 10;
+
     // previousKey is an optional key to the previous Metadata (node),
     // in case this Metadata (node) is used as part
     // of a reversed/double linked list.
@@ -58,6 +68,11 @@ message Metadata {
     // in case this Metadata (node) is used as part
     // of a (double) linked list.
     bytes nextKey = 7;
+
+    // userDefined is user defined metadata,
+    // in case user want to store additional metadata
+    // for the object.
+	map<string, string> userDefined = 11;
 }
 
 message Chunk {

@@ -22,7 +22,6 @@ import (
 	"testing"
 
 	"github.com/zero-os/0-stor/client"
-	"github.com/zero-os/0-stor/client/itsyouonline"
 
 	"github.com/stretchr/testify/require"
 )
@@ -71,24 +70,13 @@ func TestInvalidClientConfig(t *testing.T) {
 
 func TestSetupClientConfig(t *testing.T) {
 	require := require.New(t)
-	c := client.Config{
-		IYO: itsyouonline.Config{
-			Organization:      "org",
-			ApplicationID:     "some ID",
-			ApplicationSecret: "some secret",
-		},
-	}
+	c := client.Config{}
 
 	SetupClientConfig(&c)
 	require.NotEmpty(c.Namespace, "Namespace should be set")
 
 	const testNamespace = "test_namespace"
 	c = client.Config{
-		IYO: itsyouonline.Config{
-			Organization:      "org",
-			ApplicationID:     "some ID",
-			ApplicationSecret: "some secret",
-		},
 		Namespace: testNamespace,
 	}
 

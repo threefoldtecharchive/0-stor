@@ -22,10 +22,6 @@
 
 
 [[constraint]]
-  name = "github.com/Sirupsen/logrus"
-  version = "1.0.3"
-
-[[constraint]]
   name = "github.com/codegangsta/cli"
   version = "1.20.0"
 
@@ -59,7 +55,7 @@
 
 [[constraint]]
   name = "github.com/itsyouonline/identityserver"
-  branch = "1.0.0"
+  branch = "1.0.1"
 
 [[constraint]]
   name = "github.com/justinas/alice"
@@ -105,7 +101,16 @@
   branch = "v2"
   name = "gopkg.in/yaml.v2"
 
+[[constraint]]
+  revision = "59cb774ae323e0a21179c6ce41384698c6827543"
+  name = "github.com/grpc-ecosystem/go-grpc-middleware"
+
 # etcd client requires this version
 [[override]]
   name = "github.com/ugorji/go"
   revision = "ded73eae5db7e7a0ef6f55aace87a2873c5d2b74"
+
+# it is OK to do this because we only use `redcon` package during the test
+[[constraint]]
+  branch = "zerodb-test"
+  name = "github.com/iwanbk/redcon"

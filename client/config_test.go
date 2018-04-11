@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	"github.com/zero-os/0-stor/client/datastor/pipeline"
-	"github.com/zero-os/0-stor/client/itsyouonline"
 	"github.com/zero-os/0-stor/client/metastor/encoding"
 	"github.com/zero-os/0-stor/client/processing"
 
@@ -34,11 +33,7 @@ func TestDecodeZstorExampleConfig(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	expectedCfg := Config{
-		IYO: itsyouonline.Config{
-			Organization:      "myorg",
-			ApplicationID:     "appID",
-			ApplicationSecret: "secret",
-		},
+		Password:  "mypass",
 		Namespace: "namespace1",
 		DataStor: DataStorConfig{
 			Shards: []string{

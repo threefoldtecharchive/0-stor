@@ -51,13 +51,6 @@ matrix:
       dist: trusty
       go: 1.9.x
       install: skip
-      script: make testserverrace
-
-    - language: go
-      sudo: true
-      dist: trusty
-      go: 1.9.x
-      install: skip
       script: make testclientrace
 
     - language: go

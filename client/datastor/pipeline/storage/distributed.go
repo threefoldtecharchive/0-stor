@@ -24,7 +24,7 @@ import (
 	"github.com/zero-os/0-stor/client/datastor"
 	"github.com/zero-os/0-stor/client/metastor/metatypes"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/templexxx/reedsolomon"
 	"golang.org/x/sync/errgroup"
 )

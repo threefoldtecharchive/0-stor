@@ -52,12 +52,24 @@ func TestDB_SyncUpdate(t *testing.T) {
 func TestDB_AsyncUpdate(t *testing.T) {
 	etcd, err := NewEmbeddedServer()
 	require.NoError(t, err)
+	defer etcd.Stop()
 
 	db, err := New([]string{etcd.ListenAddr()})
 	require.NoError(t, err)
 	defer db.Close()
 
 	test.AsyncUpdate(t, db)
+}
+
+func TestDB_List(t *testing.T) {
+	etcd, err := NewEmbeddedServer()
+	require.NoError(t, err)
+
+	db, err := New([]string{etcd.ListenAddr()})
+	require.NoError(t, err)
+	defer db.Close()
+
+	test.ListKeys(t, db)
 }
 
 func TestDB_ConstructorErrors(t *testing.T) {
@@ -86,13 +98,17 @@ func TestDB_ServerDown(t *testing.T) {
 	require.NoError(err)
 	defer db.Close()
 
-	key, value := []byte("foo"), []byte("bar")
+	var (
+		namespace = []byte("ns")
+		key       = []byte("foo")
+		value     = []byte("bar")
+	)
 
 	// make sure we can do some operation to server
-	err = db.Set(key, value)
+	err = db.Set(namespace, key, value)
 	require.NoError(err)
 
-	output, err := db.Get(key)
+	output, err := db.Get(namespace, key)
 	require.NoError(err)
 	require.NotNil(output)
 	require.Equal(value, output)
@@ -105,7 +121,7 @@ func TestDB_ServerDown(t *testing.T) {
 	errCh := make(chan error, 1)
 	go func() {
 		startCh <- struct{}{}
-		err := db.Set(key, []byte("42"))
+		err := db.Set(namespace, key, []byte("42"))
 		errCh <- err
 	}()
 
@@ -125,7 +141,7 @@ func TestDB_ServerDown(t *testing.T) {
 	// test the GET
 	go func() {
 		startCh <- struct{}{}
-		_, err := db.Get(key)
+		_, err := db.Get(namespace, key)
 		errCh <- err
 	}()
 

@@ -11,7 +11,7 @@
 
 [gRPC Go](https://github.com/grpc/grpc-go) Middleware: interceptors, helpers, utilities.
 
-**Important** The repo recently moved from `github.com/grpc-ecosystem/go-grpc-middleware`, please update your import paths.
+**Important** The repo recently moved to `github.com/grpc-ecosystem/go-grpc-middleware`, please update your import paths.
 
 ## Middleware
 
@@ -24,7 +24,7 @@ These are generic building blocks that make it easy to build multiple microservi
 The purpose of this repository is to act as a go-to point for such reusable functionality. It contains
 some of them itself, but also will link to useful external repos.
 
-`grpc_middleware` itself provides support for chaining interceptors. Se [Documentation](DOC.md), but here's an example:
+`grpc_middleware` itself provides support for chaining interceptors. See [Documentation](DOC.md), but here's an example:
 
 ```go
 import "github.com/grpc-ecosystem/go-grpc-middleware"
@@ -59,7 +59,7 @@ myServer := grpc.NewServer(
 #### Logging
    * [`grpc_ctxtags`](tags/) - a library that adds a `Tag` map to context, with data populated from request body
    * [`grpc_zap`](logging/zap/) - integration of [zap](https://github.com/uber-go/zap) logging library into gRPC handlers.
-   * [`grpc_logrus`](logging/logrus/) - integration of [logrus](https://github.com/Sirupsen/logrus) logging library into gRPC handlers.
+   * [`grpc_logrus`](logging/logrus/) - integration of [logrus](https://github.com/sirupsen/logrus) logging library into gRPC handlers.
 
 
 #### Monitoring

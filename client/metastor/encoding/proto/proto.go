@@ -24,12 +24,16 @@ import (
 // It is important to use this function with the `UnmarshalMetadata` function of this package.
 func MarshalMetadata(md metatypes.Metadata) ([]byte, error) {
 	s := Metadata{
+		Namespace:      md.Namespace,
 		Key:            md.Key,
-		SizeInBytes:    md.Size,
+		TotalSize:      md.Size,
+		StorageSize:    md.StorageSize,
+		ChunkSize:      md.ChunkSize,
 		CreationEpoch:  md.CreationEpoch,
 		LastWriteEpoch: md.LastWriteEpoch,
 		PreviousKey:    md.PreviousKey,
 		NextKey:        md.NextKey,
+		UserDefined:    md.UserDefined,
 	}
 
 	if length := len(md.Chunks); length > 0 {
@@ -69,12 +73,16 @@ func UnmarshalMetadata(b []byte, md *metatypes.Metadata) error {
 		return err
 	}
 
+	md.Namespace = s.Namespace
 	md.Key = s.Key
-	md.Size = s.SizeInBytes
+	md.Size = s.TotalSize
+	md.StorageSize = s.StorageSize
+	md.ChunkSize = s.ChunkSize
 	md.CreationEpoch = s.CreationEpoch
 	md.LastWriteEpoch = s.LastWriteEpoch
 	md.NextKey = s.NextKey
 	md.PreviousKey = s.PreviousKey
+	md.UserDefined = s.UserDefined
 
 	if length := len(s.Chunks); length > 0 {
 		md.Chunks = make([]metatypes.Chunk, length)

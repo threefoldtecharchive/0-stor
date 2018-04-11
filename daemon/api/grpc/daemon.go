@@ -27,19 +27,17 @@ import (
 
 	"github.com/zero-os/0-stor/client"
 	"github.com/zero-os/0-stor/client/datastor"
-	storgrpc "github.com/zero-os/0-stor/client/datastor/grpc"
 	"github.com/zero-os/0-stor/client/datastor/pipeline"
-	"github.com/zero-os/0-stor/client/itsyouonline"
+	"github.com/zero-os/0-stor/client/datastor/zerodb"
 	"github.com/zero-os/0-stor/client/metastor"
 	"github.com/zero-os/0-stor/client/metastor/db/etcd"
 	"github.com/zero-os/0-stor/client/metastor/encoding"
 	"github.com/zero-os/0-stor/client/processing"
 	"github.com/zero-os/0-stor/daemon/api"
 	pb "github.com/zero-os/0-stor/daemon/api/grpc/schema"
-	serverGRPC "github.com/zero-os/0-stor/server/api/grpc"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
+	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
 
@@ -58,8 +56,6 @@ type Config struct {
 	Pipeline   pipeline.Pipeline
 	MetaClient *metastor.Client
 
-	// optional parameters
-	IYOClient            *itsyouonline.Client
 	MaxMsgSize           int // size in MiB
 	DisableLocalFSAccess bool
 }
@@ -85,18 +81,8 @@ const (
 
 // NewFromClientConfig creates new daemon with given (client) Config.
 func NewFromClientConfig(cfg client.Config, maxMsgSize, jobCount int, disableLocalFSAccess bool) (*Daemon, error) {
-	// create IYO client if given
-	var iyoClient *itsyouonline.Client
-	if cfg.IYO != (itsyouonline.Config{}) {
-		var err error
-		iyoClient, err = itsyouonline.NewClient(cfg.IYO)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	// create data stor cluster
-	cluster, err := createDataClusterFromConfig(&cfg, iyoClient)
+	cluster, err := createDataClusterFromConfig(&cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +93,7 @@ func NewFromClientConfig(cfg client.Config, maxMsgSize, jobCount int, disableLoc
 	}
 
 	// create metastor client
-	metastorClient, err := createMetastorClientFromConfig(&cfg.MetaStor)
+	metastorClient, err := createMetastorClientFromConfig(cfg.Namespace, &cfg.MetaStor)
 	if err != nil {
 		return nil, err
 	}
@@ -116,13 +102,12 @@ func NewFromClientConfig(cfg client.Config, maxMsgSize, jobCount int, disableLoc
 	return New(Config{
 		Pipeline:             pipeline,
 		MetaClient:           metastorClient,
-		IYOClient:            iyoClient,
 		MaxMsgSize:           maxMsgSize,
 		DisableLocalFSAccess: disableLocalFSAccess,
 	})
 }
 
-func createMetastorClientFromConfig(cfg *client.MetaStorConfig) (*metastor.Client, error) {
+func createMetastorClientFromConfig(namespace string, cfg *client.MetaStorConfig) (*metastor.Client, error) {
 	if len(cfg.Database.Endpoints) == 0 {
 		return nil, errors.New("no metadata storage ETCD endpoints given")
 	}
@@ -148,7 +133,7 @@ func createMetastorClientFromConfig(cfg *client.MetaStorConfig) (*metastor.Clien
 
 	if len(cfg.Encryption.PrivateKey) == 0 {
 		// create potentially insecure metastor storage
-		return metastor.NewClient(config)
+		return metastor.NewClient([]byte(namespace), config)
 	}
 
 	// create the constructor which will create our encrypter-decrypter when needed
@@ -166,37 +151,17 @@ func createMetastorClientFromConfig(cfg *client.MetaStorConfig) (*metastor.Clien
 
 	// create our full-configured metastor client,
 	// including encryption support for our metadata in binary form
-	return metastor.NewClient(config)
+	return metastor.NewClient([]byte(namespace), config)
 }
 
-func createDataClusterFromConfig(cfg *client.Config, iyoClient *itsyouonline.Client) (datastor.Cluster, error) {
+func createDataClusterFromConfig(cfg *client.Config) (datastor.Cluster, error) {
 	// optionally create the global datastor TLS config
 	tlsConfig, err := createTLSConfigFromDatastorTLSConfig(&cfg.DataStor.TLS)
 	if err != nil {
 		return nil, err
 	}
 
-	if iyoClient == nil {
-		// create datastor cluster without the use of IYO-backed JWT Tokens,
-		// this will only work if all shards use zstordb servers that
-		// do not require any authentication
-		return storgrpc.NewCluster(cfg.DataStor.Shards, cfg.Namespace, nil, tlsConfig)
-	}
-
-	// create JWT Token Getter (Using the earlier created IYO Client)
-	var tokenGetter datastor.JWTTokenGetter
-	tokenGetter, err = datastor.JWTTokenGetterUsingIYOClient(cfg.IYO.Organization, iyoClient)
-	if err != nil {
-		return nil, err
-	}
-	// create cached token getter from this getter, using the default bucket size and count
-	tokenGetter, err = datastor.CachedJWTTokenGetter(tokenGetter, -1, -1)
-	if err != nil {
-		return nil, err
-	}
-
-	// create datastor cluster, with the use of IYO-backed JWT Tokens
-	return storgrpc.NewCluster(cfg.DataStor.Shards, cfg.Namespace, tokenGetter, tlsConfig)
+	return zerodb.NewCluster(cfg.DataStor.Shards, cfg.Password, cfg.Namespace, tlsConfig)
 }
 
 func createTLSConfigFromDatastorTLSConfig(config *client.DataStorTLSConfig) (*tls.Config, error) {
@@ -243,7 +208,7 @@ func New(cfg Config) (*Daemon, error) {
 	}
 
 	logrusEntry := log.NewEntry(log.StandardLogger())
-	levelOpt := grpc_logrus.WithLevels(serverGRPC.CodeToLogrusLevel)
+	levelOpt := grpc_logrus.WithLevels(CodeToLogrusLevel)
 
 	// create our GRPC server
 	maxMsgSize := cfg.MaxMsgSize * 1024 * 1024 // MiB to bytes
@@ -263,10 +228,6 @@ func New(cfg Config) (*Daemon, error) {
 	// create the master 0-stor client, so we can create the file service
 	client := client.NewClient(cfg.MetaClient, cfg.Pipeline)
 	pb.RegisterFileServiceServer(grpcServer, newFileService(client, cfg.DisableLocalFSAccess))
-
-	// register the optional namespace service
-	namespaceClient := namespaceClientFromIYOClient(cfg.IYOClient)
-	pb.RegisterNamespaceServiceServer(grpcServer, newNamespaceService(namespaceClient))
 
 	// return our daemon ready for usage
 	return &Daemon{

@@ -30,7 +30,7 @@ import (
 )
 
 func TestClient_WriteLinkedErrors(t *testing.T) {
-	servers, serverClean := testGRPCServer(t, 1)
+	servers, serverClean := testZdbServer(t, 1)
 	defer serverClean()
 
 	dataShards := []string{servers[0].Address()}
@@ -55,7 +55,7 @@ func TestClient_WriteLinkedErrors(t *testing.T) {
 }
 
 func TestClient_WriteLinked(t *testing.T) {
-	servers, serverClean := testGRPCServer(t, 1)
+	servers, serverClean := testZdbServer(t, 1)
 	defer serverClean()
 
 	dataShards := []string{servers[0].Address()}
@@ -100,7 +100,7 @@ func TestClient_Traverse(t *testing.T) {
 }
 
 func TestClient_TraverseErrors(t *testing.T) {
-	servers, serverClean := testGRPCServer(t, 1)
+	servers, serverClean := testZdbServer(t, 1)
 	defer serverClean()
 
 	dataShards := []string{servers[0].Address()}
@@ -125,7 +125,7 @@ func TestClient_TraversePostOrder(t *testing.T) {
 }
 
 func TestClient_TraversePostOrderErrors(t *testing.T) {
-	servers, serverClean := testGRPCServer(t, 1)
+	servers, serverClean := testZdbServer(t, 1)
 	defer serverClean()
 
 	dataShards := []string{servers[0].Address()}
@@ -146,7 +146,7 @@ func TestClient_TraversePostOrderErrors(t *testing.T) {
 }
 
 func testTraverse(t *testing.T, forward bool) {
-	servers, serverClean := testGRPCServer(t, 4)
+	servers, serverClean := testZdbServer(t, 4)
 	defer serverClean()
 
 	dataShards := make([]string, len(servers))

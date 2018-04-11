@@ -9,7 +9,6 @@ PACKAGE = github.com/zero-os/0-stor
 COMMIT_HASH = $(shell git rev-parse --short HEAD 2>/dev/null)
 BUILD_DATE = $(shell date +%FT%T%z)
 
-SERVER_PACKAGES = $(shell go list ./server/...)
 CLIENT_PACKAGES = $(shell go list ./client/...)
 DAEMON_PACKAGES = $(shell go list ./daemon/...)
 CMD_PACKAGES = $(shell go list ./cmd/...)
@@ -18,7 +17,7 @@ BENCH_PACKAGES = $(shell go list ./benchmark/...)
 ldflags = -extldflags "-static"
 ldflagsversion = -X $(PACKAGE)/cmd.CommitHash=$(COMMIT_HASH) -X $(PACKAGE)/cmd.BuildDate=$(BUILD_DATE) -s -w
 
-all: client server bench
+all: client bench
 
 client: $(OUTPUT)
 ifeq ($(GOOS), darwin)
@@ -27,15 +26,6 @@ ifeq ($(GOOS), darwin)
 else
 	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) \
 		go build -ldflags '$(ldflags)$(ldflagsversion)' -o $(OUTPUT)/zstor ./cmd/zstor
-endif
-
-server: $(OUTPUT)
-ifeq ($(GOOS), darwin)
-	GOOS=$(GOOS) GOARCH=$(GOARCH) \
-		go build -ldflags '$(ldflagsversion)' -o $(OUTPUT)/zstordb ./cmd/zstordb
-else
-	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) \
-		go build -ldflags '$(ldflags)$(ldflagsversion)' -o $(OUTPUT)/zstordb ./cmd/zstordb
 endif
 
 bench: $(OUTPUT)
@@ -49,18 +39,14 @@ endif
 
 install: all
 	cp $(OUTPUT)/zstor $(GOPATH)/bin/zstor
-	cp $(OUTPUT)/zstordb $(GOPATH)/bin/zstordb
 	cp $(OUTPUT)/zstorbench $(GOPATH)/bin/zstorbench
 
-test: testserver testclient testdaemon testcmd testbench
+test: testclient testdaemon testcmd testbench
 
 testcov:
 	utils/scripts/coverage_test.sh
 
-testrace: testserverrace testclientrace testdaemonrace testbenchrace
-
-testserver:
-	go test -v -timeout $(TIMEOUT) $(SERVER_PACKAGES)
+testrace: testclientrace testdaemonrace testbenchrace
 
 testclient:
 	go test -v -timeout $(TIMEOUT) $(CLIENT_PACKAGES)
@@ -73,9 +59,6 @@ testcmd:
 
 testbench:
 	go test -v -timeout $(TIMEOUT) $(BENCH_PACKAGES)
-
-testserverrace:
-	go test -race -timeout $(RACE_TIMEOUT) $(SERVER_PACKAGES)
 
 testclientrace:
 	go test -race -timeout $(RACE_TIMEOUT) $(CLIENT_PACKAGES)
@@ -114,4 +97,4 @@ prune_deps:
 $(OUTPUT):
 	mkdir -p $(OUTPUT)
 
-.PHONY: $(OUTPUT) client server install test testcov testrace testserver testclient testdaemon testcmd testbench testserverrace testclientrace testdaemonrace testracebench testcodegen ensure_deps add_dep update_dep update_deps prune_deps
+.PHONY: $(OUTPUT) client install test testcov testrace testclient testdaemon testcmd testbench testclientrace testdaemonrace testracebench testcodegen ensure_deps add_dep update_dep update_deps prune_deps

@@ -23,7 +23,6 @@ import (
 	"strings"
 
 	"github.com/zero-os/0-stor/client/datastor/pipeline"
-	"github.com/zero-os/0-stor/client/itsyouonline"
 	"github.com/zero-os/0-stor/client/metastor/encoding"
 	"github.com/zero-os/0-stor/client/processing"
 
@@ -54,9 +53,8 @@ func ReadConfig(path string) (*Config, error) {
 // storage clusters, as well as the entire read/write pipeline,
 // used to read and write data.
 type Config struct {
-	// IYO defines the IYO (itsyou.online) configuration,
-	// used for this 0-stor client.
-	IYO itsyouonline.Config `yaml:"iyo" json:"iyo"`
+	// Password defines the optional 0-db password.
+	Password string `yaml:"password" json:"password"`
 	// Namespace defines the label (ID of namespace),
 	// to be used for all read/write/delete operations.
 	Namespace string `yaml:"namespace" json:"namespace"`

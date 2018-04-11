@@ -37,10 +37,11 @@ import (
 )
 
 func TestNewClient_ExplicitErrors(t *testing.T) {
-	_, err := NewClient(Config{})
+	namespace := []byte("ns")
+	_, err := NewClient(namespace, Config{})
 	require.Error(t, err, "no database given")
 
-	_, err = NewClient(Config{
+	_, err = NewClient(namespace, Config{
 		Database: test.New(),
 		MarshalFuncPair: &encoding.MarshalFuncPair{
 			Marshal: binaryMetadataMarshal,
@@ -48,7 +49,7 @@ func TestNewClient_ExplicitErrors(t *testing.T) {
 	})
 	require.Error(t, err, "no unmarshal func given, while received a non-nil pair")
 
-	_, err = NewClient(Config{
+	_, err = NewClient(namespace, Config{
 		Database: test.New(),
 		MarshalFuncPair: &encoding.MarshalFuncPair{
 			Unmarshal: binaryMetadataUnmarshal,
@@ -65,7 +66,7 @@ func TestClient_NilKeys(t *testing.T) {
 	testClient(t, testClientNilKeys)
 }
 
-func TestClient_Update(t *testing.T) {
+func TestClient_UpdateSync(t *testing.T) {
 	testClient(t, testClientUpdate)
 }
 
@@ -73,9 +74,14 @@ func TestClient_UpdateAsync(t *testing.T) {
 	testClient(t, testClientUpdateAsync)
 }
 
+func TestClient_ListKeys(t *testing.T) {
+	testClient(t, testClientListKeys)
+}
+
 func testClient(t *testing.T, f func(t *testing.T, c *Client)) {
+	namespace := []byte("ns")
 	t.Run("in_mem_db+default_cfg", func(t *testing.T) {
-		client, err := NewClient(Config{
+		client, err := NewClient(namespace, Config{
 			Database: test.New(),
 		})
 		require.NoError(t, err)
@@ -90,7 +96,7 @@ func testClient(t *testing.T, f func(t *testing.T, c *Client)) {
 	})
 
 	t.Run("in_mem_db+binary_encoding", func(t *testing.T) {
-		client, err := NewClient(Config{
+		client, err := NewClient(namespace, Config{
 			Database:        test.New(),
 			MarshalFuncPair: binaryMarshalFuncPair,
 		})
@@ -106,7 +112,7 @@ func testClient(t *testing.T, f func(t *testing.T, c *Client)) {
 	})
 
 	t.Run("in_mem_db+AES_32", func(t *testing.T) {
-		client, err := NewClient(Config{
+		client, err := NewClient(namespace, Config{
 			Database:             test.New(),
 			ProcessorConstructor: encrypterDecrypterConstructor,
 		})
@@ -122,7 +128,7 @@ func testClient(t *testing.T, f func(t *testing.T, c *Client)) {
 	})
 
 	t.Run("in_mem_db+binary_encoding+AES_32", func(t *testing.T) {
-		client, err := NewClient(Config{
+		client, err := NewClient(namespace, Config{
 			Database:             test.New(),
 			MarshalFuncPair:      binaryMarshalFuncPair,
 			ProcessorConstructor: encrypterDecrypterConstructor,
@@ -139,7 +145,7 @@ func testClient(t *testing.T, f func(t *testing.T, c *Client)) {
 	})
 
 	t.Run("in_mem_db+Snappy_default_compression+AES_32", func(t *testing.T) {
-		client, err := NewClient(Config{
+		client, err := NewClient(namespace, Config{
 			Database:             test.New(),
 			ProcessorConstructor: processorChainConstructor,
 		})
@@ -163,6 +169,7 @@ func testRoundTrip(t *testing.T, c *Client) {
 
 	// prepare the data
 	md := metatypes.Metadata{
+		Namespace:      []byte("ns"),
 		Key:            []byte("two"),
 		Size:           42,
 		CreationEpoch:  123456789,
@@ -260,7 +267,10 @@ func testClientUpdate(t *testing.T, c *Client) {
 		func(md metatypes.Metadata) (*metatypes.Metadata, error) { return &md, nil })
 	require.Equal(ErrNotFound, err)
 
-	err = c.SetMetadata(metatypes.Metadata{Key: []byte("foo")})
+	err = c.SetMetadata(metatypes.Metadata{
+		Namespace: c.namespace,
+		Key:       []byte("foo"),
+	})
 	require.NoError(err)
 
 	require.Panics(func() {
@@ -301,7 +311,10 @@ func testClientUpdateAsync(t *testing.T, c *Client) {
 		key = []byte("foo")
 	)
 
-	err = c.SetMetadata(metatypes.Metadata{Key: key})
+	err = c.SetMetadata(metatypes.Metadata{
+		Namespace: c.namespace,
+		Key:       key,
+	})
 	require.NoError(err)
 
 	group, _ := errgroup.WithContext(context.Background())
@@ -351,6 +364,42 @@ func testClientUpdateAsync(t *testing.T, c *Client) {
 	for i := 0; i < jobs; i++ {
 		require.Equal(i, integers[i])
 	}
+}
+
+func testClientListKeys(t *testing.T, c *Client) {
+	const (
+		numData = 10
+	)
+	var (
+		keys       [][]byte
+		listedKeys [][]byte
+	)
+
+	require := require.New(t)
+
+	for i := 0; i < numData; i++ {
+		// prepare the data
+		key := []byte(fmt.Sprintf("key_%v", i))
+
+		md := metatypes.Metadata{
+			Key:            key,
+			Size:           42,
+			CreationEpoch:  int64(i),
+			LastWriteEpoch: int64(i),
+		}
+		// set the metadata
+		err := c.SetMetadata(md)
+		require.NoError(err)
+
+		keys = append(keys, key)
+	}
+
+	err := c.ListKeys(func(key []byte) error {
+		listedKeys = append(listedKeys, key)
+		return nil
+	})
+	require.NoError(err)
+	require.Equal(keys, listedKeys)
 }
 
 func binaryMetadataMarshal(md metatypes.Metadata) ([]byte, error) {

@@ -8,15 +8,6 @@
 		schema/daemon.proto
 
 	It has these top-level messages:
-		Permission
-		CreateNamespaceRequest
-		CreateNamespaceResponse
-		DeleteNamespaceRequest
-		DeleteNamespaceResponse
-		SetPermissionRequest
-		SetPermissionResponse
-		GetPermissionRequest
-		GetPermissionResponse
 		Metadata
 		Chunk
 		Object
@@ -44,6 +35,8 @@
 		GetMetadataResponse
 		DeleteMetadataRequest
 		DeleteMetadataResponse
+		ListMetadataKeysRequest
+		ListMetadataKeysResponse
 		DataWriteRequest
 		DataWriteResponse
 		DataWriteFileRequest
@@ -137,165 +130,6 @@ var FileMode_value = map[string]int32{
 
 func (FileMode) EnumDescriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{1} }
 
-type Permission struct {
-	Read   bool `protobuf:"varint,1,opt,name=read,proto3" json:"read,omitempty"`
-	Write  bool `protobuf:"varint,2,opt,name=write,proto3" json:"write,omitempty"`
-	Delete bool `protobuf:"varint,3,opt,name=delete,proto3" json:"delete,omitempty"`
-	Admin  bool `protobuf:"varint,4,opt,name=admin,proto3" json:"admin,omitempty"`
-}
-
-func (m *Permission) Reset()                    { *m = Permission{} }
-func (*Permission) ProtoMessage()               {}
-func (*Permission) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{0} }
-
-func (m *Permission) GetRead() bool {
-	if m != nil {
-		return m.Read
-	}
-	return false
-}
-
-func (m *Permission) GetWrite() bool {
-	if m != nil {
-		return m.Write
-	}
-	return false
-}
-
-func (m *Permission) GetDelete() bool {
-	if m != nil {
-		return m.Delete
-	}
-	return false
-}
-
-func (m *Permission) GetAdmin() bool {
-	if m != nil {
-		return m.Admin
-	}
-	return false
-}
-
-type CreateNamespaceRequest struct {
-	Namespace string `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
-}
-
-func (m *CreateNamespaceRequest) Reset()                    { *m = CreateNamespaceRequest{} }
-func (*CreateNamespaceRequest) ProtoMessage()               {}
-func (*CreateNamespaceRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{1} }
-
-func (m *CreateNamespaceRequest) GetNamespace() string {
-	if m != nil {
-		return m.Namespace
-	}
-	return ""
-}
-
-type CreateNamespaceResponse struct {
-}
-
-func (m *CreateNamespaceResponse) Reset()                    { *m = CreateNamespaceResponse{} }
-func (*CreateNamespaceResponse) ProtoMessage()               {}
-func (*CreateNamespaceResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{2} }
-
-type DeleteNamespaceRequest struct {
-	Namespace string `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
-}
-
-func (m *DeleteNamespaceRequest) Reset()                    { *m = DeleteNamespaceRequest{} }
-func (*DeleteNamespaceRequest) ProtoMessage()               {}
-func (*DeleteNamespaceRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{3} }
-
-func (m *DeleteNamespaceRequest) GetNamespace() string {
-	if m != nil {
-		return m.Namespace
-	}
-	return ""
-}
-
-type DeleteNamespaceResponse struct {
-}
-
-func (m *DeleteNamespaceResponse) Reset()                    { *m = DeleteNamespaceResponse{} }
-func (*DeleteNamespaceResponse) ProtoMessage()               {}
-func (*DeleteNamespaceResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{4} }
-
-type SetPermissionRequest struct {
-	Namespace  string      `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
-	UserID     string      `protobuf:"bytes,2,opt,name=userID,proto3" json:"userID,omitempty"`
-	Permission *Permission `protobuf:"bytes,3,opt,name=permission" json:"permission,omitempty"`
-}
-
-func (m *SetPermissionRequest) Reset()                    { *m = SetPermissionRequest{} }
-func (*SetPermissionRequest) ProtoMessage()               {}
-func (*SetPermissionRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{5} }
-
-func (m *SetPermissionRequest) GetNamespace() string {
-	if m != nil {
-		return m.Namespace
-	}
-	return ""
-}
-
-func (m *SetPermissionRequest) GetUserID() string {
-	if m != nil {
-		return m.UserID
-	}
-	return ""
-}
-
-func (m *SetPermissionRequest) GetPermission() *Permission {
-	if m != nil {
-		return m.Permission
-	}
-	return nil
-}
-
-type SetPermissionResponse struct {
-}
-
-func (m *SetPermissionResponse) Reset()                    { *m = SetPermissionResponse{} }
-func (*SetPermissionResponse) ProtoMessage()               {}
-func (*SetPermissionResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{6} }
-
-type GetPermissionRequest struct {
-	Namespace string `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
-	UserID    string `protobuf:"bytes,2,opt,name=userID,proto3" json:"userID,omitempty"`
-}
-
-func (m *GetPermissionRequest) Reset()                    { *m = GetPermissionRequest{} }
-func (*GetPermissionRequest) ProtoMessage()               {}
-func (*GetPermissionRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{7} }
-
-func (m *GetPermissionRequest) GetNamespace() string {
-	if m != nil {
-		return m.Namespace
-	}
-	return ""
-}
-
-func (m *GetPermissionRequest) GetUserID() string {
-	if m != nil {
-		return m.UserID
-	}
-	return ""
-}
-
-type GetPermissionResponse struct {
-	Permission *Permission `protobuf:"bytes,1,opt,name=permission" json:"permission,omitempty"`
-}
-
-func (m *GetPermissionResponse) Reset()                    { *m = GetPermissionResponse{} }
-func (*GetPermissionResponse) ProtoMessage()               {}
-func (*GetPermissionResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{8} }
-
-func (m *GetPermissionResponse) GetPermission() *Permission {
-	if m != nil {
-		return m.Permission
-	}
-	return nil
-}
-
 type Metadata struct {
 	// key defines the key of the data,
 	// and is chosen by the owner of this data.
@@ -317,7 +151,7 @@ type Metadata struct {
 
 func (m *Metadata) Reset()                    { *m = Metadata{} }
 func (*Metadata) ProtoMessage()               {}
-func (*Metadata) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{9} }
+func (*Metadata) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{0} }
 
 func (m *Metadata) GetKey() []byte {
 	if m != nil {
@@ -367,7 +201,7 @@ type Chunk struct {
 
 func (m *Chunk) Reset()                    { *m = Chunk{} }
 func (*Chunk) ProtoMessage()               {}
-func (*Chunk) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{10} }
+func (*Chunk) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{1} }
 
 func (m *Chunk) GetChunkSize() int64 {
 	if m != nil {
@@ -399,7 +233,7 @@ type Object struct {
 
 func (m *Object) Reset()                    { *m = Object{} }
 func (*Object) ProtoMessage()               {}
-func (*Object) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{11} }
+func (*Object) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{2} }
 
 func (m *Object) GetKey() []byte {
 	if m != nil {
@@ -422,7 +256,7 @@ type WriteRequest struct {
 
 func (m *WriteRequest) Reset()                    { *m = WriteRequest{} }
 func (*WriteRequest) ProtoMessage()               {}
-func (*WriteRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{12} }
+func (*WriteRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{3} }
 
 func (m *WriteRequest) GetKey() []byte {
 	if m != nil {
@@ -444,7 +278,7 @@ type WriteResponse struct {
 
 func (m *WriteResponse) Reset()                    { *m = WriteResponse{} }
 func (*WriteResponse) ProtoMessage()               {}
-func (*WriteResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{13} }
+func (*WriteResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{4} }
 
 func (m *WriteResponse) GetMetadata() *Metadata {
 	if m != nil {
@@ -460,7 +294,7 @@ type WriteFileRequest struct {
 
 func (m *WriteFileRequest) Reset()                    { *m = WriteFileRequest{} }
 func (*WriteFileRequest) ProtoMessage()               {}
-func (*WriteFileRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{14} }
+func (*WriteFileRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{5} }
 
 func (m *WriteFileRequest) GetKey() []byte {
 	if m != nil {
@@ -482,7 +316,7 @@ type WriteFileResponse struct {
 
 func (m *WriteFileResponse) Reset()                    { *m = WriteFileResponse{} }
 func (*WriteFileResponse) ProtoMessage()               {}
-func (*WriteFileResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{15} }
+func (*WriteFileResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{6} }
 
 func (m *WriteFileResponse) GetMetadata() *Metadata {
 	if m != nil {
@@ -501,7 +335,7 @@ type WriteStreamRequest struct {
 
 func (m *WriteStreamRequest) Reset()                    { *m = WriteStreamRequest{} }
 func (*WriteStreamRequest) ProtoMessage()               {}
-func (*WriteStreamRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{16} }
+func (*WriteStreamRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{7} }
 
 type isWriteStreamRequest_Input interface {
 	isWriteStreamRequest_Input()
@@ -622,7 +456,7 @@ type WriteStreamRequest_Metadata struct {
 func (m *WriteStreamRequest_Metadata) Reset()      { *m = WriteStreamRequest_Metadata{} }
 func (*WriteStreamRequest_Metadata) ProtoMessage() {}
 func (*WriteStreamRequest_Metadata) Descriptor() ([]byte, []int) {
-	return fileDescriptorDaemon, []int{16, 0}
+	return fileDescriptorDaemon, []int{7, 0}
 }
 
 func (m *WriteStreamRequest_Metadata) GetKey() []byte {
@@ -636,11 +470,9 @@ type WriteStreamRequest_Data struct {
 	DataChunk []byte `protobuf:"bytes,2,opt,name=dataChunk,proto3" json:"dataChunk,omitempty"`
 }
 
-func (m *WriteStreamRequest_Data) Reset()      { *m = WriteStreamRequest_Data{} }
-func (*WriteStreamRequest_Data) ProtoMessage() {}
-func (*WriteStreamRequest_Data) Descriptor() ([]byte, []int) {
-	return fileDescriptorDaemon, []int{16, 1}
-}
+func (m *WriteStreamRequest_Data) Reset()                    { *m = WriteStreamRequest_Data{} }
+func (*WriteStreamRequest_Data) ProtoMessage()               {}
+func (*WriteStreamRequest_Data) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{7, 1} }
 
 func (m *WriteStreamRequest_Data) GetDataChunk() []byte {
 	if m != nil {
@@ -655,7 +487,7 @@ type WriteStreamResponse struct {
 
 func (m *WriteStreamResponse) Reset()                    { *m = WriteStreamResponse{} }
 func (*WriteStreamResponse) ProtoMessage()               {}
-func (*WriteStreamResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{17} }
+func (*WriteStreamResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{8} }
 
 func (m *WriteStreamResponse) GetMetadata() *Metadata {
 	if m != nil {
@@ -673,7 +505,7 @@ type ReadRequest struct {
 
 func (m *ReadRequest) Reset()                    { *m = ReadRequest{} }
 func (*ReadRequest) ProtoMessage()               {}
-func (*ReadRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{18} }
+func (*ReadRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{9} }
 
 type isReadRequest_Input interface {
 	isReadRequest_Input()
@@ -789,7 +621,7 @@ type ReadResponse struct {
 
 func (m *ReadResponse) Reset()                    { *m = ReadResponse{} }
 func (*ReadResponse) ProtoMessage()               {}
-func (*ReadResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{19} }
+func (*ReadResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{10} }
 
 func (m *ReadResponse) GetData() []byte {
 	if m != nil {
@@ -811,7 +643,7 @@ type ReadFileRequest struct {
 
 func (m *ReadFileRequest) Reset()                    { *m = ReadFileRequest{} }
 func (*ReadFileRequest) ProtoMessage()               {}
-func (*ReadFileRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{20} }
+func (*ReadFileRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{11} }
 
 type isReadFileRequest_Input interface {
 	isReadFileRequest_Input()
@@ -947,7 +779,7 @@ type ReadFileResponse struct {
 
 func (m *ReadFileResponse) Reset()                    { *m = ReadFileResponse{} }
 func (*ReadFileResponse) ProtoMessage()               {}
-func (*ReadFileResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{21} }
+func (*ReadFileResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{12} }
 
 type ReadStreamRequest struct {
 	// Types that are valid to be assigned to Input:
@@ -959,7 +791,7 @@ type ReadStreamRequest struct {
 
 func (m *ReadStreamRequest) Reset()                    { *m = ReadStreamRequest{} }
 func (*ReadStreamRequest) ProtoMessage()               {}
-func (*ReadStreamRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{22} }
+func (*ReadStreamRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{13} }
 
 type isReadStreamRequest_Input interface {
 	isReadStreamRequest_Input()
@@ -1082,7 +914,7 @@ type ReadStreamResponse struct {
 
 func (m *ReadStreamResponse) Reset()                    { *m = ReadStreamResponse{} }
 func (*ReadStreamResponse) ProtoMessage()               {}
-func (*ReadStreamResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{23} }
+func (*ReadStreamResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{14} }
 
 func (m *ReadStreamResponse) GetDataChunk() []byte {
 	if m != nil {
@@ -1100,7 +932,7 @@ type DeleteRequest struct {
 
 func (m *DeleteRequest) Reset()                    { *m = DeleteRequest{} }
 func (*DeleteRequest) ProtoMessage()               {}
-func (*DeleteRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{24} }
+func (*DeleteRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{15} }
 
 type isDeleteRequest_Input interface {
 	isDeleteRequest_Input()
@@ -1215,7 +1047,7 @@ type DeleteResponse struct {
 
 func (m *DeleteResponse) Reset()                    { *m = DeleteResponse{} }
 func (*DeleteResponse) ProtoMessage()               {}
-func (*DeleteResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{25} }
+func (*DeleteResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{16} }
 
 type CheckRequest struct {
 	// Types that are valid to be assigned to Input:
@@ -1227,7 +1059,7 @@ type CheckRequest struct {
 
 func (m *CheckRequest) Reset()                    { *m = CheckRequest{} }
 func (*CheckRequest) ProtoMessage()               {}
-func (*CheckRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{26} }
+func (*CheckRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{17} }
 
 type isCheckRequest_Input interface {
 	isCheckRequest_Input()
@@ -1350,7 +1182,7 @@ type CheckResponse struct {
 
 func (m *CheckResponse) Reset()                    { *m = CheckResponse{} }
 func (*CheckResponse) ProtoMessage()               {}
-func (*CheckResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{27} }
+func (*CheckResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{18} }
 
 func (m *CheckResponse) GetStatus() CheckStatus {
 	if m != nil {
@@ -1365,7 +1197,7 @@ type RepairRequest struct {
 
 func (m *RepairRequest) Reset()                    { *m = RepairRequest{} }
 func (*RepairRequest) ProtoMessage()               {}
-func (*RepairRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{28} }
+func (*RepairRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{19} }
 
 func (m *RepairRequest) GetKey() []byte {
 	if m != nil {
@@ -1380,7 +1212,7 @@ type RepairResponse struct {
 
 func (m *RepairResponse) Reset()                    { *m = RepairResponse{} }
 func (*RepairResponse) ProtoMessage()               {}
-func (*RepairResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{29} }
+func (*RepairResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{20} }
 
 func (m *RepairResponse) GetMetadata() *Metadata {
 	if m != nil {
@@ -1395,7 +1227,7 @@ type SetMetadataRequest struct {
 
 func (m *SetMetadataRequest) Reset()                    { *m = SetMetadataRequest{} }
 func (*SetMetadataRequest) ProtoMessage()               {}
-func (*SetMetadataRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{30} }
+func (*SetMetadataRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{21} }
 
 func (m *SetMetadataRequest) GetMetadata() *Metadata {
 	if m != nil {
@@ -1409,7 +1241,7 @@ type SetMetadataResponse struct {
 
 func (m *SetMetadataResponse) Reset()                    { *m = SetMetadataResponse{} }
 func (*SetMetadataResponse) ProtoMessage()               {}
-func (*SetMetadataResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{31} }
+func (*SetMetadataResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{22} }
 
 type GetMetadataRequest struct {
 	Key []byte `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
@@ -1417,7 +1249,7 @@ type GetMetadataRequest struct {
 
 func (m *GetMetadataRequest) Reset()                    { *m = GetMetadataRequest{} }
 func (*GetMetadataRequest) ProtoMessage()               {}
-func (*GetMetadataRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{32} }
+func (*GetMetadataRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{23} }
 
 func (m *GetMetadataRequest) GetKey() []byte {
 	if m != nil {
@@ -1432,7 +1264,7 @@ type GetMetadataResponse struct {
 
 func (m *GetMetadataResponse) Reset()                    { *m = GetMetadataResponse{} }
 func (*GetMetadataResponse) ProtoMessage()               {}
-func (*GetMetadataResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{33} }
+func (*GetMetadataResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{24} }
 
 func (m *GetMetadataResponse) GetMetadata() *Metadata {
 	if m != nil {
@@ -1447,7 +1279,7 @@ type DeleteMetadataRequest struct {
 
 func (m *DeleteMetadataRequest) Reset()                    { *m = DeleteMetadataRequest{} }
 func (*DeleteMetadataRequest) ProtoMessage()               {}
-func (*DeleteMetadataRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{34} }
+func (*DeleteMetadataRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{25} }
 
 func (m *DeleteMetadataRequest) GetKey() []byte {
 	if m != nil {
@@ -1461,7 +1293,29 @@ type DeleteMetadataResponse struct {
 
 func (m *DeleteMetadataResponse) Reset()                    { *m = DeleteMetadataResponse{} }
 func (*DeleteMetadataResponse) ProtoMessage()               {}
-func (*DeleteMetadataResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{35} }
+func (*DeleteMetadataResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{26} }
+
+type ListMetadataKeysRequest struct {
+}
+
+func (m *ListMetadataKeysRequest) Reset()                    { *m = ListMetadataKeysRequest{} }
+func (*ListMetadataKeysRequest) ProtoMessage()               {}
+func (*ListMetadataKeysRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{27} }
+
+type ListMetadataKeysResponse struct {
+	Key []byte `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+}
+
+func (m *ListMetadataKeysResponse) Reset()                    { *m = ListMetadataKeysResponse{} }
+func (*ListMetadataKeysResponse) ProtoMessage()               {}
+func (*ListMetadataKeysResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{28} }
+
+func (m *ListMetadataKeysResponse) GetKey() []byte {
+	if m != nil {
+		return m.Key
+	}
+	return nil
+}
 
 type DataWriteRequest struct {
 	Data []byte `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
@@ -1469,7 +1323,7 @@ type DataWriteRequest struct {
 
 func (m *DataWriteRequest) Reset()                    { *m = DataWriteRequest{} }
 func (*DataWriteRequest) ProtoMessage()               {}
-func (*DataWriteRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{36} }
+func (*DataWriteRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{29} }
 
 func (m *DataWriteRequest) GetData() []byte {
 	if m != nil {
@@ -1484,7 +1338,7 @@ type DataWriteResponse struct {
 
 func (m *DataWriteResponse) Reset()                    { *m = DataWriteResponse{} }
 func (*DataWriteResponse) ProtoMessage()               {}
-func (*DataWriteResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{37} }
+func (*DataWriteResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{30} }
 
 func (m *DataWriteResponse) GetChunks() []*Chunk {
 	if m != nil {
@@ -1499,7 +1353,7 @@ type DataWriteFileRequest struct {
 
 func (m *DataWriteFileRequest) Reset()                    { *m = DataWriteFileRequest{} }
 func (*DataWriteFileRequest) ProtoMessage()               {}
-func (*DataWriteFileRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{38} }
+func (*DataWriteFileRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{31} }
 
 func (m *DataWriteFileRequest) GetFilePath() string {
 	if m != nil {
@@ -1514,7 +1368,7 @@ type DataWriteFileResponse struct {
 
 func (m *DataWriteFileResponse) Reset()                    { *m = DataWriteFileResponse{} }
 func (*DataWriteFileResponse) ProtoMessage()               {}
-func (*DataWriteFileResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{39} }
+func (*DataWriteFileResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{32} }
 
 func (m *DataWriteFileResponse) GetChunks() []*Chunk {
 	if m != nil {
@@ -1529,7 +1383,7 @@ type DataWriteStreamRequest struct {
 
 func (m *DataWriteStreamRequest) Reset()                    { *m = DataWriteStreamRequest{} }
 func (*DataWriteStreamRequest) ProtoMessage()               {}
-func (*DataWriteStreamRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{40} }
+func (*DataWriteStreamRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{33} }
 
 func (m *DataWriteStreamRequest) GetDataChunk() []byte {
 	if m != nil {
@@ -1544,7 +1398,7 @@ type DataWriteStreamResponse struct {
 
 func (m *DataWriteStreamResponse) Reset()                    { *m = DataWriteStreamResponse{} }
 func (*DataWriteStreamResponse) ProtoMessage()               {}
-func (*DataWriteStreamResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{41} }
+func (*DataWriteStreamResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{34} }
 
 func (m *DataWriteStreamResponse) GetChunks() []*Chunk {
 	if m != nil {
@@ -1559,7 +1413,7 @@ type DataReadRequest struct {
 
 func (m *DataReadRequest) Reset()                    { *m = DataReadRequest{} }
 func (*DataReadRequest) ProtoMessage()               {}
-func (*DataReadRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{42} }
+func (*DataReadRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{35} }
 
 func (m *DataReadRequest) GetChunks() []*Chunk {
 	if m != nil {
@@ -1574,7 +1428,7 @@ type DataReadResponse struct {
 
 func (m *DataReadResponse) Reset()                    { *m = DataReadResponse{} }
 func (*DataReadResponse) ProtoMessage()               {}
-func (*DataReadResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{43} }
+func (*DataReadResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{36} }
 
 func (m *DataReadResponse) GetData() []byte {
 	if m != nil {
@@ -1593,7 +1447,7 @@ type DataReadFileRequest struct {
 
 func (m *DataReadFileRequest) Reset()                    { *m = DataReadFileRequest{} }
 func (*DataReadFileRequest) ProtoMessage()               {}
-func (*DataReadFileRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{44} }
+func (*DataReadFileRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{37} }
 
 func (m *DataReadFileRequest) GetChunks() []*Chunk {
 	if m != nil {
@@ -1628,7 +1482,7 @@ type DataReadFileResponse struct {
 
 func (m *DataReadFileResponse) Reset()                    { *m = DataReadFileResponse{} }
 func (*DataReadFileResponse) ProtoMessage()               {}
-func (*DataReadFileResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{45} }
+func (*DataReadFileResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{38} }
 
 type DataReadStreamRequest struct {
 	Chunks    []*Chunk `protobuf:"bytes,1,rep,name=chunks" json:"chunks,omitempty"`
@@ -1637,7 +1491,7 @@ type DataReadStreamRequest struct {
 
 func (m *DataReadStreamRequest) Reset()                    { *m = DataReadStreamRequest{} }
 func (*DataReadStreamRequest) ProtoMessage()               {}
-func (*DataReadStreamRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{46} }
+func (*DataReadStreamRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{39} }
 
 func (m *DataReadStreamRequest) GetChunks() []*Chunk {
 	if m != nil {
@@ -1659,7 +1513,7 @@ type DataReadStreamResponse struct {
 
 func (m *DataReadStreamResponse) Reset()                    { *m = DataReadStreamResponse{} }
 func (*DataReadStreamResponse) ProtoMessage()               {}
-func (*DataReadStreamResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{47} }
+func (*DataReadStreamResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{40} }
 
 func (m *DataReadStreamResponse) GetDataChunk() []byte {
 	if m != nil {
@@ -1674,7 +1528,7 @@ type DataDeleteRequest struct {
 
 func (m *DataDeleteRequest) Reset()                    { *m = DataDeleteRequest{} }
 func (*DataDeleteRequest) ProtoMessage()               {}
-func (*DataDeleteRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{48} }
+func (*DataDeleteRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{41} }
 
 func (m *DataDeleteRequest) GetChunks() []*Chunk {
 	if m != nil {
@@ -1688,7 +1542,7 @@ type DataDeleteResponse struct {
 
 func (m *DataDeleteResponse) Reset()                    { *m = DataDeleteResponse{} }
 func (*DataDeleteResponse) ProtoMessage()               {}
-func (*DataDeleteResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{49} }
+func (*DataDeleteResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{42} }
 
 type DataCheckRequest struct {
 	Chunks []*Chunk `protobuf:"bytes,1,rep,name=chunks" json:"chunks,omitempty"`
@@ -1697,7 +1551,7 @@ type DataCheckRequest struct {
 
 func (m *DataCheckRequest) Reset()                    { *m = DataCheckRequest{} }
 func (*DataCheckRequest) ProtoMessage()               {}
-func (*DataCheckRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{50} }
+func (*DataCheckRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{43} }
 
 func (m *DataCheckRequest) GetChunks() []*Chunk {
 	if m != nil {
@@ -1719,7 +1573,7 @@ type DataCheckResponse struct {
 
 func (m *DataCheckResponse) Reset()                    { *m = DataCheckResponse{} }
 func (*DataCheckResponse) ProtoMessage()               {}
-func (*DataCheckResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{51} }
+func (*DataCheckResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{44} }
 
 func (m *DataCheckResponse) GetStatus() CheckStatus {
 	if m != nil {
@@ -1734,7 +1588,7 @@ type DataRepairRequest struct {
 
 func (m *DataRepairRequest) Reset()                    { *m = DataRepairRequest{} }
 func (*DataRepairRequest) ProtoMessage()               {}
-func (*DataRepairRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{52} }
+func (*DataRepairRequest) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{45} }
 
 func (m *DataRepairRequest) GetChunks() []*Chunk {
 	if m != nil {
@@ -1749,7 +1603,7 @@ type DataRepairResponse struct {
 
 func (m *DataRepairResponse) Reset()                    { *m = DataRepairResponse{} }
 func (*DataRepairResponse) ProtoMessage()               {}
-func (*DataRepairResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{53} }
+func (*DataRepairResponse) Descriptor() ([]byte, []int) { return fileDescriptorDaemon, []int{46} }
 
 func (m *DataRepairResponse) GetChunks() []*Chunk {
 	if m != nil {
@@ -1759,15 +1613,6 @@ func (m *DataRepairResponse) GetChunks() []*Chunk {
 }
 
 func init() {
-	proto.RegisterType((*Permission)(nil), "schema.Permission")
-	proto.RegisterType((*CreateNamespaceRequest)(nil), "schema.CreateNamespaceRequest")
-	proto.RegisterType((*CreateNamespaceResponse)(nil), "schema.CreateNamespaceResponse")
-	proto.RegisterType((*DeleteNamespaceRequest)(nil), "schema.DeleteNamespaceRequest")
-	proto.RegisterType((*DeleteNamespaceResponse)(nil), "schema.DeleteNamespaceResponse")
-	proto.RegisterType((*SetPermissionRequest)(nil), "schema.SetPermissionRequest")
-	proto.RegisterType((*SetPermissionResponse)(nil), "schema.SetPermissionResponse")
-	proto.RegisterType((*GetPermissionRequest)(nil), "schema.GetPermissionRequest")
-	proto.RegisterType((*GetPermissionResponse)(nil), "schema.GetPermissionResponse")
 	proto.RegisterType((*Metadata)(nil), "schema.Metadata")
 	proto.RegisterType((*Chunk)(nil), "schema.Chunk")
 	proto.RegisterType((*Object)(nil), "schema.Object")
@@ -1797,6 +1642,8 @@ func init() {
 	proto.RegisterType((*GetMetadataResponse)(nil), "schema.GetMetadataResponse")
 	proto.RegisterType((*DeleteMetadataRequest)(nil), "schema.DeleteMetadataRequest")
 	proto.RegisterType((*DeleteMetadataResponse)(nil), "schema.DeleteMetadataResponse")
+	proto.RegisterType((*ListMetadataKeysRequest)(nil), "schema.ListMetadataKeysRequest")
+	proto.RegisterType((*ListMetadataKeysResponse)(nil), "schema.ListMetadataKeysResponse")
 	proto.RegisterType((*DataWriteRequest)(nil), "schema.DataWriteRequest")
 	proto.RegisterType((*DataWriteResponse)(nil), "schema.DataWriteResponse")
 	proto.RegisterType((*DataWriteFileRequest)(nil), "schema.DataWriteFileRequest")
@@ -1831,231 +1678,6 @@ func (x FileMode) String() string {
 		return s
 	}
 	return strconv.Itoa(int(x))
-}
-func (this *Permission) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
-
-	that1, ok := that.(*Permission)
-	if !ok {
-		that2, ok := that.(Permission)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
-		return false
-	}
-	if this.Read != that1.Read {
-		return false
-	}
-	if this.Write != that1.Write {
-		return false
-	}
-	if this.Delete != that1.Delete {
-		return false
-	}
-	if this.Admin != that1.Admin {
-		return false
-	}
-	return true
-}
-func (this *CreateNamespaceRequest) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
-
-	that1, ok := that.(*CreateNamespaceRequest)
-	if !ok {
-		that2, ok := that.(CreateNamespaceRequest)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
-		return false
-	}
-	if this.Namespace != that1.Namespace {
-		return false
-	}
-	return true
-}
-func (this *CreateNamespaceResponse) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
-
-	that1, ok := that.(*CreateNamespaceResponse)
-	if !ok {
-		that2, ok := that.(CreateNamespaceResponse)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
-		return false
-	}
-	return true
-}
-func (this *DeleteNamespaceRequest) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
-
-	that1, ok := that.(*DeleteNamespaceRequest)
-	if !ok {
-		that2, ok := that.(DeleteNamespaceRequest)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
-		return false
-	}
-	if this.Namespace != that1.Namespace {
-		return false
-	}
-	return true
-}
-func (this *DeleteNamespaceResponse) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
-
-	that1, ok := that.(*DeleteNamespaceResponse)
-	if !ok {
-		that2, ok := that.(DeleteNamespaceResponse)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
-		return false
-	}
-	return true
-}
-func (this *SetPermissionRequest) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
-
-	that1, ok := that.(*SetPermissionRequest)
-	if !ok {
-		that2, ok := that.(SetPermissionRequest)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
-		return false
-	}
-	if this.Namespace != that1.Namespace {
-		return false
-	}
-	if this.UserID != that1.UserID {
-		return false
-	}
-	if !this.Permission.Equal(that1.Permission) {
-		return false
-	}
-	return true
-}
-func (this *SetPermissionResponse) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
-
-	that1, ok := that.(*SetPermissionResponse)
-	if !ok {
-		that2, ok := that.(SetPermissionResponse)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
-		return false
-	}
-	return true
-}
-func (this *GetPermissionRequest) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
-
-	that1, ok := that.(*GetPermissionRequest)
-	if !ok {
-		that2, ok := that.(GetPermissionRequest)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
-		return false
-	}
-	if this.Namespace != that1.Namespace {
-		return false
-	}
-	if this.UserID != that1.UserID {
-		return false
-	}
-	return true
-}
-func (this *GetPermissionResponse) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
-
-	that1, ok := that.(*GetPermissionResponse)
-	if !ok {
-		that2, ok := that.(GetPermissionResponse)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
-		return false
-	}
-	if !this.Permission.Equal(that1.Permission) {
-		return false
-	}
-	return true
 }
 func (this *Metadata) Equal(that interface{}) bool {
 	if that == nil {
@@ -3117,6 +2739,51 @@ func (this *DeleteMetadataResponse) Equal(that interface{}) bool {
 	}
 	return true
 }
+func (this *ListMetadataKeysRequest) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*ListMetadataKeysRequest)
+	if !ok {
+		that2, ok := that.(ListMetadataKeysRequest)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	return true
+}
+func (this *ListMetadataKeysResponse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*ListMetadataKeysResponse)
+	if !ok {
+		that2, ok := that.(ListMetadataKeysResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !bytes.Equal(this.Key, that1.Key) {
+		return false
+	}
+	return true
+}
 func (this *DataWriteRequest) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
@@ -3608,103 +3275,6 @@ func (this *DataRepairResponse) Equal(that interface{}) bool {
 	}
 	return true
 }
-func (this *Permission) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 8)
-	s = append(s, "&schema.Permission{")
-	s = append(s, "Read: "+fmt.Sprintf("%#v", this.Read)+",\n")
-	s = append(s, "Write: "+fmt.Sprintf("%#v", this.Write)+",\n")
-	s = append(s, "Delete: "+fmt.Sprintf("%#v", this.Delete)+",\n")
-	s = append(s, "Admin: "+fmt.Sprintf("%#v", this.Admin)+",\n")
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
-func (this *CreateNamespaceRequest) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 5)
-	s = append(s, "&schema.CreateNamespaceRequest{")
-	s = append(s, "Namespace: "+fmt.Sprintf("%#v", this.Namespace)+",\n")
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
-func (this *CreateNamespaceResponse) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 4)
-	s = append(s, "&schema.CreateNamespaceResponse{")
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
-func (this *DeleteNamespaceRequest) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 5)
-	s = append(s, "&schema.DeleteNamespaceRequest{")
-	s = append(s, "Namespace: "+fmt.Sprintf("%#v", this.Namespace)+",\n")
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
-func (this *DeleteNamespaceResponse) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 4)
-	s = append(s, "&schema.DeleteNamespaceResponse{")
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
-func (this *SetPermissionRequest) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 7)
-	s = append(s, "&schema.SetPermissionRequest{")
-	s = append(s, "Namespace: "+fmt.Sprintf("%#v", this.Namespace)+",\n")
-	s = append(s, "UserID: "+fmt.Sprintf("%#v", this.UserID)+",\n")
-	if this.Permission != nil {
-		s = append(s, "Permission: "+fmt.Sprintf("%#v", this.Permission)+",\n")
-	}
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
-func (this *SetPermissionResponse) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 4)
-	s = append(s, "&schema.SetPermissionResponse{")
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
-func (this *GetPermissionRequest) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 6)
-	s = append(s, "&schema.GetPermissionRequest{")
-	s = append(s, "Namespace: "+fmt.Sprintf("%#v", this.Namespace)+",\n")
-	s = append(s, "UserID: "+fmt.Sprintf("%#v", this.UserID)+",\n")
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
-func (this *GetPermissionResponse) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 5)
-	s = append(s, "&schema.GetPermissionResponse{")
-	if this.Permission != nil {
-		s = append(s, "Permission: "+fmt.Sprintf("%#v", this.Permission)+",\n")
-	}
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
 func (this *Metadata) GoString() string {
 	if this == nil {
 		return "nil"
@@ -4129,6 +3699,25 @@ func (this *DeleteMetadataResponse) GoString() string {
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
+func (this *ListMetadataKeysRequest) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 4)
+	s = append(s, "&schema.ListMetadataKeysRequest{")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *ListMetadataKeysResponse) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&schema.ListMetadataKeysResponse{")
+	s = append(s, "Key: "+fmt.Sprintf("%#v", this.Key)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
 func (this *DataWriteRequest) GoString() string {
 	if this == nil {
 		return "nil"
@@ -4348,169 +3937,6 @@ var _ grpc.ClientConn
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion4
-
-// Client API for NamespaceService service
-
-type NamespaceServiceClient interface {
-	CreateNamespace(ctx context.Context, in *CreateNamespaceRequest, opts ...grpc.CallOption) (*CreateNamespaceResponse, error)
-	DeleteNamespace(ctx context.Context, in *DeleteNamespaceRequest, opts ...grpc.CallOption) (*DeleteNamespaceResponse, error)
-	SetPermission(ctx context.Context, in *SetPermissionRequest, opts ...grpc.CallOption) (*SetPermissionResponse, error)
-	GetPermission(ctx context.Context, in *GetPermissionRequest, opts ...grpc.CallOption) (*GetPermissionResponse, error)
-}
-
-type namespaceServiceClient struct {
-	cc *grpc.ClientConn
-}
-
-func NewNamespaceServiceClient(cc *grpc.ClientConn) NamespaceServiceClient {
-	return &namespaceServiceClient{cc}
-}
-
-func (c *namespaceServiceClient) CreateNamespace(ctx context.Context, in *CreateNamespaceRequest, opts ...grpc.CallOption) (*CreateNamespaceResponse, error) {
-	out := new(CreateNamespaceResponse)
-	err := grpc.Invoke(ctx, "/schema.NamespaceService/CreateNamespace", in, out, c.cc, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *namespaceServiceClient) DeleteNamespace(ctx context.Context, in *DeleteNamespaceRequest, opts ...grpc.CallOption) (*DeleteNamespaceResponse, error) {
-	out := new(DeleteNamespaceResponse)
-	err := grpc.Invoke(ctx, "/schema.NamespaceService/DeleteNamespace", in, out, c.cc, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *namespaceServiceClient) SetPermission(ctx context.Context, in *SetPermissionRequest, opts ...grpc.CallOption) (*SetPermissionResponse, error) {
-	out := new(SetPermissionResponse)
-	err := grpc.Invoke(ctx, "/schema.NamespaceService/SetPermission", in, out, c.cc, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *namespaceServiceClient) GetPermission(ctx context.Context, in *GetPermissionRequest, opts ...grpc.CallOption) (*GetPermissionResponse, error) {
-	out := new(GetPermissionResponse)
-	err := grpc.Invoke(ctx, "/schema.NamespaceService/GetPermission", in, out, c.cc, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-// Server API for NamespaceService service
-
-type NamespaceServiceServer interface {
-	CreateNamespace(context.Context, *CreateNamespaceRequest) (*CreateNamespaceResponse, error)
-	DeleteNamespace(context.Context, *DeleteNamespaceRequest) (*DeleteNamespaceResponse, error)
-	SetPermission(context.Context, *SetPermissionRequest) (*SetPermissionResponse, error)
-	GetPermission(context.Context, *GetPermissionRequest) (*GetPermissionResponse, error)
-}
-
-func RegisterNamespaceServiceServer(s *grpc.Server, srv NamespaceServiceServer) {
-	s.RegisterService(&_NamespaceService_serviceDesc, srv)
-}
-
-func _NamespaceService_CreateNamespace_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CreateNamespaceRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(NamespaceServiceServer).CreateNamespace(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/schema.NamespaceService/CreateNamespace",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(NamespaceServiceServer).CreateNamespace(ctx, req.(*CreateNamespaceRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _NamespaceService_DeleteNamespace_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DeleteNamespaceRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(NamespaceServiceServer).DeleteNamespace(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/schema.NamespaceService/DeleteNamespace",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(NamespaceServiceServer).DeleteNamespace(ctx, req.(*DeleteNamespaceRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _NamespaceService_SetPermission_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SetPermissionRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(NamespaceServiceServer).SetPermission(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/schema.NamespaceService/SetPermission",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(NamespaceServiceServer).SetPermission(ctx, req.(*SetPermissionRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _NamespaceService_GetPermission_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetPermissionRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(NamespaceServiceServer).GetPermission(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/schema.NamespaceService/GetPermission",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(NamespaceServiceServer).GetPermission(ctx, req.(*GetPermissionRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-var _NamespaceService_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "schema.NamespaceService",
-	HandlerType: (*NamespaceServiceServer)(nil),
-	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "CreateNamespace",
-			Handler:    _NamespaceService_CreateNamespace_Handler,
-		},
-		{
-			MethodName: "DeleteNamespace",
-			Handler:    _NamespaceService_DeleteNamespace_Handler,
-		},
-		{
-			MethodName: "SetPermission",
-			Handler:    _NamespaceService_SetPermission_Handler,
-		},
-		{
-			MethodName: "GetPermission",
-			Handler:    _NamespaceService_GetPermission_Handler,
-		},
-	},
-	Streams:  []grpc.StreamDesc{},
-	Metadata: "schema/daemon.proto",
-}
 
 // Client API for FileService service
 
@@ -4908,6 +4334,7 @@ type MetadataServiceClient interface {
 	SetMetadata(ctx context.Context, in *SetMetadataRequest, opts ...grpc.CallOption) (*SetMetadataResponse, error)
 	GetMetadata(ctx context.Context, in *GetMetadataRequest, opts ...grpc.CallOption) (*GetMetadataResponse, error)
 	DeleteMetadata(ctx context.Context, in *DeleteMetadataRequest, opts ...grpc.CallOption) (*DeleteMetadataResponse, error)
+	ListKeys(ctx context.Context, in *ListMetadataKeysRequest, opts ...grpc.CallOption) (MetadataService_ListKeysClient, error)
 }
 
 type metadataServiceClient struct {
@@ -4945,12 +4372,45 @@ func (c *metadataServiceClient) DeleteMetadata(ctx context.Context, in *DeleteMe
 	return out, nil
 }
 
+func (c *metadataServiceClient) ListKeys(ctx context.Context, in *ListMetadataKeysRequest, opts ...grpc.CallOption) (MetadataService_ListKeysClient, error) {
+	stream, err := grpc.NewClientStream(ctx, &_MetadataService_serviceDesc.Streams[0], c.cc, "/schema.MetadataService/ListKeys", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &metadataServiceListKeysClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type MetadataService_ListKeysClient interface {
+	Recv() (*ListMetadataKeysResponse, error)
+	grpc.ClientStream
+}
+
+type metadataServiceListKeysClient struct {
+	grpc.ClientStream
+}
+
+func (x *metadataServiceListKeysClient) Recv() (*ListMetadataKeysResponse, error) {
+	m := new(ListMetadataKeysResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // Server API for MetadataService service
 
 type MetadataServiceServer interface {
 	SetMetadata(context.Context, *SetMetadataRequest) (*SetMetadataResponse, error)
 	GetMetadata(context.Context, *GetMetadataRequest) (*GetMetadataResponse, error)
 	DeleteMetadata(context.Context, *DeleteMetadataRequest) (*DeleteMetadataResponse, error)
+	ListKeys(*ListMetadataKeysRequest, MetadataService_ListKeysServer) error
 }
 
 func RegisterMetadataServiceServer(s *grpc.Server, srv MetadataServiceServer) {
@@ -5011,6 +4471,27 @@ func _MetadataService_DeleteMetadata_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MetadataService_ListKeys_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ListMetadataKeysRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(MetadataServiceServer).ListKeys(m, &metadataServiceListKeysServer{stream})
+}
+
+type MetadataService_ListKeysServer interface {
+	Send(*ListMetadataKeysResponse) error
+	grpc.ServerStream
+}
+
+type metadataServiceListKeysServer struct {
+	grpc.ServerStream
+}
+
+func (x *metadataServiceListKeysServer) Send(m *ListMetadataKeysResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 var _MetadataService_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "schema.MetadataService",
 	HandlerType: (*MetadataServiceServer)(nil),
@@ -5028,7 +4509,13 @@ var _MetadataService_serviceDesc = grpc.ServiceDesc{
 			Handler:    _MetadataService_DeleteMetadata_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "ListKeys",
+			Handler:       _MetadataService_ListKeys_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "schema/daemon.proto",
 }
 
@@ -5422,264 +4909,6 @@ var _DataService_serviceDesc = grpc.ServiceDesc{
 	Metadata: "schema/daemon.proto",
 }
 
-func (m *Permission) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *Permission) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if m.Read {
-		dAtA[i] = 0x8
-		i++
-		if m.Read {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i++
-	}
-	if m.Write {
-		dAtA[i] = 0x10
-		i++
-		if m.Write {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i++
-	}
-	if m.Delete {
-		dAtA[i] = 0x18
-		i++
-		if m.Delete {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i++
-	}
-	if m.Admin {
-		dAtA[i] = 0x20
-		i++
-		if m.Admin {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i++
-	}
-	return i, nil
-}
-
-func (m *CreateNamespaceRequest) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *CreateNamespaceRequest) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if len(m.Namespace) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(len(m.Namespace)))
-		i += copy(dAtA[i:], m.Namespace)
-	}
-	return i, nil
-}
-
-func (m *CreateNamespaceResponse) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *CreateNamespaceResponse) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	return i, nil
-}
-
-func (m *DeleteNamespaceRequest) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *DeleteNamespaceRequest) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if len(m.Namespace) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(len(m.Namespace)))
-		i += copy(dAtA[i:], m.Namespace)
-	}
-	return i, nil
-}
-
-func (m *DeleteNamespaceResponse) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *DeleteNamespaceResponse) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	return i, nil
-}
-
-func (m *SetPermissionRequest) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *SetPermissionRequest) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if len(m.Namespace) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(len(m.Namespace)))
-		i += copy(dAtA[i:], m.Namespace)
-	}
-	if len(m.UserID) > 0 {
-		dAtA[i] = 0x12
-		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(len(m.UserID)))
-		i += copy(dAtA[i:], m.UserID)
-	}
-	if m.Permission != nil {
-		dAtA[i] = 0x1a
-		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(m.Permission.Size()))
-		n1, err := m.Permission.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n1
-	}
-	return i, nil
-}
-
-func (m *SetPermissionResponse) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *SetPermissionResponse) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	return i, nil
-}
-
-func (m *GetPermissionRequest) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *GetPermissionRequest) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if len(m.Namespace) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(len(m.Namespace)))
-		i += copy(dAtA[i:], m.Namespace)
-	}
-	if len(m.UserID) > 0 {
-		dAtA[i] = 0x12
-		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(len(m.UserID)))
-		i += copy(dAtA[i:], m.UserID)
-	}
-	return i, nil
-}
-
-func (m *GetPermissionResponse) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *GetPermissionResponse) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if m.Permission != nil {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintDaemon(dAtA, i, uint64(m.Permission.Size()))
-		n2, err := m.Permission.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n2
-	}
-	return i, nil
-}
-
 func (m *Metadata) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -5851,11 +5080,11 @@ func (m *WriteResponse) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0xa
 		i++
 		i = encodeVarintDaemon(dAtA, i, uint64(m.Metadata.Size()))
-		n3, err := m.Metadata.MarshalTo(dAtA[i:])
+		n1, err := m.Metadata.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n3
+		i += n1
 	}
 	return i, nil
 }
@@ -5909,11 +5138,11 @@ func (m *WriteFileResponse) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0xa
 		i++
 		i = encodeVarintDaemon(dAtA, i, uint64(m.Metadata.Size()))
-		n4, err := m.Metadata.MarshalTo(dAtA[i:])
+		n2, err := m.Metadata.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n4
+		i += n2
 	}
 	return i, nil
 }
@@ -5934,11 +5163,11 @@ func (m *WriteStreamRequest) MarshalTo(dAtA []byte) (int, error) {
 	var l int
 	_ = l
 	if m.Input != nil {
-		nn5, err := m.Input.MarshalTo(dAtA[i:])
+		nn3, err := m.Input.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += nn5
+		i += nn3
 	}
 	return i, nil
 }
@@ -5949,11 +5178,11 @@ func (m *WriteStreamRequest_Metadata_) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0xa
 		i++
 		i = encodeVarintDaemon(dAtA, i, uint64(m.Metadata.Size()))
-		n6, err := m.Metadata.MarshalTo(dAtA[i:])
+		n4, err := m.Metadata.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n6
+		i += n4
 	}
 	return i, nil
 }
@@ -5963,11 +5192,11 @@ func (m *WriteStreamRequest_Data_) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0x12
 		i++
 		i = encodeVarintDaemon(dAtA, i, uint64(m.Data.Size()))
-		n7, err := m.Data.MarshalTo(dAtA[i:])
+		n5, err := m.Data.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n7
+		i += n5
 	}
 	return i, nil
 }
@@ -6038,11 +5267,11 @@ func (m *WriteStreamResponse) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0xa
 		i++
 		i = encodeVarintDaemon(dAtA, i, uint64(m.Metadata.Size()))
-		n8, err := m.Metadata.MarshalTo(dAtA[i:])
+		n6, err := m.Metadata.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n8
+		i += n6
 	}
 	return i, nil
 }
@@ -6063,11 +5292,11 @@ func (m *ReadRequest) MarshalTo(dAtA []byte) (int, error) {
 	var l int
 	_ = l
 	if m.Input != nil {
-		nn9, err := m.Input.MarshalTo(dAtA[i:])
+		nn7, err := m.Input.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += nn9
+		i += nn7
 	}
 	return i, nil
 }
@@ -6088,11 +5317,11 @@ func (m *ReadRequest_Metadata) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0x12
 		i++
 		i = encodeVarintDaemon(dAtA, i, uint64(m.Metadata.Size()))
-		n10, err := m.Metadata.MarshalTo(dAtA[i:])
+		n8, err := m.Metadata.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n10
+		i += n8
 	}
 	return i, nil
 }
@@ -6136,11 +5365,11 @@ func (m *ReadFileRequest) MarshalTo(dAtA []byte) (int, error) {
 	var l int
 	_ = l
 	if m.Input != nil {
-		nn11, err := m.Input.MarshalTo(dAtA[i:])
+		nn9, err := m.Input.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += nn11
+		i += nn9
 	}
 	if len(m.FilePath) > 0 {
 		dAtA[i] = 0x1a
@@ -6182,11 +5411,11 @@ func (m *ReadFileRequest_Metadata) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0x12
 		i++
 		i = encodeVarintDaemon(dAtA, i, uint64(m.Metadata.Size()))
-		n12, err := m.Metadata.MarshalTo(dAtA[i:])
+		n10, err := m.Metadata.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n12
+		i += n10
 	}
 	return i, nil
 }
@@ -6224,11 +5453,11 @@ func (m *ReadStreamRequest) MarshalTo(dAtA []byte) (int, error) {
 	var l int
 	_ = l
 	if m.Input != nil {
-		nn13, err := m.Input.MarshalTo(dAtA[i:])
+		nn11, err := m.Input.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += nn13
+		i += nn11
 	}
 	if m.ChunkSize != 0 {
 		dAtA[i] = 0x18
@@ -6254,11 +5483,11 @@ func (m *ReadStreamRequest_Metadata) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0x12
 		i++
 		i = encodeVarintDaemon(dAtA, i, uint64(m.Metadata.Size()))
-		n14, err := m.Metadata.MarshalTo(dAtA[i:])
+		n12, err := m.Metadata.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n14
+		i += n12
 	}
 	return i, nil
 }
@@ -6302,11 +5531,11 @@ func (m *DeleteRequest) MarshalTo(dAtA []byte) (int, error) {
 	var l int
 	_ = l
 	if m.Input != nil {
-		nn15, err := m.Input.MarshalTo(dAtA[i:])
+		nn13, err := m.Input.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += nn15
+		i += nn13
 	}
 	return i, nil
 }
@@ -6327,11 +5556,11 @@ func (m *DeleteRequest_Metadata) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0x12
 		i++
 		i = encodeVarintDaemon(dAtA, i, uint64(m.Metadata.Size()))
-		n16, err := m.Metadata.MarshalTo(dAtA[i:])
+		n14, err := m.Metadata.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n16
+		i += n14
 	}
 	return i, nil
 }
@@ -6369,11 +5598,11 @@ func (m *CheckRequest) MarshalTo(dAtA []byte) (int, error) {
 	var l int
 	_ = l
 	if m.Input != nil {
-		nn17, err := m.Input.MarshalTo(dAtA[i:])
+		nn15, err := m.Input.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += nn17
+		i += nn15
 	}
 	if m.Fast {
 		dAtA[i] = 0x18
@@ -6404,11 +5633,11 @@ func (m *CheckRequest_Metadata) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0x12
 		i++
 		i = encodeVarintDaemon(dAtA, i, uint64(m.Metadata.Size()))
-		n18, err := m.Metadata.MarshalTo(dAtA[i:])
+		n16, err := m.Metadata.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n18
+		i += n16
 	}
 	return i, nil
 }
@@ -6478,11 +5707,11 @@ func (m *RepairResponse) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0xa
 		i++
 		i = encodeVarintDaemon(dAtA, i, uint64(m.Metadata.Size()))
-		n19, err := m.Metadata.MarshalTo(dAtA[i:])
+		n17, err := m.Metadata.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n19
+		i += n17
 	}
 	return i, nil
 }
@@ -6506,11 +5735,11 @@ func (m *SetMetadataRequest) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0xa
 		i++
 		i = encodeVarintDaemon(dAtA, i, uint64(m.Metadata.Size()))
-		n20, err := m.Metadata.MarshalTo(dAtA[i:])
+		n18, err := m.Metadata.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n20
+		i += n18
 	}
 	return i, nil
 }
@@ -6576,11 +5805,11 @@ func (m *GetMetadataResponse) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0xa
 		i++
 		i = encodeVarintDaemon(dAtA, i, uint64(m.Metadata.Size()))
-		n21, err := m.Metadata.MarshalTo(dAtA[i:])
+		n19, err := m.Metadata.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n21
+		i += n19
 	}
 	return i, nil
 }
@@ -6624,6 +5853,48 @@ func (m *DeleteMetadataResponse) MarshalTo(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	return i, nil
+}
+
+func (m *ListMetadataKeysRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ListMetadataKeysRequest) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	return i, nil
+}
+
+func (m *ListMetadataKeysResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ListMetadataKeysResponse) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.Key) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintDaemon(dAtA, i, uint64(len(m.Key)))
+		i += copy(dAtA[i:], m.Key)
+	}
 	return i, nil
 }
 
@@ -7151,104 +6422,6 @@ func encodeVarintDaemon(dAtA []byte, offset int, v uint64) int {
 	dAtA[offset] = uint8(v)
 	return offset + 1
 }
-func (m *Permission) Size() (n int) {
-	var l int
-	_ = l
-	if m.Read {
-		n += 2
-	}
-	if m.Write {
-		n += 2
-	}
-	if m.Delete {
-		n += 2
-	}
-	if m.Admin {
-		n += 2
-	}
-	return n
-}
-
-func (m *CreateNamespaceRequest) Size() (n int) {
-	var l int
-	_ = l
-	l = len(m.Namespace)
-	if l > 0 {
-		n += 1 + l + sovDaemon(uint64(l))
-	}
-	return n
-}
-
-func (m *CreateNamespaceResponse) Size() (n int) {
-	var l int
-	_ = l
-	return n
-}
-
-func (m *DeleteNamespaceRequest) Size() (n int) {
-	var l int
-	_ = l
-	l = len(m.Namespace)
-	if l > 0 {
-		n += 1 + l + sovDaemon(uint64(l))
-	}
-	return n
-}
-
-func (m *DeleteNamespaceResponse) Size() (n int) {
-	var l int
-	_ = l
-	return n
-}
-
-func (m *SetPermissionRequest) Size() (n int) {
-	var l int
-	_ = l
-	l = len(m.Namespace)
-	if l > 0 {
-		n += 1 + l + sovDaemon(uint64(l))
-	}
-	l = len(m.UserID)
-	if l > 0 {
-		n += 1 + l + sovDaemon(uint64(l))
-	}
-	if m.Permission != nil {
-		l = m.Permission.Size()
-		n += 1 + l + sovDaemon(uint64(l))
-	}
-	return n
-}
-
-func (m *SetPermissionResponse) Size() (n int) {
-	var l int
-	_ = l
-	return n
-}
-
-func (m *GetPermissionRequest) Size() (n int) {
-	var l int
-	_ = l
-	l = len(m.Namespace)
-	if l > 0 {
-		n += 1 + l + sovDaemon(uint64(l))
-	}
-	l = len(m.UserID)
-	if l > 0 {
-		n += 1 + l + sovDaemon(uint64(l))
-	}
-	return n
-}
-
-func (m *GetPermissionResponse) Size() (n int) {
-	var l int
-	_ = l
-	if m.Permission != nil {
-		l = m.Permission.Size()
-		n += 1 + l + sovDaemon(uint64(l))
-	}
-	return n
-}
-
 func (m *Metadata) Size() (n int) {
 	var l int
 	_ = l
@@ -7676,6 +6849,22 @@ func (m *DeleteMetadataResponse) Size() (n int) {
 	return n
 }
 
+func (m *ListMetadataKeysRequest) Size() (n int) {
+	var l int
+	_ = l
+	return n
+}
+
+func (m *ListMetadataKeysResponse) Size() (n int) {
+	var l int
+	_ = l
+	l = len(m.Key)
+	if l > 0 {
+		n += 1 + l + sovDaemon(uint64(l))
+	}
+	return n
+}
+
 func (m *DataWriteRequest) Size() (n int) {
 	var l int
 	_ = l
@@ -7895,99 +7084,6 @@ func sovDaemon(x uint64) (n int) {
 }
 func sozDaemon(x uint64) (n int) {
 	return sovDaemon(uint64((x << 1) ^ uint64((int64(x) >> 63))))
-}
-func (this *Permission) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&Permission{`,
-		`Read:` + fmt.Sprintf("%v", this.Read) + `,`,
-		`Write:` + fmt.Sprintf("%v", this.Write) + `,`,
-		`Delete:` + fmt.Sprintf("%v", this.Delete) + `,`,
-		`Admin:` + fmt.Sprintf("%v", this.Admin) + `,`,
-		`}`,
-	}, "")
-	return s
-}
-func (this *CreateNamespaceRequest) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&CreateNamespaceRequest{`,
-		`Namespace:` + fmt.Sprintf("%v", this.Namespace) + `,`,
-		`}`,
-	}, "")
-	return s
-}
-func (this *CreateNamespaceResponse) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&CreateNamespaceResponse{`,
-		`}`,
-	}, "")
-	return s
-}
-func (this *DeleteNamespaceRequest) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&DeleteNamespaceRequest{`,
-		`Namespace:` + fmt.Sprintf("%v", this.Namespace) + `,`,
-		`}`,
-	}, "")
-	return s
-}
-func (this *DeleteNamespaceResponse) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&DeleteNamespaceResponse{`,
-		`}`,
-	}, "")
-	return s
-}
-func (this *SetPermissionRequest) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&SetPermissionRequest{`,
-		`Namespace:` + fmt.Sprintf("%v", this.Namespace) + `,`,
-		`UserID:` + fmt.Sprintf("%v", this.UserID) + `,`,
-		`Permission:` + strings.Replace(fmt.Sprintf("%v", this.Permission), "Permission", "Permission", 1) + `,`,
-		`}`,
-	}, "")
-	return s
-}
-func (this *SetPermissionResponse) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&SetPermissionResponse{`,
-		`}`,
-	}, "")
-	return s
-}
-func (this *GetPermissionRequest) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&GetPermissionRequest{`,
-		`Namespace:` + fmt.Sprintf("%v", this.Namespace) + `,`,
-		`UserID:` + fmt.Sprintf("%v", this.UserID) + `,`,
-		`}`,
-	}, "")
-	return s
-}
-func (this *GetPermissionResponse) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&GetPermissionResponse{`,
-		`Permission:` + strings.Replace(fmt.Sprintf("%v", this.Permission), "Permission", "Permission", 1) + `,`,
-		`}`,
-	}, "")
-	return s
 }
 func (this *Metadata) String() string {
 	if this == nil {
@@ -8409,6 +7505,25 @@ func (this *DeleteMetadataResponse) String() string {
 	}, "")
 	return s
 }
+func (this *ListMetadataKeysRequest) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&ListMetadataKeysRequest{`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *ListMetadataKeysResponse) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&ListMetadataKeysResponse{`,
+		`Key:` + fmt.Sprintf("%v", this.Key) + `,`,
+		`}`,
+	}, "")
+	return s
+}
 func (this *DataWriteRequest) String() string {
 	if this == nil {
 		return "nil"
@@ -8599,776 +7714,6 @@ func valueToStringDaemon(v interface{}) string {
 	}
 	pv := reflect.Indirect(rv).Interface()
 	return fmt.Sprintf("*%v", pv)
-}
-func (m *Permission) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowDaemon
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: Permission: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Permission: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Read", wireType)
-			}
-			var v int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				v |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.Read = bool(v != 0)
-		case 2:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Write", wireType)
-			}
-			var v int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				v |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.Write = bool(v != 0)
-		case 3:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Delete", wireType)
-			}
-			var v int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				v |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.Delete = bool(v != 0)
-		case 4:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Admin", wireType)
-			}
-			var v int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				v |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.Admin = bool(v != 0)
-		default:
-			iNdEx = preIndex
-			skippy, err := skipDaemon(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *CreateNamespaceRequest) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowDaemon
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: CreateNamespaceRequest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: CreateNamespaceRequest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Namespace", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Namespace = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipDaemon(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *CreateNamespaceResponse) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowDaemon
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: CreateNamespaceResponse: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: CreateNamespaceResponse: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		default:
-			iNdEx = preIndex
-			skippy, err := skipDaemon(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *DeleteNamespaceRequest) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowDaemon
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: DeleteNamespaceRequest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: DeleteNamespaceRequest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Namespace", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Namespace = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipDaemon(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *DeleteNamespaceResponse) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowDaemon
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: DeleteNamespaceResponse: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: DeleteNamespaceResponse: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		default:
-			iNdEx = preIndex
-			skippy, err := skipDaemon(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *SetPermissionRequest) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowDaemon
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: SetPermissionRequest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: SetPermissionRequest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Namespace", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Namespace = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field UserID", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.UserID = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Permission", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			postIndex := iNdEx + msglen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.Permission == nil {
-				m.Permission = &Permission{}
-			}
-			if err := m.Permission.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipDaemon(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *SetPermissionResponse) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowDaemon
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: SetPermissionResponse: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: SetPermissionResponse: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		default:
-			iNdEx = preIndex
-			skippy, err := skipDaemon(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *GetPermissionRequest) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowDaemon
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: GetPermissionRequest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: GetPermissionRequest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Namespace", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Namespace = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field UserID", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.UserID = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipDaemon(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *GetPermissionResponse) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowDaemon
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: GetPermissionResponse: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: GetPermissionResponse: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Permission", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDaemon
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			postIndex := iNdEx + msglen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.Permission == nil {
-				m.Permission = &Permission{}
-			}
-			if err := m.Permission.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipDaemon(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthDaemon
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
 }
 func (m *Metadata) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
@@ -12117,6 +10462,137 @@ func (m *DeleteMetadataResponse) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
+func (m *ListMetadataKeysRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowDaemon
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ListMetadataKeysRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ListMetadataKeysRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := skipDaemon(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ListMetadataKeysResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowDaemon
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ListMetadataKeysResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ListMetadataKeysResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDaemon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Key = append(m.Key[:0], dAtA[iNdEx:postIndex]...)
+			if m.Key == nil {
+				m.Key = []byte{}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipDaemon(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthDaemon
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
 func (m *DataWriteRequest) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -13714,102 +12190,91 @@ var (
 func init() { proto.RegisterFile("schema/daemon.proto", fileDescriptorDaemon) }
 
 var fileDescriptorDaemon = []byte{
-	// 1545 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x58, 0xcd, 0x8f, 0xdb, 0x44,
-	0x1b, 0x8f, 0xf3, 0xd5, 0xdd, 0x27, 0x9b, 0x6c, 0x76, 0x36, 0xd9, 0xcd, 0xa6, 0xbb, 0x6e, 0x5f,
-	0xbf, 0x7d, 0xab, 0x7d, 0x4b, 0xb5, 0xa0, 0xb4, 0x54, 0x40, 0x61, 0xe9, 0x7e, 0xb4, 0x69, 0x29,
-	0xed, 0x16, 0xa7, 0x02, 0x09, 0xf5, 0xe2, 0x3a, 0x53, 0xc5, 0x6c, 0x12, 0x87, 0xd8, 0x29, 0x94,
-	0x03, 0xea, 0x99, 0x13, 0x7f, 0x06, 0x07, 0x24, 0xfe, 0x07, 0x4e, 0x9c, 0x50, 0x8f, 0x48, 0x48,
-	0x88, 0x86, 0x0b, 0xc7, 0x1e, 0x39, 0xa2, 0x19, 0xcf, 0x8c, 0x67, 0x6c, 0x27, 0x4d, 0xca, 0x72,
-	0xb3, 0x9f, 0x8f, 0xdf, 0x3c, 0xf3, 0x7c, 0xfc, 0x3c, 0x63, 0x58, 0xf5, 0xec, 0x0e, 0xee, 0x59,
-	0xaf, 0xb7, 0x2d, 0xdc, 0x73, 0xfb, 0x3b, 0x83, 0xa1, 0xeb, 0xbb, 0x28, 0x1f, 0x08, 0x8d, 0x36,
-	0xc0, 0x3d, 0x3c, 0xec, 0x39, 0x9e, 0xe7, 0xb8, 0x7d, 0x84, 0x20, 0x3b, 0xc4, 0x56, 0xbb, 0xa6,
-	0x9d, 0xd5, 0xb6, 0x17, 0x4c, 0xfa, 0x8c, 0x2a, 0x90, 0xfb, 0x62, 0xe8, 0xf8, 0xb8, 0x96, 0xa6,
-	0xc2, 0xe0, 0x05, 0xad, 0x41, 0xbe, 0x8d, 0xbb, 0xd8, 0xc7, 0xb5, 0x0c, 0x15, 0xb3, 0x37, 0x62,
-	0x6d, 0xb5, 0x7b, 0x4e, 0xbf, 0x96, 0x0d, 0xac, 0xe9, 0x8b, 0x71, 0x05, 0xd6, 0x0e, 0x86, 0xd8,
-	0xf2, 0xf1, 0x5d, 0xab, 0x87, 0xbd, 0x81, 0x65, 0x63, 0x13, 0x7f, 0x3e, 0xc2, 0x9e, 0x8f, 0x36,
-	0x61, 0xb1, 0xcf, 0x65, 0x74, 0xd9, 0x45, 0x33, 0x14, 0x18, 0x1b, 0xb0, 0x1e, 0xf3, 0xf3, 0x06,
-	0x6e, 0xdf, 0xc3, 0x04, 0xf2, 0x90, 0x2e, 0x39, 0x3f, 0x64, 0xcc, 0x8f, 0x41, 0x3e, 0xd5, 0xa0,
-	0xd2, 0xc2, 0x7e, 0x98, 0x8f, 0x99, 0x10, 0x49, 0x2a, 0x46, 0x1e, 0x1e, 0xde, 0x3a, 0xa4, 0x19,
-	0x5a, 0x34, 0xd9, 0x1b, 0x6a, 0x00, 0x0c, 0x04, 0x14, 0x4d, 0x53, 0xa1, 0x81, 0x76, 0x82, 0xbc,
-	0xef, 0x48, 0x8b, 0x48, 0x56, 0xc6, 0x3a, 0x54, 0x23, 0x11, 0xb0, 0xd8, 0x3e, 0x84, 0x4a, 0xf3,
-	0xc4, 0x42, 0x33, 0x6e, 0x43, 0xb5, 0x99, 0xb4, 0x4c, 0x24, 0x66, 0x6d, 0xa6, 0x98, 0x7f, 0xd0,
-	0x60, 0xe1, 0x0e, 0xf6, 0xad, 0xb6, 0xe5, 0x5b, 0xa8, 0x0c, 0x99, 0x63, 0xfc, 0x84, 0x7a, 0x2e,
-	0x99, 0xe4, 0x91, 0x44, 0xe8, 0xbb, 0xbe, 0xd5, 0x6d, 0x39, 0x5f, 0x05, 0x3d, 0x94, 0x31, 0x43,
-	0x01, 0x3a, 0x07, 0x45, 0x9b, 0x54, 0xd8, 0x71, 0xfb, 0xd7, 0x07, 0xae, 0xdd, 0xa1, 0x79, 0xca,
-	0x98, 0xaa, 0x10, 0x9d, 0x87, 0x52, 0xd7, 0xf2, 0xfc, 0x4f, 0x48, 0xeb, 0x05, 0x66, 0x59, 0x6a,
-	0x16, 0x91, 0xa2, 0xff, 0x41, 0xde, 0xee, 0x8c, 0xfa, 0xc7, 0x5e, 0x2d, 0x77, 0x36, 0xb3, 0x5d,
-	0x68, 0x14, 0x79, 0xe8, 0x07, 0x44, 0x6a, 0x32, 0xa5, 0x61, 0x43, 0x8e, 0x0a, 0x48, 0x6c, 0x54,
-	0x44, 0x63, 0xd3, 0x82, 0xd8, 0x84, 0x00, 0x6d, 0xc3, 0x29, 0xf7, 0xe1, 0x67, 0xd8, 0xf6, 0xbd,
-	0x5a, 0x9a, 0xc2, 0x95, 0x38, 0xdc, 0x11, 0x15, 0x9b, 0x5c, 0x4d, 0xe6, 0xa6, 0x63, 0x79, 0x41,
-	0xf0, 0x4b, 0x26, 0x7d, 0x36, 0x2e, 0x43, 0x3e, 0x30, 0x4b, 0xc8, 0x49, 0x0d, 0x4e, 0x79, 0x1d,
-	0x6b, 0xd8, 0x16, 0x85, 0xe1, 0xaf, 0xc6, 0x65, 0x58, 0xa2, 0xfb, 0xe1, 0xf5, 0x8d, 0xfb, 0x22,
-	0xc8, 0x92, 0x4c, 0x53, 0xc7, 0x25, 0x93, 0x3e, 0x1b, 0xef, 0x41, 0x91, 0x79, 0xb1, 0x3a, 0x5e,
-	0x84, 0x85, 0x1e, 0x2b, 0x09, 0xab, 0x62, 0x99, 0xc7, 0xce, 0x4b, 0x65, 0x0a, 0x0b, 0xe3, 0x1a,
-	0x94, 0xa9, 0xfb, 0x0d, 0xa7, 0x3b, 0x65, 0xe1, 0x3a, 0x2c, 0x3c, 0x72, 0xba, 0xf8, 0x9e, 0xe5,
-	0x77, 0x58, 0xd4, 0xe2, 0xdd, 0xd8, 0x83, 0x15, 0x09, 0xe1, 0x95, 0x82, 0xf8, 0x55, 0x03, 0x44,
-	0x31, 0x5a, 0xfe, 0x10, 0x5b, 0x3d, 0x1e, 0xc7, 0x5e, 0x0c, 0xe4, 0xbf, 0x1c, 0x24, 0x6e, 0x2d,
-	0x70, 0x6f, 0xa6, 0x42, 0x64, 0xf4, 0xa6, 0x94, 0xb1, 0x42, 0xe3, 0xcc, 0x14, 0xf7, 0xc3, 0xc0,
-	0x95, 0x9a, 0xd7, 0x37, 0xa7, 0xb5, 0x75, 0xfd, 0x1c, 0x64, 0x89, 0x35, 0x69, 0x21, 0x62, 0x41,
-	0xfb, 0x89, 0xd5, 0x24, 0x14, 0xec, 0x9f, 0x82, 0x9c, 0xd3, 0x1f, 0x8c, 0x7c, 0xe3, 0x00, 0x56,
-	0x95, 0xf5, 0x5e, 0x29, 0x45, 0x9f, 0x42, 0xc1, 0xc4, 0x56, 0x9b, 0xa7, 0x06, 0x49, 0x41, 0xdd,
-	0x4c, 0x05, 0x45, 0xda, 0x91, 0x00, 0xd3, 0xc9, 0x80, 0x72, 0x6e, 0xc2, 0x00, 0x0d, 0x58, 0x0a,
-	0xb0, 0x59, 0x64, 0xbc, 0xcd, 0x34, 0xa9, 0xcd, 0x7e, 0xd6, 0x60, 0x99, 0x18, 0xc9, 0x7d, 0x72,
-	0x02, 0x41, 0x28, 0x9d, 0x95, 0x51, 0x3b, 0x8b, 0x64, 0x88, 0x3c, 0xdf, 0x71, 0xdb, 0x98, 0x0e,
-	0x7d, 0x29, 0xc4, 0xba, 0xc1, 0xe4, 0xa6, 0xb0, 0x20, 0x74, 0xe2, 0x3d, 0xe9, 0xdb, 0x9d, 0xa1,
-	0xdb, 0x77, 0x47, 0xde, 0xad, 0xa3, 0x5a, 0x8e, 0x7e, 0x86, 0x54, 0x61, 0xb8, 0x69, 0x04, 0xe5,
-	0x70, 0x3f, 0x8c, 0x69, 0xbf, 0x86, 0x15, 0x22, 0x53, 0xbb, 0xf0, 0x24, 0x76, 0xa9, 0x90, 0x4d,
-	0x26, 0x42, 0x36, 0x61, 0x4c, 0x0d, 0x40, 0xf2, 0xfa, 0xac, 0x1c, 0x4a, 0x9b, 0x69, 0x91, 0x36,
-	0x33, 0x1e, 0x40, 0x31, 0xf8, 0xa8, 0xfd, 0x2b, 0xad, 0x51, 0x86, 0x12, 0x47, 0x67, 0x39, 0x72,
-	0x61, 0xe9, 0xa0, 0x83, 0xed, 0xe3, 0x93, 0x4c, 0x0f, 0x82, 0xec, 0x23, 0xcb, 0xf3, 0xd9, 0x79,
-	0x82, 0x3e, 0x87, 0x21, 0xbc, 0x0b, 0x45, 0xb6, 0x20, 0xcb, 0xc7, 0x6b, 0x90, 0xf7, 0x7c, 0xcb,
-	0x1f, 0x79, 0x74, 0xd1, 0x52, 0x63, 0x35, 0x64, 0x7a, 0x6c, 0x1f, 0xb7, 0xa8, 0xca, 0x64, 0x26,
-	0xc6, 0x7f, 0xa0, 0x68, 0xe2, 0x81, 0xe5, 0x0c, 0x27, 0x92, 0x9b, 0xb1, 0x0b, 0x25, 0x6e, 0xf2,
-	0x4a, 0xa3, 0xb9, 0x0f, 0xa8, 0x85, 0x7d, 0xa1, 0x60, 0xeb, 0xcc, 0x87, 0x51, 0x85, 0x55, 0x05,
-	0x83, 0x25, 0xfb, 0x3c, 0xa0, 0x66, 0x1c, 0x3a, 0xbe, 0x85, 0x03, 0x58, 0x6d, 0xc6, 0xdd, 0xe7,
-	0x8c, 0xe1, 0xff, 0x50, 0x0d, 0x6a, 0xfd, 0xf2, 0xf5, 0x6a, 0xfc, 0x04, 0x96, 0x10, 0x71, 0x99,
-	0x70, 0xa3, 0xf2, 0x21, 0x4b, 0xe2, 0x93, 0x77, 0x60, 0x45, 0xb2, 0x63, 0xf1, 0x86, 0xdf, 0x70,
-	0x6d, 0xda, 0x37, 0xbc, 0x01, 0x15, 0xe1, 0x2b, 0xf3, 0x91, 0xcc, 0x25, 0x5a, 0xe4, 0x2b, 0xb5,
-	0x0b, 0xd5, 0x88, 0xcf, 0x7c, 0x6b, 0x92, 0x33, 0x27, 0xf7, 0x57, 0xf9, 0x61, 0xfa, 0x78, 0x5e,
-	0x83, 0xf5, 0x98, 0xdf, 0x7c, 0x2b, 0xbf, 0x05, 0xcb, 0x87, 0x34, 0xc3, 0x21, 0xfb, 0xcf, 0xe8,
-	0xc9, 0x6a, 0xf1, 0x52, 0x6e, 0xff, 0x5e, 0x83, 0x55, 0x6e, 0x28, 0xe7, 0x73, 0xb6, 0x65, 0xa6,
-	0x1d, 0x0e, 0x14, 0x0a, 0xcf, 0xcc, 0x4f, 0xe1, 0xd9, 0x04, 0x0a, 0x37, 0xd6, 0x82, 0xf2, 0xc7,
-	0xd8, 0xfb, 0x41, 0x50, 0xe2, 0x38, 0x83, 0xcf, 0xb8, 0x0f, 0x85, 0xa4, 0xd3, 0x11, 0x92, 0xe6,
-	0x0d, 0x30, 0x37, 0x3f, 0xb3, 0x46, 0x57, 0x39, 0x7a, 0xc6, 0x02, 0x56, 0x00, 0xc9, 0xbe, 0x6c,
-	0x9f, 0x77, 0x82, 0xb2, 0x2a, 0x2c, 0x3c, 0xe3, 0x16, 0x39, 0xd1, 0xa6, 0x43, 0xa2, 0x35, 0xae,
-	0x05, 0x01, 0xfe, 0x03, 0x8e, 0x65, 0x5b, 0x54, 0x79, 0x76, 0xc6, 0x2d, 0x5e, 0x0d, 0xb6, 0x18,
-	0x21, 0xe0, 0xd9, 0x9c, 0x2f, 0xb4, 0xa0, 0x20, 0xc5, 0x83, 0xd6, 0x00, 0x49, 0xaf, 0xb7, 0xfa,
-	0x8f, 0xad, 0xae, 0xd3, 0x2e, 0xa7, 0x50, 0x05, 0xca, 0x92, 0xfc, 0x63, 0x2a, 0xd5, 0x22, 0xd6,
-	0x47, 0x03, 0xdf, 0xe9, 0x59, 0xdd, 0x72, 0xfa, 0xc2, 0x6d, 0x58, 0xe0, 0xad, 0x49, 0x3c, 0xf9,
-	0xf3, 0xfd, 0xe1, 0xa8, 0x6f, 0x5b, 0x3e, 0x2e, 0xa7, 0x10, 0x82, 0x12, 0x97, 0xee, 0x0d, 0x06,
-	0xb8, 0x4f, 0xd0, 0xaa, 0xb0, 0xc2, 0x65, 0xd7, 0xbf, 0xb4, 0xbb, 0x23, 0xcf, 0x79, 0x8c, 0xcb,
-	0xe9, 0xc6, 0x6f, 0x69, 0x28, 0x8b, 0xdb, 0x66, 0x0b, 0x0f, 0x1f, 0x3b, 0x36, 0x46, 0xf7, 0x61,
-	0x39, 0x72, 0xb5, 0x45, 0xba, 0xd8, 0x60, 0xe2, 0x5d, 0xb9, 0x7e, 0x66, 0xa2, 0x9e, 0x35, 0x45,
-	0x8a, 0xa0, 0x46, 0x6e, 0xb7, 0x21, 0x6a, 0xf2, 0x75, 0x39, 0x44, 0x9d, 0x74, 0x2d, 0x4e, 0xa1,
-	0xbb, 0x50, 0x54, 0x6e, 0xa5, 0x68, 0x93, 0xfb, 0x24, 0x5d, 0x97, 0xeb, 0x5b, 0x13, 0xb4, 0x32,
-	0x5e, 0x33, 0x19, 0xaf, 0x39, 0x15, 0xaf, 0x99, 0x8c, 0xd7, 0xf8, 0x31, 0x0b, 0x05, 0x92, 0x78,
-	0x9e, 0xdb, 0x2b, 0x90, 0xa3, 0x5c, 0x8b, 0x2a, 0xca, 0x59, 0x9f, 0xe3, 0x55, 0x23, 0x52, 0x11,
-	0xd7, 0x3e, 0x2c, 0x8a, 0x6f, 0x03, 0xaa, 0x29, 0x56, 0x12, 0x25, 0xd6, 0x37, 0x12, 0x34, 0x02,
-	0xe3, 0x03, 0x28, 0x48, 0x3c, 0x8f, 0xea, 0x93, 0x6f, 0x1b, 0xf5, 0xd3, 0x89, 0x3a, 0x8e, 0xb4,
-	0xad, 0xa1, 0x4b, 0x90, 0x25, 0x54, 0x83, 0xc4, 0xe0, 0x49, 0xfc, 0x5f, 0xaf, 0xa8, 0x42, 0x11,
-	0xc0, 0xfb, 0xb0, 0xc0, 0x59, 0x11, 0xad, 0xcb, 0x36, 0xf2, 0x16, 0x6a, 0x71, 0x85, 0x00, 0x68,
-	0x02, 0x84, 0x04, 0x87, 0x36, 0x64, 0x4b, 0x35, 0xfe, 0x7a, 0x92, 0x8a, 0xc3, 0xbc, 0xa1, 0xa1,
-	0xb7, 0x21, 0x1f, 0xf4, 0x14, 0xaa, 0xaa, 0x3d, 0xc6, 0x01, 0xd6, 0xa2, 0x62, 0x11, 0xc3, 0x15,
-	0x72, 0x43, 0xc7, 0xf6, 0x71, 0x58, 0x41, 0x99, 0xe9, 0xc2, 0x0a, 0x2a, 0x84, 0x65, 0xa4, 0xc8,
-	0x92, 0x01, 0x8b, 0x84, 0x4b, 0x2a, 0x8c, 0x14, 0x2e, 0xa9, 0x92, 0x8d, 0x91, 0x6a, 0xfc, 0xa5,
-	0xc1, 0x32, 0x3f, 0xc9, 0xf0, 0x46, 0xba, 0x09, 0x05, 0xe9, 0x44, 0x16, 0x16, 0x33, 0x7e, 0xd4,
-	0x0b, 0x8b, 0x99, 0x74, 0x84, 0x4b, 0x11, 0xa4, 0x66, 0x12, 0x52, 0x73, 0x0a, 0x52, 0x33, 0x11,
-	0xe9, 0x23, 0x7e, 0x1a, 0x17, 0x60, 0x5b, 0x6a, 0x1a, 0xa3, 0x78, 0xfa, 0x24, 0xb5, 0xd8, 0xfa,
-	0x37, 0x39, 0x28, 0x1c, 0x4a, 0xdb, 0xde, 0xe5, 0xf3, 0x23, 0xda, 0x24, 0x7a, 0x9c, 0x0b, 0x67,
-	0x20, 0x76, 0x80, 0xa3, 0x33, 0x20, 0xcd, 0xd1, 0x66, 0xcc, 0x52, 0x6e, 0xc4, 0xad, 0x09, 0x5a,
-	0x81, 0x65, 0xaa, 0xf3, 0xa4, 0xc7, 0xec, 0xd5, 0x9e, 0x3c, 0x33, 0x51, 0x2f, 0xcd, 0xd5, 0x55,
-	0x36, 0x57, 0xeb, 0xb2, 0xb1, 0x3c, 0x5b, 0xb5, 0xb8, 0x42, 0x1a, 0x8f, 0x70, 0xbe, 0x4e, 0x47,
-	0xed, 0xe4, 0xad, 0x6d, 0x26, 0x2b, 0x05, 0xd0, 0x91, 0x32, 0x67, 0x5b, 0x51, 0x6b, 0x75, 0x5f,
-	0xfa, 0x24, 0xb5, 0x34, 0x6f, 0x7b, 0x62, 0xde, 0x94, 0xea, 0xa8, 0x33, 0x57, 0x4f, 0x52, 0x89,
-	0x98, 0x76, 0xf9, 0xdc, 0x29, 0x19, 0x50, 0x66, 0x6f, 0x23, 0x41, 0x23, 0xfc, 0xf7, 0xc4, 0xfc,
-	0x6d, 0xa8, 0x01, 0xcb, 0x33, 0x58, 0x4f, 0x52, 0x71, 0x88, 0xfd, 0x8b, 0xcf, 0x9e, 0xeb, 0xa9,
-	0x5f, 0x9e, 0xeb, 0xa9, 0x17, 0xcf, 0x75, 0xed, 0xe9, 0x58, 0xd7, 0xbe, 0x1b, 0xeb, 0xda, 0x4f,
-	0x63, 0x5d, 0x7b, 0x36, 0xd6, 0xb5, 0xdf, 0xc7, 0xba, 0xf6, 0xe7, 0x58, 0x4f, 0xbd, 0x18, 0xeb,
-	0xda, 0xb7, 0x7f, 0xe8, 0xa9, 0x87, 0x79, 0xfa, 0x3b, 0xfb, 0xd2, 0xdf, 0x01, 0x00, 0x00, 0xff,
-	0xff, 0xa0, 0xb4, 0x07, 0xf8, 0xe5, 0x16, 0x00, 0x00,
+	// 1370 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x58, 0x4d, 0x8f, 0xdb, 0xc4,
+	0x1b, 0xb7, 0xf3, 0xd6, 0xf4, 0xc9, 0x4b, 0xb3, 0x93, 0x7d, 0xf1, 0xba, 0x5b, 0x77, 0xff, 0xfe,
+	0x97, 0x2a, 0x94, 0x6a, 0x41, 0x69, 0xa9, 0x80, 0xc2, 0xd2, 0x7d, 0x69, 0xd3, 0x52, 0xaa, 0x05,
+	0x07, 0x81, 0x84, 0x7a, 0x71, 0x9d, 0xa9, 0x62, 0x36, 0x1b, 0x87, 0xd8, 0xa9, 0x28, 0x07, 0xc4,
+	0x99, 0x13, 0x1f, 0x83, 0x03, 0x12, 0xdf, 0x81, 0x13, 0x12, 0x12, 0xea, 0x11, 0x89, 0x0b, 0x0d,
+	0x17, 0x8e, 0xfd, 0x08, 0xc8, 0xe3, 0x99, 0xf1, 0x8c, 0xed, 0xa4, 0x49, 0x29, 0x37, 0xe7, 0x79,
+	0xf9, 0xcd, 0xf3, 0xf6, 0x7b, 0x66, 0x76, 0xa1, 0xe9, 0x3b, 0x7d, 0x7c, 0x62, 0xbf, 0xde, 0xb3,
+	0xf1, 0x89, 0x37, 0xdc, 0x19, 0x8d, 0xbd, 0xc0, 0x43, 0xa5, 0x48, 0x68, 0xfe, 0xa4, 0x42, 0xf9,
+	0x1e, 0x0e, 0xec, 0x9e, 0x1d, 0xd8, 0xa8, 0x01, 0xf9, 0x63, 0xfc, 0x58, 0x53, 0xb7, 0xd5, 0x56,
+	0xd5, 0x0a, 0x3f, 0xd1, 0x16, 0x9c, 0x0e, 0xbc, 0xc0, 0x1e, 0x74, 0xdd, 0xaf, 0xb1, 0x96, 0xdb,
+	0x56, 0x5b, 0x79, 0x2b, 0x16, 0xa0, 0x0b, 0x50, 0x73, 0xc6, 0xd8, 0x0e, 0x5c, 0x6f, 0x78, 0x73,
+	0xe4, 0x39, 0x7d, 0x2d, 0x4f, 0x2c, 0x64, 0x21, 0xba, 0x08, 0xf5, 0x81, 0xed, 0x07, 0x9f, 0x8d,
+	0xdd, 0x00, 0x47, 0x66, 0x05, 0x62, 0x96, 0x90, 0xa2, 0x57, 0xa0, 0xe4, 0xf4, 0x27, 0xc3, 0x63,
+	0x5f, 0x2b, 0x6e, 0xe7, 0x5b, 0x95, 0x76, 0x6d, 0x27, 0x8a, 0x71, 0xe7, 0x20, 0x94, 0x5a, 0x54,
+	0x69, 0x3a, 0x50, 0x24, 0x82, 0x30, 0x36, 0x22, 0x22, 0xb1, 0xa9, 0x51, 0x6c, 0x5c, 0x80, 0x5a,
+	0x70, 0xca, 0x7b, 0xf0, 0x05, 0x76, 0x02, 0x5f, 0xcb, 0x11, 0xb8, 0x3a, 0x83, 0x3b, 0x22, 0x62,
+	0x8b, 0xa9, 0x11, 0x82, 0x42, 0xdf, 0xf6, 0xa3, 0xe0, 0xab, 0x16, 0xf9, 0x36, 0xaf, 0x42, 0x29,
+	0x32, 0xcb, 0xa8, 0x89, 0x06, 0xa7, 0xfc, 0xbe, 0x3d, 0xee, 0xdd, 0x39, 0x24, 0x15, 0x39, 0x6d,
+	0xb1, 0x9f, 0xe6, 0x55, 0xa8, 0x92, 0x7c, 0x2c, 0xfc, 0xe5, 0x04, 0xfb, 0x59, 0xbe, 0x08, 0x0a,
+	0x61, 0xa5, 0x89, 0x63, 0xd5, 0x22, 0xdf, 0xe6, 0x7b, 0x50, 0xa3, 0x5e, 0xfe, 0xc8, 0x1b, 0xfa,
+	0x18, 0x5d, 0x86, 0xf2, 0x09, 0x6d, 0x09, 0xf1, 0xad, 0xb4, 0x1b, 0x2c, 0x76, 0xd6, 0x2a, 0x8b,
+	0x5b, 0x98, 0x37, 0xa0, 0x41, 0xdc, 0x6f, 0xb9, 0x83, 0x39, 0x07, 0xeb, 0x50, 0x7e, 0xe8, 0x0e,
+	0xf0, 0x47, 0x76, 0xd0, 0xa7, 0x51, 0xf3, 0xdf, 0xe6, 0x1e, 0xac, 0x08, 0x08, 0x2f, 0x14, 0xc4,
+	0x1f, 0x2a, 0x20, 0x82, 0xd1, 0x0d, 0xc6, 0xd8, 0x3e, 0x61, 0x71, 0xec, 0xa5, 0x40, 0xfe, 0xcf,
+	0x40, 0xd2, 0xd6, 0x1c, 0xf7, 0xb6, 0x12, 0x23, 0xa3, 0x37, 0x85, 0x8a, 0x55, 0xda, 0xe7, 0xe7,
+	0xb8, 0x1f, 0x46, 0xae, 0xc4, 0x5c, 0xdf, 0x9a, 0x37, 0xd6, 0xfa, 0x05, 0x28, 0x84, 0xd6, 0xe1,
+	0x08, 0x85, 0x16, 0x64, 0x9e, 0x68, 0x4f, 0x62, 0xc1, 0xfe, 0x29, 0x28, 0xba, 0xc3, 0xd1, 0x24,
+	0x30, 0x0f, 0xa0, 0x29, 0x9d, 0xf7, 0x42, 0x25, 0xfa, 0x1c, 0x2a, 0x16, 0xb6, 0x7b, 0xac, 0x34,
+	0x48, 0x08, 0xea, 0xb6, 0x12, 0x35, 0x69, 0x47, 0x00, 0xcc, 0x65, 0x03, 0x8a, 0xb5, 0x89, 0x03,
+	0x34, 0xa1, 0x1a, 0x61, 0xd3, 0xc8, 0xd8, 0x98, 0xa9, 0xc2, 0x98, 0xfd, 0xa6, 0xc2, 0x99, 0xd0,
+	0x48, 0x9c, 0x93, 0x97, 0x10, 0x84, 0x34, 0x59, 0x79, 0x79, 0xb2, 0xc2, 0x0a, 0x85, 0xdf, 0xf7,
+	0xbc, 0x1e, 0x26, 0xa4, 0xaf, 0xc7, 0x58, 0xb7, 0xa8, 0xdc, 0xe2, 0x16, 0xe1, 0x3a, 0xf1, 0x1f,
+	0x0f, 0x9d, 0xfe, 0xd8, 0x1b, 0x7a, 0x13, 0xff, 0xce, 0x91, 0x56, 0xdc, 0x56, 0x5b, 0x65, 0x4b,
+	0x16, 0xc6, 0x49, 0x23, 0x68, 0xc4, 0xf9, 0x44, 0x89, 0x9b, 0xdf, 0xc0, 0x4a, 0x28, 0x93, 0xa7,
+	0xf0, 0x65, 0x64, 0x29, 0x2d, 0x9b, 0x7c, 0x62, 0xd9, 0xc4, 0x31, 0xb5, 0x01, 0x89, 0xe7, 0xd3,
+	0x76, 0x48, 0x63, 0xa6, 0x26, 0xc6, 0xcc, 0xbc, 0x0f, 0xb5, 0x43, 0x3c, 0xc0, 0x01, 0xfe, 0x4f,
+	0x46, 0xa3, 0x01, 0x75, 0x86, 0x4e, 0x6b, 0xe4, 0x41, 0xf5, 0xa0, 0x8f, 0x9d, 0xe3, 0x97, 0x59,
+	0x1e, 0x04, 0x85, 0x87, 0xb6, 0x1f, 0x90, 0xca, 0x94, 0x2d, 0xf2, 0x1d, 0x87, 0xf0, 0x2e, 0xd4,
+	0xe8, 0x81, 0xb4, 0x1e, 0xaf, 0x41, 0xc9, 0x0f, 0xec, 0x60, 0xe2, 0x93, 0x43, 0xeb, 0xed, 0x66,
+	0xbc, 0xe9, 0xb1, 0x73, 0xdc, 0x25, 0x2a, 0x8b, 0x9a, 0x98, 0xff, 0x83, 0x9a, 0x85, 0x47, 0xb6,
+	0x3b, 0x9e, 0xb9, 0xdc, 0xcc, 0x5d, 0xa8, 0x33, 0x93, 0x17, 0xa2, 0xe6, 0x3e, 0xa0, 0x2e, 0x0e,
+	0xb8, 0x82, 0x9e, 0xb3, 0x1c, 0xc6, 0x1a, 0x34, 0x25, 0x0c, 0x5a, 0xec, 0x8b, 0x80, 0x3a, 0x69,
+	0xe8, 0x74, 0x0a, 0x07, 0xd0, 0xec, 0xa4, 0xdd, 0x97, 0x8c, 0xe1, 0x55, 0x58, 0x8b, 0x7a, 0xfd,
+	0xfc, 0xf3, 0x34, 0x58, 0x4f, 0x9a, 0xd2, 0x88, 0x37, 0x61, 0xe3, 0x43, 0xd7, 0xe7, 0xa1, 0xdc,
+	0xc5, 0x8f, 0x7d, 0x0a, 0x63, 0x5e, 0x06, 0x2d, 0xad, 0xa2, 0x91, 0xa6, 0x8f, 0xb8, 0x08, 0x8d,
+	0x70, 0xc9, 0x4a, 0x37, 0x62, 0xd6, 0x62, 0x7a, 0x07, 0x56, 0x04, 0x3b, 0x0a, 0x17, 0x3f, 0x06,
+	0xd4, 0x79, 0x8f, 0x81, 0x36, 0xac, 0x72, 0x5f, 0x71, 0xb1, 0x89, 0x4b, 0x49, 0x4d, 0x5c, 0x77,
+	0xbb, 0xb0, 0x96, 0xf0, 0x59, 0xee, 0xcc, 0x6b, 0xb0, 0xce, 0xfd, 0xe5, 0x45, 0x33, 0x9f, 0xe7,
+	0x37, 0x60, 0x23, 0xe5, 0xb7, 0xdc, 0xc9, 0x6f, 0xc1, 0x99, 0x43, 0xd2, 0xaa, 0xf8, 0x1a, 0x59,
+	0xd0, 0x93, 0xf6, 0xe2, 0xb9, 0x97, 0xc4, 0x8f, 0x2a, 0x34, 0x99, 0xa1, 0x58, 0xcf, 0xc5, 0x8e,
+	0x99, 0xf7, 0xca, 0x90, 0xee, 0x82, 0xfc, 0xf2, 0x77, 0x41, 0x21, 0xe3, 0x2e, 0x30, 0xd7, 0xa3,
+	0xf6, 0xa7, 0xae, 0x81, 0xfb, 0x51, 0x8b, 0xd3, 0x57, 0xc1, 0x82, 0x79, 0x48, 0xdb, 0x3e, 0x97,
+	0xd8, 0xf6, 0x6c, 0x00, 0x96, 0x5e, 0xf4, 0x74, 0xd0, 0xe5, 0x65, 0xbf, 0x60, 0x03, 0x57, 0x01,
+	0x89, 0xbe, 0x34, 0xcf, 0x7b, 0x51, 0x5b, 0xa5, 0x75, 0xbe, 0x60, 0x8a, 0x6c, 0x63, 0xe7, 0xe2,
+	0x8d, 0x6d, 0xde, 0x88, 0x02, 0xfc, 0x17, 0xcb, 0x9a, 0xa6, 0x28, 0x2f, 0xec, 0x05, 0x53, 0xbc,
+	0x1e, 0xa5, 0x98, 0xd8, 0xe4, 0x8b, 0x39, 0x5f, 0xea, 0x42, 0x45, 0x88, 0x07, 0xad, 0x03, 0x12,
+	0x7e, 0xde, 0x19, 0x3e, 0xb2, 0x07, 0x6e, 0xaf, 0xa1, 0xa0, 0x55, 0x68, 0x08, 0xf2, 0x4f, 0x89,
+	0x54, 0x4d, 0x58, 0x1f, 0x8d, 0x02, 0xf7, 0xc4, 0x1e, 0x34, 0x72, 0x97, 0xee, 0x42, 0x99, 0x8d,
+	0x66, 0xe8, 0xc9, 0xbe, 0x3f, 0x19, 0x4f, 0x86, 0x8e, 0x1d, 0xe0, 0x86, 0x82, 0x10, 0xd4, 0x99,
+	0x74, 0x6f, 0x34, 0xc2, 0xc3, 0x10, 0x6d, 0x0d, 0x56, 0x98, 0xec, 0xe6, 0x57, 0xce, 0x60, 0xe2,
+	0xbb, 0x8f, 0x70, 0x23, 0xd7, 0xfe, 0xb9, 0x00, 0x95, 0x50, 0xde, 0xc5, 0xe3, 0x47, 0xae, 0x83,
+	0xd1, 0x35, 0x28, 0x92, 0x55, 0x80, 0x56, 0xa5, 0x37, 0x2d, 0x2d, 0x9a, 0xbe, 0x96, 0x90, 0xd2,
+	0x8e, 0x2b, 0x68, 0x1f, 0x4e, 0xf3, 0xd5, 0x85, 0x34, 0xc9, 0x4a, 0x60, 0xac, 0xbe, 0x99, 0xa1,
+	0xe1, 0x18, 0x1f, 0x40, 0x45, 0x58, 0x43, 0x48, 0x9f, 0xfd, 0xaa, 0xd6, 0xcf, 0x66, 0xea, 0x18,
+	0x52, 0x4b, 0x45, 0x57, 0xa0, 0x10, 0x32, 0x01, 0xf1, 0xb9, 0x10, 0xd6, 0x93, 0xbe, 0x2a, 0x0b,
+	0x79, 0x00, 0xef, 0x43, 0x99, 0x91, 0x16, 0x6d, 0x88, 0x36, 0x62, 0x0a, 0x5a, 0x5a, 0xc1, 0x01,
+	0x3a, 0x00, 0x31, 0xff, 0xd0, 0xa6, 0x68, 0x29, 0xc7, 0xaf, 0x67, 0xa9, 0x18, 0xcc, 0x1b, 0x2a,
+	0x7a, 0x1b, 0x4a, 0x11, 0xa9, 0x10, 0xaf, 0xb8, 0x44, 0x50, 0x7d, 0x3d, 0x29, 0xe6, 0x31, 0x5c,
+	0x0b, 0xff, 0x12, 0xc5, 0xce, 0x71, 0xdc, 0x41, 0x91, 0x88, 0x71, 0x07, 0x25, 0x3e, 0x99, 0x4a,
+	0x78, 0x64, 0x34, 0xe4, 0xf1, 0x91, 0x12, 0x61, 0xe2, 0x23, 0x65, 0x2e, 0x98, 0x4a, 0xfb, 0xd7,
+	0x1c, 0x9c, 0x61, 0xd7, 0x2f, 0x1b, 0xa4, 0xdb, 0x50, 0x11, 0x5e, 0x1e, 0x71, 0x33, 0xd3, 0x4f,
+	0x9a, 0xb8, 0x99, 0x59, 0x4f, 0x15, 0x25, 0x44, 0xea, 0x64, 0x21, 0x75, 0xe6, 0x20, 0x75, 0x32,
+	0x91, 0x3e, 0x66, 0xaf, 0x4e, 0x0e, 0x76, 0x4e, 0x2e, 0x63, 0x12, 0xcf, 0x98, 0xa5, 0x16, 0x20,
+	0xcb, 0xe1, 0xe3, 0x23, 0x7c, 0x74, 0x20, 0xfe, 0x67, 0xe0, 0x8c, 0x97, 0x8a, 0xbe, 0x3d, 0xdb,
+	0x20, 0xee, 0x7d, 0xfb, 0xbb, 0x22, 0x54, 0x0e, 0x85, 0x4a, 0xee, 0x32, 0x4a, 0xf2, 0xc9, 0x4b,
+	0x3e, 0x60, 0x62, 0x5a, 0xa5, 0x9e, 0x2c, 0x84, 0x56, 0x02, 0x35, 0xb7, 0x52, 0x96, 0xe2, 0x6c,
+	0x9f, 0x9b, 0xa1, 0xe5, 0x58, 0x96, 0x4c, 0x51, 0x23, 0x65, 0x2f, 0x8f, 0xf9, 0xf9, 0x99, 0x7a,
+	0x81, 0xaa, 0xd7, 0x29, 0x55, 0x37, 0x44, 0x63, 0x91, 0xae, 0x5a, 0x5a, 0x21, 0x30, 0x2e, 0xa6,
+	0xec, 0xd9, 0xa4, 0x9d, 0x98, 0xda, 0x56, 0xb6, 0x92, 0x03, 0x1d, 0x49, 0xd4, 0x3d, 0x97, 0xb4,
+	0x96, 0xf3, 0x32, 0x66, 0xa9, 0x05, 0x0a, 0xef, 0x71, 0x0a, 0x4b, 0xdd, 0x91, 0x69, 0xac, 0x67,
+	0xa9, 0x78, 0x4c, 0xbb, 0x8c, 0xca, 0x52, 0x05, 0x24, 0x3a, 0x6f, 0x66, 0x68, 0xb8, 0xff, 0x1e,
+	0xa7, 0xf4, 0xa6, 0x1c, 0xb0, 0x48, 0x6b, 0x3d, 0x4b, 0xc5, 0x20, 0xf6, 0x2f, 0x3f, 0x79, 0x6a,
+	0x28, 0xbf, 0x3f, 0x35, 0x94, 0x67, 0x4f, 0x0d, 0xf5, 0xdb, 0xa9, 0xa1, 0xfe, 0x30, 0x35, 0xd4,
+	0x5f, 0xa6, 0x86, 0xfa, 0x64, 0x6a, 0xa8, 0x7f, 0x4e, 0x0d, 0xf5, 0xef, 0xa9, 0xa1, 0x3c, 0x9b,
+	0x1a, 0xea, 0xf7, 0x7f, 0x19, 0xca, 0x83, 0x12, 0xf9, 0x37, 0xde, 0x95, 0x7f, 0x02, 0x00, 0x00,
+	0xff, 0xff, 0xbd, 0xc6, 0x1a, 0x27, 0xdd, 0x13, 0x00, 0x00,
 }

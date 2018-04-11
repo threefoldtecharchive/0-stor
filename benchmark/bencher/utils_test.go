@@ -17,68 +17,44 @@
 package bencher
 
 import (
-	"io/ioutil"
-	"net"
-	"os"
-	"path"
 	"testing"
 
 	"github.com/zero-os/0-stor/client"
 	"github.com/zero-os/0-stor/client/datastor/pipeline"
+	zdbtest "github.com/zero-os/0-stor/client/datastor/zerodb/test"
 	"github.com/zero-os/0-stor/client/processing"
-	"github.com/zero-os/0-stor/server/api"
-	"github.com/zero-os/0-stor/server/api/grpc"
-	"github.com/zero-os/0-stor/server/db/badger"
 
 	"github.com/stretchr/testify/require"
 )
 
 // newTestZstorServers returns n amount of zstor test servers
 // also returns a function to clean up the servers
-func newTestZstorServers(t testing.TB, n int) ([]*testZstorServer, func()) {
+func newTestZstorServers(t testing.TB, n int) (servers []*testZstorServer, cleanups func()) {
 	require := require.New(t)
 
-	servers := make([]*testZstorServer, n)
-	dirs := make([]string, n)
+	var (
+		namespace    = "ns"
+		cleanupFuncs []func()
+	)
 
 	for i := 0; i < n; i++ {
-		tmpDir, err := ioutil.TempDir("", "0stortest")
+		addr, cleanup, err := zdbtest.NewInMem0DBServer(namespace)
 		require.NoError(err)
-		dirs[i] = tmpDir
-
-		db, err := badger.New(path.Join(tmpDir, "data"), path.Join(tmpDir, "meta"))
-		require.NoError(err)
-
-		server, err := grpc.New(db, grpc.ServerConfig{MaxMsgSize: 4})
-		require.NoError(err)
-
-		listener, err := net.Listen("tcp", "localhost:0")
-		require.NoError(err, "failed to create listener on /any/ open (local) port")
-
-		go func() {
-			err := server.Serve(listener)
-			if err != nil {
-				panic(err)
-			}
-		}()
-
-		servers[i] = &testZstorServer{Server: server, addr: listener.Addr().String()}
+		cleanupFuncs = append(cleanupFuncs, cleanup)
+		servers = append(servers, &testZstorServer{
+			addr: addr,
+		})
 	}
 
-	clean := func() {
-		for _, server := range servers {
-			server.Close()
-		}
-		for _, dir := range dirs {
-			os.RemoveAll(dir)
+	cleanups = func() {
+		for _, cleanup := range cleanupFuncs {
+			cleanup()
 		}
 	}
-
-	return servers, clean
+	return
 }
 
 type testZstorServer struct {
-	api.Server
 	addr string
 }
 

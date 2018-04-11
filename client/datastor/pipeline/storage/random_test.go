@@ -29,7 +29,7 @@ func TestNewRandomStoragePanics(t *testing.T) {
 }
 
 func TestRandomStorageReadCheckWriteDelete(t *testing.T) {
-	cluster, cleanup, err := newGRPCServerCluster(3)
+	cluster, cleanup, err := newZdbServerCluster(3)
 	require.NoError(t, err)
 	defer cleanup()
 	defer cluster.Close()

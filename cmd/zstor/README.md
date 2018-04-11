@@ -16,37 +16,41 @@ If a custom filename and/or directory needs to be provided for the config file, 
 
 A config file should look something like this:
 ```yaml
-organization: <IYO organization>    #itsyou.online organization of the 0-stor
-namespace: <IYO namespace>          #itsyou.online namespace of the 0-stor
-iyo_app_id: <an IYO app ID>         #itsyou.online app/user id
-iyo_app_secret: <an IYO app secret> #itsyou.online app/user secret
-# the address(es) of 0-stor data cluster 
-data_shards:
+password: mypass       # 0-db namespace password
+namespace: namespace1  # 0-db namespace (required)
+datastor: # required
+  # the address(es) of a 0-db cluster (required0)
+  shards: # required
     - 127.0.0.1:12345
     - 127.0.0.1:12346
     - 127.0.0.1:12347
     - 127.0.0.1:12348
-# the address(es) of etcd server(s) for the metadata
-meta_shards:
-    - http://127.0.0.1:2379
-    - http://127.0.0.1:22379
-    - http://127.0.0.1:32379
-
-block_size: 4096
-
-replication_nr: 4
-replication_max_size: 4096
-
-distribution_data: 3
-distribution_parity: 1
-
-compress: true
-encrypt: true
-encrypt_key: ab345678901234567890123456789012
+  pipeline:
+    block_size: 4096
+    compression: # optional, snappy by default
+      type: snappy # snappy is the default, other options: lz4, gzip
+      mode: default # default is the default, other options: best_speed, best_compression
+    encryption: # optional, disabled by default
+      type: aes # aes is the default and only standard option
+      private_key: ab345678901234567890123456789012
+    distribution: # optional, disabled by default
+      data_shards: 3
+      parity_shards: 1
+metastor: # required
+  db: # required
+    # the address(es) of an etcd server cluster
+    endpoints:
+      - 127.0.0.1:2379
+      - 127.0.0.1:22379
+      - 127.0.0.1:32379
+  encoding: protobuf # protobuf is the default and only standard option
+  encryption:
+    type: aes # aes is the default and only standard option
+    private_key: ab345678901234567890123456789012
 ```
 
-Make sure to set the `organization` and `namespace` to an existing [ItsYou.Online][iyo] organization that looks like : `organization`.0stor.`namespace`  
-Also make sure the `data_shards` are set to existing addresses of 0-stor server instances (**Warning** do not use one instance multiple times to make up a cluster)  
+Make sure to set the `namespace` to a valid 0-db namespace.
+Also make sure the `data_shards` are set to existing addresses of 0-db server instances (**Warning** do not use one instance multiple times to make up a cluster)  
 and that the `meta_shards` are set to existing addresses of etcd server instances.
 
 The config used in this example will also do the following data processing when uploading a file:
@@ -56,7 +60,7 @@ The config used in this example will also do the following data processing when 
 - Erasure code the blocks over the `data_shards` (into 3 data shards and 1 parity shard).
 
 ## Commands
-The CLI expose three group of commands, file, namespace, daemon. Each group except the daemon contains sub commands.
+The CLI expose two group of commands, file and daemon. File group contains sub commands.
 
 - file
   - `upload`: Upload a file to the 0-stor(s)
@@ -64,12 +68,6 @@ The CLI expose three group of commands, file, namespace, daemon. Each group exce
   - `delete`: Delete a file from the 0-stor(s)
   - `metadata`: Print the metadata of a key
   - `repair`: Repair a file on the 0-stor(s)
-- namespace
-  - `create`: Create a namespace by creation the required sub-organization on [ItsYou.Online][iyo]
-  - `delete`: Delete a namespace by deleting the sub-organizations.
-  - `permission get`: Print the permission of a user for a namespace
-  - `permission set`: Set the permission on a namespace for a user
-
 
 ### Start client daemon
 
@@ -146,72 +144,3 @@ This will repair the file with the key `myFile` in the 0-stor
 zstor --config config_file.yaml file delete myFile
 ```
 This will delete the file with the key `myFile` in the 0-stor
-
-### Create a namespace
-
-```
-zstor --config conf_file.yaml namespace create namespace_test
-```
-
-This command will create the required sub-organization on [ItsYou.online][iyo].
-This command uses the `organization` field from the configuration file. If the organization is set to `myorg` the created sub-org will be:
-- `myorg.0stor.namespace_test`
-- `myorg.0stor.namespace_test.read`
-- `myorg.0stor.namespace_test.write`
-- `myorg.0stor.namespace_test.delete`
-
-### Delete a namespace
-```
-zstor --config conf_file.yaml namespace delete namespace_test
-```
-
-This command will delete the organization `myorg.0stor.namespace_test` and all its sub-organization
-
-### Set rights of a user into a namespace
-
-```
-zstor --config conf_file.yaml namespace permission set johndoe@email.com namespace_test -rwd
-```
-
-This command will authorize the user with it's [ItsYou.online][iyo] user ID,
-in this case the email address `johndoe@email.com` into the namespace `namespace_test`
-with the right read, write and delete.
-
-For [ItsYou.online's][iyo] user ID, following can be used reliably with 0-stor: email address
-
-The different rights that can be set are:
-- read
-- write
-- delete
-- admin (has all the right plus can inspect namespaces stats and reservations)
-
-Note that once you give access to a user, he will receive an invitation from ItsYou.online to join the organization. He needs to accept the invitation before being able to access the 0-stor(s).
-
-To remove some right, just re-execute the command with rights the user would have after the desired removal.
-if no right are passed, then the user is unauthorized on all levels.
-
-### Get the rights of a user
-
-```
-zstor --config demo.yaml namespace permission get johndoe@email.com namespace_test
-```
-
-This command will print the rights that a user with provided [ItsYou.online][iyo] user ID has for the specified namespace:
-
-```
-Read: true
-Write: true
-Delete: true
-Admin: true
-```
-
-You can also change the format to JSON by specifying the `--`json` flag:
-
-```
-zstor --config demo.yaml namespace permission get johndoe@email.com namespace_test --json
-{"read":true,"write":true,"delete":true,"admin":true}
-```
-
-If you want prettified JSON, you can use the `--json-pretty` flag instead of the `--json` flag.
-
-[iyo]: https://itsyou.online/

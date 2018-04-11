@@ -491,6 +491,9 @@ func (asp *AsyncSplitterPipeline) Read(chunks []metatypes.Chunk, w io.Writer) er
 				}
 				expectedIndex++
 				data, ok = buffer[expectedIndex]
+				if ok {
+					delete(buffer, expectedIndex)
+				}
 			}
 		}
 
@@ -788,6 +791,11 @@ func (asp *AsyncSplitterPipeline) Delete(chunks []metatypes.Chunk) error {
 	return group.Wait()
 }
 
+// ChunkSize implements Pipeline.ChunkSize
+func (asp *AsyncSplitterPipeline) ChunkSize() int {
+	return asp.chunkSize
+}
+
 // Close implements Pipeline.Close
 func (asp *AsyncSplitterPipeline) Close() error {
 	return asp.storage.Close()
@@ -808,23 +816,26 @@ func newAsyncDataSplitter(ctx context.Context, r io.Reader, chunkSize, bufferSiz
 		var index int
 		buf := make([]byte, chunkSize)
 		for {
-			n, err := r.Read(buf)
+			n, err := io.ReadFull(r, buf)
+			if n > 0 {
+				data := make([]byte, n)
+				copy(data, buf)
+				select {
+				case inputCh <- indexedDataChunk{index, data}:
+					index++
+				case <-ctx.Done():
+					return nil
+				}
+			}
 			if err != nil {
-				if err == io.EOF {
+				if err == io.EOF || err == io.ErrUnexpectedEOF {
 					// we'll consider an EOF
 					// as a signal to let us know the reader is exhausted
 					return nil
 				}
 				return err
 			}
-			data := make([]byte, n)
-			copy(data, buf)
-			select {
-			case inputCh <- indexedDataChunk{index, data}:
-				index++
-			case <-ctx.Done():
-				return nil
-			}
+
 		}
 	}
 }

@@ -20,50 +20,6 @@ syntax = "proto3";
 
 package schema;
 
-// NamespaceService is the service to be used to manage namespaces
-// and the permissions of users linked to those namespaces.
-service NamespaceService {
-	rpc CreateNamespace(CreateNamespaceRequest) returns(CreateNamespaceResponse){}
-	rpc DeleteNamespace(DeleteNamespaceRequest) returns(DeleteNamespaceResponse){}
-	rpc SetPermission(SetPermissionRequest) returns(SetPermissionResponse){}
-	rpc GetPermission(GetPermissionRequest) returns(GetPermissionResponse){}
-}
-
-message Permission {
-	bool read = 1;
-	bool write = 2;
-	bool delete = 3;
-	bool admin = 4;
-}
-
-message CreateNamespaceRequest {
-	string namespace = 1;
-}
-message CreateNamespaceResponse {
-}
-
-message DeleteNamespaceRequest {
-	string namespace = 1;
-}
-message DeleteNamespaceResponse {
-}
-
-message SetPermissionRequest {
-	string namespace = 1;
-	string userID = 2;
-	Permission permission = 3;
-}
-message SetPermissionResponse {
-}
-
-message GetPermissionRequest {
-	string namespace = 1;
-	string userID = 2;
-}
-message GetPermissionResponse {
-	Permission permission = 1;
-}
-
 // FileService is the service to be used to write, read, delete, check and repair files.
 // The fileService follows the principle of everything is a file.
 // All files are written as raw binary data, but also have
@@ -245,6 +201,7 @@ service MetadataService {
 	rpc SetMetadata(SetMetadataRequest) returns (SetMetadataResponse) {}
 	rpc GetMetadata(GetMetadataRequest) returns (GetMetadataResponse) {}
 	rpc DeleteMetadata(DeleteMetadataRequest) returns (DeleteMetadataResponse) {}
+	rpc ListKeys(ListMetadataKeysRequest) returns (stream ListMetadataKeysResponse) {}
 
 	// TODO:
 	// figure out a way to support UpdateMetadata,
@@ -270,6 +227,13 @@ message DeleteMetadataRequest {
 	bytes key = 1;
 }
 message DeleteMetadataResponse {
+}
+
+message ListMetadataKeysRequest {
+}
+
+message ListMetadataKeysResponse {
+	bytes key = 1;
 }
 
 // DataService is used write, read, delete, check and repair (processed) data.

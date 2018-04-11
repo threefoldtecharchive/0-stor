@@ -4,101 +4,6 @@ import grpc
 from . import daemon_pb2 as daemon__pb2
 
 
-class NamespaceServiceStub(object):
-  """NamespaceService is the service to be used to manage namespaces
-  and the permissions of users linked to those namespaces.
-  """
-
-  def __init__(self, channel):
-    """Constructor.
-
-    Args:
-      channel: A grpc.Channel.
-    """
-    self.CreateNamespace = channel.unary_unary(
-        '/schema.NamespaceService/CreateNamespace',
-        request_serializer=daemon__pb2.CreateNamespaceRequest.SerializeToString,
-        response_deserializer=daemon__pb2.CreateNamespaceResponse.FromString,
-        )
-    self.DeleteNamespace = channel.unary_unary(
-        '/schema.NamespaceService/DeleteNamespace',
-        request_serializer=daemon__pb2.DeleteNamespaceRequest.SerializeToString,
-        response_deserializer=daemon__pb2.DeleteNamespaceResponse.FromString,
-        )
-    self.SetPermission = channel.unary_unary(
-        '/schema.NamespaceService/SetPermission',
-        request_serializer=daemon__pb2.SetPermissionRequest.SerializeToString,
-        response_deserializer=daemon__pb2.SetPermissionResponse.FromString,
-        )
-    self.GetPermission = channel.unary_unary(
-        '/schema.NamespaceService/GetPermission',
-        request_serializer=daemon__pb2.GetPermissionRequest.SerializeToString,
-        response_deserializer=daemon__pb2.GetPermissionResponse.FromString,
-        )
-
-
-class NamespaceServiceServicer(object):
-  """NamespaceService is the service to be used to manage namespaces
-  and the permissions of users linked to those namespaces.
-  """
-
-  def CreateNamespace(self, request, context):
-    # missing associated documentation comment in .proto file
-    pass
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-  def DeleteNamespace(self, request, context):
-    # missing associated documentation comment in .proto file
-    pass
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-  def SetPermission(self, request, context):
-    # missing associated documentation comment in .proto file
-    pass
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-  def GetPermission(self, request, context):
-    # missing associated documentation comment in .proto file
-    pass
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-
-def add_NamespaceServiceServicer_to_server(servicer, server):
-  rpc_method_handlers = {
-      'CreateNamespace': grpc.unary_unary_rpc_method_handler(
-          servicer.CreateNamespace,
-          request_deserializer=daemon__pb2.CreateNamespaceRequest.FromString,
-          response_serializer=daemon__pb2.CreateNamespaceResponse.SerializeToString,
-      ),
-      'DeleteNamespace': grpc.unary_unary_rpc_method_handler(
-          servicer.DeleteNamespace,
-          request_deserializer=daemon__pb2.DeleteNamespaceRequest.FromString,
-          response_serializer=daemon__pb2.DeleteNamespaceResponse.SerializeToString,
-      ),
-      'SetPermission': grpc.unary_unary_rpc_method_handler(
-          servicer.SetPermission,
-          request_deserializer=daemon__pb2.SetPermissionRequest.FromString,
-          response_serializer=daemon__pb2.SetPermissionResponse.SerializeToString,
-      ),
-      'GetPermission': grpc.unary_unary_rpc_method_handler(
-          servicer.GetPermission,
-          request_deserializer=daemon__pb2.GetPermissionRequest.FromString,
-          response_serializer=daemon__pb2.GetPermissionResponse.SerializeToString,
-      ),
-  }
-  generic_handler = grpc.method_handlers_generic_handler(
-      'schema.NamespaceService', rpc_method_handlers)
-  server.add_generic_rpc_handlers((generic_handler,))
-
-
 class FileServiceStub(object):
   """FileService is the service to be used to write, read, delete, check and repair files.
   The fileService follows the principle of everything is a file.
@@ -315,6 +220,11 @@ class MetadataServiceStub(object):
         request_serializer=daemon__pb2.DeleteMetadataRequest.SerializeToString,
         response_deserializer=daemon__pb2.DeleteMetadataResponse.FromString,
         )
+    self.ListKeys = channel.unary_stream(
+        '/schema.MetadataService/ListKeys',
+        request_serializer=daemon__pb2.ListMetadataKeysRequest.SerializeToString,
+        response_deserializer=daemon__pb2.ListMetadataKeysResponse.FromString,
+        )
 
 
 class MetadataServiceServicer(object):
@@ -343,6 +253,13 @@ class MetadataServiceServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def ListKeys(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
 
 def add_MetadataServiceServicer_to_server(servicer, server):
   rpc_method_handlers = {
@@ -360,6 +277,11 @@ def add_MetadataServiceServicer_to_server(servicer, server):
           servicer.DeleteMetadata,
           request_deserializer=daemon__pb2.DeleteMetadataRequest.FromString,
           response_serializer=daemon__pb2.DeleteMetadataResponse.SerializeToString,
+      ),
+      'ListKeys': grpc.unary_stream_rpc_method_handler(
+          servicer.ListKeys,
+          request_deserializer=daemon__pb2.ListMetadataKeysRequest.FromString,
+          response_serializer=daemon__pb2.ListMetadataKeysResponse.SerializeToString,
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(

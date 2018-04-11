@@ -24,7 +24,7 @@ import (
 	"math/rand"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/zero-os/0-stor/benchmark/config"
 	"github.com/zero-os/0-stor/client"
 )
