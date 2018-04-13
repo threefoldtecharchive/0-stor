@@ -35,6 +35,16 @@ var (
 	ErrUnavailable = errors.New("metastor: database is unavailable")
 )
 
+const (
+	// TypeBadger is identifier to specify that we want to use Badger
+	// as metadata db
+	TypeBadger = "badger"
+
+	// TypeETCD is identifier to specify that we want to use ETCD
+	// as metadata db
+	TypeETCD = "etcd"
+)
+
 // InternalError can be returned by a database as a generic internal error,
 // retaining the actual internal error as part of the returned error.
 type InternalError struct {

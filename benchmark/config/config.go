@@ -23,7 +23,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/zero-os/0-stor/client"
+	"github.com/zero-os/0-stor/daemon"
 
 	validator "gopkg.in/validator.v2"
 	yaml "gopkg.in/yaml.v2"
@@ -52,7 +52,7 @@ func (clientConf *ClientConf) validate() error {
 
 // Scenario represents a scenario
 type Scenario struct {
-	ZstorConf client.Config   `yaml:"zstor" validate:"nonzero"`
+	ZstorConf daemon.Config   `yaml:"zstor" validate:"nonzero"`
 	BenchConf BenchmarkConfig `yaml:"benchmark" validate:"nonzero"`
 }
 
@@ -63,7 +63,7 @@ func (sc *Scenario) validate() error {
 
 // SetupClientConfig sets up the client.Client for a benchmark.
 // Sets random namespace if empty
-func SetupClientConfig(c *client.Config) {
+func SetupClientConfig(c *daemon.Config) {
 	// set namespace if not provided
 	if c.Namespace == "" {
 		c.Namespace = "b-" + randomSuffix(4)

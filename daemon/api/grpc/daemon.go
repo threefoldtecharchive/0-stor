@@ -30,9 +30,10 @@ import (
 	"github.com/zero-os/0-stor/client/datastor/pipeline"
 	"github.com/zero-os/0-stor/client/datastor/zerodb"
 	"github.com/zero-os/0-stor/client/metastor"
-	"github.com/zero-os/0-stor/client/metastor/db/etcd"
+	db_utils "github.com/zero-os/0-stor/client/metastor/db/utils"
 	"github.com/zero-os/0-stor/client/metastor/encoding"
 	"github.com/zero-os/0-stor/client/processing"
+	"github.com/zero-os/0-stor/daemon"
 	"github.com/zero-os/0-stor/daemon/api"
 	pb "github.com/zero-os/0-stor/daemon/api/grpc/schema"
 
@@ -79,8 +80,8 @@ const (
 	DefaultMaxMsgSize = 32
 )
 
-// NewFromClientConfig creates new daemon with given (client) Config.
-func NewFromClientConfig(cfg client.Config, maxMsgSize, jobCount int, disableLocalFSAccess bool) (*Daemon, error) {
+// NewFromConfig creates new daemon with given Config.
+func NewFromConfig(cfg daemon.Config, maxMsgSize, jobCount int, disableLocalFSAccess bool) (*Daemon, error) {
 	// create data stor cluster
 	cluster, err := createDataClusterFromConfig(&cfg)
 	if err != nil {
@@ -107,11 +108,7 @@ func NewFromClientConfig(cfg client.Config, maxMsgSize, jobCount int, disableLoc
 	})
 }
 
-func createMetastorClientFromConfig(namespace string, cfg *client.MetaStorConfig) (*metastor.Client, error) {
-	if len(cfg.Database.Endpoints) == 0 {
-		return nil, errors.New("no metadata storage ETCD endpoints given")
-	}
-
+func createMetastorClientFromConfig(namespace string, cfg *daemon.MetaStorConfig) (*metastor.Client, error) {
 	var (
 		err    error
 		config metastor.Config
@@ -119,8 +116,8 @@ func createMetastorClientFromConfig(namespace string, cfg *client.MetaStorConfig
 
 	// create metastor database first,
 	// so that then we can create the Metastor client itself
-	// TODO: support other types of databases (e.g. badger)
-	config.Database, err = etcd.New(cfg.Database.Endpoints)
+
+	config.Database, err = db_utils.NewMetaStorDB(cfg.DB.Type, cfg.DB.Config)
 	if err != nil {
 		return nil, err
 	}
@@ -154,7 +151,7 @@ func createMetastorClientFromConfig(namespace string, cfg *client.MetaStorConfig
 	return metastor.NewClient([]byte(namespace), config)
 }
 
-func createDataClusterFromConfig(cfg *client.Config) (datastor.Cluster, error) {
+func createDataClusterFromConfig(cfg *daemon.Config) (datastor.Cluster, error) {
 	// optionally create the global datastor TLS config
 	tlsConfig, err := createTLSConfigFromDatastorTLSConfig(&cfg.DataStor.TLS)
 	if err != nil {

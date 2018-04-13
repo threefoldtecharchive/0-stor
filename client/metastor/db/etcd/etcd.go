@@ -30,6 +30,12 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// Config is used to configure/create an ETCD-cluster client,
+// and use it as the database backend for the metastor client.
+type Config struct {
+	Endpoints []string `yaml:"endpoints" json:"endpoints"` // required
+}
+
 // New creates new metastor database client, using an ETCD cluster as storage medium.
 func New(endpoints []string) (*DB, error) {
 	if len(endpoints) == 0 {

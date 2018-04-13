@@ -28,19 +28,20 @@ import (
 	"github.com/zero-os/0-stor/client/datastor/zerodb"
 	"github.com/zero-os/0-stor/client/metastor"
 	metaDB "github.com/zero-os/0-stor/client/metastor/db"
-	"github.com/zero-os/0-stor/client/metastor/db/etcd"
 	"github.com/zero-os/0-stor/client/metastor/db/test"
+	db_utils "github.com/zero-os/0-stor/client/metastor/db/utils"
 	"github.com/zero-os/0-stor/client/metastor/encoding"
 	"github.com/zero-os/0-stor/client/processing"
+	"github.com/zero-os/0-stor/daemon"
 
 	log "github.com/sirupsen/logrus"
 )
 
 // newClientFromConfig creates a new zstor client from provided config
 // if Metastor shards are empty, it will use an in memory metadata server
-func newClientFromConfig(cfg *client.Config, jobCount int, enableCaching bool) (*client.Client, error) {
+func newClientFromConfig(cfg *daemon.Config, jobCount int) (*client.Client, error) {
 	// create datastor cluster
-	datastorCluster, err := createDataClusterFromConfig(cfg, enableCaching)
+	datastorCluster, err := createDataClusterFromConfig(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +63,7 @@ func newClientFromConfig(cfg *client.Config, jobCount int, enableCaching bool) (
 	return client.NewClient(metastorClient, dataPipeline), nil
 }
 
-func createDataClusterFromConfig(cfg *client.Config, enableCaching bool) (datastor.Cluster, error) {
+func createDataClusterFromConfig(cfg *daemon.Config) (datastor.Cluster, error) {
 	// optionally create the global datastor TLS config
 	tlsConfig, err := createTLSConfigFromDatastorTLSConfig(&cfg.DataStor.TLS)
 	if err != nil {
@@ -72,15 +73,14 @@ func createDataClusterFromConfig(cfg *client.Config, enableCaching bool) (datast
 	return zerodb.NewCluster(cfg.DataStor.Shards, cfg.Password, cfg.Namespace, tlsConfig)
 }
 
-func createMetastorClientFromConfig(namespace string, cfg *client.MetaStorConfig) (*metastor.Client, error) {
-	if len(cfg.Database.Endpoints) == 0 {
-		// if no endpoints, return a test metadata server (in-memory)
+func createMetastorClientFromConfig(namespace string, cfg *daemon.MetaStorConfig) (*metastor.Client, error) {
+	if len(cfg.DB.Type) == 0 {
+		// if no config, return a test metadata server (in-memory)
 		log.Debug("Using in-memory metadata server")
 		return createMetastorClientFromConfigAndDatabase(namespace, cfg, test.New())
 	}
-	log.Debug("Using etcd metadata server")
 
-	db, err := etcd.New(cfg.Database.Endpoints)
+	db, err := db_utils.NewMetaStorDB(cfg.DB.Type, cfg.DB.Config)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +89,7 @@ func createMetastorClientFromConfig(namespace string, cfg *client.MetaStorConfig
 	return createMetastorClientFromConfigAndDatabase(namespace, cfg, db)
 }
 
-func createMetastorClientFromConfigAndDatabase(namespace string, cfg *client.MetaStorConfig, db metaDB.DB) (*metastor.Client, error) {
+func createMetastorClientFromConfigAndDatabase(namespace string, cfg *daemon.MetaStorConfig, db metaDB.DB) (*metastor.Client, error) {
 	var (
 		err    error
 		config = metastor.Config{Database: db}

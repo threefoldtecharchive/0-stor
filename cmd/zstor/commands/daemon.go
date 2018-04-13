@@ -22,9 +22,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/zero-os/0-stor/client"
 	"github.com/zero-os/0-stor/cmd"
-	daemon "github.com/zero-os/0-stor/daemon/api/grpc"
+	"github.com/zero-os/0-stor/daemon"
+	daemon_grpc "github.com/zero-os/0-stor/daemon/api/grpc"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -56,11 +56,11 @@ func daemonFunc(*cobra.Command, []string) error {
 	}
 
 	// read the client config and create our daemon
-	cfg, err := client.ReadConfig(rootCfg.ConfigFile)
+	cfg, err := daemon.ReadConfig(rootCfg.ConfigFile)
 	if err != nil {
 		return err
 	}
-	daemon, err := daemon.NewFromClientConfig(
+	daemon, err := daemon_grpc.NewFromConfig(
 		*cfg, daemonCfg.MaxMsgSize, rootCfg.JobCount,
 		daemonCfg.DisableLocalFSAccess)
 	if err != nil {
@@ -95,7 +95,7 @@ func init() {
 	daemonCmd.Flags().VarP(
 		&daemonCfg.ListenAddress, "listen", "L", daemonCfg.ListenAddress.Description())
 	daemonCmd.Flags().IntVar(
-		&daemonCfg.MaxMsgSize, "max-msg-size", daemon.DefaultMaxMsgSize,
+		&daemonCfg.MaxMsgSize, "max-msg-size", daemon_grpc.DefaultMaxMsgSize,
 		"Configure the maximum size of the message this daemon can receive and send, in MiB")
 	daemonCmd.Flags().BoolVar(
 		&daemonCfg.DisableLocalFSAccess, "no-local-fs", false,

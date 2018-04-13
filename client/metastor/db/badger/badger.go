@@ -37,6 +37,14 @@ const (
 	cgInterval = 10 * time.Minute
 )
 
+// Config represents badger DB configuration
+type Config struct {
+	// Badger data directory
+	DataDir string `yaml:"datadir"`
+	// Badger metadata directory
+	MetaDir string `yaml:"metadir"`
+}
+
 // New creates a new metastor database implementation,
 // using badger on the local FS as storage medium.
 //

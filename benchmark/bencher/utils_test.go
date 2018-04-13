@@ -22,7 +22,9 @@ import (
 	"github.com/zero-os/0-stor/client"
 	"github.com/zero-os/0-stor/client/datastor/pipeline"
 	zdbtest "github.com/zero-os/0-stor/client/datastor/zerodb/test"
+	"github.com/zero-os/0-stor/client/metastor/db"
 	"github.com/zero-os/0-stor/client/processing"
+	"github.com/zero-os/0-stor/daemon"
 
 	"github.com/stretchr/testify/require"
 )
@@ -65,25 +67,35 @@ func (ts *testZstorServer) Address() string {
 // newDefaultZstorConfig returns a default zstor client config used for testing
 // with provided data shards, meta shards and blocksize
 // if meta shards is nil, an in memory meta server will be used (recommended for testing)
-func newDefaultZstorConfig(dataShards []string, metaShards []string, blockSize int) client.Config {
-	return client.Config{
-		Namespace: "namespace1",
-		DataStor: client.DataStorConfig{
-			Shards: dataShards,
-			Pipeline: pipeline.Config{
-				BlockSize: blockSize,
-				Compression: pipeline.CompressionConfig{
-					Mode: processing.CompressionModeDefault,
-				},
-				Distribution: pipeline.ObjectDistributionConfig{
-					DataShardCount:   3,
-					ParityShardCount: 1,
+func newDefaultZstorConfig(dataShards []string, metaShards []string, blockSize int) daemon.Config {
+	var dbType string
+	if len(metaShards) > 0 {
+		dbType = db.TypeETCD
+	}
+	return daemon.Config{
+		Config: client.Config{
+			Namespace: "namespace1",
+			DataStor: client.DataStorConfig{
+				Shards: dataShards,
+				Pipeline: pipeline.Config{
+					BlockSize: blockSize,
+					Compression: pipeline.CompressionConfig{
+						Mode: processing.CompressionModeDefault,
+					},
+					Distribution: pipeline.ObjectDistributionConfig{
+						DataShardCount:   3,
+						ParityShardCount: 1,
+					},
 				},
 			},
 		},
-		MetaStor: client.MetaStorConfig{
-			Database: client.MetaStorETCDConfig{
-				Endpoints: metaShards,
+
+		MetaStor: daemon.MetaStorConfig{
+			DB: daemon.MetaStorDBConfig{
+				Type: dbType,
+				Config: map[string]interface{}{
+					"Endpoints": metaShards,
+				},
 			},
 		},
 	}

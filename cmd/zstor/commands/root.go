@@ -17,7 +17,6 @@
 package commands
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"runtime"
@@ -25,10 +24,11 @@ import (
 
 	"github.com/zero-os/0-stor/client"
 	"github.com/zero-os/0-stor/client/metastor"
-	"github.com/zero-os/0-stor/client/metastor/db/etcd"
+	db_utils "github.com/zero-os/0-stor/client/metastor/db/utils"
 	"github.com/zero-os/0-stor/client/metastor/encoding"
 	"github.com/zero-os/0-stor/client/processing"
 	"github.com/zero-os/0-stor/cmd"
+	"github.com/zero-os/0-stor/daemon"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -65,8 +65,14 @@ func getClient() (*client.Client, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	metaCli, err := getMetaClient()
+	if err != nil {
+		return nil, err
+	}
+
 	// create client
-	cl, err := client.NewClientFromConfig(*cfg, rootCfg.JobCount)
+	cl, err := client.NewClientFromConfig(cfg.Config, metaCli, rootCfg.JobCount)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create 0-stor client: %v", err)
 	}
@@ -81,19 +87,15 @@ func getMetaClient() (*metastor.Client, error) {
 	}
 	cfg := clientCfg.MetaStor
 
-	if len(cfg.Database.Endpoints) == 0 {
-		return nil, errors.New("no metadata storage ETCD endpoints given")
-	}
-
 	var config metastor.Config
 
 	// create metastor database first,
 	// so that then we can create the Metastor client itself
-	// TODO: support other types of databases (e.g. badger)
-	config.Database, err = etcd.New(cfg.Database.Endpoints)
+	database, err := db_utils.NewMetaStorDB(cfg.DB.Type, cfg.DB.Config)
 	if err != nil {
 		return nil, err
 	}
+	config.Database = database
 
 	// create the metadata encoding func pair
 	config.MarshalFuncPair, err = encoding.NewMarshalFuncPair(cfg.Encoding)
@@ -124,16 +126,16 @@ func getMetaClient() (*metastor.Client, error) {
 	return metastor.NewClient([]byte(clientCfg.Namespace), config)
 }
 
-func getClientConfig() (*client.Config, error) {
+func getClientConfig() (*daemon.Config, error) {
 	_ClientConfigOnce.Do(func() {
-		_ClientConfig, _ClientConfigError = client.ReadConfig(rootCfg.ConfigFile)
+		_ClientConfig, _ClientConfigError = daemon.ReadConfig(rootCfg.ConfigFile)
 	})
 	return _ClientConfig, _ClientConfigError
 }
 
 var (
 	_ClientConfigOnce  sync.Once
-	_ClientConfig      *client.Config
+	_ClientConfig      *daemon.Config
 	_ClientConfigError error
 )
 

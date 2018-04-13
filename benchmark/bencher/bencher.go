@@ -134,7 +134,7 @@ func NewBencher(scenarioID string, scenario *config.Scenario) (*Bencher, error) 
 	// initializing client
 	config.SetupClientConfig(&scenario.ZstorConf)
 	var err error
-	bencher.client, err = newClientFromConfig(&scenario.ZstorConf, 1, true)
+	bencher.client, err = newClientFromConfig(&scenario.ZstorConf, 1)
 	if err != nil {
 		return nil, fmt.Errorf("Failed creating client: %v", err)
 	}

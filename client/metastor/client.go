@@ -128,6 +128,38 @@ func NewClient(namespace []byte, cfg Config) (*Client, error) {
 	}, nil
 }
 
+// NewClientFromDB creates new client from the given DB.
+// If privKey is not empty, it uses default encryption with the given encryptKey
+// as private key
+func NewClientFromDB(namespace string, db dbp.DB, privKey string) (*Client, error) {
+	var (
+		err    error
+		config = Config{Database: db}
+	)
+
+	if len(privKey) == 0 {
+		// create potentially insecure metastor storage
+		return NewClient([]byte(namespace), config)
+	}
+
+	// create the constructor which will create our encrypter-decrypter when needed
+	config.ProcessorConstructor = func() (processing.Processor, error) {
+		return processing.NewEncrypterDecrypter(
+			processing.DefaultEncryptionType, []byte(privKey))
+	}
+	// ensure the constructor is valid,
+	// as most errors (if not all) are static, and will only fail due to the given input,
+	// meaning that if it can be created it now, it should be fine later on as well
+	_, err = config.ProcessorConstructor()
+	if err != nil {
+		return nil, err
+	}
+
+	// create our full-configured metastor client,
+	// including encryption support for our metadata in binary form
+	return NewClient([]byte(namespace), config)
+}
+
 // Client defines the client API of a metadata server.
 // It is used to set, get and delete metadata.
 // It is also used as an optional part of the the main 0-stor client,

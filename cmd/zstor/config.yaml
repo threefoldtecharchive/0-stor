@@ -19,12 +19,14 @@ datastor: # required
       data_shards: 3
       parity_shards: 1
 metastor: # required
-  db: # required
-    # the address(es) of an etcd server cluster
-    endpoints:
-      - 127.0.0.1:2379
-      - 127.0.0.1:22379
-      - 127.0.0.1:32379
+  db:
+    type: etcd # required
+    config: # config specific to metastor type
+      # the address(es) of an etcd server cluster
+      endpoints:
+        - 127.0.0.1:2379
+        - 127.0.0.1:22379
+        - 127.0.0.1:32379
   encoding: protobuf # protobuf is the default and only standard option
   encryption:
     type: aes # aes is the default and only standard option

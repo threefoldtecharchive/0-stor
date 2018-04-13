@@ -22,8 +22,7 @@ import (
 	"github.com/zero-os/0-stor/client/datastor"
 	"github.com/zero-os/0-stor/client/datastor/pipeline"
 	zdbtest "github.com/zero-os/0-stor/client/datastor/zerodb/test"
-	dbp "github.com/zero-os/0-stor/client/metastor/db"
-	"github.com/zero-os/0-stor/client/metastor/db/etcd"
+	"github.com/zero-os/0-stor/client/metastor"
 	"github.com/zero-os/0-stor/client/metastor/db/test"
 
 	"github.com/stretchr/testify/require"
@@ -64,7 +63,7 @@ func testZdbServer(t testing.TB, n int) (servers []*testServer, cleanups func())
 
 func getTestClient(cfg Config) (*Client, datastor.Cluster, error) {
 	// create datastor cluster
-	datastorCluster, err := createDataClusterFromConfig(&cfg)
+	datastorCluster, err := createDataClusterFromConfig(cfg)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -75,22 +74,18 @@ func getTestClient(cfg Config) (*Client, datastor.Cluster, error) {
 		return nil, nil, err
 	}
 
-	// create ETCD or in-memory db
-	var db dbp.DB
-	if len(cfg.MetaStor.Database.Endpoints) != 0 {
-		db, err = etcd.New(cfg.MetaStor.Database.Endpoints)
-		if err != nil {
-			return nil, nil, err
-		}
-	} else {
-		db = test.New()
-	}
-
 	// create metastor client first,
 	// and than create our master 0-stor client with all features.
-	metastorClient, err := createMetastorClientFromConfigAndDatabase(cfg.Namespace, &cfg.MetaStor, db)
+	metastorClient, err := getTestMetastorClient(cfg.Namespace)
 	if err != nil {
 		return nil, nil, err
 	}
 	return NewClient(metastorClient, dataPipeline), datastorCluster, nil
+}
+
+func getTestMetastorClient(namespace string) (*metastor.Client, error) {
+	// create in-memory db
+	db := test.New()
+
+	return metastor.NewClientFromDB(namespace, db, "")
 }

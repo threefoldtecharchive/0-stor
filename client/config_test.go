@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	"github.com/zero-os/0-stor/client/datastor/pipeline"
-	"github.com/zero-os/0-stor/client/metastor/encoding"
 	"github.com/zero-os/0-stor/client/processing"
 
 	"github.com/stretchr/testify/require"
@@ -58,7 +57,7 @@ func TestDecodeZstorExampleConfig(t *testing.T) {
 				},
 			},
 		},
-		MetaStor: MetaStorConfig{
+		/*MetaStor: MetaStorConfig{
 			Database: MetaStorETCDConfig{
 				Endpoints: []string{
 					"127.0.0.1:2379",
@@ -71,7 +70,7 @@ func TestDecodeZstorExampleConfig(t *testing.T) {
 				PrivateKey: "ab345678901234567890123456789012",
 			},
 			Encoding: encoding.MarshalTypeProtobuf,
-		},
+		},TODO : test it somewhere else*/
 	}
 
 	require.Equal(t, expectedCfg, *cfg)

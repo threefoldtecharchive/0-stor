@@ -41,7 +41,7 @@ func TestInMemoryMetaClient(t *testing.T) {
 
 	clientConfig := newDefaultZstorConfig(shards, nil, 64)
 
-	client, err := newClientFromConfig(&clientConfig, 1, false)
+	client, err := newClientFromConfig(&clientConfig, 1)
 	require.NoError(err, "Failed to create client")
 
 	_, err = client.Write(testKey, bytes.NewReader(testValue))

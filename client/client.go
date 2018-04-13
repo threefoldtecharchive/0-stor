@@ -30,11 +30,7 @@ import (
 	"github.com/zero-os/0-stor/client/datastor/pipeline/storage"
 	"github.com/zero-os/0-stor/client/datastor/zerodb"
 	"github.com/zero-os/0-stor/client/metastor"
-	metaDB "github.com/zero-os/0-stor/client/metastor/db"
-	"github.com/zero-os/0-stor/client/metastor/db/etcd"
-	"github.com/zero-os/0-stor/client/metastor/encoding"
 	"github.com/zero-os/0-stor/client/metastor/metatypes"
-	"github.com/zero-os/0-stor/client/processing"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -62,11 +58,7 @@ type Client struct {
 //
 // If JobCount is 0 or negative, the default JobCount will be used,
 // as defined by the pipeline package.
-func NewClientFromConfig(cfg Config, jobCount int) (*Client, error) {
-	return newClientFromConfig(&cfg, jobCount)
-}
-
-func newClientFromConfig(cfg *Config, jobCount int) (*Client, error) {
+func NewClientFromConfig(cfg Config, metastorClient *metastor.Client, jobCount int) (*Client, error) {
 	// create datastor cluster
 	datastorCluster, err := createDataClusterFromConfig(cfg)
 	if err != nil {
@@ -79,67 +71,10 @@ func newClientFromConfig(cfg *Config, jobCount int) (*Client, error) {
 		return nil, err
 	}
 
-	// create metastor client
-	metastorClient, err := createMetastorClientFromConfig(cfg.Namespace, &cfg.MetaStor)
-	if err != nil {
-		return nil, err
-	}
 	return NewClient(metastorClient, dataPipeline), nil
 }
 
-func createMetastorClientFromConfig(namespace string, cfg *MetaStorConfig) (*metastor.Client, error) {
-	if len(cfg.Database.Endpoints) == 0 {
-		return nil, errors.New("no metadata storage ETCD endpoints given")
-	}
-
-	// create metastor database first,
-	// so that then we can create the Metastor client itself
-	// TODO: support other types of databases (e.g. badger)
-	db, err := etcd.New(cfg.Database.Endpoints)
-	if err != nil {
-		return nil, err
-	}
-
-	// create the metastor client and the rest of its components
-	return createMetastorClientFromConfigAndDatabase(namespace, cfg, db)
-}
-
-func createMetastorClientFromConfigAndDatabase(namespace string, cfg *MetaStorConfig, db metaDB.DB) (*metastor.Client, error) {
-	var (
-		err    error
-		config = metastor.Config{Database: db}
-	)
-
-	// create the metadata encoding func pair
-	config.MarshalFuncPair, err = encoding.NewMarshalFuncPair(cfg.Encoding)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(cfg.Encryption.PrivateKey) == 0 {
-		// create potentially insecure metastor storage
-		return metastor.NewClient([]byte(namespace), config)
-	}
-
-	// create the constructor which will create our encrypter-decrypter when needed
-	config.ProcessorConstructor = func() (processing.Processor, error) {
-		return processing.NewEncrypterDecrypter(
-			cfg.Encryption.Type, []byte(cfg.Encryption.PrivateKey))
-	}
-	// ensure the constructor is valid,
-	// as most errors (if not all) are static, and will only fail due to the given input,
-	// meaning that if it can be created it now, it should be fine later on as well
-	_, err = config.ProcessorConstructor()
-	if err != nil {
-		return nil, err
-	}
-
-	// create our full-configured metastor client,
-	// including encryption support for our metadata in binary form
-	return metastor.NewClient([]byte(namespace), config)
-}
-
-func createDataClusterFromConfig(cfg *Config) (datastor.Cluster, error) {
+func createDataClusterFromConfig(cfg Config) (datastor.Cluster, error) {
 	// optionally create the global datastor TLS config
 	tlsConfig, err := createTLSConfigFromDatastorTLSConfig(&cfg.DataStor.TLS)
 	if err != nil {
