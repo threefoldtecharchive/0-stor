@@ -130,7 +130,7 @@ func createMetastorClientFromConfig(namespace string, cfg *daemon.MetaStorConfig
 
 	if len(cfg.Encryption.PrivateKey) == 0 {
 		// create potentially insecure metastor storage
-		return metastor.NewClient([]byte(namespace), config)
+		return metastor.NewClientFromConfig([]byte(namespace), config)
 	}
 
 	// create the constructor which will create our encrypter-decrypter when needed
@@ -148,7 +148,7 @@ func createMetastorClientFromConfig(namespace string, cfg *daemon.MetaStorConfig
 
 	// create our full-configured metastor client,
 	// including encryption support for our metadata in binary form
-	return metastor.NewClient([]byte(namespace), config)
+	return metastor.NewClientFromConfig([]byte(namespace), config)
 }
 
 func createDataClusterFromConfig(cfg *daemon.Config) (datastor.Cluster, error) {
@@ -224,7 +224,7 @@ func New(cfg Config) (*Daemon, error) {
 
 	// create the master 0-stor client, so we can create the file service
 	client := client.NewClient(cfg.MetaClient, cfg.Pipeline)
-	pb.RegisterFileServiceServer(grpcServer, newFileService(client, cfg.DisableLocalFSAccess))
+	pb.RegisterFileServiceServer(grpcServer, newFileService(client, cfg.MetaClient, cfg.DisableLocalFSAccess))
 
 	// return our daemon ready for usage
 	return &Daemon{

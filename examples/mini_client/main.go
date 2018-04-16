@@ -19,7 +19,7 @@ package main
 import (
 	"log"
 
-	datastor "github.com/zero-os/0-stor/client/datastor/grpc"
+	datastor "github.com/zero-os/0-stor/client/datastor/zerodb"
 	"github.com/zero-os/0-stor/client/processing"
 )
 
@@ -55,7 +55,7 @@ func NewMiniClient(address, namespace string, privKey []byte) (*MiniClient, erro
 	}
 
 	// create our datastor client
-	zstor, err := datastor.NewClient(address, namespace, nil)
+	zstor, err := datastor.NewClient(address, "", namespace)
 	if err != nil {
 		return nil, err
 	}

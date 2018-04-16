@@ -159,7 +159,7 @@ func (stub metadataClientStub) SetMetadata(metadata metatypes.Metadata) error {
 	return nil
 }
 func (stub metadataClientStub) GetMetadata(key []byte) (*metatypes.Metadata, error) {
-	return &metatypes.Metadata{}, nil
+	return &metatypes.Metadata{Key: key}, nil
 }
 func (stub metadataClientStub) DeleteMetadata(key []byte) error {
 	return nil

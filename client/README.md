@@ -4,13 +4,10 @@
 
 API documentation : [https://godoc.org/github.com/zero-os/0-stor/client](https://godoc.org/github.com/zero-os/0-stor/client)
 
-## Supported protocols
-
-- GRPC
 
 ## Motivation
 
-- Building a **secure** & **fast** object store with support for big files
+- Building a **secure** & **fast** object store client library with support for big files
 
 ## Basic idea
 
@@ -19,8 +16,8 @@ API documentation : [https://godoc.org/github.com/zero-os/0-stor/client](https:/
 - Encrypt each chunk using Hash(content)
     - Hash functions supported: [blake2](https://blake2.net/)
     - Support for symmetric encryption
-- Save each part in different 0-stor server
-- Replicate same chunk into different 0-stor servers
+- Save each part in different 0-db server
+- Replicate same chunk into different 0-db servers
 - Save metadata about chunks and where they're in etcd server or other metadata db
 - Assemble smaller chunks for a file upon retrieval
     - Get chunks location from metadata server
@@ -28,9 +25,9 @@ API documentation : [https://godoc.org/github.com/zero-os/0-stor/client](https:/
 
 ## Important
 
-- 0-stor server is JUST a simple key/value store
+- 0-db server is JUST a simple key/value store
 - splitting, compression, encryption, and replication is the responsibility of client
-- you need at least etcd v3
+- you need at least etcd v3 if you want to use `etcd` as metadata DB storage
 
 **Features**
 
@@ -41,8 +38,7 @@ API documentation : [https://godoc.org/github.com/zero-os/0-stor/client](https:/
 The `client.Write` method takes a third parameter other then the key and value, namely the reference list (`refList`).  
 This reference list is also returned as the second value from the `client.Read` method.
 
-This reference list is attached to each object and is fully managed by the client.  
-As the 0-stor server doesn't do anything with this list, it can be omitted and ignored if the client has no desire of using it.  
+As the 0-db server doesn't do anything with this list, it can be omitted and ignored if the client has no desire of using it.  
 The reference list for example, can be used to allow the client to do deduplication.
 
 ***TODO: show example (https://github.com/zero-os/0-stor/issues/216)***
@@ -127,13 +123,13 @@ File: [/examples/hello_world/main.go](/examples/hello_world/main.go)
 In this example, when we store the data, the data will be processed as follow:
 plain data -> compress -> encrypt -> distribution/erasure encoding (which send to 0-stor server and write metadata)
 
-When we get the data from 0-stor, the reverse process will happen:
+When we get the data from 0-db server, the reverse process will happen:
 distribution/erasure decoding (which reads metadata & Get data from 0-stor) -> decrypt -> decompress -> plain data.
 
 To run this example, you need to run:
-- 0-stor no-auth server at port 12345
-- 0-stor no-auth server at port 12346
-- 0-stor no-auth server at port 12347
+- 0-db server at port 12345
+- 0-db server at port 12346
+- 0-db server at port 12347
 - etcd server at port 2379
 
 Than you can run the example as follows:

@@ -21,6 +21,7 @@ import (
 
 	"github.com/zero-os/0-stor/client"
 	"github.com/zero-os/0-stor/client/metastor/encoding"
+	"github.com/zero-os/0-stor/client/processing"
 
 	yaml "gopkg.in/yaml.v2"
 )
@@ -45,7 +46,7 @@ type MetaStorConfig struct {
 	// and when not given, no encryption is used.
 	// Even though encryption is disabled by default,
 	// it is recommended to use it if you can.
-	Encryption client.MetaStorEncryptionConfig `yaml:"encryption" json:"encryption"`
+	Encryption MetaStorEncryptionConfig `yaml:"encryption" json:"encryption"`
 
 	// Encoding defines the encoding type,
 	// used to marshal the metadata to binary from, and vice versa.
@@ -56,6 +57,34 @@ type MetaStorConfig struct {
 	// you'll be able to register (or overwrite an existing) MarshalFuncPair,
 	// and thus support any encoder you wish to use.
 	Encoding encoding.MarshalType `yaml:"encoding" json:"encoding"` // optional (proto by default)
+}
+
+// MetaStorEncryptionConfig defines the configuration used to create an
+// encrypter-decrypter Processor, used to encrypt the metadata prior to storage,
+// and decrypting it right after fetching it back from the database.
+type MetaStorEncryptionConfig struct {
+	// Private key, the specific required length
+	// is defined by the type of Encryption used.
+	//
+	// This key will also used by the crypto-hashing algorithm given,
+	// if you did not define a separate key within the hashing configuration.
+	PrivateKey string `yaml:"private_key" json:"private_key"`
+
+	// The type of encryption algorithm to use,
+	// defining both the encrypting and decrypting logic.
+	// The string value (representing the encryption algorithm type), is case-insensitive.
+	//
+	// By default no type is used, disabling encryption,
+	// encryption gets enabled as soon as a private key gets defined.
+	// All standard types available are: AES
+	//
+	// Valid Key sizes for AES are: 16, 24 and 32 bytes
+	// The recommended private key size is 32 bytes, this will select/use AES_256.
+	//
+	// In case you've registered a custom encryption algorithm,
+	// or have overridden a standard encryption algorithm, using `processing.RegisterEncrypterDecrypter`
+	// you'll be able to use that encrypter-decrypting, by providing its (stringified) type here.
+	Type processing.EncryptionType `yaml:"type" json:"type"`
 }
 
 // MetaStorDBConfig defines configuration needed to creates

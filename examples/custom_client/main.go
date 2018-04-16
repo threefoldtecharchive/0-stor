@@ -23,8 +23,8 @@ import (
 	"path"
 
 	"github.com/zero-os/0-stor/client"
-	datastor "github.com/zero-os/0-stor/client/datastor/grpc"
 	"github.com/zero-os/0-stor/client/datastor/pipeline"
+	datastor "github.com/zero-os/0-stor/client/datastor/zerodb"
 	"github.com/zero-os/0-stor/client/metastor"
 	"github.com/zero-os/0-stor/client/metastor/db/badger"
 	"github.com/zero-os/0-stor/client/processing"
@@ -84,7 +84,7 @@ func main() {
 	}
 	// create the metastor client,
 	// with encryption enabled and our created badger DB backend
-	metaClient, err := metastor.NewClient(metastor.Config{
+	metaClient, err := metastor.NewClientFromConfig([]byte(namespace), metastor.Config{
 		Database: metaDB,
 		ProcessorConstructor: func() (processing.Processor, error) {
 			return processing.NewAESEncrypterDecrypter([]byte(mySuperSecretPrivateKey))
@@ -95,7 +95,7 @@ func main() {
 
 	// create a datastor cluster, using our predefined addresses and namespace,
 	// which will be used to store the actual data
-	datastorCluster, err := datastor.NewInsecureCluster(zstordbAddresses, namespace, nil)
+	datastorCluster, err := datastor.NewCluster(zstordbAddresses, "", namespace, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -114,14 +114,14 @@ func main() {
 	key := []byte("hi guys")
 
 	// store onto 0-stor
-	_, err = c.Write(key, bytes.NewReader(data))
+	md, err := c.Write(key, bytes.NewReader(data))
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// read the data
 	buf := bytes.NewBuffer(nil)
-	err = c.Read(key, buf)
+	err = c.Read(*md, buf)
 	if err != nil {
 		log.Fatal(err)
 	}

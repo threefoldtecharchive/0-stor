@@ -2,21 +2,17 @@
 
 [![Build Status](https://travis-ci.org/zero-os/0-stor.png?branch=master)](https://travis-ci.org/zero-os/0-stor) [![GoDoc](https://godoc.org/github.com/zero-os/0-stor?status.svg)](https://godoc.org/github.com/zero-os/0-stor) [![codecov](https://codecov.io/gh/zero-os/0-stor/branch/master/graph/badge.svg)](https://codecov.io/gh/zero-os/0-stor) [![Go Report Card](https://goreportcard.com/badge/github.com/zero-os/0-stor)](https://goreportcard.com/report/github.com/zero-os/0-stor) [![license](https://img.shields.io/github/license/zero-os/0-stor.svg)](https://github.com/zero-os/0-stor/blob/master/LICENSE)
 
-A Single device object store.
+0-stor is client library to process and store data to 0-db server.
 
 [link to group on telegram](https://t.me/joinchat/BrOCOUGHeT035il_qrwQ2A)
 
 ## Minimum requirements
 
-Development requirements | Notes
---- | ---
-Go version | [**Go 1.8**][min-release-go] or any higher **stable** release (it is recommended to always use the latest Golang release)
-ETCD Version | [**etcd 3.2.4**][min-release-etcd] or any higher **stable** release (only required when requiring a metastor client with ETCD as its underlying database)
-protoc version | [**protoc 3.4.0** (protoc-3.4.0)][min-release-protoc] (only required when needing to regenerate any proto3 schemas)
+| Requirements   | Notes                                                                                                                     |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Go version     | [**Go 1.8**][min-release-go] or any higher **stable** release (it is recommended to always use the latest Golang release) |
+| protoc version | [**protoc 3.4.0** (protoc-3.4.0)][min-release-protoc] (only required when needing to regenerate any proto3 schemas)       |
 
-Production requirements | Notes
---- | ---
-ETCD Version | [**etcd 3.2.4**][min-release-etcd] or any higher **stable** release
 
 Developed on Linux and MacOS, [CI Tested on Linux][ci-tested-travis]. Ready for usage in production on both Linux and MacOS.
 
@@ -37,7 +33,9 @@ For a full overview check out the [code organization docs](/docs/code_organizati
 
 0-stor uses 0-db as storage server.
 
-See [0-db page](https://github.com/zero-os/0-db) for more information.
+See [0-db page](https://github.com/rivine/0-db) for more information.
+
+0-db server need to run in [diret mode](https://github.com/rivine/0-db#direct-key).
 
 
 ## Client
@@ -52,13 +50,56 @@ The client provides some basic storage primitives to process your data before se
 
 All of these primitives are configurable and you can decide how your data will be processed before being sent to the 0-stor.
 
-### etcd
+### Metadata
 
-Other then a 0-db server cluster, 0-stor clients also needs an [etcd](https://github.com/coreos/etcd) server cluster running to store it's metadata onto.
+Client's [Write](https://godoc.org/github.com/zero-os/0-stor/client#Client.Write) returns metadata that need to be stored in safe place for future data
+retrieval.
+If 0-stor client created with metadata storage, then the metadata is going to stored on the Write operation.
 
-To install and run an etcd cluster, check out the [etcd documentation](https://github.com/coreos/etcd#getting-etcd).
+#### Provided metadata DB storage
 
-> NOTE: it is possible to avoid the usage of etcd, and use a badger-backed metastor client instead. See http://godoc.org/github.com/zero-os/0-stor/client/metastor/db/badger for more information.
+0-stor also provides two metadata storage packages to be used by user:
+- [etcd](https://godoc.org/github.com/zero-os/0-stor/client/metastor/db/etcd)
+- [badger](https://godoc.org/github.com/zero-os/0-stor/client/metastor/db/badger)
+
+Here is the example to use `etcd` storage
+```go
+// creates metadata DB storage
+etcdDB, err := etcd.New([]string{"127.0.0.1:2379"})
+if err != nil {
+	log.Fatal(err)
+}
+
+// creates metadata client with default encryption using the given key as private key
+metaCli, err := metastor.NewClient("mynamespace", etcdDB, "ab345678901234567890123456789012")
+if err != nil {
+	log.Fatal(err)
+}
+
+// creates 0-stor client
+c, err := client.NewClientFromConfig(config, metaCli, -1) // use default job count
+if err != nil {
+	log.Fatal(err)
+}
+```
+
+User could also use `badger` as metadata DB storage by replacing 
+```go
+etcdDB, err := etcd.New([]string{"127.0.0.1:2379"})
+```
+line above with the respective `badger` code, see [badger godoc](https://godoc.org/github.com/zero-os/0-stor/client/metastor/db/badger) for more details.
+
+#### Own metadata DB storage
+
+User could also use own implementation of metadata DB storage by implementing
+the [DB interface](https://godoc.org/github.com/zero-os/0-stor/client/metastor/db#DB).
+
+And then replace the 
+```go
+etcdDB, err := etcd.New([]string{"127.0.0.1:2379"})
+```
+line above with the code to creates the metadata DB storage.
+
 
 ### Client API
 

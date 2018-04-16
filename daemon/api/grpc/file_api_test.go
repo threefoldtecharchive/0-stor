@@ -31,7 +31,7 @@ import (
 )
 
 func TestFileService_Write(t *testing.T) {
-	fSrv := newFileService(&fileClientStub{}, false)
+	fSrv := newFileService(&fileClientStub{}, &metadataClientStub{}, false)
 
 	_, err := fSrv.Write(context.Background(),
 		&pb.WriteRequest{Key: []byte("key"), Data: []byte("data")})
@@ -39,7 +39,7 @@ func TestFileService_Write(t *testing.T) {
 }
 
 func TestFileService_WriteError(t *testing.T) {
-	fSrv := newFileService(&fileClientStub{}, false)
+	fSrv := newFileService(&fileClientStub{}, &metadataClientStub{}, false)
 
 	_, err := fSrv.Write(context.Background(),
 		&pb.WriteRequest{Key: nil, Data: []byte("data")})
@@ -51,14 +51,14 @@ func TestFileService_WriteError(t *testing.T) {
 	require.Error(t, err)
 
 	// client errors should propagate, iff those code paths hit
-	fSrv = newFileService(fileErrorClient{}, false)
+	fSrv = newFileService(fileErrorClient{}, &metadataClientStub{}, false)
 	_, err = fSrv.Write(context.Background(),
 		&pb.WriteRequest{Key: []byte("key"), Data: []byte("data")})
 	require.Equal(t, errFooFileClient, err)
 }
 
 func TestFileService_WriteFile(t *testing.T) {
-	fSrv := newFileService(&fileClientStub{}, false)
+	fSrv := newFileService(&fileClientStub{}, &metadataClientStub{}, false)
 
 	_, err := fSrv.WriteFile(context.Background(),
 		&pb.WriteFileRequest{Key: []byte("key"), FilePath: "foo"})
@@ -66,7 +66,7 @@ func TestFileService_WriteFile(t *testing.T) {
 }
 
 func TestFileService_WriteFileError(t *testing.T) {
-	fSrv := newFileService(&fileClientStub{}, false)
+	fSrv := newFileService(&fileClientStub{}, &metadataClientStub{}, false)
 
 	_, err := fSrv.WriteFile(context.Background(),
 		&pb.WriteFileRequest{Key: nil, FilePath: "foo"})
@@ -84,14 +84,14 @@ func TestFileService_WriteFileError(t *testing.T) {
 	require.Equal(t, rpctypes.ErrGRPCNoLocalFS, err)
 
 	// client errors should propagate, iff those code paths hit
-	fSrv = newFileService(fileErrorClient{}, false)
+	fSrv = newFileService(fileErrorClient{}, &metadataClientStub{}, false)
 	_, err = fSrv.WriteFile(context.Background(),
 		&pb.WriteFileRequest{Key: []byte("key"), FilePath: "foo"})
 	require.Equal(t, errFooFileClient, err)
 }
 
 func TestFileService_Read(t *testing.T) {
-	fSrv := newFileService(&fileClientStub{}, false)
+	fSrv := newFileService(&fileClientStub{}, &metadataClientStub{}, false)
 
 	_, err := fSrv.Read(context.Background(),
 		&pb.ReadRequest{Input: &pb.ReadRequest_Key{Key: []byte("key")}})
@@ -102,7 +102,7 @@ func TestFileService_Read(t *testing.T) {
 }
 
 func TestFileService_ReadError(t *testing.T) {
-	fSrv := newFileService(&fileClientStub{}, false)
+	fSrv := newFileService(&fileClientStub{}, &metadataClientStub{}, false)
 
 	_, err := fSrv.Read(context.Background(),
 		&pb.ReadRequest{Input: &pb.ReadRequest_Key{Key: nil}})
@@ -115,17 +115,19 @@ func TestFileService_ReadError(t *testing.T) {
 	require.Error(t, err)
 
 	// client errors should propagate, iff those code paths hit
-	fSrv = newFileService(fileErrorClient{}, false)
+	fSrv = newFileService(fileErrorClient{}, &metadataClientStub{}, false)
 	_, err = fSrv.Read(context.Background(),
 		&pb.ReadRequest{Input: &pb.ReadRequest_Key{Key: []byte("key")}})
 	require.Equal(t, errFooFileClient, err)
+
 	_, err = fSrv.Read(context.Background(),
 		&pb.ReadRequest{Input: &pb.ReadRequest_Metadata{Metadata: new(pb.Metadata)}})
 	require.Equal(t, errFooFileClient, err)
+
 }
 
 func TestFileService_ReadFile(t *testing.T) {
-	fSrv := newFileService(&fileClientStub{}, false)
+	fSrv := newFileService(&fileClientStub{}, &metadataClientStub{}, false)
 
 	_, err := fSrv.ReadFile(context.Background(),
 		&pb.ReadFileRequest{Input: &pb.ReadFileRequest_Key{Key: []byte("key")}, FilePath: "foo"})
@@ -136,7 +138,7 @@ func TestFileService_ReadFile(t *testing.T) {
 }
 
 func TestFileService_ReadFileError(t *testing.T) {
-	fSrv := newFileService(&fileClientStub{}, false)
+	fSrv := newFileService(&fileClientStub{}, &metadataClientStub{}, false)
 
 	_, err := fSrv.ReadFile(context.Background(),
 		&pb.ReadFileRequest{Input: &pb.ReadFileRequest_Key{Key: nil}, FilePath: "foo"})
@@ -164,7 +166,7 @@ func TestFileService_ReadFileError(t *testing.T) {
 	require.Equal(t, rpctypes.ErrGRPCNoLocalFS, err)
 
 	// client errors should propagate, iff those code paths hit
-	fSrv = newFileService(fileErrorClient{}, false)
+	fSrv = newFileService(fileErrorClient{}, &metadataClientStub{}, false)
 	_, err = fSrv.ReadFile(context.Background(),
 		&pb.ReadFileRequest{Input: &pb.ReadFileRequest_Key{Key: []byte("key")}, FilePath: "foo"})
 	require.Equal(t, errFooFileClient, err)
@@ -174,7 +176,7 @@ func TestFileService_ReadFileError(t *testing.T) {
 }
 
 func TestFileService_Delete(t *testing.T) {
-	fSrv := newFileService(&fileClientStub{}, false)
+	fSrv := newFileService(&fileClientStub{}, &metadataClientStub{}, false)
 
 	_, err := fSrv.Delete(context.Background(),
 		&pb.DeleteRequest{Input: &pb.DeleteRequest_Key{Key: []byte("key")}})
@@ -185,7 +187,7 @@ func TestFileService_Delete(t *testing.T) {
 }
 
 func TestFileService_DeleteError(t *testing.T) {
-	fSrv := newFileService(&fileClientStub{}, false)
+	fSrv := newFileService(&fileClientStub{}, &metadataClientStub{}, false)
 
 	_, err := fSrv.Delete(context.Background(),
 		&pb.DeleteRequest{Input: &pb.DeleteRequest_Key{Key: nil}})
@@ -198,7 +200,7 @@ func TestFileService_DeleteError(t *testing.T) {
 	require.Error(t, err)
 
 	// client errors should propagate, iff those code paths hit
-	fSrv = newFileService(fileErrorClient{}, false)
+	fSrv = newFileService(fileErrorClient{}, &metadataClientStub{}, false)
 	_, err = fSrv.Delete(context.Background(),
 		&pb.DeleteRequest{Input: &pb.DeleteRequest_Key{Key: []byte("key")}})
 	require.Equal(t, errFooFileClient, err)
@@ -208,7 +210,7 @@ func TestFileService_DeleteError(t *testing.T) {
 }
 
 func TestFileService_Check(t *testing.T) {
-	fSrv := newFileService(&fileClientStub{}, false)
+	fSrv := newFileService(&fileClientStub{}, &metadataClientStub{}, false)
 
 	_, err := fSrv.Check(context.Background(),
 		&pb.CheckRequest{Input: &pb.CheckRequest_Key{Key: []byte("key")}})
@@ -219,7 +221,7 @@ func TestFileService_Check(t *testing.T) {
 }
 
 func TestFileService_CheckError(t *testing.T) {
-	fSrv := newFileService(&fileClientStub{}, false)
+	fSrv := newFileService(&fileClientStub{}, &metadataClientStub{}, false)
 
 	_, err := fSrv.Check(context.Background(),
 		&pb.CheckRequest{Input: &pb.CheckRequest_Key{Key: nil}})
@@ -232,7 +234,7 @@ func TestFileService_CheckError(t *testing.T) {
 	require.Error(t, err)
 
 	// client errors should propagate, iff those code paths hit
-	fSrv = newFileService(fileErrorClient{}, false)
+	fSrv = newFileService(fileErrorClient{}, &metadataClientStub{}, false)
 	_, err = fSrv.Check(context.Background(),
 		&pb.CheckRequest{Input: &pb.CheckRequest_Key{Key: []byte("key")}})
 	require.Equal(t, errFooFileClient, err)
@@ -242,20 +244,20 @@ func TestFileService_CheckError(t *testing.T) {
 }
 
 func TestFileService_Repair(t *testing.T) {
-	fSrv := newFileService(&fileClientStub{}, false)
+	fSrv := newFileService(&fileClientStub{}, &metadataClientStub{}, false)
 
 	_, err := fSrv.Repair(context.Background(), &pb.RepairRequest{Key: []byte("key")})
 	require.NoError(t, err)
 }
 
 func TestFileService_RepairError(t *testing.T) {
-	fSrv := newFileService(&fileClientStub{}, false)
+	fSrv := newFileService(&fileClientStub{}, &metadataClientStub{}, false)
 
 	_, err := fSrv.Repair(context.Background(), &pb.RepairRequest{Key: nil})
 	require.Equal(t, rpctypes.ErrGRPCNilKey, err)
 
 	// client errors should propagate, iff those code paths hit
-	fSrv = newFileService(fileErrorClient{}, false)
+	fSrv = newFileService(fileErrorClient{}, &metadataClientStub{}, false)
 	_, err = fSrv.Repair(context.Background(), &pb.RepairRequest{Key: []byte("key")})
 	require.Equal(t, errFooFileClient, err)
 }
@@ -265,21 +267,15 @@ type fileClientStub struct{}
 func (stub fileClientStub) Write(key []byte, r io.Reader) (*metatypes.Metadata, error) {
 	return &metatypes.Metadata{}, nil
 }
-func (stub fileClientStub) Read(key []byte, w io.Writer) error {
-	_, err := w.Write(key)
-	return err
-}
-func (stub fileClientStub) ReadWithMeta(meta metatypes.Metadata, w io.Writer) error {
+func (stub fileClientStub) Read(meta metatypes.Metadata, w io.Writer) error {
 	_, err := w.Write(append([]byte("hello"), meta.Key...))
 	return err
 }
-func (stub fileClientStub) Delete(key []byte) error                                  { return nil }
-func (stub fileClientStub) DeleteWithMeta(meta metatypes.Metadata) error             { return nil }
-func (stub fileClientStub) Check(key []byte, fast bool) (storage.CheckStatus, error) { return 0, nil }
-func (stub fileClientStub) CheckWithMeta(meta metatypes.Metadata, fast bool) (storage.CheckStatus, error) {
+func (stub fileClientStub) Delete(meta metatypes.Metadata) error { return nil }
+func (stub fileClientStub) Check(meta metatypes.Metadata, fast bool) (storage.CheckStatus, error) {
 	return 0, nil
 }
-func (stub fileClientStub) Repair(key []byte) (*metatypes.Metadata, error) {
+func (stub fileClientStub) Repair(meta metatypes.Metadata) (*metatypes.Metadata, error) {
 	return &metatypes.Metadata{}, nil
 }
 
@@ -290,21 +286,14 @@ type fileErrorClient struct{}
 func (c fileErrorClient) Write(key []byte, r io.Reader) (*metatypes.Metadata, error) {
 	return nil, errFooFileClient
 }
-func (c fileErrorClient) Read(key []byte, w io.Writer) error {
+func (c fileErrorClient) Read(meta metatypes.Metadata, w io.Writer) error {
 	return errFooFileClient
 }
-func (c fileErrorClient) ReadWithMeta(meta metatypes.Metadata, w io.Writer) error {
-	return errFooFileClient
-}
-func (c fileErrorClient) Delete(key []byte) error                      { return errFooFileClient }
-func (c fileErrorClient) DeleteWithMeta(meta metatypes.Metadata) error { return errFooFileClient }
-func (c fileErrorClient) Check(key []byte, fast bool) (storage.CheckStatus, error) {
+func (c fileErrorClient) Delete(meta metatypes.Metadata) error { return errFooFileClient }
+func (c fileErrorClient) Check(meta metatypes.Metadata, fast bool) (storage.CheckStatus, error) {
 	return 0, errFooFileClient
 }
-func (c fileErrorClient) CheckWithMeta(meta metatypes.Metadata, fast bool) (storage.CheckStatus, error) {
-	return 0, errFooFileClient
-}
-func (c fileErrorClient) Repair(key []byte) (*metatypes.Metadata, error) {
+func (c fileErrorClient) Repair(meta metatypes.Metadata) (*metatypes.Metadata, error) {
 	return nil, errFooFileClient
 }
 

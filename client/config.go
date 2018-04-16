@@ -23,17 +23,13 @@ import (
 	"strings"
 
 	"github.com/zero-os/0-stor/client/datastor/pipeline"
-	"github.com/zero-os/0-stor/client/processing"
 
 	yaml "gopkg.in/yaml.v2"
 )
 
-// TODO: handle configuration using https://github.com/spf13/viper
-
 // ReadConfig reads the configuration from a file.
 // NOTE that it isn't validated, this will be done automatically,
 // when you use the config to create a 0-stor client.
-// TODO : delete this
 func ReadConfig(path string) (*Config, error) {
 	bytes, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -184,34 +180,4 @@ func (v TLSVersion) VersionTLSOrDefault(def uint16) uint16 {
 		return def
 	}
 	return _TlsVersionValues[v-1]
-}
-
-// MetaStorConfig is used to configure the metastor client.
-// TODO: remove this fixed/non-dynamic struct
-// MetaStorEncryptionConfig defines the configuration used to create an
-// encrypter-decrypter Processor, used to encrypt the metadata prior to storage,
-// and decrypting it right after fetching it back from the database.
-type MetaStorEncryptionConfig struct {
-	// Private key, the specific required length
-	// is defined by the type of Encryption used.
-	//
-	// This key will also used by the crypto-hashing algorithm given,
-	// if you did not define a separate key within the hashing configuration.
-	PrivateKey string `yaml:"private_key" json:"private_key"`
-
-	// The type of encryption algorithm to use,
-	// defining both the encrypting and decrypting logic.
-	// The string value (representing the encryption algorithm type), is case-insensitive.
-	//
-	// By default no type is used, disabling encryption,
-	// encryption gets enabled as soon as a private key gets defined.
-	// All standard types available are: AES
-	//
-	// Valid Key sizes for AES are: 16, 24 and 32 bytes
-	// The recommended private key size is 32 bytes, this will select/use AES_256.
-	//
-	// In case you've registered a custom encryption algorithm,
-	// or have overridden a standard encryption algorithm, using `processing.RegisterEncrypterDecrypter`
-	// you'll be able to use that encrypter-decrypting, by providing its (stringified) type here.
-	Type processing.EncryptionType `yaml:"type" json:"type"`
 }

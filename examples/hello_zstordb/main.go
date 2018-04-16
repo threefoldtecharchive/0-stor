@@ -19,13 +19,12 @@ package main
 import (
 	"log"
 
-	datastor "github.com/zero-os/0-stor/client/datastor/grpc"
+	datastor "github.com/zero-os/0-stor/client/datastor/zerodb"
 )
 
 func main() {
-	// create a client to connect to a `--no-auth` zstordb server
-	// which is listening on a TCP connection at the local port `:12345`
-	client, err := datastor.NewInsecureClient("127.0.0.1:12345", "test", nil)
+	// create a client to connect to a `--no-auth` zdb server
+	client, err := datastor.NewClient("127.0.0.1:12345", "", "test")
 	if err != nil {
 		log.Fatal(err)
 	}

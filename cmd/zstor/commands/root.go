@@ -60,24 +60,24 @@ var rootCfg struct {
 	JobCount   int
 }
 
-func getClient() (*client.Client, error) {
+func getClient() (*client.Client, *metastor.Client, error) {
 	cfg, err := getClientConfig()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	metaCli, err := getMetaClient()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// create client
 	cl, err := client.NewClientFromConfig(cfg.Config, metaCli, rootCfg.JobCount)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create 0-stor client: %v", err)
+		return nil, nil, fmt.Errorf("failed to create 0-stor client: %v", err)
 	}
 
-	return cl, nil
+	return cl, metaCli, nil
 }
 
 func getMetaClient() (*metastor.Client, error) {
@@ -105,7 +105,7 @@ func getMetaClient() (*metastor.Client, error) {
 
 	if len(cfg.Encryption.PrivateKey) == 0 {
 		// create potentially insecure metastor storage
-		return metastor.NewClient([]byte(clientCfg.Namespace), config)
+		return metastor.NewClientFromConfig([]byte(clientCfg.Namespace), config)
 	}
 
 	// create the constructor which will create our encrypter-decrypter when needed
@@ -123,7 +123,7 @@ func getMetaClient() (*metastor.Client, error) {
 
 	// create our full-configured metastor client,
 	// including encryption support for our metadata in binary form
-	return metastor.NewClient([]byte(clientCfg.Namespace), config)
+	return metastor.NewClientFromConfig([]byte(clientCfg.Namespace), config)
 }
 
 func getClientConfig() (*daemon.Config, error) {

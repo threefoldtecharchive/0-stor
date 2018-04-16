@@ -54,7 +54,7 @@ func newTestDaemon(t *testing.T) *Daemon {
 		cleanup()
 		t.Fatal(err)
 	}
-	metaClient, err := metastor.NewClient([]byte("namespace"), metastor.Config{Database: db})
+	metaClient, err := metastor.NewClientFromConfig([]byte("namespace"), metastor.Config{Database: db})
 	if err != nil {
 		cleanup()
 		t.Fatal(err)

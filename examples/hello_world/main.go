@@ -22,14 +22,18 @@ import (
 
 	"github.com/zero-os/0-stor/client"
 	"github.com/zero-os/0-stor/client/datastor/pipeline"
+	"github.com/zero-os/0-stor/client/metastor"
+	"github.com/zero-os/0-stor/client/metastor/db/etcd"
 	"github.com/zero-os/0-stor/client/processing"
 )
 
+const (
+	namespace = "thedisk"
+)
+
 func main() {
-	// This example doesn't use IYO-based Authentication,
-	// and only works if the zstordb servers used have the `--no-auth` flag defined.
 	config := client.Config{
-		Namespace: "thedisk",
+		Namespace: namespace,
 		DataStor: client.DataStorConfig{
 			Shards: []string{"127.0.0.1:12345", "127.0.0.1:12346", "127.0.0.1:12347"},
 			Pipeline: pipeline.Config{
@@ -46,17 +50,22 @@ func main() {
 				},
 			},
 		},
-		MetaStor: client.MetaStorConfig{
-			Database: client.MetaStorETCDConfig{
-				Endpoints: []string{"127.0.0.1:2379"},
-			},
-			Encryption: client.MetaStorEncryptionConfig{
-				PrivateKey: "ab345678901234567890123456789012",
-			},
-		},
 	}
 
-	c, err := client.NewClientFromConfig(config, -1) // use default job count
+	// creates metadata storage
+	etcdDB, err := etcd.New([]string{"127.0.0.1:2379"})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// creates metadata client with default encryption using the given key as private key
+	metaCli, err := metastor.NewClient(namespace, etcdDB, "ab345678901234567890123456789012")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// creates 0-stor client
+	c, err := client.NewClientFromConfig(config, metaCli, -1) // use default job count
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -65,14 +74,14 @@ func main() {
 	key := []byte("hi guys")
 
 	// store onto 0-stor
-	_, err = c.Write(key, bytes.NewReader(data))
+	md, err := c.Write(key, bytes.NewReader(data))
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// read the data
 	buf := bytes.NewBuffer(nil)
-	err = c.Read(key, buf)
+	err = c.Read(*md, buf)
 	if err != nil {
 		log.Fatal(err)
 	}

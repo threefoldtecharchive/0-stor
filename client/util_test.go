@@ -87,5 +87,5 @@ func getTestMetastorClient(namespace string) (*metastor.Client, error) {
 	// create in-memory db
 	db := test.New()
 
-	return metastor.NewClientFromDB(namespace, db, "")
+	return metastor.NewClient(namespace, db, "")
 }

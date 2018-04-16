@@ -31,9 +31,10 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func newFileService(client fileClient, disableLocalFSAccess bool) *fileService {
+func newFileService(client fileClient, metaClient metadataClient, disableLocalFSAccess bool) *fileService {
 	return &fileService{
 		client:               client,
+		metaClient:           metaClient,
 		disableLocalFSAccess: disableLocalFSAccess,
 	}
 }
@@ -44,6 +45,7 @@ func newFileService(client fileClient, disableLocalFSAccess bool) *fileService {
 // metadata bound to them, which identify where and how they are stored.
 type fileService struct {
 	client               fileClient
+	metaClient           metadataClient
 	disableLocalFSAccess bool
 }
 
@@ -204,13 +206,18 @@ func (service *fileService) Read(ctx context.Context, req *pb.ReadRequest) (*pb.
 		if len(v.Key) == 0 {
 			return nil, rpctypes.ErrGRPCNilKey
 		}
-		err = service.client.Read(v.Key, buf)
+		var metadata *metatypes.Metadata
+		metadata, err = service.metaClient.GetMetadata(v.Key)
+		if err != nil {
+			return nil, mapZstorError(err)
+		}
+		err = service.client.Read(*metadata, buf)
 	case *pb.ReadRequest_Metadata:
 		if v.Metadata == nil {
 			return nil, rpctypes.ErrGRPCNilMetadata
 		}
 		metadata := convertProtoToInMemoryMetadata(v.Metadata)
-		err = service.client.ReadWithMeta(metadata, buf)
+		err = service.client.Read(metadata, buf)
 	default:
 		// if no key or metadata is given,
 		// we'll simply assume that a key is forgotten,
@@ -259,13 +266,18 @@ func (service *fileService) ReadFile(ctx context.Context, req *pb.ReadFileReques
 		if len(v.Key) == 0 {
 			return nil, rpctypes.ErrGRPCNilKey
 		}
-		err = service.client.Read(v.Key, file)
+		var metadata *metatypes.Metadata
+		metadata, err = service.metaClient.GetMetadata(v.Key)
+		if err != nil {
+			return nil, mapZstorError(err)
+		}
+		err = service.client.Read(*metadata, file)
 	case *pb.ReadFileRequest_Metadata:
 		if v.Metadata == nil {
 			return nil, rpctypes.ErrGRPCNilMetadata
 		}
 		metadata := convertProtoToInMemoryMetadata(v.Metadata)
-		err = service.client.ReadWithMeta(metadata, file)
+		err = service.client.Read(metadata, file)
 	default:
 		// if no key or metadata is given,
 		// we'll simply assume that a key is forgotten,
@@ -306,14 +318,19 @@ func (service *fileService) ReadStream(req *pb.ReadStreamRequest, stream pb.File
 			if len(v.Key) == 0 {
 				return rpctypes.ErrGRPCNilKey
 			}
-			return service.client.Read(v.Key, writer)
+			var metadata *metatypes.Metadata
+			metadata, err = service.metaClient.GetMetadata(v.Key)
+			if err != nil {
+				return mapZstorError(err)
+			}
+			return service.client.Read(*metadata, writer)
 
 		case *pb.ReadStreamRequest_Metadata:
 			if v.Metadata == nil {
 				return rpctypes.ErrGRPCNilMetadata
 			}
 			metadata := convertProtoToInMemoryMetadata(v.Metadata)
-			return service.client.ReadWithMeta(metadata, writer)
+			return service.client.Read(metadata, writer)
 
 		default:
 			// if no key or metadata is given,
@@ -361,13 +378,18 @@ func (service *fileService) Delete(ctx context.Context, req *pb.DeleteRequest) (
 		if len(v.Key) == 0 {
 			return nil, rpctypes.ErrGRPCNilKey
 		}
-		err = service.client.Delete(v.Key)
+		var metadata *metatypes.Metadata
+		metadata, err = service.metaClient.GetMetadata(v.Key)
+		if err != nil {
+			return nil, mapZstorError(err)
+		}
+		err = service.client.Delete(*metadata)
 	case *pb.DeleteRequest_Metadata:
 		if v.Metadata == nil {
 			return nil, rpctypes.ErrGRPCNilMetadata
 		}
 		metadata := convertProtoToInMemoryMetadata(v.Metadata)
-		err = service.client.DeleteWithMeta(metadata)
+		err = service.client.Delete(metadata)
 	default:
 		// if no key or metadata is given,
 		// we'll simply assume that a key is forgotten,
@@ -393,13 +415,18 @@ func (service *fileService) Check(ctx context.Context, req *pb.CheckRequest) (*p
 		if len(v.Key) == 0 {
 			return nil, rpctypes.ErrGRPCNilKey
 		}
-		status, err = service.client.Check(v.Key, fast)
+		var metadata *metatypes.Metadata
+		metadata, err = service.metaClient.GetMetadata(v.Key)
+		if err != nil {
+			return nil, mapZstorError(err)
+		}
+		status, err = service.client.Check(*metadata, fast)
 	case *pb.CheckRequest_Metadata:
 		if v.Metadata == nil {
 			return nil, rpctypes.ErrGRPCNilMetadata
 		}
 		metadata := convertProtoToInMemoryMetadata(v.Metadata)
-		status, err = service.client.CheckWithMeta(metadata, fast)
+		status, err = service.client.Check(metadata, fast)
 	default:
 		// if no key or metadata is given,
 		// we'll simply assume that a key is forgotten,
@@ -418,8 +445,12 @@ func (service *fileService) Repair(ctx context.Context, req *pb.RepairRequest) (
 	if len(key) == 0 {
 		return nil, rpctypes.ErrGRPCNilKey
 	}
+	metadata, err := service.metaClient.GetMetadata(key)
+	if err != nil {
+		return nil, mapZstorError(err)
+	}
 
-	metadata, err := service.client.Repair(key)
+	metadata, err = service.client.Repair(*metadata)
 	if err != nil {
 		return nil, mapZstorError(err)
 	}
@@ -430,13 +461,10 @@ func (service *fileService) Repair(ctx context.Context, req *pb.RepairRequest) (
 
 type fileClient interface {
 	Write(key []byte, r io.Reader) (*metatypes.Metadata, error)
-	Read(key []byte, w io.Writer) error
-	ReadWithMeta(meta metatypes.Metadata, w io.Writer) error
-	Delete(key []byte) error
-	DeleteWithMeta(meta metatypes.Metadata) error
-	Check(key []byte, fast bool) (storage.CheckStatus, error)
-	CheckWithMeta(meta metatypes.Metadata, fast bool) (storage.CheckStatus, error)
-	Repair(key []byte) (*metatypes.Metadata, error)
+	Read(meta metatypes.Metadata, w io.Writer) error
+	Delete(meta metatypes.Metadata) error
+	Check(meta metatypes.Metadata, fast bool) (storage.CheckStatus, error)
+	Repair(meta metatypes.Metadata) (*metatypes.Metadata, error)
 }
 
 var (

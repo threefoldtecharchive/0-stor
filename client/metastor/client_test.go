@@ -38,10 +38,10 @@ import (
 
 func TestNewClient_ExplicitErrors(t *testing.T) {
 	namespace := []byte("ns")
-	_, err := NewClient(namespace, Config{})
+	_, err := NewClientFromConfig(namespace, Config{})
 	require.Error(t, err, "no database given")
 
-	_, err = NewClient(namespace, Config{
+	_, err = NewClientFromConfig(namespace, Config{
 		Database: test.New(),
 		MarshalFuncPair: &encoding.MarshalFuncPair{
 			Marshal: binaryMetadataMarshal,
@@ -49,7 +49,7 @@ func TestNewClient_ExplicitErrors(t *testing.T) {
 	})
 	require.Error(t, err, "no unmarshal func given, while received a non-nil pair")
 
-	_, err = NewClient(namespace, Config{
+	_, err = NewClientFromConfig(namespace, Config{
 		Database: test.New(),
 		MarshalFuncPair: &encoding.MarshalFuncPair{
 			Unmarshal: binaryMetadataUnmarshal,
@@ -81,7 +81,7 @@ func TestClient_ListKeys(t *testing.T) {
 func testClient(t *testing.T, f func(t *testing.T, c *Client)) {
 	namespace := []byte("ns")
 	t.Run("in_mem_db+default_cfg", func(t *testing.T) {
-		client, err := NewClient(namespace, Config{
+		client, err := NewClientFromConfig(namespace, Config{
 			Database: test.New(),
 		})
 		require.NoError(t, err)
@@ -96,7 +96,7 @@ func testClient(t *testing.T, f func(t *testing.T, c *Client)) {
 	})
 
 	t.Run("in_mem_db+binary_encoding", func(t *testing.T) {
-		client, err := NewClient(namespace, Config{
+		client, err := NewClientFromConfig(namespace, Config{
 			Database:        test.New(),
 			MarshalFuncPair: binaryMarshalFuncPair,
 		})
@@ -112,7 +112,7 @@ func testClient(t *testing.T, f func(t *testing.T, c *Client)) {
 	})
 
 	t.Run("in_mem_db+AES_32", func(t *testing.T) {
-		client, err := NewClient(namespace, Config{
+		client, err := NewClientFromConfig(namespace, Config{
 			Database:             test.New(),
 			ProcessorConstructor: encrypterDecrypterConstructor,
 		})
@@ -128,7 +128,7 @@ func testClient(t *testing.T, f func(t *testing.T, c *Client)) {
 	})
 
 	t.Run("in_mem_db+binary_encoding+AES_32", func(t *testing.T) {
-		client, err := NewClient(namespace, Config{
+		client, err := NewClientFromConfig(namespace, Config{
 			Database:             test.New(),
 			MarshalFuncPair:      binaryMarshalFuncPair,
 			ProcessorConstructor: encrypterDecrypterConstructor,
@@ -145,7 +145,7 @@ func testClient(t *testing.T, f func(t *testing.T, c *Client)) {
 	})
 
 	t.Run("in_mem_db+Snappy_default_compression+AES_32", func(t *testing.T) {
-		client, err := NewClient(namespace, Config{
+		client, err := NewClientFromConfig(namespace, Config{
 			Database:             test.New(),
 			ProcessorConstructor: processorChainConstructor,
 		})

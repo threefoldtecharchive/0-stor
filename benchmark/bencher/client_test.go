@@ -41,14 +41,14 @@ func TestInMemoryMetaClient(t *testing.T) {
 
 	clientConfig := newDefaultZstorConfig(shards, nil, 64)
 
-	client, err := newClientFromConfig(&clientConfig, 1)
+	client, _, err := newClientFromConfig(&clientConfig, 1)
 	require.NoError(err, "Failed to create client")
 
-	_, err = client.Write(testKey, bytes.NewReader(testValue))
+	md, err := client.Write(testKey, bytes.NewReader(testValue))
 	require.NoError(err, "Failed to write to client")
 
 	buf := bytes.NewBuffer(nil)
-	err = client.Read(testKey, buf)
+	err = client.Read(*md, buf)
 	require.NoError(err, "Failed to read from client")
 	require.Equal(testValue, buf.Bytes(), "Read value should be equal to value originally set in the zstor")
 }

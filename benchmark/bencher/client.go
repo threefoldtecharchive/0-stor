@@ -39,17 +39,17 @@ import (
 
 // newClientFromConfig creates a new zstor client from provided config
 // if Metastor shards are empty, it will use an in memory metadata server
-func newClientFromConfig(cfg *daemon.Config, jobCount int) (*client.Client, error) {
+func newClientFromConfig(cfg *daemon.Config, jobCount int) (*client.Client, *metastor.Client, error) {
 	// create datastor cluster
 	datastorCluster, err := createDataClusterFromConfig(cfg)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// create data pipeline, using our datastor cluster
 	dataPipeline, err := pipeline.NewPipeline(cfg.DataStor.Pipeline, datastorCluster, jobCount)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// if no metadata shards are given, return an error,
@@ -57,10 +57,10 @@ func newClientFromConfig(cfg *daemon.Config, jobCount int) (*client.Client, erro
 	// create metastor client
 	metastorClient, err := createMetastorClientFromConfig(cfg.Namespace, &cfg.MetaStor)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return client.NewClient(metastorClient, dataPipeline), nil
+	return client.NewClient(metastorClient, dataPipeline), metastorClient, nil
 }
 
 func createDataClusterFromConfig(cfg *daemon.Config) (datastor.Cluster, error) {
@@ -103,7 +103,7 @@ func createMetastorClientFromConfigAndDatabase(namespace string, cfg *daemon.Met
 
 	if len(cfg.Encryption.PrivateKey) == 0 {
 		// create potentially insecure metastor storage
-		return metastor.NewClient([]byte(namespace), config)
+		return metastor.NewClientFromConfig([]byte(namespace), config)
 	}
 
 	// create the constructor which will create our encrypter-decrypter when needed
@@ -121,7 +121,7 @@ func createMetastorClientFromConfigAndDatabase(namespace string, cfg *daemon.Met
 
 	// create our full-configured metastor client,
 	// including encryption support for our metadata in binary form
-	return metastor.NewClient([]byte(namespace), config)
+	return metastor.NewClientFromConfig([]byte(namespace), config)
 }
 
 func createTLSConfigFromDatastorTLSConfig(config *client.DataStorTLSConfig) (*tls.Config, error) {

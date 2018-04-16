@@ -59,7 +59,7 @@ var fileUploadCmd = &cobra.Command{
 	Long:  "Upload a file securely onto (a) 0-stor server(s).",
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(_cmd *cobra.Command, args []string) error {
-		cl, err := getClient()
+		cl, _, err := getClient()
 		if err != nil {
 			return err
 		}
@@ -113,7 +113,7 @@ var fileDownloadCmd = &cobra.Command{
 	Long:  "Download a file which is stored securely onto (a) 0-Stor server(s).",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(_cmd *cobra.Command, args []string) error {
-		cl, err := getClient()
+		cl, metaCli, err := getClient()
 		if err != nil {
 			return err
 		}
@@ -131,7 +131,12 @@ var fileDownloadCmd = &cobra.Command{
 			output = os.Stdout
 		}
 
-		err = cl.Read([]byte(key), output)
+		md, err := metaCli.GetMetadata([]byte(key))
+		if err != nil {
+			return fmt.Errorf("downloading file (key: %s) failed to get metadata: %v", key, err)
+		}
+
+		err = cl.Read(*md, output)
 		if err != nil {
 			return fmt.Errorf("downloading file (key: %s) failed: %v", key, err)
 		}
@@ -152,13 +157,17 @@ var fileDeleteCmd = &cobra.Command{
 	Long:  "Delete a file which is stored securely onto (a) 0-Stor server(s).",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(_cmd *cobra.Command, args []string) error {
-		cl, err := getClient()
+		cl, metaCli, err := getClient()
 		if err != nil {
 			return err
 		}
 
 		key := args[0]
-		err = cl.Delete([]byte(key))
+		md, err := metaCli.GetMetadata([]byte(key))
+		if err != nil {
+			return fmt.Errorf("failed to delete file %q. failed to get metadata: %v", key, err)
+		}
+		err = cl.Delete(*md)
 		if err != nil {
 			return fmt.Errorf("failed to delete file %q: %v", key, err)
 		}
@@ -245,14 +254,18 @@ var fileRepairCmd = &cobra.Command{
 	Long:  "Repair a file which is stored securely onto (a) 0-Stor server(s).",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(_cmd *cobra.Command, args []string) error {
-		cl, err := getClient()
+		cl, metaCli, err := getClient()
 		if err != nil {
 			return err
 		}
 
 		key := args[0]
 
-		_, err = cl.Repair([]byte(key))
+		md, err := metaCli.GetMetadata([]byte(key))
+		if err != nil {
+			return fmt.Errorf("repair file %q failed. failed to get metadata: %v", key, err)
+		}
+		_, err = cl.Repair(*md)
 		if err != nil {
 			return fmt.Errorf("repair file %q failed: %v", key, err)
 		}

@@ -24,33 +24,24 @@ import (
 	"testing"
 	"time"
 
-	"github.com/zero-os/0-stor/client/metastor"
-
 	"github.com/zero-os/0-stor/client/datastor/pipeline"
 	"github.com/zero-os/0-stor/client/datastor/pipeline/storage"
+	"github.com/zero-os/0-stor/client/metastor"
+	"github.com/zero-os/0-stor/client/metastor/metatypes"
 	"github.com/zero-os/0-stor/client/processing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// TODO: enable it
-func testNewClientFromConfigErrors(t *testing.T) {
+func TestNewClientFromConfigErrors(t *testing.T) {
 	require := require.New(t)
 
 	_, err := NewClientFromConfig(Config{}, nil, -1)
-	require.Error(err, "missing: data shards, meta shards and namespace")
+	require.Error(err, "missing: data shards and namespace")
 
 	_, err = NewClientFromConfig(Config{Namespace: "foo"}, nil, -1)
-	require.Error(err, "missing: data shards and meta shards")
-
-	servers, serverClean := testZdbServer(t, 4)
-	defer serverClean()
-
-	_, err = NewClientFromConfig(Config{
-		Namespace: "foo",
-		DataStor:  DataStorConfig{Shards: []string{servers[0].Address()}}}, nil, -1)
-	require.Error(err, "missing: meta shards")
+	require.Error(err, "missing: data shards")
 
 	// hard to test metastor creation, as it would require an etcd connection for now
 	// TODO: once we have alternatives meta clients (e.g. badger), complete this test
@@ -63,9 +54,6 @@ func TestNewClientPanics(t *testing.T) {
 	require.Panics(func() {
 		NewClient(nil, nil)
 	}, "nothing given")
-	require.Panics(func() {
-		NewClient(nil, new(pipeline.SingleObjectPipeline))
-	}, "no metastor client given")
 	require.Panics(func() {
 		NewClient(new(metastor.Client), nil)
 	}, "no data pipeline given")
@@ -201,7 +189,10 @@ func TestRoundTrip(t *testing.T) {
 
 			// read data back
 			dataReadBuf := bytes.NewBuffer(nil)
-			err = c.Read(key, dataReadBuf)
+			meta, err := c.metastorClient.GetMetadata(key)
+			require.NoError(t, err)
+
+			err = c.Read(*meta, dataReadBuf)
 			require.NoError(t, err, "fail to read data from the store")
 			dataRead := dataReadBuf.Bytes()
 			if bytes.Compare(data, dataRead) != 0 {
@@ -210,7 +201,7 @@ func TestRoundTrip(t *testing.T) {
 			}
 
 			//delete data
-			err = c.Delete(key)
+			err = c.Delete(*meta)
 			require.NoError(t, err, "failed to delete from the store")
 
 			// makes sure metadata does not exist anymore
@@ -309,12 +300,12 @@ func TestBlocksizes(t *testing.T) {
 
 			// write data to the store
 			key := []byte(fmt.Sprintf("testkey-%d", i))
-			_, err = c.Write(key, bytes.NewReader(data))
+			md, err := c.Write(key, bytes.NewReader(data))
 			require.NoError(t, err, "fail to write data to the store")
 
 			// read data back
 			dataReadBuf := bytes.NewBuffer(nil)
-			err = c.Read(key, dataReadBuf)
+			err = c.Read(*md, dataReadBuf)
 			require.NoError(t, err, "fail to read data from the store")
 			dataRead := dataReadBuf.Bytes()
 			if bytes.Compare(data, dataRead) != 0 {
@@ -404,7 +395,10 @@ func testReadRange(t *testing.T, chunkSize int) {
 		t.Run(tc.name, func(t *testing.T) {
 			buf := bytes.NewBuffer(nil)
 
-			err = c.ReadRange(key, buf, int64(tc.offset), int64(tc.length))
+			meta, err := c.metastorClient.GetMetadata(key)
+			require.NoError(t, err)
+
+			err = c.ReadRange(*meta, buf, int64(tc.offset), int64(tc.length))
 
 			require.NoError(t, err)
 			require.Equal(t, tc.length, buf.Len())
@@ -438,12 +432,12 @@ func TestMultipleDownload_Issue208(t *testing.T) {
 	require.NoError(t, err, "fail to read random data")
 	key := []byte("testkey")
 
-	_, err = c.Write(key, bytes.NewReader(data))
+	md, err := c.Write(key, bytes.NewReader(data))
 	require.NoError(t, err, "fail write data")
 
 	buf := bytes.NewBuffer(nil)
 	for i := 0; i < 100; i++ {
-		err = c.Read(key, buf)
+		err = c.Read(*md, buf)
 		require.NoError(t, err, "fail read data")
 		result := buf.Bytes()
 		require.Equal(t, data, result)
@@ -479,7 +473,7 @@ func TestConcurrentWriteRead(t *testing.T) {
 		require.EqualValues(t, len(data), md.Size, "metadata.Size should be egals to total size of the written file")
 
 		buf := bytes.NewBuffer(nil)
-		err = c.Read(key, buf)
+		err = c.Read(*md, buf)
 		require.NoError(t, err, "fail read data")
 		result := buf.Bytes()
 		require.Equal(t, data, result, "data read is not same as data written")
@@ -578,11 +572,11 @@ func TestIssue225(t *testing.T) {
 	require.NoError(t, err, "fail to read random data")
 	key := []byte("testkey")
 
-	_, err = c.Write(key, bytes.NewReader(data))
+	meta, err := c.Write(key, bytes.NewReader(data))
 	require.NoError(t, err, "fail write data")
 
 	buf := bytes.NewBuffer(nil)
-	err = c.Read(key, buf)
+	err = c.Read(*meta, buf)
 	require.NoError(t, err, "fail read data")
 	result := buf.Bytes()
 	assert.Equal(t, data, result)
@@ -630,18 +624,18 @@ func TestClientCheck(t *testing.T) {
 	require.NoError(t, err, "fail to read random data")
 	key := []byte("testkey")
 
-	_, err = c.Write(key, bytes.NewReader(data))
+	meta, err := c.Write(key, bytes.NewReader(data))
 	require.NoError(t, err, "fail write data")
 
 	// Check status is ok after a write
-	status, err := c.Check(key, false)
+	status, err := c.Check(*meta, false)
 	require.NoError(t, err, "fail to check object")
 	require.Equal(t, storage.CheckStatusOptimal, status)
-	status, err = c.Check(key, true)
+	status, err = c.Check(*meta, true)
 	require.NoError(t, err, "fail to check object")
 	require.True(t, status == storage.CheckStatusValid || status == storage.CheckStatusOptimal)
 
-	meta, err := c.metastorClient.GetMetadata(key)
+	meta, err = c.metastorClient.GetMetadata(key)
 	require.NoError(t, err)
 	// corrupt file by removing blocks
 	for i := 0; i < len(meta.Chunks); i += 4 {
@@ -655,7 +649,7 @@ func TestClientCheck(t *testing.T) {
 	}
 
 	// Check status is corrupted
-	status, err = c.Check(meta.Key, false)
+	status, err = c.Check(*meta, false)
 	require.NoError(t, err, "fail to check object")
 	require.Truef(t, status == storage.CheckStatusValid || status == storage.CheckStatusInvalid,
 		"status=%v, %d", status, status)
@@ -733,10 +727,10 @@ func testRepair(t *testing.T, config Config, repairErr error) {
 	size := meta.Size
 
 	// Check status is ok after a write
-	status, err := c.Check(meta.Key, false)
+	status, err := c.Check(*meta, false)
 	require.NoError(t, err, "fail to check object")
 	require.True(t, status == storage.CheckStatusValid || status == storage.CheckStatusOptimal)
-	status, err = c.Check(meta.Key, true)
+	status, err = c.Check(*meta, true)
 	require.NoError(t, err, "fail to check object")
 	require.True(t, status == storage.CheckStatusValid || status == storage.CheckStatusOptimal)
 
@@ -747,12 +741,12 @@ func testRepair(t *testing.T, config Config, repairErr error) {
 	require.NoError(t, err)
 
 	// Check status is corrupted
-	status, err = c.Check(meta.Key, false)
+	status, err = c.Check(*meta, false)
 	require.NoError(t, err, "fail to check object")
 	require.True(t, status == storage.CheckStatusValid || status == storage.CheckStatusInvalid)
 
 	// try to repair
-	repairMeta, err := c.Repair(meta.Key)
+	repairMeta, err := c.Repair(*meta)
 	if repairErr != nil {
 		require.Error(t, repairErr, err)
 		return
@@ -768,7 +762,7 @@ func testRepair(t *testing.T, config Config, repairErr error) {
 
 	// make sure we can read the data again
 	buf := bytes.NewBuffer(nil)
-	err = c.Read(repairMeta.Key, buf)
+	err = c.Read(*repairMeta, buf)
 	require.NoError(t, err)
 	readData := buf.Bytes()
 	require.Equal(t, data, readData, "restored data is not the same as initial data")
@@ -795,19 +789,8 @@ func TestClient_ExplicitErrors(t *testing.T) {
 	_, err = cli.Write(nil, bytes.NewReader(nil))
 	require.Error(err, "no key given")
 
-	err = cli.Read(nil, nil)
+	err = cli.Read(metatypes.Metadata{}, nil)
 	require.Error(err, "no key or writer given")
-	err = cli.Read([]byte("foo"), nil)
-	require.Error(err, "key not found")
-
-	err = cli.Delete(nil)
-	require.Error(err, "no key given")
-
-	_, err = cli.Check(nil, false)
-	require.Error(err, "no key given")
-
-	_, err = cli.Repair(nil)
-	require.Error(err, "no key given")
 
 	require.NoError(cli.Close())
 }

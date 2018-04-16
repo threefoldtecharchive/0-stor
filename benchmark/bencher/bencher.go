@@ -27,6 +27,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/zero-os/0-stor/benchmark/config"
 	"github.com/zero-os/0-stor/client"
+	"github.com/zero-os/0-stor/client/metastor"
 )
 
 func init() {
@@ -72,16 +73,20 @@ func (d Duration) MarshalYAML() (interface{}, error) {
 }
 
 // bencherFunc represents a benchmarking function
-type bencherFunc func(client *client.Client, key, value []byte) error
+type bencherFunc func(client *client.Client, metaCli *metastor.Client, key, value []byte) error
 
 // readFunc is a read benchmarking function
-func readFunc(client *client.Client, k, v []byte) error {
+func readFunc(client *client.Client, metaCli *metastor.Client, k, v []byte) error {
 	buf := bytes.NewBuffer(nil)
-	return client.Read(k, buf)
+	md, err := metaCli.GetMetadata(k)
+	if err != nil {
+		return err
+	}
+	return client.Read(*md, buf)
 }
 
 // writeFunc is a write benchmarking function
-func writeFunc(client *client.Client, k, v []byte) error {
+func writeFunc(client *client.Client, metaCli *metastor.Client, k, v []byte) error {
 	_, err := client.Write(k, bytes.NewReader(v))
 	return err
 }
@@ -89,6 +94,7 @@ func writeFunc(client *client.Client, k, v []byte) error {
 // Bencher represents a benchmarker
 type Bencher struct {
 	client      *client.Client
+	metaCli     *metastor.Client
 	scenario    *config.Scenario
 	scenarioID  string
 	keys        [][]byte
@@ -134,7 +140,7 @@ func NewBencher(scenarioID string, scenario *config.Scenario) (*Bencher, error) 
 	// initializing client
 	config.SetupClientConfig(&scenario.ZstorConf)
 	var err error
-	bencher.client, err = newClientFromConfig(&scenario.ZstorConf, 1)
+	bencher.client, bencher.metaCli, err = newClientFromConfig(&scenario.ZstorConf, 1)
 	if err != nil {
 		return nil, fmt.Errorf("Failed creating client: %v", err)
 	}
@@ -192,7 +198,7 @@ BenchLoop:
 			result.PerInterval = append(result.PerInterval, intervalCounter)
 			intervalCounter = 0
 		default:
-			err := bencher.bencherFunc(bencher.client, key, bencher.value)
+			err := bencher.bencherFunc(bencher.client, bencher.metaCli, key, bencher.value)
 			if err != nil {
 				return nil, err
 			}
