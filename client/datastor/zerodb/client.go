@@ -29,8 +29,8 @@ import (
 )
 
 var (
-	readTimeout    = 5 * time.Second
-	writeTimeout   = 5 * time.Second
+	readTimeout    = 60 * time.Second
+	writeTimeout   = 60 * time.Second
 	connectTimeout = 10 * time.Second
 )
 
