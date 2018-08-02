@@ -17,7 +17,7 @@
 package zerodb
 
 import (
-	"github.com/zero-os/0-stor/client/datastor"
+	"github.com/threefoldtech/0-stor/client/datastor"
 )
 
 // Shard implements datastor.Shard for

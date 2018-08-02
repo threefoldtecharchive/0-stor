@@ -10,8 +10,8 @@ tar -C /usr/local -xzf /tmp/go1.9.linux-amd64.tar.gz
 export GOPATH=/gopath
 mkdir -p $GOPATH
 export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin
-STOR0=$GOPATH/src/github.com/zero-os/0-stor/
-mkdir -p $GOPATH/src/github.com/zero-os/
+STOR0=$GOPATH/src/github.com/threefoldtech/0-stor/
+mkdir -p $GOPATH/src/github.com/threefoldtech/
 
 # move code into GOPATH
 mv /0-stor $STOR0

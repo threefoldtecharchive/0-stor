@@ -20,9 +20,9 @@ import (
 	"errors"
 	"io"
 
-	"github.com/zero-os/0-stor/client/datastor/pipeline"
-	"github.com/zero-os/0-stor/client/metastor"
-	"github.com/zero-os/0-stor/client/metastor/metatypes"
+	"github.com/threefoldtech/0-stor/client/datastor/pipeline"
+	"github.com/threefoldtech/0-stor/client/metastor"
+	"github.com/threefoldtech/0-stor/client/metastor/metatypes"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -30,7 +30,7 @@ import (
 // NOTE:
 // the functionality provided in this file is to be considered EXPERIMENTAL,
 // and might be moved or changed in a future milestone.
-// See https://github.com/zero-os/0-stor/issues/424 for more information.
+// See https://github.com/threefoldtech/0-stor/issues/424 for more information.
 
 var (
 	// ErrInvalidTraverseIterator is an error returned when (meta)data
@@ -84,7 +84,7 @@ type TraverseIterator interface {
 //
 // This method is to be considered EXPERIMENTAL,
 // and might be moved or changed in a future milestone.
-// See https://github.com/zero-os/0-stor/issues/424 for more information.
+// See https://github.com/threefoldtech/0-stor/issues/424 for more information.
 func (c *Client) WriteLinked(key, prevKey []byte, r io.Reader) (meta, prevMeta *metatypes.Metadata, err error) {
 	if len(key) == 0 {
 		return nil, nil, ErrNilKey // ensure a key is given
@@ -155,7 +155,7 @@ func (c *Client) WriteLinked(key, prevKey []byte, r io.Reader) (meta, prevMeta *
 //
 // This method is to be considered EXPERIMENTAL,
 // and might be moved or changed in a future milestone.
-// See https://github.com/zero-os/0-stor/issues/424 for more information.
+// See https://github.com/threefoldtech/0-stor/issues/424 for more information.
 func (c *Client) Traverse(startKey []byte, fromEpoch, toEpoch int64) (TraverseIterator, error) {
 	if len(startKey) == 0 {
 		return nil, ErrNilKey
@@ -201,7 +201,7 @@ func (c *Client) Traverse(startKey []byte, fromEpoch, toEpoch int64) (TraverseIt
 //
 // This method is to be considered EXPERIMENTAL,
 // and might be moved or changed in a future milestone.
-// See https://github.com/zero-os/0-stor/issues/424 for more information.
+// See https://github.com/threefoldtech/0-stor/issues/424 for more information.
 func (c *Client) TraversePostOrder(startKey []byte, fromEpoch, toEpoch int64) (TraverseIterator, error) {
 	if len(startKey) == 0 {
 		return nil, ErrNilKey

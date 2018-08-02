@@ -52,7 +52,7 @@ iyo_user2_username= <IYO user1 mail>
 iyo_user2_id= <IYO user2 client ID>
 iyo_user2_secret= <IYO user2 client secret>
 number_of_servers= <Any integer value>
-default_config_path=/gopath/src/github.com/zero-os/0-stor/cmd/zstor/config.yaml
+default_config_path=/gopath/src/github.com/threefoldtech/0-stor/cmd/zstor/config.yaml
 ZSTORDB_BRANCH= <Branch to make zstordb and zsotr binaries>
 TESTCASE_BRANCH= <Branch to excute test cases>
 ```
@@ -85,7 +85,7 @@ Parameters:
 
 ```
 
-**2- Configure the test suite config file**, `cd` to the repo directory then `vim zero-os/0-stor/test/test_suite/config.ini`
+**2- Configure the test suite config file**, `cd` to the repo directory then `vim threefoldtech/0-stor/test/test_suite/config.ini`
 
 ```bash
 [main]

@@ -22,8 +22,8 @@ import (
 	"io"
 	"io/ioutil"
 
-	"github.com/zero-os/0-stor/client/datastor/pipeline/storage"
-	"github.com/zero-os/0-stor/client/metastor/metatypes"
+	"github.com/threefoldtech/0-stor/client/datastor/pipeline/storage"
+	"github.com/threefoldtech/0-stor/client/metastor/metatypes"
 )
 
 // NewSingleObjectPipeline creates single-threaded pipeline

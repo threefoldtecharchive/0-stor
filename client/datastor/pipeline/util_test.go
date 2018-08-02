@@ -17,8 +17,8 @@
 package pipeline
 
 import (
-	"github.com/zero-os/0-stor/client/datastor/zerodb"
-	zdbtest "github.com/zero-os/0-stor/client/datastor/zerodb/test"
+	"github.com/threefoldtech/0-stor/client/datastor/zerodb"
+	zdbtest "github.com/threefoldtech/0-stor/client/datastor/zerodb/test"
 )
 
 func newZdbServerCluster(count int) (clu *zerodb.Cluster, cleanup func(), err error) {

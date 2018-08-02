@@ -28,7 +28,7 @@ setup (
     version='1.0',
     description='Python client for 0-stor client daemon',
     long_description=long_description,
-    url='https://github.com/zero-os/0-stor',
+    url='https://github.com/threefoldtech/0-stor',
     author='Muhamad Azmy',
     author_email='muhamada@greenitglobe.com',
     license='Apache 2.0',

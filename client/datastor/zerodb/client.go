@@ -25,7 +25,7 @@ import (
 
 	"github.com/garyburd/redigo/redis"
 
-	"github.com/zero-os/0-stor/client/datastor"
+	"github.com/threefoldtech/0-stor/client/datastor"
 )
 
 var (
@@ -162,7 +162,7 @@ func (c *Client) ExistObject(key []byte) (bool, error) {
 }
 
 // ListObjectKeyIterator implements datastor.Client.ListObjectKeyIterator
-// TODO: depend on 	https://github.com/zero-os/0-db/issues/6
+// TODO: depend on 	https://github.com/threefoldtech/0-db/issues/6
 func (c *Client) ListObjectKeyIterator(ctx context.Context) (<-chan datastor.ObjectKeyResult, error) {
 	return nil, fmt.Errorf("not supported")
 }

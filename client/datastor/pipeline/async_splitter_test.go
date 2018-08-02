@@ -25,9 +25,9 @@ import (
 	mrand "math/rand"
 	"testing"
 
-	"github.com/zero-os/0-stor/client/datastor/pipeline/crypto"
-	"github.com/zero-os/0-stor/client/datastor/pipeline/storage"
-	"github.com/zero-os/0-stor/client/processing"
+	"github.com/threefoldtech/0-stor/client/datastor/pipeline/crypto"
+	"github.com/threefoldtech/0-stor/client/datastor/pipeline/storage"
+	"github.com/threefoldtech/0-stor/client/processing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -252,7 +252,7 @@ func testAsyncDataSplitterCycle(t *testing.T, input []byte, output [][]byte, blo
 
 // TestAsyncDataSplitterEOF ensures that known errors get ignored,
 // and that read content gets returned prior to error checking.
-// Added as part of the fix for https://github.com/zero-os/0-stor/pull/513
+// Added as part of the fix for https://github.com/threefoldtech/0-stor/pull/513
 func TestAsyncDataSplitterEOF(t *testing.T) {
 	// test that we do not return io.EOF
 	r := &eofReader{bytes.NewReader(nil)}
@@ -313,7 +313,7 @@ func (r *eofReader) Read(p []byte) (n int, err error) {
 // the chunks properly with correct chunk size.
 // even though the underlying reader doesn't
 // always read the full chunck.
-// Added as a fix reported at https://github.com/zero-os/0-stor/issues/499#issuecomment-374141004
+// Added as a fix reported at https://github.com/threefoldtech/0-stor/issues/499#issuecomment-374141004
 func TestAsyncDataSplitterReadFullChunk(t *testing.T) {
 	const (
 		chunkSize    = 100

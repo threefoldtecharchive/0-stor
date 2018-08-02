@@ -22,7 +22,7 @@ import (
 	"os"
 	"time"
 
-	dbp "github.com/zero-os/0-stor/client/metastor/db"
+	dbp "github.com/threefoldtech/0-stor/client/metastor/db"
 
 	badgerdb "github.com/dgraph-io/badger"
 	log "github.com/sirupsen/logrus"

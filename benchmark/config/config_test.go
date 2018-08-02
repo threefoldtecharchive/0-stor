@@ -21,8 +21,8 @@ import (
 	"math"
 	"testing"
 
-	"github.com/zero-os/0-stor/client"
-	"github.com/zero-os/0-stor/daemon"
+	"github.com/threefoldtech/0-stor/client"
+	"github.com/threefoldtech/0-stor/daemon"
 
 	"github.com/stretchr/testify/require"
 )

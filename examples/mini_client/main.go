@@ -19,8 +19,8 @@ package main
 import (
 	"log"
 
-	datastor "github.com/zero-os/0-stor/client/datastor/zerodb"
-	"github.com/zero-os/0-stor/client/processing"
+	datastor "github.com/threefoldtech/0-stor/client/datastor/zerodb"
+	"github.com/threefoldtech/0-stor/client/processing"
 )
 
 // This example shows how you can process data prior to storage,

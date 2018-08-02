@@ -5,7 +5,7 @@ Simple cli to store file to 0-stor.
 ## Installation
 
 ```
- go get -u github.com/zero-os/0-stor/cmd/zstor
+ go get -u github.com/threefoldtech/0-stor/cmd/zstor
 ```
 
 ## Configuration

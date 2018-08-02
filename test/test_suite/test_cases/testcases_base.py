@@ -24,7 +24,7 @@ class TestcasesBase(TestCase):
         self.default_config_path = config['main']['default_config_path']
         # if not self.default_config_path:
         #     gopath = os.environ.get('GOPATH', '/gopath')
-        #     self.default_config_path = '{gopath}/src/github.com/zero-os/0-stor/cmd/zstor/config.yaml'.format(gopath=gopath)
+        #     self.default_config_path = '{gopath}/src/github.com/threefoldtech/0-stor/cmd/zstor/config.yaml'.format(gopath=gopath)
         self.number_of_servers = int(config['main']['number_of_servers'])
         self.number_of_files = int(config['main']['number_of_files'])
 
@@ -408,7 +408,7 @@ class TestcasesBase(TestCase):
                       'iyo_app_secret': self.iyo_slave_secret,
                       'namespace': self.new_namespace}
             self.new_config_file_path = self.create_new_config_file(config)
-            print(colored(' [*] new config path : %s' % self.new_config_file_path, 'white'))    
+            print(colored(' [*] new config path : %s' % self.new_config_file_path, 'white'))
 
 class Utiles:
     def __init__(self):

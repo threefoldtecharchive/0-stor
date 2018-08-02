@@ -23,9 +23,9 @@ Parameters:
     ORGANIZATION = IYO user1 organization
     NAMESPACE = IYO user1 namespace
     ZSTORDB_BRANCH = Branch to make zstordb and zsotr binaries
-    TESTCASE_BRANCH = Branch to excute test cases         
+    TESTCASE_BRANCH = Branch to excute test cases
          """
-    
+
     exit 1
     fi
 }
@@ -70,25 +70,25 @@ run_etcd(){
 install_zstor_server(){
     if [ "$TRAVIS_BRANCH" != "" ];then
             mkdir -p /gopath/src/github.com
-            cp -ra /home/travis/build/zero-os /gopath/src/github.com
+            cp -ra /home/travis/build/threefoldtech /gopath/src/github.com
         else
-            mkdir -p /gopath/src/github.com/zero-os/0-stor
-            cp -ra * /gopath/src/github.com/zero-os/0-stor
+            mkdir -p /gopath/src/github.com/threefoldtech/0-stor
+            cp -ra * /gopath/src/github.com/threefoldtech/0-stor
     fi
-    cd /gopath/src/github.com/zero-os/0-stor
+    cd /gopath/src/github.com/threefoldtech/0-stor
     git config remote.origin.fetch +refs/heads/*:refs/remotes/origin/*
     git fetch
     git checkout -f ${ZSTORDB_BRANCH}
     echo " [*] Install zerostor client from branch : ${ZSTORDB_BRANCH}"
     make
-    chmod 777 /gopath/src/github.com/zero-os/0-stor/bin
-    ln -sf /gopath/src/github.com/zero-os/0-stor/bin/zstordb /bin/zstordb
-    ln -sf /gopath/src/github.com/zero-os/0-stor/bin/zstor /bin/zstor    
+    chmod 777 /gopath/src/github.com/threefoldtech/0-stor/bin
+    ln -sf /gopath/src/github.com/threefoldtech/0-stor/bin/zstordb /bin/zstordb
+    ln -sf /gopath/src/github.com/threefoldtech/0-stor/bin/zstor /bin/zstor
     hash -r
     cd -
     git config remote.origin.fetch +refs/heads/*:refs/remotes/origin/*
     git fetch
-    git checkout -f ${TESTCASE_BRANCH}    
+    git checkout -f ${TESTCASE_BRANCH}
     echo " [*] Execute test cases from branch : ${ZSTORDB_BRANCH}"
     rm -rf /zstor
     mkdir /zstor
@@ -103,7 +103,7 @@ run_zstor_server(){
         echo " -------------------- zstor -------------------- "
         echo "ZSTOR SERVER $i : 0.0.0.0:$port"
         echo -e "    - 127.0.0.1:$port" >> data_shards
-    done    
+    done
 }
 
 update_zsrordb_config_file(){
@@ -124,8 +124,8 @@ pipeline:
   distribution:
     data_shards: $(($NUMBER_OF_SERVERS-1))
     parity_shards: 1
-""" > /gopath/src/github.com/zero-os/0-stor/cmd/zstor/config.yaml
-cat data_shards >> /gopath/src/github.com/zero-os/0-stor/cmd/zstor/config.yaml
+""" > /gopath/src/github.com/threefoldtech/0-stor/cmd/zstor/config.yaml
+cat data_shards >> /gopath/src/github.com/threefoldtech/0-stor/cmd/zstor/config.yaml
 rm -rf data_shards
 }
 

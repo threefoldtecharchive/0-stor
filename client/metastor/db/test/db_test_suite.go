@@ -24,7 +24,7 @@ import (
 	"strconv"
 	"testing"
 
-	dbp "github.com/zero-os/0-stor/client/metastor/db"
+	dbp "github.com/threefoldtech/0-stor/client/metastor/db"
 
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"

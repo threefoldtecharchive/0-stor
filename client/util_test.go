@@ -19,11 +19,11 @@ package client
 import (
 	"testing"
 
-	"github.com/zero-os/0-stor/client/datastor"
-	"github.com/zero-os/0-stor/client/datastor/pipeline"
-	zdbtest "github.com/zero-os/0-stor/client/datastor/zerodb/test"
-	"github.com/zero-os/0-stor/client/metastor"
-	"github.com/zero-os/0-stor/client/metastor/db/test"
+	"github.com/threefoldtech/0-stor/client/datastor"
+	"github.com/threefoldtech/0-stor/client/datastor/pipeline"
+	zdbtest "github.com/threefoldtech/0-stor/client/datastor/zerodb/test"
+	"github.com/threefoldtech/0-stor/client/metastor"
+	"github.com/threefoldtech/0-stor/client/metastor/db/test"
 
 	"github.com/stretchr/testify/require"
 )

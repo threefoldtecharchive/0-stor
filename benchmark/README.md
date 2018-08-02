@@ -6,12 +6,12 @@
 
 Download the `zstor` repository.
 ```bash
-go get -u -d github.com/zero-os/0-stor/cmd/zstorbench
+go get -u -d github.com/threefoldtech/0-stor/cmd/zstorbench
 ```
 
 Install the `zstor` components by running following command in the root dir of the repository:
 ```bash
-cd $GOPATH/src/github.com/zero-os/0-stor
+cd $GOPATH/src/github.com/threefoldtech/0-stor
 make install
 ```
 
@@ -31,7 +31,7 @@ MacOS (`brew`) | `# If you don't have Xcode command line tools`<br>`Xcode-select
 Install python dependencies of the orchestrator:
 
 ```bash
-cd $GOPATH/src/github.com/zero-os/0-stor
+cd $GOPATH/src/github.com/threefoldtech/0-stor
 pip3 install -r benchmark/orchestrator/requirements.txt
 ```
 

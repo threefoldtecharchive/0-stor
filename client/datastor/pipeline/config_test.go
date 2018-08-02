@@ -26,8 +26,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/zero-os/0-stor/client/datastor/pipeline/crypto"
-	"github.com/zero-os/0-stor/client/processing"
+	"github.com/threefoldtech/0-stor/client/datastor/pipeline/crypto"
+	"github.com/threefoldtech/0-stor/client/processing"
 
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"

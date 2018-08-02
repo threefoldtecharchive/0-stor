@@ -19,10 +19,10 @@ package pipeline
 import (
 	"io"
 
-	"github.com/zero-os/0-stor/client/datastor/pipeline/crypto"
-	"github.com/zero-os/0-stor/client/datastor/pipeline/storage"
-	"github.com/zero-os/0-stor/client/metastor/metatypes"
-	"github.com/zero-os/0-stor/client/processing"
+	"github.com/threefoldtech/0-stor/client/datastor/pipeline/crypto"
+	"github.com/threefoldtech/0-stor/client/datastor/pipeline/storage"
+	"github.com/threefoldtech/0-stor/client/metastor/metatypes"
+	"github.com/threefoldtech/0-stor/client/processing"
 )
 
 // Pipeline defines the interface to write and read content

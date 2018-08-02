@@ -5,7 +5,7 @@ GOARCH ?= amd64
 TIMEOUT ?= 10m
 RACE_TIMEOUT ?= 20m
 
-PACKAGE = github.com/zero-os/0-stor
+PACKAGE = github.com/threefoldtech/0-stor
 COMMIT_HASH = $(shell git rev-parse --short HEAD 2>/dev/null)
 BUILD_DATE = $(shell date +%FT%T%z)
 

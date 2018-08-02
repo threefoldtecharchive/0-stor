@@ -20,9 +20,9 @@ import (
 	"io/ioutil"
 	"sync"
 
-	"github.com/zero-os/0-stor/benchmark/bencher"
-	"github.com/zero-os/0-stor/benchmark/config"
-	"github.com/zero-os/0-stor/cmd"
+	"github.com/threefoldtech/0-stor/benchmark/bencher"
+	"github.com/threefoldtech/0-stor/benchmark/config"
+	"github.com/threefoldtech/0-stor/cmd"
 
 	"github.com/pkg/profile"
 	log "github.com/sirupsen/logrus"

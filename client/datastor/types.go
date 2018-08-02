@@ -25,7 +25,7 @@ import (
 // but if any of these errors get returned,
 // it means there is a bug in the zstordb code,
 // and it should be reported at:
-// http://github.com/zero-os/0-stor/issues
+// http://github.com/threefoldtech/0-stor/issues
 var (
 	ErrMissingKey    = errors.New("zstor: missing object key (zstordb bug?)")
 	ErrMissingData   = errors.New("zstor: missing object data (zstordb bug?)")

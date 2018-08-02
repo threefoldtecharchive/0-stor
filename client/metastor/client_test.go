@@ -27,10 +27,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/zero-os/0-stor/client/metastor/db/test"
-	"github.com/zero-os/0-stor/client/metastor/encoding"
-	"github.com/zero-os/0-stor/client/metastor/metatypes"
-	"github.com/zero-os/0-stor/client/processing"
+	"github.com/threefoldtech/0-stor/client/metastor/db/test"
+	"github.com/threefoldtech/0-stor/client/metastor/encoding"
+	"github.com/threefoldtech/0-stor/client/metastor/metatypes"
+	"github.com/threefoldtech/0-stor/client/processing"
 
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"

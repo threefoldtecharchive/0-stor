@@ -19,12 +19,12 @@ package bencher
 import (
 	"testing"
 
-	"github.com/zero-os/0-stor/client"
-	"github.com/zero-os/0-stor/client/datastor/pipeline"
-	zdbtest "github.com/zero-os/0-stor/client/datastor/zerodb/test"
-	"github.com/zero-os/0-stor/client/metastor/db"
-	"github.com/zero-os/0-stor/client/processing"
-	"github.com/zero-os/0-stor/daemon"
+	"github.com/threefoldtech/0-stor/client"
+	"github.com/threefoldtech/0-stor/client/datastor/pipeline"
+	zdbtest "github.com/threefoldtech/0-stor/client/datastor/zerodb/test"
+	"github.com/threefoldtech/0-stor/client/metastor/db"
+	"github.com/threefoldtech/0-stor/client/processing"
+	"github.com/threefoldtech/0-stor/daemon"
 
 	"github.com/stretchr/testify/require"
 )

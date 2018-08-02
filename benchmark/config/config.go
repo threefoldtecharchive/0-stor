@@ -23,7 +23,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/zero-os/0-stor/daemon"
+	"github.com/threefoldtech/0-stor/daemon"
 
 	validator "gopkg.in/validator.v2"
 	yaml "gopkg.in/yaml.v2"

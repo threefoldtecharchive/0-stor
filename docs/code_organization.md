@@ -18,7 +18,7 @@ The [master client][client_godocs] is the most high-level client, and can be use
 The daemon is used to expose the different clients, as discussed in the [client section](#client), over a [GRPC][grpc] interface to a light client, written in any language, from one and the same machine or from a remote location.
 
 [zstor]: /cmd/zstor/README.md
-[datastor_godocs]: https://godoc.org/github.com/zero-os/0-stor/client/datastor
-[metastor_godocs]: https://godoc.org/github.com/zero-os/0-stor/client/metastor
-[client_godocs]: https://godoc.org/github.com/zero-os/0-stor/client
+[datastor_godocs]: https://godoc.org/github.com/threefoldtech/0-stor/client/datastor
+[metastor_godocs]: https://godoc.org/github.com/threefoldtech/0-stor/client/metastor
+[client_godocs]: https://godoc.org/github.com/threefoldtech/0-stor/client
 [grpc]: https://grpc.io/

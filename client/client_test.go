@@ -24,11 +24,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/zero-os/0-stor/client/datastor/pipeline"
-	"github.com/zero-os/0-stor/client/datastor/pipeline/storage"
-	"github.com/zero-os/0-stor/client/metastor"
-	"github.com/zero-os/0-stor/client/metastor/metatypes"
-	"github.com/zero-os/0-stor/client/processing"
+	"github.com/threefoldtech/0-stor/client/datastor/pipeline"
+	"github.com/threefoldtech/0-stor/client/datastor/pipeline/storage"
+	"github.com/threefoldtech/0-stor/client/metastor"
+	"github.com/threefoldtech/0-stor/client/metastor/metatypes"
+	"github.com/threefoldtech/0-stor/client/processing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -45,7 +45,7 @@ func TestNewClientFromConfigErrors(t *testing.T) {
 
 	// hard to test metastor creation, as it would require an etcd connection for now
 	// TODO: once we have alternatives meta clients (e.g. badger), complete this test
-	//       see: https://github.com/zero-os/0-stor/issues/419
+	//       see: https://github.com/threefoldtech/0-stor/issues/419
 }
 
 func TestNewClientPanics(t *testing.T) {
@@ -408,7 +408,7 @@ func testReadRange(t *testing.T, chunkSize int) {
 }
 
 func TestMultipleDownload_Issue208(t *testing.T) {
-	// #test for https://github.com/zero-os/0-stor/issues/208
+	// #test for https://github.com/threefoldtech/0-stor/issues/208
 
 	servers, serverClean := testZdbServer(t, 4)
 	defer serverClean()

@@ -20,8 +20,8 @@ import (
 	"crypto/tls"
 	"testing"
 
-	"github.com/zero-os/0-stor/client/datastor/pipeline"
-	"github.com/zero-os/0-stor/client/processing"
+	"github.com/threefoldtech/0-stor/client/datastor/pipeline"
+	"github.com/threefoldtech/0-stor/client/processing"
 
 	"github.com/stretchr/testify/require"
 )

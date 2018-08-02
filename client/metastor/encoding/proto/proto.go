@@ -17,7 +17,7 @@
 package proto
 
 import (
-	"github.com/zero-os/0-stor/client/metastor/metatypes"
+	"github.com/threefoldtech/0-stor/client/metastor/metatypes"
 )
 
 // MarshalMetadata returns the gogo-proto encoding of the metadata parameter.

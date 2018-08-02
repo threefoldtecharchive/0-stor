@@ -22,7 +22,7 @@ import (
 	"strings"
 	"sync"
 
-	dbp "github.com/zero-os/0-stor/client/metastor/db"
+	dbp "github.com/threefoldtech/0-stor/client/metastor/db"
 )
 
 // New creates a new in-memory metadata DB,

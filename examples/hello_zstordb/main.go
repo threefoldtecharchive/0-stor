@@ -19,7 +19,7 @@ package main
 import (
 	"log"
 
-	datastor "github.com/zero-os/0-stor/client/datastor/zerodb"
+	datastor "github.com/threefoldtech/0-stor/client/datastor/zerodb"
 )
 
 func main() {

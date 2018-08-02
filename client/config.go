@@ -22,7 +22,7 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/zero-os/0-stor/client/datastor/pipeline"
+	"github.com/threefoldtech/0-stor/client/datastor/pipeline"
 
 	yaml "gopkg.in/yaml.v2"
 )

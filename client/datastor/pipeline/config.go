@@ -20,10 +20,10 @@ import (
 	"fmt"
 	"runtime"
 
-	"github.com/zero-os/0-stor/client/datastor"
-	"github.com/zero-os/0-stor/client/datastor/pipeline/crypto"
-	"github.com/zero-os/0-stor/client/datastor/pipeline/storage"
-	"github.com/zero-os/0-stor/client/processing"
+	"github.com/threefoldtech/0-stor/client/datastor"
+	"github.com/threefoldtech/0-stor/client/datastor/pipeline/crypto"
+	"github.com/threefoldtech/0-stor/client/datastor/pipeline/storage"
+	"github.com/threefoldtech/0-stor/client/processing"
 )
 
 var (

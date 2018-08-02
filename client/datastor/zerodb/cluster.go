@@ -23,7 +23,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/zero-os/0-stor/client/datastor"
+	"github.com/threefoldtech/0-stor/client/datastor"
 )
 
 // Cluster implements datastor.Cluster for

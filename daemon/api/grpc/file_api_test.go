@@ -22,10 +22,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/zero-os/0-stor/client/datastor/pipeline/storage"
-	"github.com/zero-os/0-stor/client/metastor/metatypes"
-	"github.com/zero-os/0-stor/daemon/api/grpc/rpctypes"
-	pb "github.com/zero-os/0-stor/daemon/api/grpc/schema"
+	"github.com/threefoldtech/0-stor/client/datastor/pipeline/storage"
+	"github.com/threefoldtech/0-stor/client/metastor/metatypes"
+	"github.com/threefoldtech/0-stor/daemon/api/grpc/rpctypes"
+	pb "github.com/threefoldtech/0-stor/daemon/api/grpc/schema"
 
 	"golang.org/x/net/context"
 )

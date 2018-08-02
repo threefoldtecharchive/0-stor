@@ -22,7 +22,7 @@ import (
 	"path"
 	"testing"
 
-	"github.com/zero-os/0-stor/client/metastor/db/test"
+	"github.com/threefoldtech/0-stor/client/metastor/db/test"
 
 	"github.com/stretchr/testify/require"
 )

@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"time"
 
-	dbp "github.com/zero-os/0-stor/client/metastor/db"
+	dbp "github.com/threefoldtech/0-stor/client/metastor/db"
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/clientv3/concurrency"

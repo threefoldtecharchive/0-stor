@@ -1,8 +1,8 @@
-# 0-stor client   [![godoc](https://godoc.org/github.com/zero-os/0-stor/client?status.svg)](https://godoc.org/github.com/zero-os/0-stor/client)
+# 0-stor client   [![godoc](https://godoc.org/github.com/threefoldtech/0-stor/client?status.svg)](https://godoc.org/github.com/threefoldtech/0-stor/client)
 
 [Specifications](specs)
 
-API documentation : [https://godoc.org/github.com/zero-os/0-stor/client](https://godoc.org/github.com/zero-os/0-stor/client)
+API documentation : [https://godoc.org/github.com/threefoldtech/0-stor/client](https://godoc.org/github.com/threefoldtech/0-stor/client)
 
 
 ## Motivation
@@ -41,7 +41,7 @@ This reference list is also returned as the second value from the `client.Read` 
 As the 0-db server doesn't do anything with this list, it can be omitted and ignored if the client has no desire of using it.  
 The reference list for example, can be used to allow the client to do deduplication.
 
-***TODO: show example (https://github.com/zero-os/0-stor/issues/216)***
+***TODO: show example (https://github.com/threefoldtech/0-stor/issues/216)***
 
 ## Metadata
 

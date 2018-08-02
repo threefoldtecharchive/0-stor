@@ -22,7 +22,7 @@ import (
 	mathRand "math/rand"
 	"testing"
 
-	"github.com/zero-os/0-stor/client/datastor/pipeline/storage"
+	"github.com/threefoldtech/0-stor/client/datastor/pipeline/storage"
 
 	"github.com/stretchr/testify/require"
 )

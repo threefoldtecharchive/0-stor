@@ -19,12 +19,12 @@ package metastor
 import (
 	"errors"
 
-	"github.com/zero-os/0-stor/client/processing"
+	"github.com/threefoldtech/0-stor/client/processing"
 
-	dbp "github.com/zero-os/0-stor/client/metastor/db"
-	"github.com/zero-os/0-stor/client/metastor/encoding"
-	"github.com/zero-os/0-stor/client/metastor/encoding/proto"
-	"github.com/zero-os/0-stor/client/metastor/metatypes"
+	dbp "github.com/threefoldtech/0-stor/client/metastor/db"
+	"github.com/threefoldtech/0-stor/client/metastor/encoding"
+	"github.com/threefoldtech/0-stor/client/metastor/encoding/proto"
+	"github.com/threefoldtech/0-stor/client/metastor/metatypes"
 )
 
 var (

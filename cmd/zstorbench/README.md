@@ -6,17 +6,17 @@ Zstorbench is a benchmark client/tool to test the performance of `zstor` (`0-sto
 
 Download the `zstor` repository.
 ```bash
-go get -u -d github.com/zero-os/0-stor/cmd/zstorbench
+go get -u -d github.com/threefoldtech/0-stor/cmd/zstorbench
 ```
 
 Install the `zstor` components by running following command in the root dir of the repository:
 ```bash
-cd $GOPATH/src/github.com/zero-os/0-stor
+cd $GOPATH/src/github.com/threefoldtech/0-stor
 make install
 ```
 
 Before starting a benchmark, make sure the necessary services for zstor are running.  
-A guide to set up zstordb's can her found [here](https://github.com/zero-os/0-stor/blob/master/docs/gettingstarted.md).
+A guide to set up zstordb's can her found [here](https://github.com/threefoldtech/0-stor/blob/master/docs/gettingstarted.md).
 To set up etcd metadata server, check the etcd [documentation](https://coreos.com/etcd/docs/3.2.4/index.html).
 Zstor requires	etcd 3.2.4 or any higher stable release.
 

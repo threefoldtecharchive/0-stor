@@ -19,8 +19,8 @@ package cmd
 import (
 	"io/ioutil"
 
-	"github.com/zero-os/0-stor/benchmark/bencher"
-	"github.com/zero-os/0-stor/benchmark/config"
+	"github.com/threefoldtech/0-stor/benchmark/bencher"
+	"github.com/threefoldtech/0-stor/benchmark/config"
 
 	yaml "gopkg.in/yaml.v2"
 )

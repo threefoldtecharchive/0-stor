@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/zero-os/0-stor/client/metastor/encoding/proto"
-	"github.com/zero-os/0-stor/client/metastor/metatypes"
+	"github.com/threefoldtech/0-stor/client/metastor/encoding/proto"
+	"github.com/threefoldtech/0-stor/client/metastor/metatypes"
 )
 
 // MarshalMetadata returns the encoding of the metadata parameter.

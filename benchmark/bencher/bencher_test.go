@@ -20,7 +20,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/zero-os/0-stor/benchmark/config"
+	"github.com/threefoldtech/0-stor/benchmark/config"
 
 	"github.com/stretchr/testify/require"
 )

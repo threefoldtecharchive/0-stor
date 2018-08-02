@@ -25,12 +25,12 @@ import (
 	"io/ioutil"
 	"time"
 
-	"github.com/zero-os/0-stor/client/datastor"
-	"github.com/zero-os/0-stor/client/datastor/pipeline"
-	"github.com/zero-os/0-stor/client/datastor/pipeline/storage"
-	"github.com/zero-os/0-stor/client/datastor/zerodb"
-	"github.com/zero-os/0-stor/client/metastor"
-	"github.com/zero-os/0-stor/client/metastor/metatypes"
+	"github.com/threefoldtech/0-stor/client/datastor"
+	"github.com/threefoldtech/0-stor/client/datastor/pipeline"
+	"github.com/threefoldtech/0-stor/client/datastor/pipeline/storage"
+	"github.com/threefoldtech/0-stor/client/datastor/zerodb"
+	"github.com/threefoldtech/0-stor/client/metastor"
+	"github.com/threefoldtech/0-stor/client/metastor/metatypes"
 
 	log "github.com/sirupsen/logrus"
 )

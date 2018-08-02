@@ -20,11 +20,11 @@ import (
 	"bytes"
 	"io"
 
-	"github.com/zero-os/0-stor/client"
-	"github.com/zero-os/0-stor/client/datastor/pipeline/storage"
-	"github.com/zero-os/0-stor/client/metastor/metatypes"
-	"github.com/zero-os/0-stor/daemon/api/grpc/rpctypes"
-	pb "github.com/zero-os/0-stor/daemon/api/grpc/schema"
+	"github.com/threefoldtech/0-stor/client"
+	"github.com/threefoldtech/0-stor/client/datastor/pipeline/storage"
+	"github.com/threefoldtech/0-stor/client/metastor/metatypes"
+	"github.com/threefoldtech/0-stor/daemon/api/grpc/rpctypes"
+	pb "github.com/threefoldtech/0-stor/daemon/api/grpc/schema"
 
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"

@@ -22,12 +22,12 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/zero-os/0-stor/client"
+	"github.com/threefoldtech/0-stor/client"
 )
 
 var configPath = filepath.Join(
 	os.Getenv("GOPATH"),
-	"src/github.com/zero-os/0-stor/examples/hello_config/config.yaml")
+	"src/github.com/threefoldtech/0-stor/examples/hello_config/config.yaml")
 
 func main() {
 	config, err := client.ReadConfig(configPath)

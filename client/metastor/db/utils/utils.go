@@ -19,9 +19,9 @@ package utils
 import (
 	"fmt"
 
-	"github.com/zero-os/0-stor/client/metastor/db"
-	"github.com/zero-os/0-stor/client/metastor/db/badger"
-	"github.com/zero-os/0-stor/client/metastor/db/etcd"
+	"github.com/threefoldtech/0-stor/client/metastor/db"
+	"github.com/threefoldtech/0-stor/client/metastor/db/badger"
+	"github.com/threefoldtech/0-stor/client/metastor/db/etcd"
 
 	"github.com/mitchellh/mapstructure"
 )

@@ -19,9 +19,9 @@ package storage
 import (
 	"math"
 
-	"github.com/zero-os/0-stor/client/datastor"
-	"github.com/zero-os/0-stor/client/datastor/zerodb"
-	zdbtest "github.com/zero-os/0-stor/client/datastor/zerodb/test"
+	"github.com/threefoldtech/0-stor/client/datastor"
+	"github.com/threefoldtech/0-stor/client/datastor/zerodb"
+	zdbtest "github.com/threefoldtech/0-stor/client/datastor/zerodb/test"
 )
 
 func newZdbServerCluster(count int) (clu *zerodb.Cluster, cleanup func(), err error) {

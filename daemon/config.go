@@ -19,9 +19,9 @@ package daemon
 import (
 	"io/ioutil"
 
-	"github.com/zero-os/0-stor/client"
-	"github.com/zero-os/0-stor/client/metastor/encoding"
-	"github.com/zero-os/0-stor/client/processing"
+	"github.com/threefoldtech/0-stor/client"
+	"github.com/threefoldtech/0-stor/client/metastor/encoding"
+	"github.com/threefoldtech/0-stor/client/processing"
 
 	yaml "gopkg.in/yaml.v2"
 )

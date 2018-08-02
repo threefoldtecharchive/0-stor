@@ -25,9 +25,9 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/zero-os/0-stor/benchmark/config"
-	"github.com/zero-os/0-stor/client"
-	"github.com/zero-os/0-stor/client/metastor"
+	"github.com/threefoldtech/0-stor/benchmark/config"
+	"github.com/threefoldtech/0-stor/client"
+	"github.com/threefoldtech/0-stor/client/metastor"
 )
 
 func init() {

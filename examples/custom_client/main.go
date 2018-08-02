@@ -22,12 +22,12 @@ import (
 	"os"
 	"path"
 
-	"github.com/zero-os/0-stor/client"
-	"github.com/zero-os/0-stor/client/datastor/pipeline"
-	datastor "github.com/zero-os/0-stor/client/datastor/zerodb"
-	"github.com/zero-os/0-stor/client/metastor"
-	"github.com/zero-os/0-stor/client/metastor/db/badger"
-	"github.com/zero-os/0-stor/client/processing"
+	"github.com/threefoldtech/0-stor/client"
+	"github.com/threefoldtech/0-stor/client/datastor/pipeline"
+	datastor "github.com/threefoldtech/0-stor/client/datastor/zerodb"
+	"github.com/threefoldtech/0-stor/client/metastor"
+	"github.com/threefoldtech/0-stor/client/metastor/db/badger"
+	"github.com/threefoldtech/0-stor/client/processing"
 )
 
 var (
@@ -37,7 +37,7 @@ var (
 	// one to store the metadata, and one to store the actual data.
 	dbDir = path.Join(
 		os.Getenv("GOPATH"),
-		"src", "github.com", "zero-os", "0-stor",
+		"src", "github.com", "threefoldtech", "0-stor",
 		"examples", "custom_client", ".db")
 	dataDir = path.Join(dbDir, "data")
 	metaDir = path.Join(dbDir, "meta")
@@ -52,7 +52,7 @@ var (
 		"127.0.0.1:12345",
 	}
 
-	// See https://godoc.org/github.com/zero-os/0-stor/pipeline#Config
+	// See https://godoc.org/github.com/threefoldtech/0-stor/pipeline#Config
 	// for more information and all options available.
 	// Note that you can also create a pipeline manually using the
 	// constructors of the pipeline implementations.

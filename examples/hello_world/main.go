@@ -20,11 +20,11 @@ import (
 	"bytes"
 	"log"
 
-	"github.com/zero-os/0-stor/client"
-	"github.com/zero-os/0-stor/client/datastor/pipeline"
-	"github.com/zero-os/0-stor/client/metastor"
-	"github.com/zero-os/0-stor/client/metastor/db/etcd"
-	"github.com/zero-os/0-stor/client/processing"
+	"github.com/threefoldtech/0-stor/client"
+	"github.com/threefoldtech/0-stor/client/datastor/pipeline"
+	"github.com/threefoldtech/0-stor/client/metastor"
+	"github.com/threefoldtech/0-stor/client/metastor/db/etcd"
+	"github.com/threefoldtech/0-stor/client/processing"
 )
 
 const (

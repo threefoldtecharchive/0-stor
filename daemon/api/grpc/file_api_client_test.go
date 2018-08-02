@@ -23,8 +23,8 @@ import (
 	"net"
 	"testing"
 
-	"github.com/zero-os/0-stor/daemon/api/grpc/rpctypes"
-	pb "github.com/zero-os/0-stor/daemon/api/grpc/schema"
+	"github.com/threefoldtech/0-stor/daemon/api/grpc/rpctypes"
+	pb "github.com/threefoldtech/0-stor/daemon/api/grpc/schema"
 
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/context"

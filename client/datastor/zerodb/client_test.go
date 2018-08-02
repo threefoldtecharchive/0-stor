@@ -21,8 +21,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/zero-os/0-stor/client/datastor"
-	zdbtest "github.com/zero-os/0-stor/client/datastor/zerodb/test"
+	"github.com/threefoldtech/0-stor/client/datastor"
+	zdbtest "github.com/threefoldtech/0-stor/client/datastor/zerodb/test"
 )
 
 func TestRoundTrip(t *testing.T) {

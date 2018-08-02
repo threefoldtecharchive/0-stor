@@ -21,8 +21,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/zero-os/0-stor/client/metastor/db"
-	"github.com/zero-os/0-stor/client/metastor/db/test"
+	"github.com/threefoldtech/0-stor/client/metastor/db"
+	"github.com/threefoldtech/0-stor/client/metastor/db/test"
 
 	"github.com/stretchr/testify/require"
 )

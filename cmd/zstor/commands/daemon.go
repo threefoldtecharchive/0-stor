@@ -22,9 +22,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/zero-os/0-stor/cmd"
-	"github.com/zero-os/0-stor/daemon"
-	daemon_grpc "github.com/zero-os/0-stor/daemon/api/grpc"
+	"github.com/threefoldtech/0-stor/cmd"
+	"github.com/threefoldtech/0-stor/daemon"
+	daemon_grpc "github.com/threefoldtech/0-stor/daemon/api/grpc"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
