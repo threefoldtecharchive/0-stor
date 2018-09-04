@@ -206,7 +206,7 @@ func (c *Client) Close() error {
 }
 
 const (
-	dummyKey = "k"
+	dummyKey = ""
 )
 
 var (
