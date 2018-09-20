@@ -21,7 +21,7 @@
 #  version = "2.4.0"
 
 
-[[constraint]]
+[[override]]
   name = "github.com/codegangsta/cli"
   version = "1.20.0"
 
@@ -37,11 +37,11 @@
   name = "github.com/dgraph-io/badger"
   branch = "master"
 
-[[constraint]]
+[[override]]
   name = "github.com/dgrijalva/jwt-go"
   version = "3.0.0"
 
-[[constraint]]
+[[override]]
   name = "github.com/docker/go-units"
   version = "0.3.1"
 
@@ -53,15 +53,15 @@
   branch = "master"
   name = "github.com/golang/snappy"
 
-[[constraint]]
+[[override]]
   name = "github.com/itsyouonline/identityserver"
   branch = "1.0.1"
 
-[[constraint]]
+[[override]]
   name = "github.com/justinas/alice"
   version = "1.0.0"
 
-[[constraint]]
+[[override]]
   name = "github.com/paulbellamy/ratecounter"
   version = "0.2.0"
 
@@ -81,7 +81,7 @@
   name = "github.com/templexxx/reedsolomon"
   revision = "0a1f6992d698b8e97bd97cbbd51fdac317959741"
 
-[[constraint]]
+[[override]]
   name = "github.com/urfave/cli"
   version = "1.20.0"
 
