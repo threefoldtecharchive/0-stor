@@ -310,7 +310,7 @@ func (ds *DistributedChunkStorage) ReadChunk(cfg ChunkConfig) ([]byte, error) {
 					// casually log the shard-read error,
 					// and continue trying with another shard...
 					log.Errorf("failed to read %q from given shard %q: %v",
-						inputObject.Key, inputObject.Key, err)
+						inputObject.Key, inputObject.ShardID, err)
 					continue // try another shard
 				}
 				result := readResult{
