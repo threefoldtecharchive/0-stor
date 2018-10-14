@@ -51,22 +51,6 @@ func NewClient(addr, passwd, namespace string) (*Client, error) {
 		redis.DialConnectTimeout(connectTimeout),
 	}
 
-	// test to dial & select
-	conn, err := redis.Dial("tcp", addr, opts...)
-	if err != nil {
-		return nil, err
-	}
-
-	selectArgs := []interface{}{namespace}
-	if passwd != "" {
-		selectArgs = append(selectArgs, passwd)
-	}
-
-	_, err = conn.Do("SELECT", selectArgs...)
-	if err != nil {
-		return nil, err
-	}
-
 	// creates pool
 	pool := &redis.Pool{
 		MaxIdle:     3,
@@ -76,7 +60,7 @@ func NewClient(addr, passwd, namespace string) (*Client, error) {
 			if err != nil {
 				return nil, err
 			}
-			_, err = conn.Do("SELECT", selectArgs...)
+			_, err = conn.Do("SELECT", namespace)
 			return conn, err
 		},
 		TestOnBorrow: func(c redis.Conn, t time.Time) error {
