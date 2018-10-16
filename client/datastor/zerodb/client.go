@@ -50,21 +50,16 @@ func NewClient(addr, passwd, namespace string) (*Client, error) {
 		redis.DialWriteTimeout(writeTimeout),
 		redis.DialConnectTimeout(connectTimeout),
 	}
-
-	// test to dial & select
-	conn, err := redis.Dial("tcp", addr, opts...)
-	if err != nil {
-		return nil, err
+	if len(addr) == 0 {
+		return nil, fmt.Errorf("no address given")
+	}
+	if len(namespace) == 0 {
+		return nil, fmt.Errorf("no namespace given")
 	}
 
 	selectArgs := []interface{}{namespace}
 	if passwd != "" {
 		selectArgs = append(selectArgs, passwd)
-	}
-
-	_, err = conn.Do("SELECT", selectArgs...)
-	if err != nil {
-		return nil, err
 	}
 
 	// creates pool

@@ -305,7 +305,11 @@ func (c *Client) Delete(meta metatypes.Metadata) error {
 		return err
 	}
 	// delete metadata
-	return c.metastorClient.DeleteMetadata(meta.Key)
+	if c.metastorClient != nil {
+		return c.metastorClient.DeleteMetadata(meta.Key)
+	}
+
+	return nil
 }
 
 // Check gets the status of data stored in a 0-stor cluster.
@@ -335,53 +339,61 @@ func (c *Client) Repair(md metatypes.Metadata) (*metatypes.Metadata, error) {
 		totalSizeAfterRepair int64
 		repairEpoch          int64
 	)
-	return c.metastorClient.UpdateMetadata(md.Key,
-		func(meta metatypes.Metadata) (*metatypes.Metadata, error) {
-			// repair if not yet repaired
-			if repairEpoch == 0 {
-				var err error
-				// repair the chunks (if possible)
-				repairedChunks, err = c.dataPipeline.Repair(meta.Chunks)
-				if err != nil {
-					if err == storage.ErrNotSupported {
-						return nil, ErrRepairSupport
-					}
-					return nil, err
+	repair := func(meta metatypes.Metadata) (*metatypes.Metadata, error) {
+		// repair if not yet repaired
+		if repairEpoch == 0 {
+			var err error
+			// repair the chunks (if possible)
+			repairedChunks, err = c.dataPipeline.Repair(meta.Chunks)
+			if err != nil {
+				if err == storage.ErrNotSupported {
+					return nil, ErrRepairSupport
 				}
-				// create the last-write epoch here,
-				// such that this time is correct,
-				// even when we have to retry multiple times, due to conflicts
-				repairEpoch = EpochNow()
-				// do the size computation here,
-				// such that we only have to compute it once
-				for _, chunk := range repairedChunks {
-					totalSizeAfterRepair += chunk.Size
-				}
+				return nil, err
 			}
+			// create the last-write epoch here,
+			// such that this time is correct,
+			// even when we have to retry multiple times, due to conflicts
+			repairEpoch = EpochNow()
+			// do the size computation here,
+			// such that we only have to compute it once
+			for _, chunk := range repairedChunks {
+				totalSizeAfterRepair += chunk.Size
+			}
+		}
 
-			// update chunks
-			meta.Chunks = repairedChunks
-			// update total size
-			meta.StorageSize = totalSizeAfterRepair
-			// update last write epoch, as we have written while repairing
-			meta.LastWriteEpoch = repairEpoch
+		// update chunks
+		meta.Chunks = repairedChunks
+		// update total size
+		meta.StorageSize = totalSizeAfterRepair
+		// update last write epoch, as we have written while repairing
+		meta.LastWriteEpoch = repairEpoch
 
-			// return the updated metadata
-			return &meta, nil
-		})
+		// return the updated metadata
+		return &meta, nil
+	}
+
+	if c.metastorClient != nil {
+		return c.metastorClient.UpdateMetadata(md.Key, repair)
+	}
+
+	return repair(md)
 }
 
 // Close the client and all its used (internal/indirect) resources.
 func (c *Client) Close() error {
 	var ce closeErrors
-	err := c.metastorClient.Close()
-	if err != nil {
+
+	if c.metastorClient != nil {
+		if err := c.metastorClient.Close(); err != nil {
+			ce = append(ce, err)
+		}
+	}
+
+	if err := c.dataPipeline.Close(); err != nil {
 		ce = append(ce, err)
 	}
-	err = c.dataPipeline.Close()
-	if err != nil {
-		ce = append(ce, err)
-	}
+
 	if len(ce) > 0 {
 		return ce
 	}
