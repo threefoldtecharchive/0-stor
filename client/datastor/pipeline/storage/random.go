@@ -70,8 +70,7 @@ func (rs *RandomChunkStorage) WriteChunk(data []byte) (*ChunkConfig, error) {
 				},
 			}, nil
 		}
-		log.Errorf("failed to write data to random shard %q: %v",
-			shard.Identifier(), err)
+		log.WithField("shard", shard.Identifier()).WithError(err).Errorf("failed to write data to random shard")
 	}
 	return nil, ErrShardsUnavailable
 }
