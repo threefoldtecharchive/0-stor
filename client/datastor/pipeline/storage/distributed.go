@@ -192,8 +192,7 @@ func (ds *DistributedChunkStorage) WriteChunk(data []byte) (*ChunkConfig, error)
 
 					// casually log the shard-write error,
 					// and continue trying with another shard...
-					log.Errorf("failed to write data to random shard %q: %v",
-						shard.Identifier(), err)
+					log.WithField("shard", shard.Identifier()).WithError(err).Errorf("failed to write data to random shard")
 				}
 			}
 		})
@@ -204,7 +203,7 @@ func (ds *DistributedChunkStorage) WriteChunk(data []byte) (*ChunkConfig, error)
 	go func() {
 		err := group.Wait()
 		if err != nil {
-			log.Errorf("duplicate-writing has failed due to an error: %v", err)
+			log.WithError(err).Errorf("duplicate-writing has failed due to an error")
 		}
 		close(resultCh)
 	}()
@@ -299,8 +298,10 @@ func (ds *DistributedChunkStorage) ReadChunk(cfg ChunkConfig) ([]byte, error) {
 				if err != nil {
 					// casually log the shard-get error,
 					// and continue trying with another object...
-					log.Errorf("failed to get shard %q for object %q: %v",
-						inputObject.ShardID, inputObject.Key, err)
+					log.WithFields(log.Fields{
+						"shard":  inputObject.ShardID,
+						"object": inputObject.Key,
+					}).WithError(err).Errorf("failed to get object")
 					continue
 				}
 
@@ -309,8 +310,10 @@ func (ds *DistributedChunkStorage) ReadChunk(cfg ChunkConfig) ([]byte, error) {
 				if err != nil {
 					// casually log the shard-read error,
 					// and continue trying with another shard...
-					log.Errorf("failed to read %q from given shard %q: %v",
-						inputObject.Key, inputObject.ShardID, err)
+					log.WithFields(log.Fields{
+						"shard":  inputObject.ShardID,
+						"object": inputObject.Key,
+					}).WithError(err).Errorf("failed to read object")
 					continue // try another shard
 				}
 				result := readResult{
@@ -332,7 +335,7 @@ func (ds *DistributedChunkStorage) ReadChunk(cfg ChunkConfig) ([]byte, error) {
 	go func() {
 		err := group.Wait()
 		if err != nil {
-			log.Errorf("distribute-read has failed due to an error: %v", err)
+			log.WithError(err).Errorf("distribute-read has failed due to an error")
 		}
 		close(resultCh)
 	}()
@@ -475,16 +478,20 @@ func (ds *DistributedChunkStorage) CheckChunk(cfg ChunkConfig, fast bool) (Check
 					// first get the shard for that object, if possible
 					shard, err = ds.cluster.GetShard(object.ShardID)
 					if err != nil {
-						log.Errorf("error while fetching shard %q for object %q: %v",
-							object.ShardID, object.Key, err)
+						log.WithFields(log.Fields{
+							"shard":  object.ShardID,
+							"object": object.Key,
+						}).WithError(err).Errorf("error while fetching object")
 						continue validateLoop
 					}
 
 					// validate if the object's status for this shard is OK
 					status, err = shard.GetObjectStatus(object.Key)
 					if err != nil {
-						log.Errorf("error while validating %q stored on shard %q: %v",
-							object.Key, object.Key, err)
+						log.WithFields(log.Fields{
+							"shard":  object.ShardID,
+							"object": object.Key,
+						}).WithError(err).Errorf("error while validating object")
 						continue validateLoop
 					}
 					if status != datastor.ObjectStatusOK {
@@ -511,7 +518,7 @@ func (ds *DistributedChunkStorage) CheckChunk(cfg ChunkConfig, fast bool) (Check
 	go func() {
 		err := group.Wait()
 		if err != nil {
-			log.Errorf("distribute-check has failed due to an error: %v", err)
+			log.WithError(err).Errorf("distribute-check has failed due to an error")
 		}
 		close(resultCh)
 	}()
