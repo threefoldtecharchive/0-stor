@@ -69,7 +69,7 @@ var (
 		CompressionModeBestCompression: _CompressionModeStrings[17:],
 	}
 	_CompressionModeStringToValueMapping = map[string]CompressionMode{
-		"": CompressionModeDisabled,
+		"":                            CompressionModeDisabled,
 		_CompressionModeStrings[:7]:   CompressionModeDefault,
 		_CompressionModeStrings[7:17]: CompressionModeBestSpeed,
 		_CompressionModeStrings[17:]:  CompressionModeBestCompression,
