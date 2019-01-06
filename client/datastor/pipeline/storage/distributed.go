@@ -230,6 +230,10 @@ func (ds *DistributedChunkStorage) WriteChunk(data []byte) (*ChunkConfig, error)
 
 // ReadChunk implements storage.ChunkStorage.ReadChunk
 func (ds *DistributedChunkStorage) ReadChunk(cfg ChunkConfig) ([]byte, error) {
+	return ds.readChunk(cfg, false)
+}
+
+func (ds *DistributedChunkStorage) readChunk(cfg ChunkConfig, checkStatus bool) ([]byte, error) {
 	// validate the input object count
 	objectCount := len(cfg.Objects)
 
@@ -303,6 +307,25 @@ func (ds *DistributedChunkStorage) ReadChunk(cfg ChunkConfig) ([]byte, error) {
 						"object": inputObject.Key,
 					}).WithError(err).Errorf("failed to get object")
 					continue
+				}
+
+				if checkStatus {
+					// check chunk status. Used for repair
+					// we need to know if we can use this shard to reconstruct
+					//  the file or not
+					status, err := shard.GetObjectStatus(inputObject.Key)
+					if err != nil {
+						log.WithFields(log.Fields{
+							"shard":  inputObject.ShardID,
+							"object": inputObject.Key,
+						}).WithError(err).Errorf("error while checking status of object")
+						continue
+					}
+					if status != datastor.ObjectStatusOK {
+						log.Debugf("object %q stored on shard %q is not valid: %s",
+							inputObject.Key, inputObject.Key, status)
+						continue
+					}
 				}
 
 				// fetch the data part
@@ -542,7 +565,7 @@ func (ds *DistributedChunkStorage) CheckChunk(cfg ChunkConfig, fast bool) (Check
 
 // RepairChunk implements storage.ChunkStorage.RepairChunk
 func (ds *DistributedChunkStorage) RepairChunk(cfg ChunkConfig) (*ChunkConfig, error) {
-	obj, err := ds.ReadChunk(cfg)
+	obj, err := ds.readChunk(cfg, true)
 	if err != nil {
 		return nil, err
 	}
