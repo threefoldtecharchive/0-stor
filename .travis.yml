@@ -32,13 +32,31 @@ matrix:
     - language: go
       sudo: true
       dist: trusty
-      go: 1.9.x
+      go: 1.10.x
+      install: skip
+      script:
+        - make
+        - make test
+
+    - language: go
+      sudo: true
+      dist: trusty
+      go: 1.11.x
+      install: skip
+      script:
+        - make
+        - make test
+
+    - language: go
+      sudo: true
+      dist: trusty
+      go: 1.11.x
       install: skip
       script: make testcov
       after_success: bash <(curl -s https://codecov.io/bash) -F unittests
 
     - language: go
-      go: 1.9.x
+      go: 1.11.x
       install: skip
       script:
         - go vet $(go list ./... | grep -v vendor)
@@ -49,21 +67,21 @@ matrix:
     - language: go
       sudo: true
       dist: trusty
-      go: 1.9.x
+      go: 1.11.x
       install: skip
       script: make testclientrace
 
     - language: go
       sudo: true
       dist: trusty
-      go: 1.9.x
+      go: 1.11.x
       install: skip
       script: make testdaemonrace
 
     - language: go
       sudo: true
       dist: trusty
-      go: 1.9.x
+      go: 1.11.x
       install:
         - ./utils/scripts/install_protoc_unix.sh
       script: make testcodegen
