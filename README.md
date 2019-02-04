@@ -83,7 +83,7 @@ if err != nil {
 }
 ```
 
-User could also use `badger` as metadata DB storage by replacing 
+User could also use `badger` as metadata DB storage by replacing
 ```go
 etcdDB, err := etcd.New([]string{"127.0.0.1:2379"})
 ```
@@ -94,7 +94,7 @@ line above with the respective `badger` code, see [badger godoc](https://godoc.o
 User could also use own implementation of metadata DB storage by implementing
 the [DB interface](https://godoc.org/github.com/threefoldtech/0-stor/client/metastor/db#DB).
 
-And then replace the 
+And then replace the
 ```go
 etcdDB, err := etcd.New([]string{"127.0.0.1:2379"})
 ```
@@ -115,3 +115,8 @@ To install
 ```
 go get -u github.com/threefoldtech/0-stor/cmd/zstor
 ```
+
+
+# Repository Owners:
+
+* [zaibon](https://github.com/zaibon)
