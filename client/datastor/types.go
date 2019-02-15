@@ -38,6 +38,7 @@ var (
 var (
 	ErrKeyNotFound     = errors.New("zstordb: key is no found")
 	ErrObjectCorrupted = errors.New("zstordb: object is corrupted")
+	ErrNamespaceFull   = errors.New("zstordb: namespace if full")
 )
 
 type (

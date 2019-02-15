@@ -190,9 +190,15 @@ func (ds *DistributedChunkStorage) WriteChunk(data []byte) (*ChunkConfig, error)
 						}
 					}
 
-					// casually log the shard-write error,
-					// and continue trying with another shard...
-					log.WithField("shard", shard.Identifier()).WithError(err).Errorf("failed to write data to random shard")
+					// check if the error is because the namespace if full
+					// if it is, we don't log the error.
+					if err == datastor.ErrNamespaceFull {
+						log.WithField("shard", shard.Identifier()).Warningf("%v", err)
+					} else {
+						// if this is another error, we casually log the shard-write error,
+						// and continue trying with another shard...
+						log.WithField("shard", shard.Identifier()).WithError(err).Errorf("failed to write data to random shard")
+					}
 				}
 			}
 		})

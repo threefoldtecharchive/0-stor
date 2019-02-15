@@ -94,7 +94,13 @@ func (c *Client) CreateObject(data []byte) (key []byte, err error) {
 	conn := c.pool.Get()
 	defer conn.Close()
 
-	return redis.Bytes(conn.Do("SET", dummyKey, data))
+	key, err = redis.Bytes(conn.Do("SET", dummyKey, data))
+	if err != nil {
+		if err.Error() == "No space left on this namespace" {
+			err = datastor.ErrNamespaceFull
+		}
+	}
+	return key, err
 }
 
 // GetObject implements datastor.Client.GetObject
