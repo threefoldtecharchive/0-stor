@@ -238,29 +238,29 @@ func RandShardIndex(n int64) int64 {
 	return big.Int64()
 }
 
+// NewLeastUsedShardIterator creates a new least used shard Iterator.
+// See `LeastUsedShardIterator` for more information.
+// This function takes ownership of the slice passed as argument
+// So care must be taken if the caller still uses this slice afterwards
 func NewLeastUsedShardIterator(slice []Shard) *LeastUsedShardIterator {
-	it := &LeastUsedShardIterator{
-		slice: slice,
-	}
 	sort.Slice(slice, func(i, j int) bool {
 		return slice[i].Utilization() < slice[j].Utilization()
 	})
+	it := &LeastUsedShardIterator{
+		slice: slice,
+	}
 	return it
 }
 
-type shardNamespace struct {
-	shard     Shard
-	namespace *Namespace
-}
-
+// LeastUsedShardIterator implements the ShardIterator interface,
+// in order to get a unique least used sorted datastor client for each iteration.
+// The iterator is finished when all clients of the cluster have been exhausted.
 type LeastUsedShardIterator struct {
-	// slice   []*shardNamespace
 	slice   []Shard
-	sorted  bool
-	index   int
 	current Shard
 }
 
+// Next implements ShardIterator.Next
 func (it *LeastUsedShardIterator) Next() bool {
 	if len(it.slice) < 1 {
 		return false

@@ -428,6 +428,7 @@ func TestClusterSpread(t *testing.T) {
 
 	t.Run("least used", func(t *testing.T) {
 		servers, cluster, cleanup := spreadTestSetup(t)
+		nrShards := len(cluster.listedSlice)
 		defer cleanup()
 		cluster.spreadingType = datastor.SpreadingTypeLeastUsed
 		spreadTest(t, 4096, cluster.GetShardIterator)
@@ -440,6 +441,7 @@ func TestClusterSpread(t *testing.T) {
 		difference := used[len(used)-1] - used[0]
 		fmt.Printf("biggest utilization difference: %d\n", difference)
 		require.True(t, difference <= 4096)
+		require.Equal(t, len(cluster.listedSlice), nrShards)
 	})
 
 }
