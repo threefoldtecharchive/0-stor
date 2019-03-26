@@ -23,8 +23,9 @@ import (
 	"path"
 
 	"github.com/threefoldtech/0-stor/client"
+	datastor "github.com/threefoldtech/0-stor/client/datastor"
 	"github.com/threefoldtech/0-stor/client/datastor/pipeline"
-	datastor "github.com/threefoldtech/0-stor/client/datastor/zerodb"
+	"github.com/threefoldtech/0-stor/client/datastor/zerodb"
 	"github.com/threefoldtech/0-stor/client/metastor"
 	"github.com/threefoldtech/0-stor/client/metastor/db/badger"
 	"github.com/threefoldtech/0-stor/client/processing"
@@ -95,7 +96,7 @@ func main() {
 
 	// create a datastor cluster, using our predefined addresses and namespace,
 	// which will be used to store the actual data
-	datastorCluster, err := datastor.NewCluster(zstordbAddresses, "", namespace, nil)
+	datastorCluster, err := zerodb.NewCluster(zstordbAddresses, "", namespace, nil, datastor.SpreadingTypeRandom)
 	if err != nil {
 		log.Fatal(err)
 	}
