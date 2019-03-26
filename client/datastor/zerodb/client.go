@@ -112,9 +112,10 @@ func (c *Client) CreateObject(data []byte) (key []byte, err error) {
 		if err.Error() == "No space left on this namespace" {
 			err = datastor.ErrNamespaceFull
 		}
+		return key, err
 	}
 	c.utilization += int64(len(data))
-	return key, err
+	return key, nil
 }
 
 // GetObject implements datastor.Client.GetObject
