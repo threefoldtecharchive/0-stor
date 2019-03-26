@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/siddontang/go/log"
+	log "github.com/sirupsen/logrus"
 )
 
 // SpreadingType represent a spreading algorithm
@@ -86,10 +86,6 @@ type SpreadingConstructor func() (ShardIterator, error)
 // the str parameter will be ignored and instead the already used string version will be used.
 // This is intended to be called from the init function in packages that implement spread functions.
 func RegisterSpreadingType(ht SpreadingType, str string) {
-	// if hc == nil {
-	// 	panic("no spreading constructor given")
-	// }
-
 	if s, ok := _SpreadingTypeValueToStringMapping[ht]; ok {
 		log.Infof("overwriting HasherConstructor for hash type %s", ht)
 		str = s // ignoring given string
@@ -103,14 +99,12 @@ func RegisterSpreadingType(ht SpreadingType, str string) {
 
 	_SpreadingTypeValueToStringMapping[ht] = str
 	_SpreadingTypeStringToValueMapping[str] = ht
-	// _SpreadingTypeValueToConstructorMapping[ht] = hc
 }
 
-// hashing algorithms mapping used to create hasher instances,
+// Spreading algorithms mapping used to create SpreadingType instances,
 // based on their enum value, as well as to
 // convert between the string and enum type values.
 var (
 	_SpreadingTypeValueToStringMapping = make(map[SpreadingType]string)
 	_SpreadingTypeStringToValueMapping = make(map[string]SpreadingType)
-	// _SpreadingTypeValueToConstructorMapping = make(map[SpreadingType]SpreadingConstructor)
 )
