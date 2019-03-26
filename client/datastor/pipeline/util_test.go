@@ -17,6 +17,7 @@
 package pipeline
 
 import (
+	"github.com/threefoldtech/0-stor/client/datastor"
 	"github.com/threefoldtech/0-stor/client/datastor/zerodb"
 	zdbtest "github.com/threefoldtech/0-stor/client/datastor/zerodb/test"
 )
@@ -34,7 +35,7 @@ func newZdbServerCluster(count int) (clu *zerodb.Cluster, cleanup func(), err er
 	)
 
 	for i := 0; i < count; i++ {
-		addr, cleanup, err = zdbtest.NewInMem0DBServer(namespace)
+		_, addr, cleanup, err = zdbtest.NewInMem0DBServer(namespace)
 		if err != nil {
 			return
 		}
@@ -42,7 +43,7 @@ func newZdbServerCluster(count int) (clu *zerodb.Cluster, cleanup func(), err er
 		addresses = append(addresses, addr)
 	}
 
-	clu, err = zerodb.NewCluster(addresses, passwd, namespace, nil)
+	clu, err = zerodb.NewCluster(addresses, passwd, namespace, nil, datastor.SpreadingTypeRandom)
 	if err != nil {
 		return
 	}
@@ -60,7 +61,7 @@ func newZdbServerCluster(count int) (clu *zerodb.Cluster, cleanup func(), err er
 func newZdbServerClient(passwd, namespace string) (cli *zerodb.Client, addr string, cleanup func(), err error) {
 	var serverCleanup func()
 
-	addr, serverCleanup, err = zdbtest.NewInMem0DBServer(namespace)
+	_, addr, serverCleanup, err = zdbtest.NewInMem0DBServer(namespace)
 	if err != nil {
 		return
 	}

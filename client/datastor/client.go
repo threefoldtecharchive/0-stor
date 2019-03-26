@@ -77,6 +77,8 @@ type Client interface {
 	// stored namespace exist for the used label.
 	GetNamespace() (*Namespace, error)
 
+	Utilization() int64
+
 	// Close any open resources.
 	Close() error
 }

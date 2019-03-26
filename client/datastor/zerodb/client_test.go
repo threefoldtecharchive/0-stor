@@ -33,7 +33,7 @@ func TestRoundTrip(t *testing.T) {
 	require := require.New(t)
 
 	// create server
-	addr, cleanup, err := zdbtest.NewInMem0DBServer(namespace)
+	_,addr, cleanup, err := zdbtest.NewInMem0DBServer(namespace)
 	require.NoError(err)
 	defer cleanup()
 

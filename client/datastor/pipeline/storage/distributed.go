@@ -126,7 +126,7 @@ func (ds *DistributedChunkStorage) WriteChunk(data []byte) (*ChunkConfig, error)
 	// create a channel-based iterator, to fetch the shards,
 	// randomly and thread-save
 	shardCh := datastor.ShardIteratorChannel(ctx,
-		ds.cluster.GetRandomShardIterator(nil), jobCount)
+		ds.cluster.GetShardIterator(nil), jobCount)
 
 	// write all the different parts to their own separate shard,
 	// and return the written object information over the resultCh,

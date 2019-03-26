@@ -50,6 +50,7 @@ type (
 		ReadRequestPerHour  int64
 		WriteRequestPerHour int64
 		NrObjects           int64
+		Used                int64 //the number of bytes present in the namespace
 	}
 
 	// Object contains the information stored for an object.

@@ -55,7 +55,7 @@ func (rs *RandomChunkStorage) WriteChunk(data []byte) (*ChunkConfig, error) {
 
 	// go through all shards, in pseudo-random fashion,
 	// until the data could be written to one of them.
-	it := rs.cluster.GetRandomShardIterator(nil)
+	it := rs.cluster.GetShardIterator(nil)
 	for it.Next() {
 		shard = it.Shard()
 		key, err = shard.CreateObject(data)

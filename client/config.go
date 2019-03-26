@@ -22,6 +22,7 @@ import (
 	"io/ioutil"
 	"strings"
 
+	"github.com/threefoldtech/0-stor/client/datastor"
 	"github.com/threefoldtech/0-stor/client/datastor/pipeline"
 
 	yaml "gopkg.in/yaml.v2"
@@ -69,6 +70,10 @@ type Config struct {
 type DataStorConfig struct {
 	// Shards defines the Listed shards, at least one listed shard is required
 	Shards []string `yaml:"shards" json:"shards"` // required
+
+	// Spreading defines the algorithm used to walks the shards of
+	// a cluster during writes.
+	Spreading datastor.SpreadingType `yaml:"spreading" json:"spreading"`
 
 	// Pipeline defines the object read/write pipeline configuration
 	// for this 0-stor client. It defines how to structure,

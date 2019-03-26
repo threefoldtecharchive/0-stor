@@ -37,7 +37,7 @@ import (
 	"github.com/threefoldtech/0-stor/daemon/api"
 	pb "github.com/threefoldtech/0-stor/daemon/api/grpc/schema"
 
-	"github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
+	grpc_logrus "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
@@ -158,7 +158,7 @@ func createDataClusterFromConfig(cfg *daemon.Config) (datastor.Cluster, error) {
 		return nil, err
 	}
 
-	return zerodb.NewCluster(cfg.DataStor.Shards, cfg.Password, cfg.Namespace, tlsConfig)
+	return zerodb.NewCluster(cfg.DataStor.Shards, cfg.Password, cfg.Namespace, tlsConfig, cfg.DataStor.Spreading)
 }
 
 func createTLSConfigFromDatastorTLSConfig(config *client.DataStorTLSConfig) (*tls.Config, error) {

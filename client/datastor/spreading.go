@@ -1,0 +1,116 @@
+package datastor
+
+import (
+	"fmt"
+	"strings"
+
+	"github.com/siddontang/go/log"
+)
+
+// SpreadingType represent a spreading algorithm
+// used by the ShardIterator.
+type SpreadingType uint8
+
+const (
+	// SpreadingTypeRandom is the enum constant that identifies
+	// a ShardIterator that will walk over the shards in a purely
+	// random way.
+	SpreadingTypeRandom SpreadingType = iota
+
+	// SpreadingTypeLeastUsed is the enum constant that identifies
+	// a ShardIterator that will walk over the shards by returning first
+	// the shards that are the least used (have the more storage available)
+	SpreadingTypeLeastUsed
+
+	// DefaultSpreadingType represent the default value
+	// for the ShardIterator
+	//
+	// This package reserves the right to change the
+	// default value at any time,
+	// but this constant will always be available and up to date.
+	DefaultSpreadingType = SpreadingTypeRandom
+
+	// MaxStandardSpreadingType defines the spreading type,
+	// which has the greatest defined/used enum value.
+	// When defining your custom SpreadingType you can do so as follows:
+	//
+	//    const (
+	//         MySpreadingType = iota + datastor.MaxStandardSpreadingType + 1
+	//         MyOtherSpreadingType
+	//         // ...
+	//    )
+	//
+	MaxStandardSpreadingType = SpreadingTypeLeastUsed
+)
+
+// String implements Stringer.String
+func (ht SpreadingType) String() string {
+	str, ok := _SpreadingTypeValueToStringMapping[ht]
+	if !ok {
+		return fmt.Sprint(uint8(ht))
+	}
+	return str
+}
+
+// MarshalText implements encoding.TextMarshaler.MarshalText
+func (ht SpreadingType) MarshalText() ([]byte, error) {
+	str := ht.String()
+	if str == "" {
+		return nil, fmt.Errorf("'%s' is not a valid SpreadingType value", ht)
+	}
+	return []byte(str), nil
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.UnmarshalText
+func (ht *SpreadingType) UnmarshalText(text []byte) error {
+	if len(text) == 0 {
+		*ht = DefaultSpreadingType
+		return nil
+	}
+
+	var ok bool
+	*ht, ok = _SpreadingTypeStringToValueMapping[strings.ToLower(string(text))]
+	if !ok {
+		return fmt.Errorf("'%s' is not a valid SpreadingType string", text)
+	}
+	return nil
+}
+
+// SpreadingConstructor defines a function which can be used to create
+// a ShardIterator
+type SpreadingConstructor func() (ShardIterator, error)
+
+// RegisterSpreadingType registers a new or overwrite an existing spreading algorithm.
+// The given str will be used in a case-insensitive manner,
+// if the registered hash however overwrites an existing spreading type,
+// the str parameter will be ignored and instead the already used string version will be used.
+// This is intended to be called from the init function in packages that implement spread functions.
+func RegisterSpreadingType(ht SpreadingType, str string) {
+	// if hc == nil {
+	// 	panic("no spreading constructor given")
+	// }
+
+	if s, ok := _SpreadingTypeValueToStringMapping[ht]; ok {
+		log.Infof("overwriting HasherConstructor for hash type %s", ht)
+		str = s // ignoring given string
+	} else if str == "" {
+		panic("no string version defined for new hash type")
+	} else {
+		// enforce lower cases
+		// as to make the string<->value mapping case insensitive
+		str = strings.ToLower(str)
+	}
+
+	_SpreadingTypeValueToStringMapping[ht] = str
+	_SpreadingTypeStringToValueMapping[str] = ht
+	// _SpreadingTypeValueToConstructorMapping[ht] = hc
+}
+
+// hashing algorithms mapping used to create hasher instances,
+// based on their enum value, as well as to
+// convert between the string and enum type values.
+var (
+	_SpreadingTypeValueToStringMapping = make(map[SpreadingType]string)
+	_SpreadingTypeStringToValueMapping = make(map[string]SpreadingType)
+	// _SpreadingTypeValueToConstructorMapping = make(map[SpreadingType]SpreadingConstructor)
+)

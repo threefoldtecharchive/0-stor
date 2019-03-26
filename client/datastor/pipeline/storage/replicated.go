@@ -491,7 +491,7 @@ func (rs *ReplicatedChunkStorage) write(exceptShards []string, dataShardCount in
 	// create a channel-based iterator, to fetch the shards,
 	// randomly and thread-save
 	shardCh := datastor.ShardIteratorChannel(ctx,
-		rs.cluster.GetRandomShardIterator(exceptShards), jobCount)
+		rs.cluster.GetShardIterator(exceptShards), jobCount)
 
 	// write to dataShardCount amount of shards,
 	// and return their identifiers over the resultCh,

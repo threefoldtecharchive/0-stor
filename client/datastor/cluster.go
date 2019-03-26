@@ -22,6 +22,7 @@ import (
 	"errors"
 	"math/big"
 	mathRand "math/rand"
+	"sort"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -45,22 +46,22 @@ type Cluster interface {
 	// a valid and supported zstordb server.
 	GetShard(id string) (Shard, error)
 
-	// GetRandomClient gets any cluster available in this cluster:
+	// GetRandomClient gets any shard available in this cluster:
 	// it only ever returns a client created from a shard
 	// which comes from the pre-defined shard-list
 	// (given at creation time of this cluster):
 	GetRandomShard() (Shard, error)
 
-	// GetRandomShardIterator can be used to get an iterator (channel),
-	// which will give you a random shard, until either ll shards have been exhausted,
+	// GetShardIterator can be used to get an iterator (channel),
+	// which will give you a shard, until either all shards have been exhausted,
 	// or the given context has been cancelled. It is guaranteed by the implementation,
-	// that each returned shard, from the same random shard iterator,
+	// that each returned shard, from the same shard iterator,
 	// hasn't been returned before by that iterator (channel).
 	//
 	// exceptShards is an optional input parameter,
 	// when given, the iterator won't return the listed shards
 	// which are part of that exceptShards slice.
-	GetRandomShardIterator(exceptShards []string) ShardIterator
+	GetShardIterator(exceptShards []string) ShardIterator
 
 	// ListedShardCount returns the amount of listed shards available in this cluster.
 	ListedShardCount() int
@@ -70,7 +71,7 @@ type Cluster interface {
 }
 
 // ShardIterator defines the interface of an iterator which can be used
-// to get different (random) shards, without ever getting the same shard back.
+// to get different shards, without ever getting the same shard back.
 //
 // ShardIterator is /NOT/ thread-safe,
 // should you want to use it on multiple goroutines,
@@ -237,7 +238,53 @@ func RandShardIndex(n int64) int64 {
 	return big.Int64()
 }
 
+func NewLeastUsedShardIterator(slice []Shard) *LeastUsedShardIterator {
+	it := &LeastUsedShardIterator{
+		slice: slice,
+	}
+	sort.Slice(slice, func(i, j int) bool {
+		return slice[i].Utilization() < slice[j].Utilization()
+	})
+	return it
+}
+
+type shardNamespace struct {
+	shard     Shard
+	namespace *Namespace
+}
+
+type LeastUsedShardIterator struct {
+	// slice   []*shardNamespace
+	slice   []Shard
+	sorted  bool
+	index   int
+	current Shard
+}
+
+func (it *LeastUsedShardIterator) Next() bool {
+	if len(it.slice) < 1 {
+		return false
+	}
+	it.current = it.slice[0]
+	it.slice = it.slice[1:]
+	return true
+}
+
+// Shard implements ShardIterator.Shard
+func (it *LeastUsedShardIterator) Shard() Shard {
+	if it.current == nil {
+		panic("invalid shard iterator, ensure to make a successful Next() call first")
+	}
+	return it.current
+}
+
 var (
 	_ ShardIterator = (*LazyShardIterator)(nil)
 	_ ShardIterator = (*RandomShardIterator)(nil)
+	_ ShardIterator = (*LeastUsedShardIterator)(nil)
 )
+
+func init() {
+	RegisterSpreadingType(SpreadingTypeRandom, "random")
+	RegisterSpreadingType(SpreadingTypeLeastUsed, "least_used")
+}

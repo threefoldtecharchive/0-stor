@@ -24,7 +24,7 @@ import (
 	"github.com/iwanbk/redcon" // using this because we have race condition issue with upstream
 )
 
-type inMem0DBServer struct {
+type InMem0DBServer struct {
 	mu        sync.RWMutex
 	items     map[string][]byte
 	server    *redcon.Server
@@ -32,35 +32,43 @@ type inMem0DBServer struct {
 	counter   int
 }
 
-func NewInMem0DBServer(namespace string) (string, func(), error) {
-	s := &inMem0DBServer{
+func NewInMem0DBServer(namespace string) (*InMem0DBServer, string, func(), error) {
+	s := &InMem0DBServer{
 		items:     make(map[string][]byte),
 		namespace: namespace,
 	}
 	s.server = redcon.NewServer("localhost:0", s.handler, s.accept, s.closeHandler)
 
 	if err := s.start(); err != nil {
-		return "", nil, err
+		return nil, "", nil, err
 	}
 	cleanup := func() {
 		s.Close()
 	}
 
-	return s.server.ListenAddress(), cleanup, nil
+	return s, s.server.ListenAddress(), cleanup, nil
 }
 
-func (s *inMem0DBServer) start() error {
+func (s *InMem0DBServer) start() error {
 	errCh := make(chan error)
 	go s.server.ListenServeAndSignal(errCh)
 	err := <-errCh
 	return err
 }
 
-func (s *inMem0DBServer) Close() error {
+func (s *InMem0DBServer) Close() error {
 	return s.server.Close()
 }
 
-func (s *inMem0DBServer) handler(conn redcon.Conn, cmd redcon.Command) {
+func (s *InMem0DBServer) ItemsSize() int {
+	total := 0
+	for _, b := range s.items {
+		total += len(b)
+	}
+	return total
+}
+
+func (s *InMem0DBServer) handler(conn redcon.Conn, cmd redcon.Command) {
 	switch strings.ToLower(string(cmd.Args[0])) {
 	case "select":
 		conn.WriteString("OK")
@@ -85,7 +93,7 @@ func (s *inMem0DBServer) handler(conn redcon.Conn, cmd redcon.Command) {
 }
 
 // TODO : also support `corrupted`
-func (s *inMem0DBServer) check(conn redcon.Conn, cmd redcon.Command) {
+func (s *InMem0DBServer) check(conn redcon.Conn, cmd redcon.Command) {
 	s.mu.Lock()
 
 	_, ok := s.items[string(cmd.Args[1])]
@@ -97,7 +105,7 @@ func (s *inMem0DBServer) check(conn redcon.Conn, cmd redcon.Command) {
 		conn.WriteInt(-1)
 	}
 }
-func (s *inMem0DBServer) set(conn redcon.Conn, cmd redcon.Command) {
+func (s *InMem0DBServer) set(conn redcon.Conn, cmd redcon.Command) {
 	if len(cmd.Args) != 3 {
 		conn.WriteError("ERR wrong number of arguments for '" + string(cmd.Args[0]) + "' command")
 		return
@@ -111,7 +119,7 @@ func (s *inMem0DBServer) set(conn redcon.Conn, cmd redcon.Command) {
 
 	conn.WriteBulk([]byte(key))
 }
-func (s *inMem0DBServer) exist(conn redcon.Conn, cmd redcon.Command) {
+func (s *InMem0DBServer) exist(conn redcon.Conn, cmd redcon.Command) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -122,7 +130,7 @@ func (s *inMem0DBServer) exist(conn redcon.Conn, cmd redcon.Command) {
 		conn.WriteInt(0)
 	}
 }
-func (s *inMem0DBServer) del(conn redcon.Conn, cmd redcon.Command) {
+func (s *InMem0DBServer) del(conn redcon.Conn, cmd redcon.Command) {
 	if len(cmd.Args) != 2 {
 		conn.WriteError("ERR wrong number of arguments for '" + string(cmd.Args[0]) + "' command")
 		return
@@ -143,7 +151,7 @@ func (s *inMem0DBServer) del(conn redcon.Conn, cmd redcon.Command) {
 
 }
 
-func (s *inMem0DBServer) get(conn redcon.Conn, cmd redcon.Command) {
+func (s *InMem0DBServer) get(conn redcon.Conn, cmd redcon.Command) {
 	if len(cmd.Args) != 2 {
 		conn.WriteError("ERR wrong number of arguments for '" + string(cmd.Args[0]) + "' command")
 		return
@@ -161,16 +169,16 @@ func (s *inMem0DBServer) get(conn redcon.Conn, cmd redcon.Command) {
 	}
 }
 
-func (s *inMem0DBServer) nsinfo(conn redcon.Conn, cmd redcon.Command) {
-	format := "# namespace\nname: %v\nentries: %v\npublic: yes\npassword: no\ndata_size_bytes: 24\ndata_size_mb: 0.00\ndata_limits_bytes: 0\nindex_size_bytes: 324\nindex_size_kb: 0.32\n"
+func (s *InMem0DBServer) nsinfo(conn redcon.Conn, cmd redcon.Command) {
+	format := "# namespace\nname: %v\nentries: %v\npublic: yes\npassword: no\ndata_size_bytes: %v\ndata_size_mb: 0.00\ndata_limits_bytes: 0\nindex_size_bytes: 324\nindex_size_kb: 0.32\n"
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	str := fmt.Sprintf(format, s.namespace, len(s.items))
+	str := fmt.Sprintf(format, s.namespace, len(s.items), s.ItemsSize())
 	conn.WriteBulk([]byte(str))
 }
-func (s *inMem0DBServer) accept(conn redcon.Conn) bool {
+func (s *InMem0DBServer) accept(conn redcon.Conn) bool {
 	return true
 }
-func (s *inMem0DBServer) closeHandler(conn redcon.Conn, err error) {
+func (s *InMem0DBServer) closeHandler(conn redcon.Conn, err error) {
 }

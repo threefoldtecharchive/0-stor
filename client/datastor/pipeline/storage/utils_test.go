@@ -37,7 +37,7 @@ func newZdbServerCluster(count int) (clu *zerodb.Cluster, cleanup func(), err er
 	)
 
 	for i := 0; i < count; i++ {
-		addr, cleanup, err = zdbtest.NewInMem0DBServer(namespace)
+		_, addr, cleanup, err = zdbtest.NewInMem0DBServer(namespace)
 		if err != nil {
 			return
 		}
@@ -45,7 +45,7 @@ func newZdbServerCluster(count int) (clu *zerodb.Cluster, cleanup func(), err er
 		addresses = append(addresses, addr)
 	}
 
-	clu, err = zerodb.NewCluster(addresses, passwd, namespace, nil)
+	clu, err = zerodb.NewCluster(addresses, passwd, namespace, nil, datastor.SpreadingTypeRandom)
 	if err != nil {
 		return
 	}
@@ -63,7 +63,7 @@ func newZdbServerCluster(count int) (clu *zerodb.Cluster, cleanup func(), err er
 func newZdbServerClient(passwd, namespace string) (cli *zerodb.Client, addr string, cleanup func(), err error) {
 	var serverCleanup func()
 
-	addr, serverCleanup, err = zdbtest.NewInMem0DBServer(namespace)
+	_, addr, serverCleanup, err = zdbtest.NewInMem0DBServer(namespace)
 	if err != nil {
 		return
 	}
@@ -83,8 +83,8 @@ type dummyCluster struct{}
 
 func (dc dummyCluster) GetShard(id string) (datastor.Shard, error) { panic("dummy::GetShard") }
 func (dc dummyCluster) GetRandomShard() (datastor.Shard, error)    { panic("dummy::GetRandomShard") }
-func (dc dummyCluster) GetRandomShardIterator(exceptShards []string) datastor.ShardIterator {
-	panic("dummy::GetRandomShardIterator")
+func (dc dummyCluster) GetShardIterator(exceptShards []string) datastor.ShardIterator {
+	panic("dummy::GetShardIterator")
 }
 func (dc dummyCluster) ListedShardCount() int {
 	return int(math.MaxInt32)

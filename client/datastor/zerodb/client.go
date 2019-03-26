@@ -37,8 +37,9 @@ var (
 // Client defines a data client,
 // to connect to a 0-db server
 type Client struct {
-	pool      *redis.Pool
-	namespace string
+	pool        *redis.Pool
+	namespace   string
+	utilization int64
 }
 
 // NewClient creates a new data client,
@@ -72,6 +73,9 @@ func NewClient(addr, passwd, namespace string) (*Client, error) {
 				return nil, err
 			}
 			_, err = conn.Do("SELECT", selectArgs...)
+			if err != nil {
+				return nil, err
+			}
 			return conn, err
 		},
 		TestOnBorrow: func(c redis.Conn, t time.Time) error {
@@ -83,10 +87,19 @@ func NewClient(addr, passwd, namespace string) (*Client, error) {
 		},
 	}
 
-	return &Client{
+	client := &Client{
 		pool:      pool,
 		namespace: namespace,
-	}, nil
+	}
+	// save the current utilization of the namespace in the client object
+	// this is then used during the lifetime of the client
+	// to allow different sorting algorithms in ShardIterator
+	ns, err := client.GetNamespace()
+	if err != nil {
+		return nil, err
+	}
+	client.utilization = ns.Used
+	return client, nil
 }
 
 // CreateObject implements datastor.Client.CreateObject
@@ -100,6 +113,7 @@ func (c *Client) CreateObject(data []byte) (key []byte, err error) {
 			err = datastor.ErrNamespaceFull
 		}
 	}
+	c.utilization += int64(len(data))
 	return key, err
 }
 
@@ -195,10 +209,21 @@ func (c *Client) GetNamespace() (*datastor.Namespace, error) {
 				return nil, err
 			}
 			ns.NrObjects = entries
+		case "data_size_bytes":
+			used, err := strconv.ParseInt(val, 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			ns.Used = used
 		}
 	}
 
 	return &ns, nil
+}
+
+// Utilization returns the amount of storage used by the namespace
+func (c *Client) Utilization() int64 {
+	return c.utilization
 }
 
 // Close implements datastor.Client.Close

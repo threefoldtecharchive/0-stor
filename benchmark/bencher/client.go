@@ -70,7 +70,7 @@ func createDataClusterFromConfig(cfg *daemon.Config) (datastor.Cluster, error) {
 		return nil, err
 	}
 
-	return zerodb.NewCluster(cfg.DataStor.Shards, cfg.Password, cfg.Namespace, tlsConfig)
+	return zerodb.NewCluster(cfg.DataStor.Shards, cfg.Password, cfg.Namespace, tlsConfig, cfg.DataStor.Spreading)
 }
 
 func createMetastorClientFromConfig(namespace string, cfg *daemon.MetaStorConfig) (*metastor.Client, error) {

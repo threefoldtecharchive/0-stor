@@ -201,7 +201,7 @@ func (sc *stubCluster) GetRandomShard() (Shard, error) {
 	return &stubShard{id: sc.shards[index]}, nil
 }
 
-func (sc *stubCluster) GetRandomShardIterator(exceptShards []string) ShardIterator {
+func (sc *stubCluster) GetShardIterator(exceptShards []string) ShardIterator {
 	slice := sc.filteredSlice(exceptShards)
 	return NewRandomShardIterator(slice)
 }

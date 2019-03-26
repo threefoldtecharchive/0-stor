@@ -35,12 +35,13 @@ type Cluster struct {
 	listedSlice    []*Shard
 	unlistedMux    sync.Mutex
 	passwd         string
+	spreadingType  datastor.SpreadingType
 }
 
 // NewCluster creates a new cluster,
 // and pre-loading it with a client for each of the listed (and thus known) shards.
 // Unlisted shards's clients are also stored, bu those are loaded on the fly, only when needed.
-func NewCluster(addresses []string, passwd, namespace string, tlsConfig *tls.Config) (*Cluster, error) {
+func NewCluster(addresses []string, passwd, namespace string, tlsConfig *tls.Config, spreadingType datastor.SpreadingType) (*Cluster, error) {
 	var (
 		listedShards = make(map[string]*Shard, len(addresses))
 		listedSlice  []*Shard
@@ -64,6 +65,7 @@ func NewCluster(addresses []string, passwd, namespace string, tlsConfig *tls.Con
 		unlistedShards: make(map[string]*Shard),
 		listedSlice:    listedSlice,
 		passwd:         passwd,
+		spreadingType:  spreadingType,
 	}, nil
 }
 
@@ -103,10 +105,18 @@ func (c *Cluster) GetRandomShard() (datastor.Shard, error) {
 	return c.listedSlice[index], nil
 }
 
-// GetRandomShardIterator implements datastor.Cluster.GetRandomShardIterator
-func (c *Cluster) GetRandomShardIterator(exceptShards []string) datastor.ShardIterator {
+// GetShardIterator implements datastor.Cluster.GetShardIterator
+func (c *Cluster) GetShardIterator(exceptShards []string) datastor.ShardIterator {
 	filtered := c.filteredSlice(exceptShards)
-	return datastor.NewRandomShardIterator(filtered)
+
+	switch c.spreadingType {
+	case datastor.SpreadingTypeRandom:
+		return datastor.NewRandomShardIterator(filtered)
+	case datastor.SpreadingTypeLeastUsed:
+		return datastor.NewLeastUsedShardIterator(filtered)
+	default:
+		panic("unsupported spreading algorithm")
+	}
 }
 
 // ListedShardCount implements datastor.Cluster.ListedShardCount

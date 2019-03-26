@@ -80,7 +80,7 @@ func createDataClusterFromConfig(cfg Config) (datastor.Cluster, error) {
 	if err != nil {
 		return nil, err
 	}
-	return zerodb.NewCluster(cfg.DataStor.Shards, cfg.Password, cfg.Namespace, tlsConfig)
+	return zerodb.NewCluster(cfg.DataStor.Shards, cfg.Password, cfg.Namespace, tlsConfig, cfg.DataStor.Spreading)
 }
 
 func createTLSConfigFromDatastorTLSConfig(config *DataStorTLSConfig) (*tls.Config, error) {

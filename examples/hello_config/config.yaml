@@ -1,9 +1,10 @@
-namespace: thedisk
+namespace: default
 datastor:
+  spreading: "random"
   shards:
-    - 127.0.0.1:12345
-    - 127.0.0.1:12346
-    - 127.0.0.1:12347
+    - 127.0.0.1:5000
+    - 127.0.0.1:5001
+    - 127.0.0.1:5002
   pipeline:
     block_size: 4096
     compression:
