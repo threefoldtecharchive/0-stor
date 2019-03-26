@@ -45,7 +45,7 @@ func testZdbServer(t testing.TB, n int) (servers []*testServer, cleanups func())
 	)
 
 	for i := 0; i < n; i++ {
-		_,addr, cleanup, err := zdbtest.NewInMem0DBServer(namespace)
+		_, addr, cleanup, err := zdbtest.NewInMem0DBServer(namespace)
 		require.NoError(err)
 		cleanupFuncs = append(cleanupFuncs, cleanup)
 		servers = append(servers, &testServer{
