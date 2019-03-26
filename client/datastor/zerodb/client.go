@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/garyburd/redigo/redis"
@@ -37,9 +38,10 @@ var (
 // Client defines a data client,
 // to connect to a 0-db server
 type Client struct {
-	pool        *redis.Pool
-	namespace   string
-	utilization int64
+	pool          *redis.Pool
+	namespace     string
+	utilization   int64
+	muUtilization sync.Mutex
 }
 
 // NewClient creates a new data client,
@@ -114,7 +116,9 @@ func (c *Client) CreateObject(data []byte) (key []byte, err error) {
 		}
 		return key, err
 	}
+	c.muUtilization.Lock()
 	c.utilization += int64(len(data))
+	c.muUtilization.Unlock()
 	return key, nil
 }
 
