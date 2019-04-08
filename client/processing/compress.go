@@ -130,7 +130,6 @@ type LZ4CompressorDecompressor struct {
 func (cd *LZ4CompressorDecompressor) WriteProcess(data []byte) ([]byte, error) {
 	cd.writeBuffer.Reset()
 	w := lz4.NewWriter(cd.writeBuffer)
-	w.Header.BlockDependency = true
 	_, err := w.Write(data)
 	if err != nil {
 		return nil, err
