@@ -33,5 +33,8 @@ setup (
     author_email='muhamada@greenitglobe.com',
     license='Apache 2.0',
     packages=find_packages(),
-    install_requires=['grpcio>=1.8.3'],
+    install_requires=[
+        'grpcio>=1.8.3',
+        'grpcio-tools>=1.8.3',
+    ],
 )
