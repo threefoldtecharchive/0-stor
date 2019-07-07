@@ -21,6 +21,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net"
 	"strings"
@@ -65,9 +66,6 @@ func (cfg *Config) validateAndSanitize() error {
 	if cfg.Pipeline == nil {
 		return errors.New("no pipeline given, while one is required")
 	}
-	if cfg.MetaClient == nil {
-		return errors.New("no metastor client given, while one is required")
-	}
 
 	if cfg.MaxMsgSize <= 0 {
 		cfg.MaxMsgSize = DefaultMaxMsgSize
@@ -93,10 +91,13 @@ func NewFromConfig(cfg daemon.Config, maxMsgSize, jobCount int, disableLocalFSAc
 		return nil, err
 	}
 
-	// create metastor client
-	metastorClient, err := createMetastorClientFromConfig(cfg.Namespace, &cfg.MetaStor)
-	if err != nil {
-		return nil, err
+	var metastorClient *metastor.Client
+	if cfg.MetaStor != nil {
+		// create metastor client
+		metastorClient, err = createMetastorClientFromConfig(cfg.Namespace, cfg.MetaStor)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// create 0-stor master client
@@ -216,20 +217,26 @@ func New(cfg Config) (*Daemon, error) {
 		grpc.MaxSendMsgSize(maxMsgSize),
 	)
 
-	// register the metadata service
-	pb.RegisterMetadataServiceServer(grpcServer, newMetadataService(cfg.MetaClient))
+	var closer io.Closer
+
+	if cfg.MetaClient != nil {
+		// register the metadata service
+		pb.RegisterMetadataServiceServer(grpcServer, newMetadataService(cfg.MetaClient))
+
+		// create the master 0-stor client, so we can create the file service
+		client := client.NewClient(cfg.MetaClient, cfg.Pipeline)
+		pb.RegisterFileServiceServer(grpcServer, newFileService(client, cfg.MetaClient, cfg.DisableLocalFSAccess))
+
+		closer = client
+	}
 
 	// register the data pipeline service
 	pb.RegisterDataServiceServer(grpcServer, newDataService(cfg.Pipeline, cfg.DisableLocalFSAccess))
 
-	// create the master 0-stor client, so we can create the file service
-	client := client.NewClient(cfg.MetaClient, cfg.Pipeline)
-	pb.RegisterFileServiceServer(grpcServer, newFileService(client, cfg.MetaClient, cfg.DisableLocalFSAccess))
-
 	// return our daemon ready for usage
 	return &Daemon{
 		grpcServer: grpcServer,
-		closer:     client,
+		closer:     closer,
 	}, nil
 }
 
@@ -247,7 +254,11 @@ func (d *Daemon) Close() error {
 	log.Debugln("stop grpc daemon server and all its active listeners")
 	d.grpcServer.GracefulStop()
 	log.Debugln("closing internal resources")
-	return d.closer.Close()
+	if d.closer != nil {
+		return d.closer.Close()
+	}
+
+	return nil
 }
 
 // isClosedConnError returns true if the error is from closing listener, cmux.

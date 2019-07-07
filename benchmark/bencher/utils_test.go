@@ -90,7 +90,7 @@ func newDefaultZstorConfig(dataShards []string, metaShards []string, blockSize i
 			},
 		},
 
-		MetaStor: daemon.MetaStorConfig{
+		MetaStor: &daemon.MetaStorConfig{
 			DB: daemon.MetaStorDBConfig{
 				Type: dbType,
 				Config: map[string]interface{}{

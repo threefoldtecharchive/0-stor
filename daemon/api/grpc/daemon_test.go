@@ -33,11 +33,12 @@ func TestConfig_ValidateAndSanitize(t *testing.T) {
 
 	cfg.Pipeline = new(pipeline.SingleObjectPipeline)
 	err = cfg.validateAndSanitize()
-	require.Error(t, err)
-
-	require.Zero(t, cfg.MaxMsgSize)
+	require.NoError(t, err)
+	require.Equal(t, DefaultMaxMsgSize, cfg.MaxMsgSize)
 
 	cfg.MetaClient = new(metastor.Client)
+	cfg.MaxMsgSize = 0
+
 	err = cfg.validateAndSanitize()
 	require.NoError(t, err)
 

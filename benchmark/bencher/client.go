@@ -52,10 +52,14 @@ func newClientFromConfig(cfg *daemon.Config, jobCount int) (*client.Client, *met
 		return nil, nil, err
 	}
 
+	if cfg.MetaStor == nil {
+		return nil, nil, fmt.Errorf("benchmarker requires metastore")
+	}
+
 	// if no metadata shards are given, return an error,
 	// as we require a metastor client
 	// create metastor client
-	metastorClient, err := createMetastorClientFromConfig(cfg.Namespace, &cfg.MetaStor)
+	metastorClient, err := createMetastorClientFromConfig(cfg.Namespace, cfg.MetaStor)
 	if err != nil {
 		return nil, nil, err
 	}

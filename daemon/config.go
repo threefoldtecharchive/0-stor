@@ -31,7 +31,7 @@ type Config struct {
 	client.Config `yaml:",inline"`
 
 	// MetaStor defines the configuration for the metadata server.
-	MetaStor MetaStorConfig `yaml:"metastor"`
+	MetaStor *MetaStorConfig `yaml:"metastor"`
 }
 
 // MetaStorConfig is used to configure the metastor client.

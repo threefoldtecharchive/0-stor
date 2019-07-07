@@ -60,7 +60,7 @@ func TestDecodeExampleConfig(t *testing.T) {
 				},
 			},
 		},
-		MetaStor: MetaStorConfig{
+		MetaStor: &MetaStorConfig{
 			DB: MetaStorDBConfig{
 				Type: "etcd",
 				Config: map[string]interface{}{

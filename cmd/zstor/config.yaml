@@ -18,7 +18,7 @@ datastor: # required
     distribution: # optional, disabled by default
       data_shards: 3
       parity_shards: 1
-metastor: # required
+metastor: # optional section
   db:
     type: etcd # required
     config: # config specific to metastor type
