@@ -21,6 +21,7 @@ import (
 	"log"
 
 	"github.com/threefoldtech/0-stor/client"
+	"github.com/threefoldtech/0-stor/client/datastor"
 	"github.com/threefoldtech/0-stor/client/datastor/pipeline"
 	"github.com/threefoldtech/0-stor/client/metastor"
 	"github.com/threefoldtech/0-stor/client/metastor/db/etcd"
@@ -35,7 +36,11 @@ func main() {
 	config := client.Config{
 		Namespace: namespace,
 		DataStor: client.DataStorConfig{
-			Shards: []string{"127.0.0.1:12345", "127.0.0.1:12346", "127.0.0.1:12347"},
+			Shards: []datastor.ShardConfig{
+				{Address: "127.0.0.1:12345"},
+				{Address: "127.0.0.1:12346"},
+				{Address: "127.0.0.1:12347"},
+			},
 			Pipeline: pipeline.Config{
 				BlockSize: 4096,
 				Compression: pipeline.CompressionConfig{

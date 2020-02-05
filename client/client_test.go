@@ -24,6 +24,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/threefoldtech/0-stor/client/datastor"
 	"github.com/threefoldtech/0-stor/client/datastor/pipeline"
 	"github.com/threefoldtech/0-stor/client/datastor/pipeline/storage"
 	"github.com/threefoldtech/0-stor/client/metastor"
@@ -63,9 +64,9 @@ func TestRoundTrip(t *testing.T) {
 	servers, serverClean := testZdbServer(t, 4)
 	defer serverClean()
 
-	shards := make([]string, len(servers))
+	shards := make([]datastor.ShardConfig, len(servers))
 	for i, server := range servers {
-		shards[i] = server.Address()
+		shards[i] = datastor.ShardConfig{Address: server.Address()}
 	}
 
 	config := Config{
@@ -215,9 +216,9 @@ func TestWriteWithUserMeta(t *testing.T) {
 	servers, serverClean := testZdbServer(t, 4)
 	defer serverClean()
 
-	shards := make([]string, len(servers))
+	shards := make([]datastor.ShardConfig, len(servers))
 	for i, server := range servers {
-		shards[i] = server.Address()
+		shards[i] = datastor.ShardConfig{Address: server.Address()}
 	}
 
 	const (
@@ -272,9 +273,9 @@ func TestBlocksizes(t *testing.T) {
 	servers, serverClean := testZdbServer(t, 4)
 	defer serverClean()
 
-	shards := make([]string, len(servers))
+	shards := make([]datastor.ShardConfig, len(servers))
 	for i, server := range servers {
-		shards[i] = server.Address()
+		shards[i] = datastor.ShardConfig{Address: server.Address()}
 	}
 
 	const baseBlockSize = 8
@@ -328,9 +329,9 @@ func testReadRange(t *testing.T, chunkSize int) {
 	servers, serverClean := testZdbServer(t, 4)
 	defer serverClean()
 
-	shards := make([]string, len(servers))
+	shards := make([]datastor.ShardConfig, len(servers))
 	for i, server := range servers {
-		shards[i] = server.Address()
+		shards[i] = datastor.ShardConfig{Address: server.Address()}
 	}
 
 	const (
@@ -413,9 +414,9 @@ func TestMultipleDownload_Issue208(t *testing.T) {
 	servers, serverClean := testZdbServer(t, 4)
 	defer serverClean()
 
-	shards := make([]string, len(servers))
+	shards := make([]datastor.ShardConfig, len(servers))
 	for i, server := range servers {
-		shards[i] = server.Address()
+		shards[i] = datastor.ShardConfig{Address: server.Address()}
 	}
 
 	const blockSize = 256
@@ -449,11 +450,10 @@ func TestConcurrentWriteRead(t *testing.T) {
 	servers, serverClean := testZdbServer(t, 4)
 	defer serverClean()
 
-	shards := make([]string, len(servers))
+	shards := make([]datastor.ShardConfig, len(servers))
 	for i, server := range servers {
-		shards[i] = server.Address()
+		shards[i] = datastor.ShardConfig{Address: server.Address()}
 	}
-
 	const blockSize = 128
 
 	config := newDefaultConfig(shards, blockSize)
@@ -505,9 +505,9 @@ func BenchmarkWriteFilesSizes(b *testing.B) {
 	servers, serverClean := testZdbServer(b, 4)
 	defer serverClean()
 
-	shards := make([]string, len(servers))
+	shards := make([]datastor.ShardConfig, len(servers))
 	for i, server := range servers {
-		shards[i] = server.Address()
+		shards[i] = datastor.ShardConfig{Address: server.Address()}
 	}
 
 	config := newDefaultConfig(shards, 1024*1024)
@@ -553,11 +553,10 @@ func TestIssue225(t *testing.T) {
 	servers, serverClean := testZdbServer(t, 4)
 	defer serverClean()
 
-	shards := make([]string, len(servers))
+	shards := make([]datastor.ShardConfig, len(servers))
 	for i, server := range servers {
-		shards[i] = server.Address()
+		shards[i] = datastor.ShardConfig{Address: server.Address()}
 	}
-
 	const blockSize = 256
 
 	config := newDefaultConfig(shards, blockSize)
@@ -582,7 +581,7 @@ func TestIssue225(t *testing.T) {
 	assert.Equal(t, data, result)
 }
 
-func newDefaultConfig(dataShards []string, blockSize int) Config {
+func newDefaultConfig(dataShards []datastor.ShardConfig, blockSize int) Config {
 	return Config{
 		Namespace: "namespace1",
 		DataStor: DataStorConfig{
@@ -607,9 +606,9 @@ func TestClientCheck(t *testing.T) {
 	servers, serverClean := testZdbServer(t, 4)
 	defer serverClean()
 
-	shards := make([]string, len(servers))
+	shards := make([]datastor.ShardConfig, len(servers))
 	for i, server := range servers {
-		shards[i] = server.Address()
+		shards[i] = datastor.ShardConfig{Address: server.Address()}
 	}
 
 	config := newDefaultConfig(shards, 1024)
@@ -659,9 +658,9 @@ func TestClientRepair(t *testing.T) {
 	servers, serverClean := testZdbServer(t, 4)
 	defer serverClean()
 
-	shards := make([]string, len(servers))
+	shards := make([]datastor.ShardConfig, len(servers))
 	for i, server := range servers {
-		shards[i] = server.Address()
+		shards[i] = datastor.ShardConfig{Address: server.Address()}
 	}
 
 	config := newDefaultConfig(shards, 1024)
@@ -774,7 +773,7 @@ func TestClient_ExplicitErrors(t *testing.T) {
 	servers, serverClean := testZdbServer(t, 1)
 	defer serverClean()
 
-	dataShards := []string{servers[0].Address()}
+	dataShards := []datastor.ShardConfig{{Address: servers[0].Address()}}
 	config := newDefaultConfig(dataShards, 0)
 	config.DataStor.Pipeline.Distribution = pipeline.ObjectDistributionConfig{}
 

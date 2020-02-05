@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/threefoldtech/0-stor/benchmark/config"
+	"github.com/threefoldtech/0-stor/client/datastor"
 
 	"github.com/stretchr/testify/require"
 )
@@ -32,9 +33,9 @@ func TestBencherRuns(t *testing.T) {
 	servers, cleanupZstor := newTestZstorServers(t, 4)
 	defer cleanupZstor()
 
-	shards := make([]string, len(servers))
+	shards := make([]datastor.ShardConfig, len(servers))
 	for i, server := range servers {
-		shards[i] = server.Address()
+		shards[i] = datastor.ShardConfig{Address: server.Address()}
 	}
 
 	clientConfig := newDefaultZstorConfig(shards, nil, 64)
@@ -78,9 +79,9 @@ func TestBencherDuration(t *testing.T) {
 	servers, cleanupZstor := newTestZstorServers(t, 4)
 	defer cleanupZstor()
 
-	shards := make([]string, len(servers))
+	shards := make([]datastor.ShardConfig, len(servers))
 	for i, server := range servers {
-		shards[i] = server.Address()
+		shards[i] = datastor.ShardConfig{Address: server.Address()}
 	}
 
 	clientConfig := newDefaultZstorConfig(shards, nil, 64)

@@ -1,16 +1,16 @@
 scenarios:
   bench1:
     zstor:
-      iyo:  # itsyou.online credentials 
+      iyo:  # itsyou.online credentials
         organization: my_iyo_org
         app_id: app_ID
         app_secret: app_secret
       namespace: namespace1  # itsyou.online namespace if using iyo credentials
       datastor:
         shards:
-          - 127.0.0.1:1200
-          - 127.0.0.1:1201
-          - 127.0.0.1:1202
+          - address: 127.0.0.1:1200
+          - address: 127.0.0.1:1201
+          - address: 127.0.0.1:1202
         pipeline:
           block_size: 4096
           compression:

@@ -89,6 +89,13 @@ type ShardIterator interface {
 	Shard() Shard
 }
 
+// ShardConfig defines shard configuration
+type ShardConfig struct {
+	Address   string `json:"address"`
+	Namespace string `json:"namespace"`
+	Password  string `json:"password"`
+}
+
 // Shard defines the interface of a cluster shard.
 // It adds some functionality on top of a normal client,
 // to make it work within a cluster.
@@ -97,6 +104,9 @@ type Shard interface {
 
 	// Identifier returns the (unique) identifier of this shard.
 	Identifier() string
+	Address() string
+	Namespace() string
+	Password() string
 }
 
 // ShardIteratorChannel takes a context and an iterator,

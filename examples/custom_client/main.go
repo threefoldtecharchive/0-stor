@@ -47,10 +47,10 @@ var (
 	// however should you desire to use replication or erasue-coding,
 	// as to distribute your date, you'll need more servers.
 	// If you can afford erasure-coding it is definitely recommended.
-	zstordbAddresses = []string{
+	zstordbAddresses = []datastor.ShardConfig{
 		// in this example we expect that the server is started
 		// with the `--no-auth` flag
-		"127.0.0.1:12345",
+		{Address: "127.0.0.1:12345"},
 	}
 
 	// See https://godoc.org/github.com/threefoldtech/0-stor/pipeline#Config

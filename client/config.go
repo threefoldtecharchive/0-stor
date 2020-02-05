@@ -69,7 +69,7 @@ type Config struct {
 // DataStorConfig is used to configure a zstordb cluster.
 type DataStorConfig struct {
 	// Shards defines the Listed shards, at least one listed shard is required
-	Shards []string `yaml:"shards" json:"shards"` // required
+	Shards []datastor.ShardConfig `yaml:"shards" json:"shards"` // required
 
 	// Spreading defines the algorithm used to walks the shards of
 	// a cluster during writes.

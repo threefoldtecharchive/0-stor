@@ -26,7 +26,7 @@ import (
 
 func newZdbServerCluster(count int) (clu *zerodb.Cluster, cleanup func(), err error) {
 	var (
-		addresses []string
+		addresses []datastor.ShardConfig
 		cleanups  []func()
 		addr      string
 	)
@@ -42,7 +42,7 @@ func newZdbServerCluster(count int) (clu *zerodb.Cluster, cleanup func(), err er
 			return
 		}
 		cleanups = append(cleanups, cleanup)
-		addresses = append(addresses, addr)
+		addresses = append(addresses, datastor.ShardConfig{Address: addr})
 	}
 
 	clu, err = zerodb.NewCluster(addresses, passwd, namespace, nil, datastor.SpreadingTypeRandom)

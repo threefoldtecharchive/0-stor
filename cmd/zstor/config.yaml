@@ -3,10 +3,10 @@ namespace: namespace1  # 0-db namespace (required)
 datastor: # required
   # the address(es) of a 0-db cluster (required0)
   shards: # required
-    - 127.0.0.1:12345
-    - 127.0.0.1:12346
-    - 127.0.0.1:12347
-    - 127.0.0.1:12348
+    - address: 127.0.0.1:12345
+    - address: 127.0.0.1:12346
+    - address: 127.0.0.1:12347
+    - address: 127.0.0.1:12348
   pipeline:
     block_size: 4096
     compression: # optional, snappy by default

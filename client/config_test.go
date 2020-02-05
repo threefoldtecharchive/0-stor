@@ -20,6 +20,7 @@ import (
 	"crypto/tls"
 	"testing"
 
+	"github.com/threefoldtech/0-stor/client/datastor"
 	"github.com/threefoldtech/0-stor/client/datastor/pipeline"
 	"github.com/threefoldtech/0-stor/client/processing"
 
@@ -35,11 +36,11 @@ func TestDecodeZstorExampleConfig(t *testing.T) {
 		Password:  "mypass",
 		Namespace: "namespace1",
 		DataStor: DataStorConfig{
-			Shards: []string{
-				"127.0.0.1:12345",
-				"127.0.0.1:12346",
-				"127.0.0.1:12347",
-				"127.0.0.1:12348",
+			Shards: []datastor.ShardConfig{
+				{Address: "127.0.0.1:12345"},
+				{Address: "127.0.0.1:12346"},
+				{Address: "127.0.0.1:12347"},
+				{Address: "127.0.0.1:12348"},
 			},
 			Pipeline: pipeline.Config{
 				BlockSize: 4096,

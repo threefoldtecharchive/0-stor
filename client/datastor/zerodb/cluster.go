@@ -19,6 +19,7 @@ package zerodb
 import (
 	"crypto/tls"
 	"errors"
+	"fmt"
 	"sync"
 
 	log "github.com/sirupsen/logrus"
@@ -29,43 +30,52 @@ import (
 // Cluster implements datastor.Cluster for
 // clients which interface with 0-db server using redis protocol
 type Cluster struct {
-	namespace      string
-	listedShards   map[string]*Shard // shards listed in config
-	unlistedShards map[string]*Shard // shards not listed in config
-	listedSlice    []*Shard
-	unlistedMux    sync.Mutex
-	passwd         string
-	spreadingType  datastor.SpreadingType
+	namespace     string
+	listedShards  map[string]*Shard // shards listed in config
+	listedSlice   []*Shard
+	unlistedMux   sync.Mutex
+	passwd        string
+	spreadingType datastor.SpreadingType
 }
 
 // NewCluster creates a new cluster,
 // and pre-loading it with a client for each of the listed (and thus known) shards.
 // Unlisted shards's clients are also stored, bu those are loaded on the fly, only when needed.
-func NewCluster(addresses []string, passwd, namespace string, tlsConfig *tls.Config, spreadingType datastor.SpreadingType) (*Cluster, error) {
+func NewCluster(addresses []datastor.ShardConfig, passwd, namespace string, tlsConfig *tls.Config, spreadingType datastor.SpreadingType) (*Cluster, error) {
 	var (
 		listedShards = make(map[string]*Shard, len(addresses))
 		listedSlice  []*Shard
 	)
 
-	for _, address := range addresses {
-		client, err := NewClient(address, passwd, namespace)
+	or := func(a, b string) string {
+		if len(a) == 0 {
+			return b
+		}
+
+		return a
+	}
+
+	for _, cfg := range addresses {
+
+		client, err := NewClient(cfg.Address, or(cfg.Password, passwd), or(cfg.Namespace, namespace))
 		if err != nil {
 			return nil, err
 		}
 		shard := &Shard{
-			Client:  client,
-			address: address,
+			Client:    client,
+			address:   cfg.Address,
+			namespace: or(cfg.Namespace, namespace),
+			password:  or(cfg.Password, passwd),
 		}
-		listedShards[address] = shard
+		listedShards[cfg.Address] = shard
 		listedSlice = append(listedSlice, shard)
 	}
 	return &Cluster{
-		namespace:      namespace,
-		listedShards:   listedShards,
-		unlistedShards: make(map[string]*Shard),
-		listedSlice:    listedSlice,
-		passwd:         passwd,
-		spreadingType:  spreadingType,
+		namespace:     namespace,
+		listedShards:  listedShards,
+		listedSlice:   listedSlice,
+		passwd:        passwd,
+		spreadingType: spreadingType,
 	}, nil
 }
 
@@ -76,27 +86,7 @@ func (c *Cluster) GetShard(address string) (datastor.Shard, error) {
 		return shard, nil
 	}
 
-	c.unlistedMux.Lock()
-	defer c.unlistedMux.Unlock()
-
-	// try to get from existing shard
-	shard, ok = c.unlistedShards[address]
-	if ok {
-		return shard, nil
-	}
-
-	// create shard if not exist yet
-	client, err := NewClient(address, c.passwd, c.namespace)
-	if err != nil {
-		return nil, err
-	}
-
-	shard = &Shard{
-		Client:  client,
-		address: address,
-	}
-	c.unlistedShards[address] = shard
-	return shard, nil
+	return nil, fmt.Errorf("shard %s not found", address)
 }
 
 // GetRandomShard implements datastor.Cluster.GetRandomShard
@@ -133,16 +123,6 @@ func (c *Cluster) Close() error {
 		err      error
 		errCount int
 	)
-
-	// close all unlisted shards first
-	for address, shard := range c.unlistedShards {
-		err = shard.Close()
-		if err != nil {
-			errCount++
-			log.Errorf(
-				"error while closing unlisted shard (%s): %v", address, err)
-		}
-	}
 
 	// close all listed shards next
 	for address, shard := range c.listedShards {

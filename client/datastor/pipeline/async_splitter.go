@@ -426,7 +426,7 @@ func (asp *AsyncSplitterPipeline) Read(chunks []metatypes.Chunk, w io.Writer) er
 			for input := range inputCh {
 				data, err := processor.ReadProcess(input.Data)
 				if err != nil {
-					return err
+					return fmt.Errorf("read pipeline failure: %v", err)
 				}
 				if bytes.Compare(input.Hash, hasher.HashBytes(data)) != 0 {
 					return fmt.Errorf("object chunk #%d's data and hash do not match", input.Index)

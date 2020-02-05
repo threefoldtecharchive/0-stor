@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/threefoldtech/0-stor/client"
+	"github.com/threefoldtech/0-stor/client/datastor"
 	"github.com/threefoldtech/0-stor/client/datastor/pipeline"
 	zdbtest "github.com/threefoldtech/0-stor/client/datastor/zerodb/test"
 	"github.com/threefoldtech/0-stor/client/metastor/db"
@@ -67,7 +68,7 @@ func (ts *testZstorServer) Address() string {
 // newDefaultZstorConfig returns a default zstor client config used for testing
 // with provided data shards, meta shards and blocksize
 // if meta shards is nil, an in memory meta server will be used (recommended for testing)
-func newDefaultZstorConfig(dataShards []string, metaShards []string, blockSize int) daemon.Config {
+func newDefaultZstorConfig(dataShards []datastor.ShardConfig, metaShards []string, blockSize int) daemon.Config {
 	var dbType string
 	if len(metaShards) > 0 {
 		dbType = db.TypeETCD

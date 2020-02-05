@@ -49,16 +49,16 @@ testcov:
 testrace: testclientrace testdaemonrace testbenchrace
 
 testclient:
-	go test -v -timeout $(TIMEOUT) $(CLIENT_PACKAGES)
+	go test  -timeout $(TIMEOUT) $(CLIENT_PACKAGES)
 
 testdaemon:
-	go test -v -timeout $(TIMEOUT) $(DAEMON_PACKAGES)
+	go test  -timeout $(TIMEOUT) $(DAEMON_PACKAGES)
 
 testcmd:
-	go test -v -timeout $(TIMEOUT) $(CMD_PACKAGES)
+	go test  -timeout $(TIMEOUT) $(CMD_PACKAGES)
 
 testbench:
-	go test -v -timeout $(TIMEOUT) $(BENCH_PACKAGES)
+	go test  -timeout $(TIMEOUT) $(BENCH_PACKAGES)
 
 testclientrace:
 	go test -race -timeout $(RACE_TIMEOUT) $(CLIENT_PACKAGES)

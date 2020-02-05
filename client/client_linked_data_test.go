@@ -23,6 +23,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/threefoldtech/0-stor/client/datastor"
 	"github.com/threefoldtech/0-stor/client/datastor/pipeline"
 	"github.com/threefoldtech/0-stor/client/metastor/metatypes"
 
@@ -33,7 +34,7 @@ func TestClient_WriteLinkedErrors(t *testing.T) {
 	servers, serverClean := testZdbServer(t, 1)
 	defer serverClean()
 
-	dataShards := []string{servers[0].Address()}
+	dataShards := []datastor.ShardConfig{{Address: servers[0].Address()}}
 	config := newDefaultConfig(dataShards, 0)
 	config.DataStor.Pipeline.Distribution = pipeline.ObjectDistributionConfig{}
 
@@ -58,7 +59,7 @@ func TestClient_WriteLinked(t *testing.T) {
 	servers, serverClean := testZdbServer(t, 1)
 	defer serverClean()
 
-	dataShards := []string{servers[0].Address()}
+	dataShards := []datastor.ShardConfig{{Address: servers[0].Address()}}
 	config := newDefaultConfig(dataShards, 0)
 	config.DataStor.Pipeline.Distribution = pipeline.ObjectDistributionConfig{}
 
@@ -103,7 +104,7 @@ func TestClient_TraverseErrors(t *testing.T) {
 	servers, serverClean := testZdbServer(t, 1)
 	defer serverClean()
 
-	dataShards := []string{servers[0].Address()}
+	dataShards := []datastor.ShardConfig{{Address: servers[0].Address()}}
 	config := newDefaultConfig(dataShards, 0)
 	config.DataStor.Pipeline.Distribution = pipeline.ObjectDistributionConfig{}
 
@@ -128,7 +129,7 @@ func TestClient_TraversePostOrderErrors(t *testing.T) {
 	servers, serverClean := testZdbServer(t, 1)
 	defer serverClean()
 
-	dataShards := []string{servers[0].Address()}
+	dataShards := []datastor.ShardConfig{{Address: servers[0].Address()}}
 	config := newDefaultConfig(dataShards, 0)
 	config.DataStor.Pipeline.Distribution = pipeline.ObjectDistributionConfig{}
 
@@ -149,9 +150,9 @@ func testTraverse(t *testing.T, forward bool) {
 	servers, serverClean := testZdbServer(t, 4)
 	defer serverClean()
 
-	dataShards := make([]string, len(servers))
+	dataShards := make([]datastor.ShardConfig, len(servers))
 	for i, server := range servers {
-		dataShards[i] = server.Address()
+		dataShards[i] = datastor.ShardConfig{Address: server.Address()}
 	}
 
 	config := newDefaultConfig(dataShards, 0)

@@ -16,4 +16,4 @@
 
 package grpc
 
-//go:generate protoc -I=. -I=../../../vendor -I=../../../vendor/github.com/gogo/protobuf/protobuf --gogoslick_out=plugins=grpc:. schema/daemon.proto
+//go:generate protoc -I=. -I=$GOPATH/src/ -I=$GOPATH/src/github.com/gogo/protobuf/protobuf --gogoslick_out=plugins=grpc:. schema/daemon.proto

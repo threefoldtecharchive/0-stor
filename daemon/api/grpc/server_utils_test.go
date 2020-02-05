@@ -99,7 +99,7 @@ func (tc *testCloser) Close() error {
 // create cluster with `count` number of server
 func newServerCluster(count int) (clu *zerodb.Cluster, cleanup func(), err error) {
 	var (
-		addresses []string
+		addresses []datastor.ShardConfig
 		cleanups  []func()
 		addr      string
 	)
@@ -115,7 +115,7 @@ func newServerCluster(count int) (clu *zerodb.Cluster, cleanup func(), err error
 			return
 		}
 		cleanups = append(cleanups, cleanup)
-		addresses = append(addresses, addr)
+		addresses = append(addresses, datastor.ShardConfig{Address: addr})
 	}
 
 	clu, err = zerodb.NewCluster(addresses, passwd, namespace, nil, datastor.SpreadingTypeRandom)

@@ -1,4 +1,5 @@
 #!/bin/bash
+set -ev
 
 case $OSTYPE in
     darwin*) PLATFORM_ARCH="osx-x86_64" ;;
@@ -24,6 +25,7 @@ sudo mv "$PROTOC_DIR/bin/protoc" "/usr/local/bin/protoc" ||\
 # remove unzipped and non-moved content
 rm -rf "$PROTOC_DIR" || (echo "couldn't cleanup $PROTOC_DIR" && exit 1)
 
-# install vendored go plugin
-BASEDIR=$(dirname "$0")
-"$BASEDIR"/install_protobuf_go_plugin.sh
+export GO111MODULE=off
+go get -v -u github.com/golang/protobuf/protoc-gen-go
+go get -v -u github.com/gogo/protobuf/protoc-gen-gofast
+go install -v github.com/gogo/protobuf/protoc-gen-gogoslick

@@ -191,6 +191,16 @@ type (
 	}
 )
 
+func (sc *stubShard) Address() string {
+	return "stub"
+}
+func (sc *stubShard) Namespace() string {
+	return "stub"
+}
+func (sc *stubShard) Password() string {
+	return ""
+}
+
 func (sc *stubCluster) GetShard(id string) (Shard, error) {
 	return &stubShard{id: id}, nil
 }

@@ -24,7 +24,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/garyburd/redigo/redis"
+	"github.com/gomodule/redigo/redis"
 
 	"github.com/threefoldtech/0-stor/client/datastor"
 )
@@ -32,7 +32,7 @@ import (
 var (
 	readTimeout    = 60 * time.Second
 	writeTimeout   = 60 * time.Second
-	connectTimeout = 10 * time.Second
+	connectTimeout = 3 * time.Second
 )
 
 // Client defines a data client,
@@ -67,21 +67,24 @@ func NewClient(addr, passwd, namespace string) (*Client, error) {
 
 	// creates pool
 	pool := &redis.Pool{
+		Wait:        true,
 		MaxIdle:     3,
-		IdleTimeout: 240 * time.Second,
+		MaxActive:   5,
+		IdleTimeout: 30 * time.Second,
 		Dial: func() (redis.Conn, error) {
 			conn, err := redis.Dial("tcp", addr, opts...)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("failed to dial 0-db: %v", err)
 			}
+
 			_, err = conn.Do("SELECT", selectArgs...)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("failed to select %s: %v", selectArgs[0], err)
 			}
 			return conn, err
 		},
 		TestOnBorrow: func(c redis.Conn, t time.Time) error {
-			if time.Since(t) < 3*time.Second {
+			if time.Since(t) < time.Minute {
 				return nil
 			}
 			_, err := c.Do("PING")

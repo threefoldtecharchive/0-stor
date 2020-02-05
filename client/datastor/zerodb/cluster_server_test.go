@@ -39,7 +39,7 @@ func TestNewClusterImplicitErrors(t *testing.T) {
 		namespace = "ns"
 	)
 
-	cluster, err := NewCluster([]string{""}, passwd, namespace, nil, datastor.SpreadingTypeRandom)
+	cluster, err := NewCluster([]datastor.ShardConfig{{Address: ""}}, passwd, namespace, nil, datastor.SpreadingTypeRandom)
 	require.Error(err, "can't connect to first given address")
 	require.Nil(cluster)
 
@@ -47,7 +47,7 @@ func TestNewClusterImplicitErrors(t *testing.T) {
 	require.NoError(err)
 	defer cleanup()
 
-	cluster, err = NewCluster([]string{addr, ""}, passwd, namespace, nil, datastor.SpreadingTypeRandom)
+	cluster, err = NewCluster([]datastor.ShardConfig{{Address: addr}, {Address: ""}}, passwd, namespace, nil, datastor.SpreadingTypeRandom)
 	require.Error(err, "can't connect to second given address")
 	require.Nil(cluster)
 }
@@ -69,14 +69,8 @@ func TestGetShard(t *testing.T) {
 	defer clientCleanup()
 
 	shard, err := cluster.GetShard(addr)
-	require.NoError(err)
-	require.NotNil(shard)
-	require.Equal(addr, shard.Identifier())
-
-	shard, err = cluster.GetShard(addr)
-	require.NoError(err)
-	require.NotNil(shard)
-	require.Equal(addr, shard.Identifier())
+	require.Error(err)
+	require.Nil(shard)
 
 	shard, err = cluster.GetShard(cluster.listedSlice[0].address)
 	require.NoError(err)
@@ -350,7 +344,7 @@ func TestGetShardIteratorAsync(t *testing.T) {
 func spreadTestSetup(t *testing.T) ([]*zdbtest.InMem0DBServer, *Cluster, func()) {
 	require := require.New(t)
 	var (
-		addresses []string
+		addresses []datastor.ShardConfig
 		servers   []*zdbtest.InMem0DBServer
 		cleanups  []func()
 	)
@@ -365,7 +359,7 @@ func spreadTestSetup(t *testing.T) ([]*zdbtest.InMem0DBServer, *Cluster, func())
 		server, addr, cleanup, err := zdbtest.NewInMem0DBServer(namespace)
 		require.NoError(err)
 		cleanups = append(cleanups, cleanup)
-		addresses = append(addresses, addr)
+		addresses = append(addresses, datastor.ShardConfig{Address: addr})
 		servers = append(servers, server)
 	}
 
@@ -449,7 +443,7 @@ func TestClusterSpread(t *testing.T) {
 // create cluster with `count` number of server
 func newServerCluster(count int, spreadingType datastor.SpreadingType) (clu *Cluster, cleanup func(), err error) {
 	var (
-		addresses []string
+		addresses []datastor.ShardConfig
 		cleanups  []func()
 		addr      string
 	)
@@ -465,7 +459,7 @@ func newServerCluster(count int, spreadingType datastor.SpreadingType) (clu *Clu
 			return
 		}
 		cleanups = append(cleanups, cleanup)
-		addresses = append(addresses, addr)
+		addresses = append(addresses, datastor.ShardConfig{Address: addr})
 	}
 
 	clu, err = NewCluster(addresses, passwd, namespace, nil, spreadingType)

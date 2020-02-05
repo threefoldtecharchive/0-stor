@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/threefoldtech/0-stor/client/datastor"
 )
 
 var (
@@ -34,9 +35,9 @@ func TestInMemoryMetaClient(t *testing.T) {
 	servers, cleanupZstor := newTestZstorServers(t, 4)
 	defer cleanupZstor()
 
-	shards := make([]string, len(servers))
+	shards := make([]datastor.ShardConfig, len(servers))
 	for i, server := range servers {
-		shards[i] = server.Address()
+		shards[i] = datastor.ShardConfig{Address: server.Address()}
 	}
 
 	clientConfig := newDefaultZstorConfig(shards, nil, 64)

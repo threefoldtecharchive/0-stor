@@ -10,8 +10,8 @@ Simple cli to store file to 0-stor.
 
 ## Configuration
 
-By default, the cli client will look for a `config.yaml` file in the directory the client is called from.  
-If a custom filename and/or directory needs to be provided for the config file, it can be set with the `--config`/`-C` flag. E.g.:  
+By default, the cli client will look for a `config.yaml` file in the directory the client is called from.
+If a custom filename and/or directory needs to be provided for the config file, it can be set with the `--config`/`-C` flag. E.g.:
 `zstor --config config/aConfigFile.yaml`
 
 A config file should look something like this:
@@ -21,10 +21,12 @@ namespace: namespace1  # 0-db namespace (required)
 datastor: # required
   # the address(es) of a 0-db cluster (required0)
   shards: # required
-    - 127.0.0.1:12345
-    - 127.0.0.1:12346
-    - 127.0.0.1:12347
-    - 127.0.0.1:12348
+    - address: 127.0.0.1:12345
+    - address: 127.0.0.1:12346
+    - address: 127.0.0.1:12347
+    - address: 127.0.0.1:12348
+      namespace: namespaceX
+      password: passwordX
   pipeline:
     block_size: 4096
     compression: # optional, snappy by default
@@ -50,8 +52,11 @@ metastor: # required
 ```
 
 Make sure to set the `namespace` to a valid 0-db namespace.
-Also make sure the `data_shards` are set to existing addresses of 0-db server instances (**Warning** do not use one instance multiple times to make up a cluster)  
+Also make sure the `data_shards` are set to existing addresses of 0-db server instances (**Warning** do not use one instance multiple times to make up a cluster)
 and that the `meta_shards` are set to existing addresses of etcd server instances.
+
+Each `shard` listed under `datastor` shards, can define a custom `namespace` and/or `password` to override
+the global one defined at the root of the config file. If not defined, the global ones are used.
 
 The config used in this example will also do the following data processing when uploading a file:
 - Chunk the file into smaller blocks
@@ -85,7 +90,7 @@ More information about the daemon can be found at the daemon [README](/daemon/ap
 zstor --config conf_file.yaml file upload data/my_file.file
 ```
 
-Upload the file and use the file's name (`my_file.file`) as the 0-stor key.  
+Upload the file and use the file's name (`my_file.file`) as the 0-stor key.
 If a custom key needs to be provided, the `--key` or `-k` flag can be used to set the desired key:
 
 ```

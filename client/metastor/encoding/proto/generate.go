@@ -16,4 +16,4 @@
 
 package proto
 
-//go:generate protoc -I=. -I=../../../../vendor -I=../../../../vendor/github.com/gogo/protobuf/protobuf --gogoslick_out=. ./metadata.proto
+//go:generate protoc -I=. -I=$GOPATH/src/ -I=$GOPATH/src/github.com/gogo/protobuf/protobuf --gogoslick_out=. ./metadata.proto

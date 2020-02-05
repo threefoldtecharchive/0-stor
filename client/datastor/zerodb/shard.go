@@ -24,12 +24,29 @@ import (
 // 0-db clients, to make those clients work within a cluster of other 0-db clients.
 type Shard struct {
 	*Client
-	address string
+	namespace string
+	password  string
+	address   string
 }
 
 // Identifier implements datastor.Shard.Identifier
 func (shard *Shard) Identifier() string {
 	return shard.address
+}
+
+// Address returns shard address
+func (shard *Shard) Address() string {
+	return shard.address
+}
+
+// Password returns shard password
+func (shard *Shard) Password() string {
+	return shard.password
+}
+
+// Namespace returns shard namespace
+func (shard *Shard) Namespace() string {
+	return shard.namespace
 }
 
 var (
