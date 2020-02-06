@@ -14,7 +14,7 @@ matrix:
     - language: go
       sudo: true
       dist: trusty
-      go: 1.11.x
+      go: 1.13.x
       install: skip
       script:
         - env GO111MODULE=on make
@@ -23,13 +23,13 @@ matrix:
     - language: go
       sudo: true
       dist: trusty
-      go: 1.11.x
+      go: 1.13.x
       install: skip
       script: env GO111MODULE=on make testcov
       after_success: bash <(curl -s https://codecov.io/bash) -F unittests
 
     - language: go
-      go: 1.11.x
+      go: 1.13.x
       install: skip
       script:
         - env GO111MODULE=on go vet ./...
@@ -40,21 +40,21 @@ matrix:
     - language: go
       sudo: true
       dist: trusty
-      go: 1.11.x
+      go: 1.13.x
       install: skip
       script: env GO111MODULE=on make testclientrace
 
     - language: go
       sudo: true
       dist: trusty
-      go: 1.11.x
+      go: 1.13.x
       install: skip
       script: env GO111MODULE=on make testdaemonrace
 
     - language: go
       sudo: true
       dist: trusty
-      go: 1.11.x
+      go: 1.13.x
       install:
         - ./utils/scripts/install_protoc_unix.sh
       script: env GO111MODULE=on  make testcodegen
