@@ -17,6 +17,8 @@
 package zerodb
 
 import (
+	"fmt"
+
 	"github.com/threefoldtech/0-stor/client/datastor"
 )
 
@@ -31,7 +33,7 @@ type Shard struct {
 
 // Identifier implements datastor.Shard.Identifier
 func (shard *Shard) Identifier() string {
-	return shard.address
+	return fmt.Sprint(shard.namespace, "@", shard.address)
 }
 
 // Address returns shard address

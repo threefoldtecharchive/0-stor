@@ -67,7 +67,7 @@ func NewCluster(addresses []datastor.ShardConfig, passwd, namespace string, tlsC
 			namespace: or(cfg.Namespace, namespace),
 			password:  or(cfg.Password, passwd),
 		}
-		listedShards[cfg.Address] = shard
+		listedShards[shard.Identifier()] = shard
 		listedSlice = append(listedSlice, shard)
 	}
 	return &Cluster{

@@ -72,10 +72,10 @@ func TestGetShard(t *testing.T) {
 	require.Error(err)
 	require.Nil(shard)
 
-	shard, err = cluster.GetShard(cluster.listedSlice[0].address)
+	shard, err = cluster.GetShard(cluster.listedSlice[0].Identifier())
 	require.NoError(err)
 	require.NotNil(shard)
-	require.Equal(cluster.listedSlice[0].address, shard.Identifier())
+	require.Equal(cluster.listedSlice[0].Identifier(), shard.Identifier())
 }
 
 func TestGetRandomShards(t *testing.T) {

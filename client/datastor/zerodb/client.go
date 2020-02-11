@@ -53,6 +53,7 @@ func NewClient(addr, passwd, namespace string) (*Client, error) {
 		redis.DialWriteTimeout(writeTimeout),
 		redis.DialConnectTimeout(connectTimeout),
 	}
+
 	if len(addr) == 0 {
 		return nil, fmt.Errorf("no address given")
 	}
