@@ -42,6 +42,18 @@ var (
 )
 
 type (
+	// Health holds information about the namespace health
+	// Not all data stores can return these information
+	Health struct {
+		DataIOErrors  int64
+		IndexIOErrors int64
+		DataFaults    int64
+		IndexFaults   int64
+
+		DataIOErrorLast  int64
+		IndexIOErrorLast int64
+	}
+
 	// Namespace contains information about a namespace.
 	// None of this information is directly stored somewhere,
 	// and instead it is gathered upon request.
@@ -51,6 +63,8 @@ type (
 		WriteRequestPerHour int64
 		NrObjects           int64
 		Used                int64 //the number of bytes present in the namespace
+		Free                int64
+		Health              *Health
 	}
 
 	// Object contains the information stored for an object.

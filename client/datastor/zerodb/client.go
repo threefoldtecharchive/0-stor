@@ -202,6 +202,8 @@ func (c *Client) GetNamespace() (*datastor.Namespace, error) {
 	}
 
 	var ns datastor.Namespace
+	var health datastor.Health
+	ns.Health = &health
 
 	for _, info := range strings.Split(infoStr, "\n") {
 		elems := strings.Split(info, ":")
@@ -224,6 +226,50 @@ func (c *Client) GetNamespace() (*datastor.Namespace, error) {
 				return nil, err
 			}
 			ns.Used = used
+		case "data_disk_freespace_bytes":
+			free, err := strconv.ParseInt(val, 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			ns.Free = free
+		case "stats_index_io_errors":
+			count, err := strconv.ParseInt(val, 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			health.IndexIOErrors = count
+		case "stats_index_faults":
+			count, err := strconv.ParseInt(val, 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			health.IndexFaults = count
+
+		case "stats_data_io_errors":
+			count, err := strconv.ParseInt(val, 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			health.DataIOErrors = count
+		case "stats_data_faults":
+			count, err := strconv.ParseInt(val, 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			health.DataFaults = count
+
+		case "stats_index_io_error_last":
+			timestamp, err := strconv.ParseInt(val, 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			health.IndexIOErrorLast = timestamp
+		case "stats_data_io_error_last":
+			timestamp, err := strconv.ParseInt(val, 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			health.DataIOErrorLast = timestamp
 		}
 	}
 
