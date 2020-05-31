@@ -31,7 +31,7 @@ API documentation : [https://godoc.org/github.com/threefoldtech/0-stor/client](h
 
 **Features**
 
-- [Erasure coding](http://smahesh.com/blog/2012/07/01/dummies-guide-to-erasure-coding/)
+- distributed storage, data gets distributed over multiple backends
 
 **Reference list**
 
