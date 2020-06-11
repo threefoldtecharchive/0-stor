@@ -143,7 +143,7 @@ func (asp *AsyncSplitterPipeline) Write(r io.Reader) ([]metatypes.Chunk, error) 
 		Hash  []byte
 		Data  []byte
 	}
-	dataCh := make(chan indexedData, asp.storageJobCount)
+	dataCh := make(chan indexedData)
 	processorGroup, _ := errgroup.WithContext(ctx)
 	for i := 0; i < asp.processorJobCount; i++ {
 		hasher, err := asp.hasher()
@@ -195,7 +195,7 @@ func (asp *AsyncSplitterPipeline) Write(r io.Reader) ([]metatypes.Chunk, error) 
 		Index int
 		Chunk metatypes.Chunk
 	}
-	chunkCh := make(chan indexedChunk, asp.storageJobCount)
+	chunkCh := make(chan indexedChunk)
 	storageGroup, _ := errgroup.WithContext(ctx)
 	for i := 0; i < asp.storageJobCount; i++ {
 		storageGroup.Go(func() error {
@@ -353,7 +353,7 @@ func (asp *AsyncSplitterPipeline) Read(chunks []metatypes.Chunk, w io.Writer) er
 		Index int
 		Chunk metatypes.Chunk
 	}
-	chunkCh := make(chan indexedChunk, storageJobCount)
+	chunkCh := make(chan indexedChunk)
 	go func() {
 		defer close(chunkCh)
 		for index, chunk := range chunks {
@@ -374,7 +374,7 @@ func (asp *AsyncSplitterPipeline) Read(chunks []metatypes.Chunk, w io.Writer) er
 		Hash  []byte
 	}
 	storageGroup, _ := errgroup.WithContext(ctx)
-	inputCh := make(chan indexedInput, processorJobCount)
+	inputCh := make(chan indexedInput)
 	for i := 0; i < storageJobCount; i++ {
 		storageGroup.Go(func() error {
 			for ic := range chunkCh {
@@ -809,8 +809,8 @@ type indexedDataChunk struct {
 // newAsyncDataSplitter creates a functional data splitter,
 // which can be used to split streaming input data into fixed-sized chunks,
 // in an asynchronous fashion.
-func newAsyncDataSplitter(ctx context.Context, r io.Reader, chunkSize, bufferSize int) (<-chan indexedDataChunk, func() error) {
-	inputCh := make(chan indexedDataChunk, bufferSize)
+func newAsyncDataSplitter(ctx context.Context, r io.Reader, chunkSize, _bufferSize int) (<-chan indexedDataChunk, func() error) {
+	inputCh := make(chan indexedDataChunk)
 	return inputCh, func() error {
 		defer close(inputCh)
 		var index int
