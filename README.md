@@ -46,7 +46,7 @@ The client provides some basic storage primitives to process your data before se
 - chunking
 - compression
 - encryption
-- replication or distribution/erasure coding
+- replication or distribution/forward looking error correcting codes
 
 All of these primitives are configurable and you can decide how your data will be processed before being sent to the 0-stor.
 
