@@ -21,7 +21,7 @@ require (
 	github.com/gogo/protobuf v1.3.1
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
 	github.com/golang/snappy v0.0.0-20170215233205-553a64147049
-	github.com/gomodule/redigo v2.0.0+incompatible
+	github.com/gomodule/redigo v1.8.2
 	github.com/google/btree v0.0.0-20161217183710-316fb6d3f031 // indirect
 	github.com/google/uuid v1.1.1 // indirect
 	github.com/gordonklaus/ineffassign v0.0.0-20190601041439-ed7b1b5ee0f8 // indirect
@@ -50,7 +50,7 @@ require (
 	github.com/soheilhy/cmux v0.1.4 // indirect
 	github.com/spf13/cobra v0.0.2-0.20171123071330-1be1d2841c77
 	github.com/spf13/pflag v1.0.0 // indirect
-	github.com/stretchr/testify v1.4.0
+	github.com/stretchr/testify v1.5.1
 	github.com/templexxx/reedsolomon v0.0.0-20170725134912-0a1f6992d698
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20200122045848-3419fae592fc // indirect
 	github.com/ugorji/go v0.0.0-20170107133203-ded73eae5db7 // indirect

@@ -68,10 +68,9 @@ func NewClient(addr, passwd, namespace string) (*Client, error) {
 
 	// creates pool
 	pool := &redis.Pool{
-		Wait:        true,
-		MaxIdle:     3,
-		MaxActive:   5,
-		IdleTimeout: 30 * time.Second,
+		Wait:      true,
+		MaxActive: 5,
+		MaxIdle:   5,
 		Dial: func() (redis.Conn, error) {
 			conn, err := redis.Dial("tcp", addr, opts...)
 			if err != nil {
