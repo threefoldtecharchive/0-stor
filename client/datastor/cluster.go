@@ -113,19 +113,15 @@ type Shard interface {
 // and allows you to turn the given iterator into a thread-safe iterator using channels.
 // Due to the impact on the performance the channel-based approach brings with it,
 // it isn't recommended unless you really need it.
-func ShardIteratorChannel(ctx context.Context, iterator ShardIterator, bufferSize int) <-chan Shard {
+func ShardIteratorChannel(ctx context.Context, iterator ShardIterator) <-chan Shard {
 	if ctx == nil {
 		panic("no context given")
 	}
 	if iterator == nil {
 		panic("no shard iterator given")
 	}
-	if bufferSize < 1 {
-		log.Debug("ShardIteratorChannel wasn't passed a valid bufferSize, defaulting to 1")
-		bufferSize = 1
-	}
 
-	ch := make(chan Shard, bufferSize)
+	ch := make(chan Shard)
 	go func() {
 		defer close(ch)
 		for iterator.Next() {

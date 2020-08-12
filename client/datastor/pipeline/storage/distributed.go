@@ -111,7 +111,7 @@ func (ds *DistributedChunkStorage) WriteChunk(data []byte) (*ChunkConfig, error)
 		Index int
 		Data  []byte
 	}
-	inputCh := make(chan indexedPart, jobCount)
+	inputCh := make(chan indexedPart)
 	go func() {
 		defer close(inputCh) // closes itself
 		for index, part := range parts {
@@ -126,7 +126,7 @@ func (ds *DistributedChunkStorage) WriteChunk(data []byte) (*ChunkConfig, error)
 	// create a channel-based iterator, to fetch the shards,
 	// randomly and thread-save
 	shardCh := datastor.ShardIteratorChannel(ctx,
-		ds.cluster.GetShardIterator(nil), jobCount)
+		ds.cluster.GetShardIterator(nil))
 
 	// write all the different parts to their own separate shard,
 	// and return the written object information over the resultCh,
@@ -135,7 +135,7 @@ func (ds *DistributedChunkStorage) WriteChunk(data []byte) (*ChunkConfig, error)
 		Index  int
 		Object metatypes.Object
 	}
-	resultCh := make(chan indexedObject, jobCount)
+	resultCh := make(chan indexedObject)
 	// create all the actual workers
 	for i := 0; i < jobCount; i++ {
 		group.Go(func() error {

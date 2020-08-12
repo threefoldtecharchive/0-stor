@@ -476,7 +476,7 @@ func (rs *ReplicatedChunkStorage) write(exceptShards []string, dataShardCount in
 
 	// request the worker goroutines,
 	// to get exactly dataShardCount amount of replications.
-	requestCh := make(chan struct{}, jobCount)
+	requestCh := make(chan struct{})
 	go func() {
 		defer close(requestCh) // closes itself
 		for i := dataShardCount; i > 0; i-- {
@@ -491,12 +491,12 @@ func (rs *ReplicatedChunkStorage) write(exceptShards []string, dataShardCount in
 	// create a channel-based iterator, to fetch the shards,
 	// randomly and thread-save
 	shardCh := datastor.ShardIteratorChannel(ctx,
-		rs.cluster.GetShardIterator(exceptShards), jobCount)
+		rs.cluster.GetShardIterator(exceptShards))
 
 	// write to dataShardCount amount of shards,
 	// and return their identifiers over the resultCh,
 	// collection all the successful shards' identifiers for the final output
-	resultCh := make(chan metatypes.Object, jobCount)
+	resultCh := make(chan metatypes.Object)
 	// create all the actual workers
 	for i := 0; i < jobCount; i++ {
 		group.Go(func() error {

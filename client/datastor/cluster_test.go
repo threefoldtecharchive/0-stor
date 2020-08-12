@@ -28,10 +28,10 @@ func TestShardIteratorChannelPanics(t *testing.T) {
 	require := require.New(t)
 
 	require.Panics(func() {
-		ShardIteratorChannel(nil, NewRandomShardIterator(nil), 1)
+		ShardIteratorChannel(nil, NewRandomShardIterator(nil))
 	}, "no context given")
 	require.Panics(func() {
-		ShardIteratorChannel(context.Background(), nil, 1)
+		ShardIteratorChannel(context.Background(), nil)
 	}, "no iterator given")
 }
 
@@ -39,7 +39,7 @@ func TestShardIteratorChannel(t *testing.T) {
 	require := require.New(t)
 
 	ch := ShardIteratorChannel(context.Background(),
-		NewRandomShardIterator([]Shard{&stubShard{id: "a"}}), -1)
+		NewRandomShardIterator([]Shard{&stubShard{id: "a"}}))
 	require.NotNil(ch)
 	select {
 	case shard, open := <-ch:
@@ -57,7 +57,7 @@ func TestShardIteratorChannel(t *testing.T) {
 	}
 
 	ch = ShardIteratorChannel(context.Background(),
-		NewRandomShardIterator([]Shard{&stubShard{id: "a"}, &stubShard{id: "b"}}), -1)
+		NewRandomShardIterator([]Shard{&stubShard{id: "a"}, &stubShard{id: "b"}}))
 	require.NotNil(ch)
 
 	ids := map[string]struct{}{

@@ -268,7 +268,7 @@ func TestGetShardIteratorAsync(t *testing.T) {
 	}
 	ch := make(chan writeResult, jobs)
 
-	shardCh := datastor.ShardIteratorChannel(ctx, cluster.GetShardIterator(nil), jobs)
+	shardCh := datastor.ShardIteratorChannel(ctx, cluster.GetShardIterator(nil))
 	require.NotNil(shardCh)
 
 	for i := 0; i < jobs; i++ {
